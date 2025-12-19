@@ -35,19 +35,9 @@ const data = {
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "Pasak",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      plan: "Free Version",
     },
   ],
   navMain: [
@@ -63,7 +53,7 @@ const data = {
         },
         {
           title: "Chart of Account",
-          url: "#",
+          url: "/accounting/accounts",
         },
         {
           title: "Trial Balance",
