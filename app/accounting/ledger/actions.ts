@@ -13,6 +13,7 @@ export async function getPostingAccounts() {
       select: {
         id: true,
         code: true,
+        type: true,
         name: true,
       },
       orderBy: {

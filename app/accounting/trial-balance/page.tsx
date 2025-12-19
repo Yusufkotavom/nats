@@ -20,8 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { getTrialBalance, TrialBalanceItem } from "./actions";
+import { getTrialBalance } from "./actions";
 import { Loader2, RefreshCw, ChevronRight, ChevronDown } from "lucide-react";
+import { TrialBalanceItem } from "../types";
 
 export default function TrialBalancePage() {
   const [date, setDate] = useState<string>(

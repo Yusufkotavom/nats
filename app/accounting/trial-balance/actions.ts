@@ -1,25 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
-
-export type TrialBalanceItem = {
-  accountId: string;
-  code: string;
-  name: string;
-  type: string;
-  debit: number;
-  credit: number;
-  level: number;
-  hasChildren: boolean;
-  parentId: string | null;
-};
-
-export type TrialBalanceResult = {
-  items: TrialBalanceItem[];
-  totalDebit: number;
-  totalCredit: number;
-};
+import {
+  CalculatedAccount,
+  TrialBalanceItem,
+  TrialBalanceResult,
+} from "../types";
 
 export async function getTrialBalance(
   date: string
@@ -63,21 +49,8 @@ export async function getTrialBalance(
     });
 
     // 3. Prepare data structure for hierarchy and calculation
-    type AccountNode = {
-      id: string;
-      code: string;
-      name: string;
-      parentId: string | null;
-      level: number;
-      ownDebit: number;
-      ownCredit: number;
-      totalDebit: number;
-      totalCredit: number;
-      children: string[];
-      calculated: boolean;
-    };
 
-    const nodeMap = new Map<string, AccountNode>();
+    const nodeMap = new Map<string, CalculatedAccount>();
 
     // Initialize nodes
     for (const acc of accounts) {
@@ -86,7 +59,8 @@ export async function getTrialBalance(
         id: acc.id,
         code: acc.code,
         name: acc.name,
-        parentId: acc.parentId,
+        type: acc.type,
+        parentId: acc.parentId ?? undefined,
         level: acc.level, // We will re-verify level or trust it. Let's trust it for sorting but re-verify structure.
         ownDebit: bal.debit,
         ownCredit: bal.credit,
@@ -169,7 +143,7 @@ export async function getTrialBalance(
         credit: displayCredit,
         level: node.level,
         hasChildren: node.children.length > 0,
-        parentId: node.parentId,
+        parentId: node.parentId ?? null,
       });
 
       // Add to Grand Total only if it's a root node

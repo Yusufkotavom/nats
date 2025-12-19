@@ -41,7 +41,6 @@ import {
   deleteJournalEntry,
   postJournalEntry,
 } from "./actions";
-import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
 

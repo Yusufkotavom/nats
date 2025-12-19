@@ -38,21 +38,10 @@ import {
   getAccounts,
   updateAccount,
 } from "./actions";
-
-type AccountNode = {
-  id: string;
-  code: string;
-  name: string;
-  type: AccountType;
-  parentId: string | null;
-  children?: AccountNode[];
-  isPosting?: boolean;
-  level?: number;
-  _count?: { journalEntryLines: number };
-};
+import { Account } from "../types";
 
 export default function Page() {
-  const [accounts, setAccounts] = useState<AccountNode[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState<string>("");
@@ -69,12 +58,12 @@ export default function Page() {
   useEffect(() => {
     startTransition(async () => {
       const data = await getAccounts();
-      setAccounts(data as AccountNode[]);
+      setAccounts(data as Account[]);
     });
   }, []);
 
   const byId = useMemo(() => {
-    const map: Record<string, AccountNode> = {};
+    const map: Record<string, Account> = {};
     accounts.forEach((a) => (map[a.id] = { ...a, children: [] }));
     accounts.forEach((a) => {
       if (a.parentId && map[a.parentId]) {
@@ -85,7 +74,7 @@ export default function Page() {
   }, [accounts]);
 
   const roots = useMemo(() => {
-    const res: AccountNode[] = [];
+    const res: Account[] = [];
     accounts.forEach((a) => {
       if (!a.parentId) {
         res.push(byId[a.id] || a);
@@ -100,21 +89,21 @@ export default function Page() {
     setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
   }
 
-  function beginEdit(a: AccountNode) {
+  function beginEdit(a: Account) {
     setEditingId(a.id);
     setDraftName(a.name);
   }
-  async function commitEdit(a: AccountNode) {
+  async function commitEdit(a: Account) {
     if (!editingId) return;
     setError(null);
     await updateAccount(a.id, { name: draftName });
     const data = await getAccounts();
-    setAccounts(data as AccountNode[]);
+    setAccounts(data as Account[]);
     setEditingId(null);
     setDraftName("");
   }
 
-  async function handleDelete(a: AccountNode) {
+  async function handleDelete(a: Account) {
     setError(null);
     const res = await deleteAccount(a.id);
     if (!res?.success) {
@@ -122,7 +111,7 @@ export default function Page() {
       return;
     }
     const data = await getAccounts();
-    setAccounts(data as AccountNode[]);
+    setAccounts(data as Account[]);
   }
 
   function openAdd() {
@@ -177,11 +166,11 @@ export default function Page() {
       return;
     }
     const data = await getAccounts();
-    setAccounts(data as AccountNode[]);
+    setAccounts(data as Account[]);
     cancelAdd();
   }
 
-  function renderRows(a: AccountNode, depth = 0): React.ReactElement[] {
+  function renderRows(a: Account, depth = 0): React.ReactElement[] {
     const hasChildren = (a.children?.length || 0) > 0;
     const isOpen = expanded[a.id] ?? true;
     const canDelete = (a._count?.journalEntryLines || 0) === 0;

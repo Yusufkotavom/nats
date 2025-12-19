@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -17,7 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ScaleIcon,
+  TrendingDownIcon,
+  TrendingUpIcon,
+} from "lucide-react";
 import { getPostingAccounts, getLedgerEntries } from "./actions";
 import {
   Card,
@@ -26,20 +32,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Prisma, NormalBalance } from "@prisma/client";
+import { Prisma, NormalBalance, AccountType } from "@prisma/client";
 import { StatusBadge } from "@/components/status-badge";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from "@/lib/utils";
-
-type Account = {
-  id: string;
-  code: string;
-  name: string;
-};
+import { Account } from "../types";
 
 type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
   include: {
@@ -56,7 +56,7 @@ type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
 
 export default function LedgerPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,7 +71,6 @@ export default function LedgerPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [onlyDraft, setOnlyDraft] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -84,12 +83,12 @@ export default function LedgerPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedAccountId) return;
+    if (!selectedAccount?.id) return;
 
     const fetchEntries = async () => {
       setLoading(true);
       const res = await getLedgerEntries(
-        selectedAccountId,
+        selectedAccount.id,
         currentPage,
         20,
         startDate,
@@ -119,10 +118,11 @@ export default function LedgerPage() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [selectedAccountId, currentPage, startDate, endDate, onlyDraft]);
+  }, [selectedAccount?.id, currentPage, startDate, endDate, onlyDraft]);
 
   const handleAccountChange = (value: string) => {
-    setSelectedAccountId(value);
+    const found = accounts?.find((item) => item.id == value);
+    if (found) setSelectedAccount(found);
     setCurrentPage(1);
   };
 
@@ -131,23 +131,24 @@ export default function LedgerPage() {
       ? totals.debit - totals.credit
       : totals.credit - totals.debit;
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      dateStyle: "medium",
-    });
-  };
-
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">General Ledger</h2>
       </div>
 
-      {selectedAccountId && (
+      {selectedAccount?.id && (
         <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
           <Card>
-            <CardHeader className="">
-              <CardTitle className="text-sm font-medium">Total Debit</CardTitle>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium flex gap-2">
+                {selectedAccount.type == AccountType.asset ? (
+                  <TrendingUpIcon />
+                ) : (
+                  <TrendingDownIcon />
+                )}
+                <span>Total Debit</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -156,9 +157,14 @@ export default function LedgerPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Credit
+            <CardHeader>
+              <CardTitle className="text-sm font-medium flex gap-1">
+                {selectedAccount.type != AccountType.asset ? (
+                  <TrendingUpIcon />
+                ) : (
+                  <TrendingDownIcon />
+                )}
+                <span>Total Credit</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -168,8 +174,11 @@ export default function LedgerPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium flex gap-2">
+                <ScaleIcon />
+                <span>Net Balance</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -190,7 +199,7 @@ export default function LedgerPage() {
               <div className="flex flex-col space-y-1">
                 <Label>Account</Label>
                 <Select
-                  value={selectedAccountId}
+                  value={selectedAccount?.id}
                   onValueChange={handleAccountChange}
                 >
                   <SelectTrigger>
@@ -266,7 +275,7 @@ export default function LedgerPage() {
                 ) : entries.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
-                      {selectedAccountId
+                      {selectedAccount?.id
                         ? "No transactions found."
                         : "Select an account to view transactions."}
                     </TableCell>

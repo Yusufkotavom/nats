@@ -9,9 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
 
