@@ -96,12 +96,24 @@ const data = {
       icon: BoxIcon,
       items: [
         {
-          title: "Inventories",
-          url: "#",
+          title: "Overview",
+          url: "/inventory",
         },
         {
-          title: "Stock Opname",
-          url: "#",
+          title: "Products",
+          url: "/inventory/products",
+        },
+        {
+          title: "Categories",
+          url: "/inventory/categories",
+        },
+        {
+          title: "Warehouses",
+          url: "/inventory/warehouses",
+        },
+        {
+          title: "Movements",
+          url: "/inventory/movements",
         },
       ],
     },
