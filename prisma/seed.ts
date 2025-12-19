@@ -476,6 +476,210 @@ async function main() {
     });
   }
 
+  // Seed Inventory
+  console.log("Seeding Inventory...");
+
+  // 1. Categories
+  const categories = [
+    { name: "Electronics", description: "Gadgets and electronic devices" },
+    { name: "Clothing", description: "Apparel and accessories" },
+    {
+      name: "Home & Garden",
+      description: "Furniture, decor, and garden tools",
+    },
+    { name: "Sports", description: "Sporting goods and equipment" },
+    {
+      name: "Books",
+      description: "Books, magazines, and educational materials",
+    },
+    { name: "Toys", description: "Toys and games for all ages" },
+    { name: "Health", description: "Health and wellness products" },
+    { name: "Automotive", description: "Car parts and accessories" },
+  ];
+
+  const createdCategories = [];
+  for (const cat of categories) {
+    const c = await prisma.category.upsert({
+      where: { name: cat.name },
+      update: {},
+      create: cat,
+    });
+    createdCategories.push(c);
+  }
+
+  // 2. Warehouses
+  const warehouses = [
+    { name: "Main Warehouse", location: "New York, NY" },
+    { name: "West Coast Hub", location: "Los Angeles, CA" },
+    { name: "East Coast Hub", location: "Newark, NJ" },
+    { name: "Central Depot", location: "Chicago, IL" },
+  ];
+
+  const createdWarehouses = [];
+  for (const w of warehouses) {
+    const wh = await prisma.warehouse.upsert({
+      where: { name: w.name },
+      update: {},
+      create: w,
+    });
+    createdWarehouses.push(wh);
+  }
+
+  // 3. Products (100 items)
+  const products = [];
+  for (let i = 1; i <= 100; i++) {
+    const category =
+      createdCategories[Math.floor(Math.random() * createdCategories.length)];
+    const price = Math.floor(Math.random() * 500) + 10; // 10 to 510
+    const cost = Number((price * 0.6).toFixed(2)); // 60% margin
+
+    const product = await prisma.product.upsert({
+      where: { sku: `PROD-${i.toString().padStart(3, "0")}` },
+      update: {},
+      create: {
+        sku: `PROD-${i.toString().padStart(3, "0")}`,
+        name: `${category.name} Item ${i}`,
+        description: `High quality ${category.name.toLowerCase()} product #${i}`,
+        categoryId: category.id,
+        price: price,
+        cost: cost,
+      },
+    });
+    products.push(product);
+  }
+
+  // 4. Initial Inventory & Movements
+  for (const product of products) {
+    // Randomly assign to 1-3 warehouses
+    const numWarehouses = Math.floor(Math.random() * 3) + 1;
+    const shuffledWarehouses = [...createdWarehouses].sort(
+      () => 0.5 - Math.random()
+    );
+    const selectedWarehouses = shuffledWarehouses.slice(0, numWarehouses);
+
+    for (const warehouse of selectedWarehouses) {
+      const quantity = Math.floor(Math.random() * 100) + 5; // 5 to 105
+
+      // Create Movement (IN)
+      await prisma.inventoryMovement.create({
+        data: {
+          type: "IN",
+          productId: product.id,
+          toWarehouseId: warehouse.id,
+          quantity: quantity,
+          reference: "INITIAL-SEED",
+          notes: "Initial stock seeding",
+          status: "COMPLETED",
+          createdAt: new Date(
+            new Date().getTime() - Math.floor(Math.random() * 1000000000)
+          ), // Random date in past
+        },
+      });
+
+      // Create/Update Inventory
+      await prisma.inventory.upsert({
+        where: {
+          productId_warehouseId_batchNumber: {
+            productId: product.id,
+            warehouseId: warehouse.id,
+            batchNumber: "-", // Default batch
+          },
+        },
+        update: {
+          quantity: { increment: quantity },
+        },
+        create: {
+          productId: product.id,
+          warehouseId: warehouse.id,
+          quantity: quantity,
+          batchNumber: "-",
+        },
+      });
+    }
+  }
+
+  // 5. Generate random movements (Transfers, Adjustments, Sales)
+  for (let i = 0; i < 50; i++) {
+    const product = products[Math.floor(Math.random() * products.length)];
+    const warehouse =
+      createdWarehouses[Math.floor(Math.random() * createdWarehouses.length)];
+
+    // Check if stock exists
+    const stock = await prisma.inventory.findUnique({
+      where: {
+        productId_warehouseId_batchNumber: {
+          productId: product.id,
+          warehouseId: warehouse.id,
+          batchNumber: "-",
+        },
+      },
+    });
+
+    if (stock && stock.quantity > 5) {
+      const type =
+        Math.random() > 0.7
+          ? "OUT"
+          : Math.random() > 0.5
+          ? "TRANSFER"
+          : "ADJUSTMENT";
+      const quantity = Math.floor(Math.random() * 5) + 1;
+
+      if (type === "OUT") {
+        await prisma.inventoryMovement.create({
+          data: {
+            type: "OUT",
+            productId: product.id,
+            fromWarehouseId: warehouse.id,
+            quantity: quantity,
+            reference: `SO-${Math.floor(Math.random() * 1000)}`,
+            status: "COMPLETED",
+          },
+        });
+        await prisma.inventory.update({
+          where: { id: stock.id },
+          data: { quantity: { decrement: quantity } },
+        });
+      } else if (type === "TRANSFER") {
+        const toWarehouse = createdWarehouses.find(
+          (w) => w.id !== warehouse.id
+        );
+        if (toWarehouse) {
+          await prisma.inventoryMovement.create({
+            data: {
+              type: "TRANSFER",
+              productId: product.id,
+              fromWarehouseId: warehouse.id,
+              toWarehouseId: toWarehouse.id,
+              quantity: quantity,
+              reference: `TR-${Math.floor(Math.random() * 1000)}`,
+              status: "COMPLETED",
+            },
+          });
+          await prisma.inventory.update({
+            where: { id: stock.id },
+            data: { quantity: { decrement: quantity } },
+          });
+          await prisma.inventory.upsert({
+            where: {
+              productId_warehouseId_batchNumber: {
+                productId: product.id,
+                warehouseId: toWarehouse.id,
+                batchNumber: "-",
+              },
+            },
+            update: { quantity: { increment: quantity } },
+            create: {
+              productId: product.id,
+              warehouseId: toWarehouse.id,
+              quantity: quantity,
+              batchNumber: "-",
+            },
+          });
+        }
+      }
+    }
+  }
+
   console.log("Seeding completed.");
 }
 
