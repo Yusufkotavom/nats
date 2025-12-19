@@ -12,7 +12,14 @@ export default async function Page() {
         <h2 className="text-2xl font-bold tracking-tight">Products</h2>
         <ProductDialog categories={categories} />
       </div>
-      <ProductTable products={products} categories={categories} />
+      <ProductTable
+        products={products.map((p) => ({
+          ...p,
+          price: Number(p.price),
+          cost: Number(p.cost),
+        }))}
+        categories={categories}
+      />
     </div>
   );
 }

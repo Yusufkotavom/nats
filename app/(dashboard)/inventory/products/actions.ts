@@ -1,7 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Product } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 import { revalidatePath } from "next/cache";
+import { ProductFormData } from "../types";
 
 // Categories
 
@@ -43,21 +46,18 @@ export async function getProducts() {
   });
 }
 
-export async function createProduct(data: {
-  sku: string;
-  name: string;
-  description?: string;
-  categoryId?: string;
-  price: number;
-  cost: number;
-  minStock: number;
-}) {
+export async function createProduct(data: ProductFormData) {
   try {
     const product = await prisma.product.create({
       data: {
-        ...data,
-        price: Number(data.price),
-        cost: Number(data.cost),
+        name: data.name,
+        sku: data.sku,
+        description: data.description,
+        categoryId: data.categoryId,
+        price: new Decimal(data.price),
+        cost: new Decimal(data.cost),
+        minStock: data.minStock,
+        isActive: data.isActive,
       },
     });
     revalidatePath("/inventory/products");
@@ -65,8 +65,8 @@ export async function createProduct(data: {
       success: true,
       data: {
         ...product,
-        price: Number(product.price),
-        cost: Number(product.cost),
+        price: new Decimal(product.price),
+        cost: new Decimal(product.cost),
       },
     };
   } catch (error) {
@@ -75,26 +75,19 @@ export async function createProduct(data: {
   }
 }
 
-export async function updateProduct(
-  id: string,
-  data: {
-    sku: string;
-    name: string;
-    description?: string;
-    categoryId?: string;
-    price: number;
-    cost: number;
-    minStock: number;
-    isActive: boolean;
-  }
-) {
+export async function updateProduct(id: string, data: ProductFormData) {
   try {
     const product = await prisma.product.update({
       where: { id },
       data: {
-        ...data,
-        price: Number(data.price),
-        cost: Number(data.cost),
+        name: data.name,
+        sku: data.sku,
+        description: data.description,
+        categoryId: data.categoryId,
+        price: new Decimal(data.price),
+        cost: new Decimal(data.cost),
+        minStock: data.minStock,
+        isActive: data.isActive,
       },
     });
     revalidatePath("/inventory/products");

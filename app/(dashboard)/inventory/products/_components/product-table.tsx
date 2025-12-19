@@ -17,22 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Product, Category, Inventory, Warehouse } from "@prisma/client";
+import { Category } from "@prisma/client";
 import { Pencil, Trash2, Search, Filter } from "lucide-react";
 import { deleteProduct } from "../actions";
 import { ProductDialog } from "./product-dialog";
 import { useState } from "react";
-
-type ProductWithDetails = Omit<Product, "price" | "cost"> & {
-  price: number;
-  cost: number;
-} & {
-  category: Category | null;
-  inventory: (Inventory & { warehouse: Warehouse })[];
-};
+import { ProductFormData } from "../../types";
 
 interface ProductTableProps {
-  products: ProductWithDetails[];
+  products: ProductFormData[];
   categories: Category[];
 }
 
@@ -108,7 +101,7 @@ export function ProductTable({ products, categories }: ProductTableProps) {
               </TableRow>
             ) : (
               filteredProducts.map((product) => {
-                const totalStock = product.inventory.reduce(
+                const totalStock = product?.inventory?.reduce(
                   (acc, inv) => acc + inv.quantity,
                   0
                 );

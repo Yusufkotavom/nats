@@ -24,9 +24,11 @@ import { Category, Product } from "@prisma/client";
 import { Plus, Pencil } from "lucide-react";
 import { useState } from "react";
 import { createProduct, updateProduct, createCategory } from "../actions";
+import { Switch } from "@/components/ui/switch";
+import { ProductFormData } from "../../types";
 
 interface ProductDialogProps {
-  product?: Omit<Product, "price" | "cost"> & { price: number; cost: number };
+  product?: ProductFormData;
   categories: Category[];
   trigger?: React.ReactNode;
 }
@@ -48,20 +50,21 @@ export function ProductDialog({
 
     const formData = new FormData(e.currentTarget);
     const data = {
+      id: product?.id || "",
       sku: formData.get("sku") as string,
       name: formData.get("name") as string,
       description: formData.get("description") as string,
-      categoryId: (formData.get("categoryId") as string) || undefined,
+      categoryId: (formData.get("categoryId") as string) || null,
+      category: null,
       price: Number(formData.get("price")),
       cost: Number(formData.get("cost")),
+      minStock: Number(formData.get("minStock")),
+      isActive: formData.get("isActive") === "on",
     };
 
     try {
       if (isEditing) {
-        await updateProduct(product.id, {
-          ...data,
-          isActive: product.isActive,
-        });
+        await updateProduct(product.id, data);
       } else {
         await createProduct(data);
       }
@@ -164,6 +167,20 @@ export function ProductDialog({
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="price" className="text-right">
+              Min. Stock
+            </Label>
+            <Input
+              id="minStock"
+              name="minStock"
+              type="number"
+              step="0.01"
+              defaultValue={product?.minStock ? Number(product.minStock) : 0}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="cost" className="text-right">
               Cost
             </Label>
@@ -178,19 +195,6 @@ export function ProductDialog({
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="minStock" className="text-right">
-              Min Stock
-            </Label>
-            <Input
-              id="minStock"
-              name="minStock"
-              type="number"
-              defaultValue={product?.minStock || 0}
-              className="col-span-3"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="description" className="text-right">
               Desc
             </Label>
@@ -199,6 +203,16 @@ export function ProductDialog({
               name="description"
               defaultValue={product?.description || ""}
               className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="isActive" className="text-right">
+              Active
+            </Label>
+            <Switch
+              id="isActive"
+              name="isActive"
+              defaultChecked={product?.isActive ?? true}
             />
           </div>
           <DialogFooter>
