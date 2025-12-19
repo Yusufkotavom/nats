@@ -35,7 +35,7 @@ const data = {
   },
   teams: [
     {
-      name: "Pasak",
+      name: "NATS Accounting",
       logo: GalleryVerticalEnd,
       plan: "Free Version",
     },
