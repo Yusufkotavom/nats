@@ -14,7 +14,7 @@ async function getDefaultUser() {
       email: "demo@example.com",
       name: "Demo User",
       password: "password", // In a real app, this should be hashed
-      role: "admin",
+      role: "superadmin",
     },
   });
 }

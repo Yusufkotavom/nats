@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -203,7 +203,7 @@ async function main() {
       email: "admin@example.com",
       name: "Admin User",
       password: "password123", // In a real app, this should be hashed
-      role: "admin",
+      role: Role.superadmin,
     },
   });
 

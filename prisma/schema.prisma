@@ -15,7 +15,7 @@ model User {
   email          String         @unique
   password       String
   name           String
-  role           Role           @default(viewer)
+  role           Role           @default(staff)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   journalEntries JournalEntry[]
@@ -79,10 +79,10 @@ model JournalEntryLine {
 }
 
 enum Role {
-  admin
-  accountant
-  bookkeeper
-  viewer
+  staff
+  supervisor
+  manager
+  superadmin
 }
 
 enum AccountType {

@@ -10,7 +10,9 @@ import {
   GalleryVerticalEnd,
   Map,
   PieChart,
+  ShieldCheck,
   Settings2,
+  Users,
   SquareTerminal,
 } from "lucide-react";
 
@@ -134,6 +136,21 @@ const data = {
         {
           title: "Limits",
           url: "#",
+        },
+      ],
+    },
+    {
+      title: "Administration",
+      url: "#",
+      icon: Users,
+      items: [
+        {
+          title: "User Management",
+          url: "/admin/users",
+        },
+        {
+          title: "Role Definitions",
+          url: "/admin/roles",
         },
       ],
     },
