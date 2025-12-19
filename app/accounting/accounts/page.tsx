@@ -398,7 +398,7 @@ export default function Page() {
       {error && !adding && (
         <div className="text-destructive text-sm">{error}</div>
       )}
-      <div className="rounded-lg border">
+      <div className="rounded-lg border p-1">
         <Table className="w-full">
           <TableHeader className="bg-muted">
             <TableRow className="text-left text-sm text-muted-foreground">

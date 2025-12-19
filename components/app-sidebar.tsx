@@ -61,7 +61,7 @@ const data = {
         },
         {
           title: "Trial Balance",
-          url: "#",
+          url: "/accounting/trial-balance",
         },
         {
           title: "Reporting",

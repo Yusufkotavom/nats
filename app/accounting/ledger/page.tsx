@@ -242,7 +242,7 @@ export default function LedgerPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border p-1">
             <Table>
               <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
                 <TableRow>
