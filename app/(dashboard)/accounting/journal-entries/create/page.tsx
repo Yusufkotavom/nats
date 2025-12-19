@@ -36,18 +36,12 @@ export default function CreateJournalEntryPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-4 w-full mx-auto">
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center gap-4">
-        <Link href="/accounting/journal-entries">
-          <Button variant="ghost" size="icon">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </Link>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-lg font-bold tracking-tight">
             New Journal Entry
           </h2>
-          <p className="text-muted-foreground">Create a new journal entry</p>
         </div>
       </div>
 

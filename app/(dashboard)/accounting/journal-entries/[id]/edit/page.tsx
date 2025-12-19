@@ -79,7 +79,7 @@ export default function EditJournalEntryPage({
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 w-full mx-auto">
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center gap-4">
         <div>
           <h2 className="text-lg font-bold tracking-tight">

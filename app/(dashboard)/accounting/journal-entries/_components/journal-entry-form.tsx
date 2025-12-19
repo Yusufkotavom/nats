@@ -21,10 +21,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, ArrowLeft } from "lucide-react";
 import { CreateJournalEntryData } from "../actions";
 import { Account } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -32,6 +49,49 @@ interface JournalEntryFormProps {
   onSubmit: (data: CreateJournalEntryData) => Promise<void>;
   isSubmitting: boolean;
   onCancel: () => void;
+}
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
+
+function SortableTableRow({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: "relative" as const,
+    zIndex: isDragging ? 1 : 0,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} {...attributes}>
+      <TableCell className="w-[40px]">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="cursor-move"
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </Button>
+      </TableCell>
+      {children}
+    </TableRow>
+  );
 }
 
 export function JournalEntryForm({
@@ -54,6 +114,7 @@ export function JournalEntryForm({
   );
   const [lines, setLines] = useState<
     {
+      id: string;
       accountId: string;
       debitAmount: string;
       creditAmount: string;
@@ -61,16 +122,48 @@ export function JournalEntryForm({
     }[]
   >(
     initialData?.lines.map((l) => ({
+      id: generateId(),
       accountId: l.accountId,
       debitAmount: l.debitAmount.toString(),
       creditAmount: l.creditAmount.toString(),
       description: l.description || "",
     })) || [
-      { accountId: "", debitAmount: "0", creditAmount: "0", description: "" },
-      { accountId: "", debitAmount: "0", creditAmount: "0", description: "" },
+      {
+        id: generateId(),
+        accountId: "",
+        debitAmount: "0",
+        creditAmount: "0",
+        description: "",
+      },
+      {
+        id: generateId(),
+        accountId: "",
+        debitAmount: "0",
+        creditAmount: "0",
+        description: "",
+      },
     ]
   );
   const [error, setError] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setLines((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
 
   const formatNumber = (value: number) => {
     return formatCurrency(value);
@@ -141,7 +234,13 @@ export function JournalEntryForm({
   const addLine = () => {
     setLines([
       ...lines,
-      { accountId: "", debitAmount: "0", creditAmount: "0", description: "" },
+      {
+        id: generateId(),
+        accountId: "",
+        debitAmount: "0",
+        creditAmount: "0",
+        description: "",
+      },
     ]);
   };
 
@@ -178,7 +277,7 @@ export function JournalEntryForm({
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Journal entry description"
+            placeholder="General transaction description"
           />
         </div>
       </div>
@@ -187,6 +286,7 @@ export function JournalEntryForm({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]"></TableHead>
               <TableHead className="w-[300px]">Account</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[150px] text-right">Debit</TableHead>
@@ -195,67 +295,84 @@ export function JournalEntryForm({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lines.map((line, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <Select
-                    value={line.accountId}
-                    onValueChange={(val) => updateLine(index, "accountId", val)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {leafAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.code} - {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Input
-                    value={line.description}
-                    onChange={(e) =>
-                      updateLine(index, "description", e.target.value)
-                    }
-                    placeholder="Line description"
-                  />
-                </TableCell>
-                <TableCell>
-                  <CurrencyInput
-                    className="text-right"
-                    value={line.debitAmount}
-                    onChange={(val) => updateLine(index, "debitAmount", val)}
-                    onFocus={(e) => e.target.select()}
-                  />
-                </TableCell>
-                <TableCell>
-                  <CurrencyInput
-                    className="text-right"
-                    value={line.creditAmount}
-                    onChange={(val) => updateLine(index, "creditAmount", val)}
-                    onFocus={(e) => e.target.select()}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeLine(index)}
-                    disabled={lines.length <= 2}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={lines}
+                strategy={verticalListSortingStrategy}
+              >
+                {lines.map((line, index) => (
+                  <SortableTableRow key={line.id} id={line.id}>
+                    <TableCell>
+                      <Select
+                        value={line.accountId}
+                        onValueChange={(val) =>
+                          updateLine(index, "accountId", val)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {leafAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.code} - {account.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={line.description}
+                        onChange={(e) =>
+                          updateLine(index, "description", e.target.value)
+                        }
+                        placeholder="Detailed description"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <CurrencyInput
+                        className="text-right"
+                        value={line.debitAmount}
+                        onChange={(val) =>
+                          updateLine(index, "debitAmount", val)
+                        }
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <CurrencyInput
+                        className="text-right"
+                        value={line.creditAmount}
+                        onChange={(val) =>
+                          updateLine(index, "creditAmount", val)
+                        }
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeLine(index)}
+                        disabled={lines.length <= 2}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </SortableTableRow>
+                ))}
+              </SortableContext>
+            </DndContext>
           </TableBody>
           <TableFooter>
             <TableRow>
-              <TableCell colSpan={2} className="font-bold">
+              <TableCell colSpan={3} className="font-bold">
                 Total
               </TableCell>
               <TableCell className="text-right font-bold">
@@ -268,7 +385,7 @@ export function JournalEntryForm({
             </TableRow>
             {!isBalanced && (
               <TableRow>
-                <TableCell colSpan={2} className="font-bold text-red-600">
+                <TableCell colSpan={3} className="font-bold text-red-600">
                   Difference
                 </TableCell>
                 <TableCell
@@ -283,27 +400,30 @@ export function JournalEntryForm({
           </TableFooter>
         </Table>
       </div>
-
-      <div className="flex justify-between items-center">
-        <Button type="button" variant="outline" onClick={addLine}>
-          <Plus className="mr-2 h-4 w-4" /> Add Line
-        </Button>
-      </div>
-
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting || !isBalanced}>
-          {isSubmitting ? "Saving..." : "Save Journal Entry"}
-        </Button>
+      <div className="flex justify-between">
+        <div className="flex items-start">
+          <Button type="button" variant="outline" onClick={addLine}>
+            <Plus className="mr-2 h-4 w-4" /> Add Line
+          </Button>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            <ArrowLeft />
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting || !isBalanced}>
+            <Save />
+            {isSubmitting ? "Saving..." : "Save Journal Entry"}
+          </Button>
+        </div>
       </div>
     </form>
   );
