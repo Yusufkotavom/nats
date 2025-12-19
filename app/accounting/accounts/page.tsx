@@ -136,12 +136,10 @@ export default function Page() {
   function openAdd() {
     setAdding(true);
     setAddForm({ name: "", code: "", type: "", parentId: null });
-    setParentSearch("");
   }
   function cancelAdd() {
     setAdding(false);
     setAddForm({ name: "", code: "", type: "", parentId: null });
-    setParentSearch("");
     setError(null);
   }
   async function submitAdd() {
@@ -339,9 +337,40 @@ export default function Page() {
                   />
                 </div>
                 <div className="space-y-1">
+                  <Label>Parent</Label>
+                  <Select
+                    value={addForm.parentId || ""}
+                    onValueChange={(val) => {
+                      const p = accounts.find((a) => a.id === val);
+                      if (p) {
+                        setAddForm((f) => ({
+                          ...f,
+                          parentId: val,
+                          code: p.code,
+                          type: p.type,
+                        }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select parent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts
+                        .sort((x, y) => x.code.localeCompare(y.code))
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.code} — {a.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 w-full">
                   <Label>Type</Label>
                   <Select
                     value={addForm.type || ""}
+                    disabled
                     onValueChange={(val) =>
                       setAddForm((f) => ({
                         ...f,
@@ -361,56 +390,6 @@ export default function Page() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <Label>Parent</Label>
-                  <Combobox
-                    value={addForm.parentId}
-                    onValueChange={(val) => {
-                      const p = accounts.find((a) => a.id === val);
-                      if (p) {
-                        setAddForm((f) => ({
-                          ...f,
-                          parentId: val,
-                          code: p.code,
-                        }));
-                        setParentSearch(p.code + " — " + p.name);
-                      }
-                    }}
-                  >
-                    <ComboboxInput
-                      placeholder="Search parent"
-                      value={parentSearch}
-                      onChange={(e) => setParentSearch(e.target.value)}
-                    />
-                    <ComboboxContent>
-                      <ComboboxList>
-                        {accounts
-                          .filter((a) =>
-                            (a.code + " " + a.name)
-                              .toLowerCase()
-                              .includes(parentSearch.toLowerCase())
-                          )
-                          .sort((x, y) => x.code.localeCompare(y.code))
-                          .map((a) => (
-                            <ComboboxItem
-                              key={a.id}
-                              value={a.id}
-                              onSelect={() => {
-                                setAddForm((f) => ({
-                                  ...f,
-                                  parentId: a.id,
-                                  code: a.code,
-                                }));
-                                setParentSearch(a.code + " — " + a.name);
-                              }}
-                            >
-                              {a.code} — {a.name}
-                            </ComboboxItem>
-                          ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
               </div>
               {error && <div className="text-destructive text-sm">{error}</div>}
             </div>
@@ -429,7 +408,7 @@ export default function Page() {
       )}
       <div className="rounded-lg border">
         <Table className="w-full">
-          <TableHeader>
+          <TableHeader className="bg-muted">
             <TableRow className="text-left text-sm text-muted-foreground">
               <TableHead className="w-12"> </TableHead>
               <TableHead className="w-28">Code</TableHead>

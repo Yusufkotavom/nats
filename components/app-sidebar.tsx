@@ -49,10 +49,10 @@ const data = {
       items: [
         {
           title: "Journal Entries",
-          url: "#",
+          url: "/accounting/journal-entries",
         },
         {
-          title: "Chart of Account",
+          title: "Chart of Accounts",
           url: "/accounting/accounts",
         },
         {
@@ -61,7 +61,7 @@ const data = {
         },
         {
           title: "Ledger Detail",
-          url: "#",
+          url: "/accounting/ledger",
         },
         {
           title: "Reporting",
