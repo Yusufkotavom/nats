@@ -14,6 +14,11 @@ import {
   Settings2,
   Users,
   SquareTerminal,
+  BoxIcon,
+  Scale,
+  Building,
+  ShoppingCart,
+  Rocket,
 } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -61,7 +66,7 @@ const data = {
     {
       title: "Accounting",
       url: "#",
-      icon: SquareTerminal,
+      icon: Scale,
       items: [
         {
           title: "Chart of Accounts",
@@ -86,9 +91,24 @@ const data = {
       ],
     },
     {
+      title: "Inventory",
+      url: "#",
+      icon: BoxIcon,
+      items: [
+        {
+          title: "Inventories",
+          url: "#",
+        },
+        {
+          title: "Stock Opname",
+          url: "#",
+        },
+      ],
+    },
+    {
       title: "Sales",
       url: "#",
-      icon: BookOpen,
+      icon: Rocket,
       items: [
         {
           title: "POS",
@@ -103,7 +123,7 @@ const data = {
     {
       title: "Purchase",
       url: "#",
-      icon: Bot,
+      icon: ShoppingCart,
       items: [
         {
           title: "Order",
@@ -115,25 +135,11 @@ const data = {
         },
       ],
     },
-    {
-      title: "Inventory",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Inventories",
-          url: "#",
-        },
-        {
-          title: "Stock Opname",
-          url: "#",
-        },
-      ],
-    },
+
     {
       title: "Assets",
       url: "#",
-      icon: Settings2,
+      icon: Building,
       items: [
         {
           title: "General",

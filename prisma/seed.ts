@@ -212,7 +212,84 @@ async function main() {
     },
   });
 
-  // Helper to get account by code
+  // Seed Customers
+  const customers = [
+    {
+      name: "Acme Corp",
+      email: "contact@acme.com",
+      phone: "555-0100",
+      address: "123 Business Rd, Tech City",
+    },
+    {
+      name: "Global Industries",
+      email: "info@globalind.com",
+      phone: "555-0101",
+      address: "456 Enterprise Blvd, Commerce City",
+    },
+    {
+      name: "Local Shop",
+      email: "support@localshop.com",
+      phone: "555-0102",
+      address: "789 Market St, Smalltown",
+    },
+  ];
+
+  for (const customer of customers) {
+    const existing = await prisma.customer.findFirst({
+      where: { name: customer.name },
+    });
+
+    if (existing) {
+      await prisma.customer.update({
+        where: { id: existing.id },
+        data: customer,
+      });
+    } else {
+      await prisma.customer.create({
+        data: customer,
+      });
+    }
+  }
+
+  // Seed Vendors
+  const vendors = [
+    {
+      name: "Office Supplies Co",
+      email: "sales@officesupplies.com",
+      phone: "555-0200",
+      address: "101 Paper Ln, Print City",
+    },
+    {
+      name: "Tech Wholesalers",
+      email: "orders@techwhole.com",
+      phone: "555-0201",
+      address: "202 Silicon Dr, Valley Town",
+    },
+    {
+      name: "Maintenance Services Inc",
+      email: "service@maintserv.com",
+      phone: "555-0202",
+      address: "303 Fix It Ave, Repair City",
+    },
+  ];
+
+  for (const vendor of vendors) {
+    const existing = await prisma.vendor.findFirst({
+      where: { name: vendor.name },
+    });
+
+    if (existing) {
+      await prisma.vendor.update({
+        where: { id: existing.id },
+        data: vendor,
+      });
+    } else {
+      await prisma.vendor.create({
+        data: vendor,
+      });
+    }
+  }
+
   const getAccount = async (code: string) => {
     return prisma.account.findUnique({
       where: { code },
