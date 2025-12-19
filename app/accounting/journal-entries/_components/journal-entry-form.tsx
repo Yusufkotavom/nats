@@ -24,6 +24,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Plus, Trash2 } from "lucide-react";
 import { CreateJournalEntryData } from "../actions";
 import { Account } from "@prisma/client";
+import { formatCurrency } from "@/lib/utils";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -72,10 +73,7 @@ export function JournalEntryForm({
   const [error, setError] = useState<string | null>(null);
 
   const formatNumber = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
+    return formatCurrency(value);
   };
 
   const totalDebit = lines.reduce(

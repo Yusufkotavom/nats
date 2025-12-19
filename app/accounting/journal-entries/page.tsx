@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,10 +41,10 @@ import {
   deleteJournalEntry,
   postJournalEntry,
 } from "./actions";
-import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { StatusBadge } from "@/components/status-badge";
+import { formatCurrency } from "@/lib/utils";
 
 // Define type based on the return of getJournalEntries
 type JournalEntryWithDetails = Prisma.JournalEntryGetPayload<{
@@ -55,12 +62,19 @@ export default function JournalEntriesPage() {
   const [pageSize] = useState(10);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [status, setStatus] = useState("all");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const fetchEntries = useCallback(
     async (page: number = 1) => {
-      const res = await getJournalEntries(page, pageSize, startDate, endDate);
+      const res = await getJournalEntries(
+        page,
+        pageSize,
+        startDate,
+        endDate,
+        status
+      );
       if (res.success && res.data) {
         setEntries(res.data);
         if (res.pagination) {
@@ -70,7 +84,7 @@ export default function JournalEntriesPage() {
       }
       setLoading(false);
     },
-    [pageSize, startDate, endDate]
+    [pageSize, startDate, endDate, status]
   );
 
   useEffect(() => {
@@ -113,7 +127,7 @@ export default function JournalEntriesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold tracking-tight">Journal Entries</h2>
@@ -126,7 +140,7 @@ export default function JournalEntriesPage() {
       </div>
 
       <div className="flex items-end gap-4">
-        <div className="grid w-full max-w-sm items-center gap-1.5">
+        <div className="grid items-center gap-1.5">
           <Label htmlFor="startDate">Start Date</Label>
           <Input
             type="date"
@@ -135,7 +149,7 @@ export default function JournalEntriesPage() {
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
-        <div className="grid w-full max-w-sm items-center gap-1.5">
+        <div className="grid items-center gap-1.5">
           <Label htmlFor="endDate">End Date</Label>
           <Input
             type="date"
@@ -144,12 +158,26 @@ export default function JournalEntriesPage() {
             onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
-        {(startDate || endDate) && (
+        <div className="grid items-center gap-1.5 w-[150px]">
+          <Label htmlFor="status">Status</Label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger id="status">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="posted">Posted</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {(startDate || endDate || status !== "all") && (
           <Button
             variant="secondary"
             onClick={() => {
               setStartDate("");
               setEndDate("");
+              setStatus("all");
             }}
           >
             Clear Filter
@@ -210,16 +238,10 @@ export default function JournalEntriesPage() {
                       <StatusBadge status={entry.status} />
                     </TableCell>
                     <TableCell className="text-right">
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                      }).format(totalDebit)}
+                      {formatCurrency(totalDebit)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                      }).format(totalCredit)}
+                      {formatCurrency(totalCredit)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

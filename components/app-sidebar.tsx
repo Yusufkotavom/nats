@@ -48,20 +48,20 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "Journal Entries",
-          url: "/accounting/journal-entries",
-        },
-        {
           title: "Chart of Accounts",
           url: "/accounting/accounts",
         },
         {
-          title: "Trial Balance",
-          url: "#",
+          title: "Journal Entries",
+          url: "/accounting/journal-entries",
         },
         {
-          title: "Ledger Detail",
+          title: "Ledger",
           url: "/accounting/ledger",
+        },
+        {
+          title: "Trial Balance",
+          url: "#",
         },
         {
           title: "Reporting",

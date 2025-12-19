@@ -195,6 +195,205 @@ async function main() {
     });
   }
 
+  // Seed User
+  const user = await prisma.user.upsert({
+    where: { email: "admin@example.com" },
+    update: {},
+    create: {
+      email: "admin@example.com",
+      name: "Admin User",
+      password: "password123", // In a real app, this should be hashed
+      role: "admin",
+    },
+  });
+
+  // Helper to get account by code
+  const getAccount = async (code: string) => {
+    return prisma.account.findUnique({
+      where: { code },
+    });
+  };
+
+  const cashAccount = await getAccount("11100");
+  const capitalAccount = await getAccount("31000");
+  const revenueAccount = await getAccount("41000");
+  const expenseAccount = await getAccount("51000");
+
+  if (!cashAccount || !capitalAccount || !revenueAccount || !expenseAccount) {
+    console.error("Required accounts not found for journal entry seeding.");
+    return;
+  }
+
+  // Seed Journal Entries
+  // 1. Initial Investment
+  await prisma.journalEntry.upsert({
+    where: { entryNumber: "JE-001" },
+    update: {},
+    create: {
+      entryNumber: "JE-001",
+      transactionDate: new Date("2024-01-01"),
+      description: "Initial Capital Investment",
+      status: "posted",
+      userId: user.id,
+      lines: {
+        create: [
+          {
+            accountId: cashAccount.id,
+            debitAmount: 100000,
+            creditAmount: 0,
+            lineNumber: 1,
+            description: "Cash investment",
+          },
+          {
+            accountId: capitalAccount.id,
+            debitAmount: 0,
+            creditAmount: 100000,
+            lineNumber: 2,
+            description: "Owner capital",
+          },
+        ],
+      },
+    },
+  });
+
+  // 2. Service Revenue
+  await prisma.journalEntry.upsert({
+    where: { entryNumber: "JE-002" },
+    update: {},
+    create: {
+      entryNumber: "JE-002",
+      transactionDate: new Date("2024-01-15"),
+      description: "Service Revenue",
+      status: "posted",
+      userId: user.id,
+      lines: {
+        create: [
+          {
+            accountId: cashAccount.id,
+            debitAmount: 5000,
+            creditAmount: 0,
+            lineNumber: 1,
+            description: "Cash received",
+          },
+          {
+            accountId: revenueAccount.id,
+            debitAmount: 0,
+            creditAmount: 5000,
+            lineNumber: 2,
+            description: "Service performed",
+          },
+        ],
+      },
+    },
+  });
+
+  // 3. Operating Expense
+  await prisma.journalEntry.upsert({
+    where: { entryNumber: "JE-003" },
+    update: {},
+    create: {
+      entryNumber: "JE-003",
+      transactionDate: new Date("2024-01-20"),
+      description: "Office Supplies",
+      status: "posted",
+      userId: user.id,
+      lines: {
+        create: [
+          {
+            accountId: expenseAccount.id,
+            debitAmount: 500,
+            creditAmount: 0,
+            lineNumber: 1,
+            description: "Supplies purchased",
+          },
+          {
+            accountId: cashAccount.id,
+            debitAmount: 0,
+            creditAmount: 500,
+            lineNumber: 2,
+            description: "Cash paid",
+          },
+        ],
+      },
+    },
+  });
+
+  // Generate 100 additional random transactions
+  const descriptions = [
+    "Consulting Service",
+    "Product Sale",
+    "Maintenance Service",
+    "Subscription Fee",
+    "Office Rent",
+    "Utilities",
+    "Internet Bill",
+    "Office Supplies",
+    "Travel Expense",
+    "Software License",
+  ];
+
+  for (let i = 1; i <= 100; i++) {
+    const entryNumber = `JE-GEN-${i.toString().padStart(3, "0")}`;
+    const isRevenue = Math.random() > 0.5; // 50% chance of revenue vs expense
+    const amount = Math.floor(Math.random() * 1000) + 50; // Random amount between 50 and 1050
+    const description =
+      descriptions[Math.floor(Math.random() * descriptions.length)];
+
+    // Random date within 2024
+    const month = Math.floor(Math.random() * 12);
+    const day = Math.floor(Math.random() * 28) + 1;
+    const date = new Date(2024, month, day);
+
+    await prisma.journalEntry.upsert({
+      where: { entryNumber },
+      update: {},
+      create: {
+        entryNumber,
+        transactionDate: date,
+        description: `${description} #${i}`,
+        status: "posted",
+        userId: user.id,
+        lines: {
+          create: isRevenue
+            ? [
+                // Revenue: Debit Cash, Credit Revenue
+                {
+                  accountId: cashAccount.id,
+                  debitAmount: amount,
+                  creditAmount: 0,
+                  lineNumber: 1,
+                  description: "Cash received",
+                },
+                {
+                  accountId: revenueAccount.id,
+                  debitAmount: 0,
+                  creditAmount: amount,
+                  lineNumber: 2,
+                  description: "Service performed",
+                },
+              ]
+            : [
+                // Expense: Debit Expense, Credit Cash
+                {
+                  accountId: expenseAccount.id,
+                  debitAmount: amount,
+                  creditAmount: 0,
+                  lineNumber: 1,
+                  description: "Expense incurred",
+                },
+                {
+                  accountId: cashAccount.id,
+                  debitAmount: 0,
+                  creditAmount: amount,
+                  lineNumber: 2,
+                  description: "Cash paid",
+                },
+              ],
+        },
+      },
+    });
+  }
+
   console.log("Seeding completed.");
 }
 

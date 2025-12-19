@@ -33,6 +33,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { formatCurrency } from "@/lib/utils";
 
 type Account = {
   id: string;
@@ -130,8 +131,14 @@ export default function LedgerPage() {
       ? totals.debit - totals.credit
       : totals.credit - totals.debit;
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString(undefined, {
+      dateStyle: "medium",
+    });
+  };
+
   return (
-    <div className="space-y-4 p-4">
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">General Ledger</h2>
       </div>
@@ -139,43 +146,34 @@ export default function LedgerPage() {
       {selectedAccountId && (
         <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="">
               <CardTitle className="text-sm font-medium">Total Debit</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {totals.debit.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                {formatCurrency(totals.debit)}
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Credit
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {totals.credit.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                {formatCurrency(totals.credit)}
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {balance.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                {formatCurrency(balance)}
                 <span className="text-xs text-muted-foreground ml-2">
                   ({accountDetails?.normalBalance})
                 </span>
@@ -253,7 +251,7 @@ export default function LedgerPage() {
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -285,27 +283,15 @@ export default function LedgerPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {Number(entry.debitAmount) > 0
-                          ? Number(entry.debitAmount).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )
+                          ? formatCurrency(Number(entry.debitAmount))
                           : "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         {Number(entry.creditAmount) > 0
-                          ? Number(entry.creditAmount).toLocaleString(
-                              undefined,
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )
+                          ? formatCurrency(Number(entry.creditAmount))
                           : "-"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <StatusBadge status={entry.journalEntry.status} />
                       </TableCell>
                     </TableRow>

@@ -30,13 +30,6 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxInput,
-} from "@/components/ui/combobox";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
 import { AccountType } from "@prisma/client";
 import {
@@ -70,7 +63,6 @@ export default function Page() {
     type: AccountType | "";
     parentId: string | null;
   }>({ name: "", code: "", type: "", parentId: null });
-  const [parentSearch, setParentSearch] = useState("");
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 

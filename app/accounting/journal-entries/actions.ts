@@ -23,10 +23,14 @@ export async function getJournalEntries(
   page: number = 1,
   pageSize: number = 10,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  status?: string
 ) {
   try {
     const where: Prisma.JournalEntryWhereInput = {};
+    if (status && status !== "all") {
+      where.status = status as EntryStatus;
+    }
     if (startDate) {
       where.transactionDate = {
         ...((where.transactionDate as Prisma.DateTimeFilter) || {}),

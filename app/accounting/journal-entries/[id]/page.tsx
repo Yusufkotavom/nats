@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function JournalEntryDetailsPage({
   params,
@@ -98,16 +99,12 @@ export default async function JournalEntryDetailsPage({
                     <TableCell>{line.description || "-"}</TableCell>
                     <TableCell className="text-right">
                       {Number(line.debitAmount) > 0
-                        ? new Intl.NumberFormat("en-US", {
-                            minimumFractionDigits: 2,
-                          }).format(Number(line.debitAmount))
+                        ? formatCurrency(Number(line.debitAmount))
                         : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       {Number(line.creditAmount) > 0
-                        ? new Intl.NumberFormat("en-US", {
-                            minimumFractionDigits: 2,
-                          }).format(Number(line.creditAmount))
+                        ? formatCurrency(Number(line.creditAmount))
                         : "-"}
                     </TableCell>
                   </TableRow>
@@ -117,16 +114,10 @@ export default async function JournalEntryDetailsPage({
                     Total
                   </TableCell>
                   <TableCell className="text-right">
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    }).format(totalDebit)}
+                    {formatCurrency(totalDebit)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    }).format(totalCredit)}
+                    {formatCurrency(totalCredit)}
                   </TableCell>
                 </TableRow>
               </TableBody>
