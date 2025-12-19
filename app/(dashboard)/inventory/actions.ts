@@ -41,7 +41,21 @@ export async function getInventoryDashboardMetrics() {
   return {
     totalProducts,
     totalValue: Number(totalValue),
-    lowStockItems,
-    recentMovements,
+    lowStockItems: lowStockItems.map((item) => ({
+      ...item,
+      product: {
+        ...item.product,
+        price: Number(item.product.price),
+        cost: Number(item.product.cost),
+      },
+    })),
+    recentMovements: recentMovements.map((movement) => ({
+      ...movement,
+      product: {
+        ...movement.product,
+        price: Number(movement.product.price),
+        cost: Number(movement.product.cost),
+      },
+    })),
   };
 }

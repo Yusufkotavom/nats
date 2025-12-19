@@ -11,7 +11,10 @@ export async function getCategories() {
   });
 }
 
-export async function createCategory(data: { name: string; description?: string }) {
+export async function createCategory(data: {
+  name: string;
+  description?: string;
+}) {
   try {
     const category = await prisma.category.create({
       data,
@@ -57,7 +60,14 @@ export async function createProduct(data: {
       },
     });
     revalidatePath("/inventory/products");
-    return { success: true, data: product };
+    return {
+      success: true,
+      data: {
+        ...product,
+        price: Number(product.price),
+        cost: Number(product.cost),
+      },
+    };
   } catch (error) {
     console.error("Failed to create product:", error);
     return { success: false, error: "Failed to create product" };
@@ -86,7 +96,14 @@ export async function updateProduct(
       },
     });
     revalidatePath("/inventory/products");
-    return { success: true, data: product };
+    return {
+      success: true,
+      data: {
+        ...product,
+        price: Number(product.price),
+        cost: Number(product.cost),
+      },
+    };
   } catch (error) {
     console.error("Failed to update product:", error);
     return { success: false, error: "Failed to update product" };

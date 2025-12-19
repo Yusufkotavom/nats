@@ -5,7 +5,7 @@ import { MovementType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getMovements() {
-  return await prisma.inventoryMovement.findMany({
+  const movements = await prisma.inventoryMovement.findMany({
     include: {
       product: true,
       fromWarehouse: true,
@@ -13,6 +13,15 @@ export async function getMovements() {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  return movements.map((movement) => ({
+    ...movement,
+    product: {
+      ...movement.product,
+      price: Number(movement.product.price),
+      cost: Number(movement.product.cost),
+    },
+  }));
 }
 
 export async function createMovement(data: {
