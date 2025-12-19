@@ -70,31 +70,6 @@ export default function TrialBalancePage() {
 
   const visibleItems = useMemo(() => {
     const result: TrialBalanceItem[] = [];
-    const expandedSet = new Set<string>();
-
-    // Helper to check if parent is expanded
-    // Since items are flattened but ordered, we need to know if all ancestors are expanded.
-    // A simple way is to build a map of visibility status.
-
-    // However, the items are already sorted by code, but we need to ensure we respect hierarchy.
-    // Let's iterate and maintain a "visible" state for each node.
-
-    // BUT, the easiest way with flattened list + parentId:
-    // A node is visible if its parent is visible AND its parent is expanded.
-    // Root nodes are always visible.
-
-    // Let's do a map for quick lookup of "isExpanded"
-    // And we also need to know if the parent is "showing children".
-
-    // Actually, we can just filter.
-    // A row is visible if its parentId is null OR (parent is visible AND parent is expanded).
-
-    // We can't just filter in one pass unless we guarantee parents come before children.
-    // The query sorts by code ("asc"). In a typical Chart of Accounts, parents usually come before children
-    // (e.g. 1000 before 1100). But strict hierarchy traversal is safer.
-
-    // Let's try the simple filter assuming parent always appears before child in the list
-    // (which is true for standard COA numbering).
 
     const visibilityMap = new Map<string, boolean>(); // accountId -> isVisible
 

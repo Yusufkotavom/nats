@@ -283,23 +283,23 @@ export function JournalEntryForm({
       </div>
 
       <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40px]"></TableHead>
-              <TableHead className="w-[300px]">Account</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="w-[150px] text-right">Debit</TableHead>
-              <TableHead className="w-[150px] text-right">Credit</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
+                <TableHead className="w-[300px]">Account</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-[150px] text-right">Debit</TableHead>
+                <TableHead className="w-[150px] text-right">Credit</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               <SortableContext
                 items={lines}
                 strategy={verticalListSortingStrategy}
@@ -368,37 +368,37 @@ export function JournalEntryForm({
                   </SortableTableRow>
                 ))}
               </SortableContext>
-            </DndContext>
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell colSpan={3} className="font-bold">
-                Total
-              </TableCell>
-              <TableCell className="text-right font-bold">
-                {formatNumber(totalDebit)}
-              </TableCell>
-              <TableCell className="text-right font-bold">
-                {formatNumber(totalCredit)}
-              </TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            {!isBalanced && (
+            </TableBody>
+            <TableFooter>
               <TableRow>
-                <TableCell colSpan={3} className="font-bold text-red-600">
-                  Difference
+                <TableCell colSpan={3} className="font-bold">
+                  Total
                 </TableCell>
-                <TableCell
-                  colSpan={2}
-                  className="text-right font-bold text-red-600"
-                >
-                  {formatNumber(totalDebit - totalCredit)}
+                <TableCell className="text-right font-bold">
+                  {formatNumber(totalDebit)}
+                </TableCell>
+                <TableCell className="text-right font-bold">
+                  {formatNumber(totalCredit)}
                 </TableCell>
                 <TableCell></TableCell>
               </TableRow>
-            )}
-          </TableFooter>
-        </Table>
+              {!isBalanced && (
+                <TableRow>
+                  <TableCell colSpan={3} className="font-bold text-red-600">
+                    Difference
+                  </TableCell>
+                  <TableCell
+                    colSpan={2}
+                    className="text-right font-bold text-red-600"
+                  >
+                    {formatNumber(totalDebit - totalCredit)}
+                  </TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              )}
+            </TableFooter>
+          </Table>
+        </DndContext>
       </div>
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
