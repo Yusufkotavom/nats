@@ -192,6 +192,7 @@ export default function JournalEntriesPage() {
               <TableHead>Date</TableHead>
               <TableHead>Entry #</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Recorded By</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Total Debit</TableHead>
               <TableHead className="text-right">Total Credit</TableHead>
@@ -201,14 +202,14 @@ export default function JournalEntriesPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No journal entries found
@@ -234,6 +235,7 @@ export default function JournalEntriesPage() {
                       {entry.entryNumber}
                     </TableCell>
                     <TableCell>{entry.description || "-"}</TableCell>
+                    <TableCell>{entry.user.name}</TableCell>
                     <TableCell>
                       <StatusBadge status={entry.status} />
                     </TableCell>

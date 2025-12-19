@@ -126,8 +126,13 @@ export default async function JournalEntryDetailsPage({
         </div>
 
         <div className="text-sm text-muted-foreground">
-          Created by {entry.user.name} on{" "}
-          {new Date(entry.createdAt).toLocaleString()}
+          <p>
+            Created by {entry.user.name} on{" "}
+            {new Date(entry.createdAt).toLocaleString()}
+          </p>
+          {entry.status === "posted" && entry.postedAt && (
+            <p>Posted on {new Date(entry.postedAt).toLocaleString()}</p>
+          )}
         </div>
       </div>
     </div>

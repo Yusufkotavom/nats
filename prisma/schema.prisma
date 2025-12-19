@@ -53,6 +53,7 @@ model JournalEntry {
   transactionDate DateTime
   description     String?
   status          EntryStatus        @default(draft)
+  postedAt        DateTime?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   lines           JournalEntryLine[]

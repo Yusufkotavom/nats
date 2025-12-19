@@ -310,6 +310,7 @@ export async function postJournalEntry(id: string) {
       where: { id },
       data: {
         status: "posted",
+        postedAt: new Date(),
       },
     });
 
