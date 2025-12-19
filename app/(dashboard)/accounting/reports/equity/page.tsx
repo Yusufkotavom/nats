@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatCurrency } from "@/lib/utils";
 
 export default function EquityPage() {
   const [startDate, setStartDate] = useState(
@@ -105,58 +106,38 @@ export default function EquityPage() {
                   <TableRow key={idx}>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell className="text-right">
-                      {item.balanceBeginning.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
+                      {formatCurrency(item.balanceBeginning)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {item.netIncome.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
+                      {formatCurrency(item.netIncome)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {item.additions.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
+                      {formatCurrency(item.additions)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {item.deductions.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
+                      {formatCurrency(item.deductions)}
                     </TableCell>
                     <TableCell className="text-right font-bold">
-                      {item.balanceEnding.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
+                      {formatCurrency(item.balanceEnding)}
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted/50 font-bold border-t-2 border-black">
                   <TableCell>Total</TableCell>
                   <TableCell className="text-right">
-                    {report.totalBeginning.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
+                    {formatCurrency(report.totalBeginning)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {report.totalNetIncome.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
+                    {formatCurrency(report.totalNetIncome)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {report.totalAdditions.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
+                    {formatCurrency(report.totalAdditions)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {report.totalDeductions.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
+                    {formatCurrency(report.totalDeductions)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {report.totalEnding.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
+                    {formatCurrency(report.totalEnding)}
                   </TableCell>
                 </TableRow>
               </TableBody>

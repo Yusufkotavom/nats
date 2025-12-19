@@ -1,5 +1,5 @@
 import { ReportAccountLine } from "../actions";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface AccountTreeRowProps {
   node: ReportAccountLine;
@@ -22,12 +22,7 @@ export function AccountTreeRow({ node, level = 0 }: AccountTreeRowProps) {
           {node.code} - {node.name}
         </div>
         <div className="w-32 text-right">
-          {hasChildren
-            ? ""
-            : node.amount.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+          {hasChildren ? "" : formatCurrency(node.amount)}
         </div>
       </div>
       {hasChildren && (
@@ -44,10 +39,7 @@ export function AccountTreeRow({ node, level = 0 }: AccountTreeRowProps) {
               Total {node.name}
             </div>
             <div className="w-32 text-right border-t border-black/20">
-              {node.amount.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {formatCurrency(node.amount)}
             </div>
           </div>
         </>

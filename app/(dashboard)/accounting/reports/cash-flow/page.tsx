@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function CashFlowPage() {
   const [startDate, setStartDate] = useState(
@@ -89,20 +90,13 @@ export default function CashFlowPage() {
                     className="flex justify-between py-1 border-b border-border/50"
                   >
                     <span>{item.name}</span>
-                    <span>
-                      {item.amount.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
+                    <span>{formatCurrency(item.amount)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between py-2 font-bold border-t border-black mt-2">
                   <span>Net Cash Provided by Operating Activities</span>
                   <span>
-                    {report.netCashProvidedByOperating.toLocaleString(
-                      undefined,
-                      { minimumFractionDigits: 2 }
-                    )}
+                    {formatCurrency(report.netCashProvidedByOperating)}
                   </span>
                 </div>
               </div>
@@ -125,20 +119,13 @@ export default function CashFlowPage() {
                     className="flex justify-between py-1 border-b border-border/50"
                   >
                     <span>{item.name}</span>
-                    <span>
-                      {item.amount.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
+                    <span>{formatCurrency(item.amount)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between py-2 font-bold border-t border-black mt-2">
                   <span>Net Cash Provided by Investing Activities</span>
                   <span>
-                    {report.netCashProvidedByInvesting.toLocaleString(
-                      undefined,
-                      { minimumFractionDigits: 2 }
-                    )}
+                    {formatCurrency(report.netCashProvidedByInvesting)}
                   </span>
                 </div>
               </div>
@@ -161,20 +148,13 @@ export default function CashFlowPage() {
                     className="flex justify-between py-1 border-b border-border/50"
                   >
                     <span>{item.name}</span>
-                    <span>
-                      {item.amount.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
+                    <span>{formatCurrency(item.amount)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between py-2 font-bold border-t border-black mt-2">
                   <span>Net Cash Provided by Financing Activities</span>
                   <span>
-                    {report.netCashProvidedByFinancing.toLocaleString(
-                      undefined,
-                      { minimumFractionDigits: 2 }
-                    )}
+                    {formatCurrency(report.netCashProvidedByFinancing)}
                   </span>
                 </div>
               </div>
@@ -184,27 +164,15 @@ export default function CashFlowPage() {
             <div className="space-y-2 pt-4 border-t-2 border-black">
               <div className="flex justify-between font-bold text-lg">
                 <span>Net Increase (Decrease) in Cash</span>
-                <span>
-                  {report.netIncreaseInCash.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
+                <span>{formatCurrency(report.netIncreaseInCash)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Cash at Beginning of Period</span>
-                <span>
-                  {report.cashAtBeginning.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
+                <span>{formatCurrency(report.cashAtBeginning)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg border-t border-black pt-2">
                 <span>Cash at End of Period</span>
-                <span>
-                  {report.cashAtEnd.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                  })}
-                </span>
+                <span>{formatCurrency(report.cashAtEnd)}</span>
               </div>
             </div>
           </CardContent>

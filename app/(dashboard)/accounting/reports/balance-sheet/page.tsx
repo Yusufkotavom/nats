@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountTreeRow } from "../_components/account-tree-row";
 import { Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function BalanceSheetPage() {
   const [asOfDate, setAsOfDate] = useState(
@@ -77,11 +78,7 @@ export default function BalanceSheetPage() {
                 ))}
                 <div className="flex justify-between py-2 mt-4 font-bold border-t-2 border-black text-lg">
                   <span>Total Assets</span>
-                  <span>
-                    {report.totalAssets.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
+                  <span>{formatCurrency(report.totalAssets)}</span>
                 </div>
               </div>
             </div>
@@ -97,11 +94,7 @@ export default function BalanceSheetPage() {
                 ))}
                 <div className="flex justify-between py-2 mt-4 font-bold border-t border-black">
                   <span>Total Liabilities</span>
-                  <span>
-                    {report.totalLiabilities.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
+                  <span>{formatCurrency(report.totalLiabilities)}</span>
                 </div>
               </div>
             </div>
@@ -117,11 +110,7 @@ export default function BalanceSheetPage() {
                 ))}
                 <div className="flex justify-between py-2 mt-4 font-bold border-t border-black">
                   <span>Total Equity</span>
-                  <span>
-                    {report.totalEquity.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
+                  <span>{formatCurrency(report.totalEquity)}</span>
                 </div>
               </div>
             </div>
@@ -129,11 +118,7 @@ export default function BalanceSheetPage() {
             {/* Total Liabilities and Equity */}
             <div className="flex justify-between p-4 bg-muted/50 rounded-md text-lg font-bold border-t-4 border-double border-black">
               <span>Total Liabilities and Equity</span>
-              <span>
-                {report.totalLiabilitiesAndEquity.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
+              <span>{formatCurrency(report.totalLiabilitiesAndEquity)}</span>
             </div>
           </CardContent>
         </Card>
