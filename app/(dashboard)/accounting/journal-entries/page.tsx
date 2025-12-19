@@ -200,22 +200,21 @@ export default function JournalEntriesPage() {
               <TableHead>Description</TableHead>
               <TableHead>Recorded By</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total Debit</TableHead>
-              <TableHead className="text-right">Total Credit</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
               <TableHead className="w-[70px] rounded-tr-lg"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={7}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No journal entries found
@@ -223,12 +222,8 @@ export default function JournalEntriesPage() {
               </TableRow>
             ) : (
               entries.map((entry) => {
-                const totalDebit = entry.lines.reduce(
+                const totalAmount = entry.lines.reduce(
                   (sum, line) => sum + Number(line.debitAmount),
-                  0
-                );
-                const totalCredit = entry.lines.reduce(
-                  (sum, line) => sum + Number(line.creditAmount),
                   0
                 );
 
@@ -246,10 +241,7 @@ export default function JournalEntriesPage() {
                       <StatusBadge status={entry.status} />
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(totalDebit)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(totalCredit)}
+                      {formatCurrency(totalAmount)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
