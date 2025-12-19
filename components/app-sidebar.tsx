@@ -44,10 +44,24 @@ const data = {
   ],
   navMain: [
     {
+      title: "Stakeholders",
+      url: "#",
+      icon: Frame,
+      items: [
+        {
+          title: "Customers",
+          url: "/general/customers",
+        },
+        {
+          title: "Vendors",
+          url: "/general/vendors",
+        },
+      ],
+    },
+    {
       title: "Accounting",
       url: "#",
       icon: SquareTerminal,
-      isActive: true,
       items: [
         {
           title: "Chart of Accounts",
