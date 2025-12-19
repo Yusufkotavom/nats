@@ -15,6 +15,9 @@ export type ReportAccountLine = {
   code: string;
   name: string;
   amount: number; // Positive for normal balance
+  previousAmount?: number;
+  change?: number;
+  changePercentage?: number;
   level: number;
   type: string;
   children?: ReportAccountLine[];
@@ -26,6 +29,9 @@ export type ProfitLossReport = {
   totalRevenue: number;
   totalExpenses: number;
   netIncome: number;
+  previousTotalRevenue?: number;
+  previousTotalExpenses?: number;
+  previousNetIncome?: number;
 };
 
 export type BalanceSheetReport = {
@@ -36,6 +42,10 @@ export type BalanceSheetReport = {
   totalLiabilities: number;
   totalEquity: number;
   totalLiabilitiesAndEquity: number;
+  previousTotalAssets?: number;
+  previousTotalLiabilities?: number;
+  previousTotalEquity?: number;
+  previousTotalLiabilitiesAndEquity?: number;
 };
 
 export type CashFlowReport = {
@@ -48,6 +58,12 @@ export type CashFlowReport = {
   netIncreaseInCash: number;
   cashAtBeginning: number;
   cashAtEnd: number;
+  previousNetCashProvidedByOperating?: number;
+  previousNetCashProvidedByInvesting?: number;
+  previousNetCashProvidedByFinancing?: number;
+  previousNetIncreaseInCash?: number;
+  previousCashAtBeginning?: number;
+  previousCashAtEnd?: number;
 };
 
 export type EquityChangeLine = {
@@ -57,6 +73,10 @@ export type EquityChangeLine = {
   additions: number;
   deductions: number;
   balanceEnding: number;
+  // Comparative fields (optional)
+  previousBalanceEnding?: number;
+  change?: number;
+  changePercentage?: number;
 };
 
 export type EquityChangeReport = {
@@ -66,11 +86,16 @@ export type EquityChangeReport = {
   totalAdditions: number;
   totalDeductions: number;
   totalEnding: number;
+  previousTotalEnding?: number;
+  change?: number;
+  changePercentage?: number;
 };
 
 type AccountNode = Account & {
   amount: number;
   totalAmount: number;
+  previousAmount: number;
+  previousTotalAmount: number;
   children: AccountNode[];
 };
 
@@ -125,6 +150,7 @@ async function getAccountBalances(
 function buildAccountHierarchy(
   accounts: Account[],
   balanceMap: Map<string, { debit: number; credit: number }>,
+  previousBalanceMap: Map<string, { debit: number; credit: number }> | null,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   accountTypeMultiplier: (type: string) => number
 ) {
@@ -133,23 +159,28 @@ function buildAccountHierarchy(
   // Initialize
   accounts.forEach((acc) => {
     const bal = balanceMap.get(acc.id) || { debit: 0, credit: 0 };
+    const prevBal = previousBalanceMap?.get(acc.id) || { debit: 0, credit: 0 };
+
     let amount = 0;
+    let previousAmount = 0;
 
     // Standard Accounting Logic:
     // Assets, Expenses: Debit is positive
     // Liabilities, Equity, Revenue: Credit is positive
-    // BUT for reports, we often want everything positive if it's "normal".
-
     if (acc.type === "asset" || acc.type === "expense") {
       amount = bal.debit - bal.credit;
+      previousAmount = prevBal.debit - prevBal.credit;
     } else {
       amount = bal.credit - bal.debit;
+      previousAmount = prevBal.credit - prevBal.debit;
     }
 
     nodeMap.set(acc.id, {
       ...acc,
       amount,
       totalAmount: 0,
+      previousAmount,
+      previousTotalAmount: 0,
       children: [],
     });
   });
@@ -166,24 +197,39 @@ function buildAccountHierarchy(
   });
 
   // Calculate Totals
-  function calculateTotal(node: AccountNode): number {
+  function calculateTotal(node: AccountNode) {
     let sum = node.amount;
+    let prevSum = node.previousAmount;
+
     for (const child of node.children) {
-      sum += calculateTotal(child);
+      calculateTotal(child);
+      sum += child.totalAmount;
+      prevSum += child.previousTotalAmount;
     }
     node.totalAmount = sum;
-    return sum;
+    node.previousTotalAmount = prevSum;
   }
 
   roots.forEach((root) => calculateTotal(root));
 
   // Map to ReportAccountLine
   function mapToLine(node: AccountNode): ReportAccountLine {
+    const change = previousBalanceMap
+      ? node.totalAmount - node.previousTotalAmount
+      : undefined;
+    const changePercentage =
+      previousBalanceMap && node.previousTotalAmount !== 0
+        ? (change! / Math.abs(node.previousTotalAmount)) * 100
+        : 0;
+
     return {
       accountId: node.id,
       code: node.code,
       name: node.name,
       amount: node.totalAmount,
+      previousAmount: previousBalanceMap ? node.previousTotalAmount : undefined,
+      change,
+      changePercentage,
       level: node.level,
       type: node.type,
       children: node.children.map(mapToLine),
@@ -197,7 +243,9 @@ function buildAccountHierarchy(
 
 export async function getProfitAndLoss(
   startDate: string,
-  endDate: string
+  endDate: string,
+  comparativeStartDate?: string,
+  comparativeEndDate?: string
 ): Promise<ProfitLossReport> {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -207,34 +255,71 @@ export async function getProfitAndLoss(
     "expense",
   ]);
 
+  let previousBalanceMap: Map<
+    string,
+    { debit: number; credit: number }
+  > | null = null;
+  if (comparativeStartDate && comparativeEndDate) {
+    const prevStart = new Date(comparativeStartDate);
+    const prevEnd = new Date(comparativeEndDate);
+    const prevResult = await getAccountBalances(prevStart, prevEnd, [
+      "revenue",
+      "expense",
+    ]);
+    previousBalanceMap = prevResult.balanceMap;
+  }
+
   const revenueAccounts = accounts.filter((a) => a.type === "revenue");
   const expenseAccounts = accounts.filter((a) => a.type === "expense");
 
   const revenueTree = buildAccountHierarchy(
     revenueAccounts,
     balanceMap,
+    previousBalanceMap,
     () => 1
   );
   const expenseTree = buildAccountHierarchy(
     expenseAccounts,
     balanceMap,
+    previousBalanceMap,
     () => 1
   );
 
   const totalRevenue = revenueTree.reduce((sum, node) => sum + node.amount, 0);
   const totalExpenses = expenseTree.reduce((sum, node) => sum + node.amount, 0);
+  const netIncome = totalRevenue - totalExpenses;
+
+  let previousTotalRevenue: number | undefined;
+  let previousTotalExpenses: number | undefined;
+  let previousNetIncome: number | undefined;
+
+  if (previousBalanceMap) {
+    previousTotalRevenue = revenueTree.reduce(
+      (sum, node) => sum + (node.previousAmount || 0),
+      0
+    );
+    previousTotalExpenses = expenseTree.reduce(
+      (sum, node) => sum + (node.previousAmount || 0),
+      0
+    );
+    previousNetIncome = previousTotalRevenue - previousTotalExpenses;
+  }
 
   return {
     revenue: revenueTree,
     expenses: expenseTree,
     totalRevenue,
     totalExpenses,
-    netIncome: totalRevenue - totalExpenses,
+    netIncome,
+    previousTotalRevenue,
+    previousTotalExpenses,
+    previousNetIncome,
   };
 }
 
 export async function getBalanceSheet(
-  date: string
+  date: string,
+  comparativeDate?: string
 ): Promise<BalanceSheetReport> {
   const asOf = new Date(date);
 
@@ -245,33 +330,72 @@ export async function getBalanceSheet(
     "equity",
   ]);
 
+  let previousBalanceMap: Map<
+    string,
+    { debit: number; credit: number }
+  > | null = null;
+  if (comparativeDate) {
+    const prevAsOf = new Date(comparativeDate);
+    const prevResult = await getAccountBalances(null, prevAsOf, [
+      "asset",
+      "liability",
+      "equity",
+    ]);
+    previousBalanceMap = prevResult.balanceMap;
+  }
+
   // 2. Calculate Retained Earnings
   const { accounts: plAccounts, balanceMap: plBalanceMap } =
     await getAccountBalances(null, asOf, ["revenue", "expense"]);
 
-  let retainedEarnings = 0;
-  plAccounts.forEach((acc) => {
-    const bal = plBalanceMap.get(acc.id) || { debit: 0, credit: 0 };
-    if (acc.type === "revenue") {
-      retainedEarnings += bal.credit - bal.debit;
-    } else {
-      retainedEarnings -= bal.debit - bal.credit;
-    }
-  });
+  let prevPlBalanceMap: Map<string, { debit: number; credit: number }> | null =
+    null;
+  if (comparativeDate) {
+    const prevAsOf = new Date(comparativeDate);
+    const prevPlResult = await getAccountBalances(null, prevAsOf, [
+      "revenue",
+      "expense",
+    ]);
+    prevPlBalanceMap = prevPlResult.balanceMap;
+  }
+
+  function calculateRE(
+    accounts: Account[],
+    balMap: Map<string, { debit: number; credit: number }>
+  ) {
+    let re = 0;
+    accounts.forEach((acc) => {
+      const bal = balMap.get(acc.id) || { debit: 0, credit: 0 };
+      if (acc.type === "revenue") {
+        re += bal.credit - bal.debit;
+      } else {
+        re -= bal.debit - bal.credit;
+      }
+    });
+    return re;
+  }
+
+  const retainedEarnings = calculateRE(plAccounts, plBalanceMap);
+  const previousRetainedEarnings = prevPlBalanceMap
+    ? calculateRE(plAccounts, prevPlBalanceMap)
+    : 0;
 
   const assetTree = buildAccountHierarchy(
     accounts.filter((a) => a.type === "asset"),
     balanceMap,
+    previousBalanceMap,
     () => 1
   );
   const liabilityTree = buildAccountHierarchy(
     accounts.filter((a) => a.type === "liability"),
     balanceMap,
+    previousBalanceMap,
     () => 1
   );
   const equityTree = buildAccountHierarchy(
     accounts.filter((a) => a.type === "equity"),
     balanceMap,
+    previousBalanceMap,
     () => 1
   );
 
@@ -282,18 +406,42 @@ export async function getBalanceSheet(
   );
   let totalEquity = equityTree.reduce((sum, node) => sum + node.amount, 0);
 
+  const previousTotalAssets = previousBalanceMap
+    ? assetTree.reduce((sum, node) => sum + (node.previousAmount || 0), 0)
+    : undefined;
+  const previousTotalLiabilities = previousBalanceMap
+    ? liabilityTree.reduce((sum, node) => sum + (node.previousAmount || 0), 0)
+    : undefined;
+  let previousTotalEquity = previousBalanceMap
+    ? equityTree.reduce((sum, node) => sum + (node.previousAmount || 0), 0)
+    : undefined;
+
   const retainedEarningsLine: ReportAccountLine = {
     accountId: "calculated-retained-earnings",
     code: "99999",
     name: "Retained Earnings / Net Income",
     amount: retainedEarnings,
+    previousAmount: previousBalanceMap ? previousRetainedEarnings : undefined,
     level: 0,
     type: "equity",
     children: [],
   };
 
+  // Add change fields for RE
+  if (previousBalanceMap) {
+    retainedEarningsLine.change = retainedEarnings - previousRetainedEarnings;
+    retainedEarningsLine.changePercentage =
+      previousRetainedEarnings !== 0
+        ? (retainedEarningsLine.change / Math.abs(previousRetainedEarnings)) *
+          100
+        : 0;
+  }
+
   equityTree.push(retainedEarningsLine);
   totalEquity += retainedEarnings;
+  if (previousTotalEquity !== undefined) {
+    previousTotalEquity += previousRetainedEarnings;
+  }
 
   return {
     assets: assetTree,
@@ -303,10 +451,83 @@ export async function getBalanceSheet(
     totalLiabilities,
     totalEquity,
     totalLiabilitiesAndEquity: totalLiabilities + totalEquity,
+    previousTotalAssets,
+    previousTotalLiabilities,
+    previousTotalEquity,
+    previousTotalLiabilitiesAndEquity:
+      previousTotalLiabilities !== undefined &&
+      previousTotalEquity !== undefined
+        ? previousTotalLiabilities + previousTotalEquity
+        : undefined,
   };
 }
 
 export async function getCashFlowStatement(
+  startDate: string,
+  endDate: string,
+  comparativeStartDate?: string,
+  comparativeEndDate?: string
+): Promise<CashFlowReport> {
+  // Base Report
+  const current = await calculateCashFlowForPeriod(startDate, endDate);
+
+  let previous: Partial<CashFlowReport> = {};
+  if (comparativeStartDate && comparativeEndDate) {
+    previous = await calculateCashFlowForPeriod(
+      comparativeStartDate,
+      comparativeEndDate
+    );
+  }
+
+  // Merge (Operating Activities mostly)
+  // For Cash Flow, row-by-row comparison is tricky because rows are dynamic (e.g. "Change in AR").
+  // However, we can map them by name or ID.
+
+  const mergeLines = (
+    curr: ReportAccountLine[],
+    prev: ReportAccountLine[]
+  ): ReportAccountLine[] => {
+    return curr.map((line) => {
+      const prevLine = prev.find((p) => p.name === line.name); // Using name as key for dynamic rows
+      const prevAmount = prevLine ? prevLine.amount : 0;
+      const change = line.amount - prevAmount;
+      const changePercentage =
+        prevAmount !== 0 ? (change / Math.abs(prevAmount)) * 100 : 0;
+
+      return {
+        ...line,
+        previousAmount: comparativeStartDate ? prevAmount : undefined,
+        change: comparativeStartDate ? change : undefined,
+        changePercentage: comparativeStartDate ? changePercentage : undefined,
+      };
+    });
+  };
+
+  return {
+    ...current,
+    operatingActivities: mergeLines(
+      current.operatingActivities,
+      previous.operatingActivities || []
+    ),
+    investingActivities: mergeLines(
+      current.investingActivities,
+      previous.investingActivities || []
+    ),
+    financingActivities: mergeLines(
+      current.financingActivities,
+      previous.financingActivities || []
+    ),
+
+    previousNetCashProvidedByOperating: previous.netCashProvidedByOperating,
+    previousNetCashProvidedByInvesting: previous.netCashProvidedByInvesting,
+    previousNetCashProvidedByFinancing: previous.netCashProvidedByFinancing,
+    previousNetIncreaseInCash: previous.netIncreaseInCash,
+    previousCashAtBeginning: previous.cashAtBeginning,
+    previousCashAtEnd: previous.cashAtEnd,
+  };
+}
+
+async function calculateCashFlowForPeriod(
   startDate: string,
   endDate: string
 ): Promise<CashFlowReport> {
@@ -452,7 +673,9 @@ export async function getCashFlowStatement(
 
 export async function getStatementOfChangesInEquity(
   startDate: string,
-  endDate: string
+  endDate: string,
+  comparativeStartDate?: string,
+  comparativeEndDate?: string
 ): Promise<EquityChangeReport> {
   const start = new Date(startDate);
   const dayBeforeStart = new Date(start.getTime() - 86400000)
@@ -462,6 +685,11 @@ export async function getStatementOfChangesInEquity(
   const bsStart = await getBalanceSheet(dayBeforeStart);
   const pl = await getProfitAndLoss(startDate, endDate);
   const bsEnd = await getBalanceSheet(endDate);
+
+  let bsPrevEnd: BalanceSheetReport | null = null;
+  if (comparativeEndDate) {
+    bsPrevEnd = await getBalanceSheet(comparativeEndDate);
+  }
 
   function flatten(nodes: ReportAccountLine[]): ReportAccountLine[] {
     let res: ReportAccountLine[] = [];
@@ -477,6 +705,7 @@ export async function getStatementOfChangesInEquity(
 
   const startEquity = flatten(bsStart.equity);
   const endEquity = flatten(bsEnd.equity);
+  const prevEndEquity = bsPrevEnd ? flatten(bsPrevEnd.equity) : [];
 
   const map = new Map<string, EquityChangeLine>();
 
@@ -494,21 +723,39 @@ export async function getStatementOfChangesInEquity(
 
   endEquity.forEach((acc) => {
     if (acc.accountId === "calculated-retained-earnings") return;
-    if (!map.has(acc.accountId)) {
-      map.set(acc.accountId, {
+
+    // Find previous ending balance
+    const prevAcc = prevEndEquity.find((a) => a.accountId === acc.accountId);
+    const previousBalanceEnding = prevAcc ? prevAcc.amount : undefined;
+
+    let line = map.get(acc.accountId);
+    if (!line) {
+      line = {
         name: acc.name,
         balanceBeginning: 0,
         netIncome: 0,
         additions: 0,
         deductions: 0,
         balanceEnding: acc.amount,
-      });
+        previousBalanceEnding,
+      };
+      map.set(acc.accountId, line);
     } else {
-      const line = map.get(acc.accountId)!;
       line.balanceEnding = acc.amount;
+      line.previousBalanceEnding = previousBalanceEnding;
       const diff = line.balanceEnding - line.balanceBeginning;
       if (diff > 0) line.additions = diff;
       else line.deductions = -diff;
+    }
+
+    if (bsPrevEnd) {
+      const change = line.balanceEnding - (line.previousBalanceEnding || 0);
+      const changePercentage =
+        line.previousBalanceEnding && line.previousBalanceEnding !== 0
+          ? (change / Math.abs(line.previousBalanceEnding)) * 100
+          : 0;
+      line.change = change;
+      line.changePercentage = changePercentage;
     }
   });
 
@@ -518,27 +765,67 @@ export async function getStatementOfChangesInEquity(
   const endRE =
     endEquity.find((a) => a.accountId === "calculated-retained-earnings")
       ?.amount || 0;
+
+  const prevEndRE = bsPrevEnd
+    ? prevEndEquity.find((a) => a.accountId === "calculated-retained-earnings")
+        ?.amount
+    : undefined;
+
   const netIncome = pl.netIncome;
 
   const reDiff = endRE - (startRE + netIncome);
 
-  map.set("retained-earnings", {
+  const reLine: EquityChangeLine = {
     name: "Retained Earnings",
     balanceBeginning: startRE,
     netIncome: netIncome,
     additions: reDiff > 0 ? reDiff : 0,
     deductions: reDiff < 0 ? -reDiff : 0,
     balanceEnding: endRE,
-  });
+    previousBalanceEnding: prevEndRE,
+  };
 
-  const reportItems = Array.from(map.values());
+  if (bsPrevEnd) {
+    const change = reLine.balanceEnding - (reLine.previousBalanceEnding || 0);
+    const changePercentage =
+      reLine.previousBalanceEnding && reLine.previousBalanceEnding !== 0
+        ? (change / Math.abs(reLine.previousBalanceEnding)) * 100
+        : 0;
+    reLine.change = change;
+    reLine.changePercentage = changePercentage;
+  }
+
+  map.set("retained-earnings", reLine);
+
+  const items = Array.from(map.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  const totalEnding = items.reduce((s, i) => s + i.balanceEnding, 0);
+  const previousTotalEnding = bsPrevEnd
+    ? items.reduce((s, i) => s + (i.previousBalanceEnding || 0), 0)
+    : undefined;
+
+  let change: number | undefined;
+  let changePercentage: number | undefined;
+
+  if (bsPrevEnd && previousTotalEnding !== undefined) {
+    change = totalEnding - previousTotalEnding;
+    changePercentage =
+      previousTotalEnding !== 0
+        ? (change / Math.abs(previousTotalEnding)) * 100
+        : 0;
+  }
 
   return {
-    items: reportItems,
-    totalBeginning: reportItems.reduce((s, i) => s + i.balanceBeginning, 0),
-    totalNetIncome: reportItems.reduce((s, i) => s + i.netIncome, 0),
-    totalAdditions: reportItems.reduce((s, i) => s + i.additions, 0),
-    totalDeductions: reportItems.reduce((s, i) => s + i.deductions, 0),
-    totalEnding: reportItems.reduce((s, i) => s + i.balanceEnding, 0),
+    items,
+    totalBeginning: items.reduce((s, i) => s + i.balanceBeginning, 0),
+    totalNetIncome: items.reduce((s, i) => s + i.netIncome, 0),
+    totalAdditions: items.reduce((s, i) => s + i.additions, 0),
+    totalDeductions: items.reduce((s, i) => s + i.deductions, 0),
+    totalEnding,
+    previousTotalEnding,
+    change,
+    changePercentage,
   };
 }

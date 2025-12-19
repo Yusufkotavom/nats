@@ -1,30 +1,61 @@
 import { ReportAccountLine } from "../actions";
 import { cn, formatCurrency } from "@/lib/utils";
+import { TableRow, TableCell } from "@/components/ui/table";
 
 interface AccountTreeRowProps {
   node: ReportAccountLine;
   level?: number;
+  showComparative?: boolean;
 }
 
-export function AccountTreeRow({ node, level = 0 }: AccountTreeRowProps) {
+export function AccountTreeRow({
+  node,
+  level = 0,
+  showComparative = false,
+}: AccountTreeRowProps) {
   const hasChildren = node.children && node.children.length > 0;
   const paddingLeft = level * 20 + (hasChildren ? 0 : 20);
 
+  const formatPercentage = (val?: number) => {
+    if (val === undefined || isNaN(val)) return "-";
+    return `${val.toFixed(1)}%`;
+  };
+
   return (
     <>
-      <div
-        className={cn(
-          "flex justify-between py-1 border-b border-border/50",
-          level === 0 && "font-semibold"
-        )}
+      <TableRow
+        className={cn("hover:bg-muted/50", level === 0 && "font-semibold")}
       >
-        <div style={{ paddingLeft: `${paddingLeft}px` }} className="flex-1">
+        <TableCell
+          style={{ paddingLeft: `${paddingLeft}px` }}
+          className="truncate"
+        >
           {node.code} - {node.name}
-        </div>
-        <div className="w-32 text-right">
+        </TableCell>
+        <TableCell className="text-right">
           {hasChildren ? "" : formatCurrency(node.amount)}
-        </div>
-      </div>
+        </TableCell>
+        {showComparative && (
+          <>
+            <TableCell className="text-right text-muted-foreground">
+              {hasChildren ? "" : formatCurrency(node.previousAmount || 0)}
+            </TableCell>
+            <TableCell className="text-right text-muted-foreground">
+              {hasChildren ? "" : formatCurrency(node.change || 0)}
+            </TableCell>
+            <TableCell
+              className={cn(
+                "text-right",
+                (node.changePercentage || 0) < 0
+                  ? "text-red-500"
+                  : "text-green-500"
+              )}
+            >
+              {hasChildren ? "" : formatPercentage(node.changePercentage)}
+            </TableCell>
+          </>
+        )}
+      </TableRow>
       {hasChildren && (
         <>
           {node.children!.map((child) => (
@@ -32,16 +63,40 @@ export function AccountTreeRow({ node, level = 0 }: AccountTreeRowProps) {
               key={child.accountId}
               node={child}
               level={level + 1}
+              showComparative={showComparative}
             />
           ))}
-          <div className="flex justify-between py-1 font-medium bg-muted/20">
-            <div style={{ paddingLeft: `${paddingLeft}px` }} className="flex-1">
+          <TableRow className="font-medium bg-muted/20">
+            <TableCell
+              style={{ paddingLeft: `${paddingLeft}px` }}
+              className="truncate"
+            >
               Total {node.name}
-            </div>
-            <div className="w-32 text-right border-t border-black/20">
+            </TableCell>
+            <TableCell className="text-right border-t border-black/20">
               {formatCurrency(node.amount)}
-            </div>
-          </div>
+            </TableCell>
+            {showComparative && (
+              <>
+                <TableCell className="text-right border-t border-black/20 text-muted-foreground">
+                  {formatCurrency(node.previousAmount || 0)}
+                </TableCell>
+                <TableCell className="text-right border-t border-black/20 text-muted-foreground">
+                  {formatCurrency(node.change || 0)}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "text-right border-t border-black/20",
+                    (node.changePercentage || 0) < 0
+                      ? "text-red-500"
+                      : "text-green-500"
+                  )}
+                >
+                  {formatPercentage(node.changePercentage)}
+                </TableCell>
+              </>
+            )}
+          </TableRow>
         </>
       )}
     </>

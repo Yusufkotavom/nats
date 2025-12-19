@@ -14,7 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export default function EquityPage() {
   const [startDate, setStartDate] = useState(
@@ -23,13 +25,28 @@ export default function EquityPage() {
   const [endDate, setEndDate] = useState(
     new Date().toISOString().split("T")[0]
   );
+
+  // Comparative State
+  const [showComparative, setShowComparative] = useState(false);
+  const [comparativeStartDate, setComparativeStartDate] = useState(
+    new Date(new Date().getFullYear() - 1, 0, 1).toISOString().split("T")[0]
+  );
+  const [comparativeEndDate, setComparativeEndDate] = useState(
+    new Date(new Date().getFullYear() - 1, 11, 31).toISOString().split("T")[0]
+  );
+
   const [report, setReport] = useState<EquityChangeReport | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const data = await getStatementOfChangesInEquity(startDate, endDate);
+      const data = await getStatementOfChangesInEquity(
+        startDate,
+        endDate,
+        showComparative ? comparativeStartDate : undefined,
+        showComparative ? comparativeEndDate : undefined
+      );
       setReport(data);
     } catch (error) {
       console.error("Failed to fetch report:", error);
@@ -40,13 +57,32 @@ export default function EquityPage() {
 
   useEffect(() => {
     fetchReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const formatPercentage = (val?: number) => {
+    if (val === undefined || isNaN(val)) return "-";
+    return `${val.toFixed(1)}%`;
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-bold">Statement of Changes in Equity</h1>
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-lg font-bold">Statement of Changes in Equity</h1>
+          <div className="flex items-center gap-4">
+            <Button onClick={fetchReport} disabled={loading}>
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                "Run Report"
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-4 bg-muted/20 p-4 rounded-lg border">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">From:</span>
             <Input
@@ -65,13 +101,44 @@ export default function EquityPage() {
               className="w-auto"
             />
           </div>
-          <Button onClick={fetchReport} disabled={loading}>
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              "Run Report"
-            )}
-          </Button>
+
+          <div className="h-6 w-px bg-border mx-2" />
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="comparative"
+              checked={showComparative}
+              onCheckedChange={(c) => setShowComparative(!!c)}
+            />
+            <Label htmlFor="comparative">Compare</Label>
+          </div>
+
+          {showComparative && (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Comp. From:
+                </span>
+                <Input
+                  type="date"
+                  value={comparativeStartDate}
+                  onChange={(e) => setComparativeStartDate(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Comp. To:
+                </span>
+                <Input
+                  type="date"
+                  value={comparativeEndDate}
+                  onChange={(e) => setComparativeEndDate(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -83,6 +150,8 @@ export default function EquityPage() {
             </CardTitle>
             <p className="text-center text-muted-foreground">
               For the period {startDate} to {endDate}
+              {showComparative &&
+                ` compared to ${comparativeStartDate} - ${comparativeEndDate}`}
             </p>
           </CardHeader>
           <CardContent>
@@ -99,6 +168,19 @@ export default function EquityPage() {
                   <TableHead className="text-right font-bold">
                     Balance Ending
                   </TableHead>
+                  {showComparative && (
+                    <>
+                      <TableHead className="text-right text-muted-foreground">
+                        Prev. Ending
+                      </TableHead>
+                      <TableHead className="text-right text-muted-foreground">
+                        Change
+                      </TableHead>
+                      <TableHead className="text-right text-muted-foreground">
+                        % Change
+                      </TableHead>
+                    </>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -120,6 +202,26 @@ export default function EquityPage() {
                     <TableCell className="text-right font-bold">
                       {formatCurrency(item.balanceEnding)}
                     </TableCell>
+                    {showComparative && (
+                      <>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatCurrency(item.previousBalanceEnding || 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatCurrency(item.change || 0)}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right",
+                            (item.changePercentage || 0) < 0
+                              ? "text-red-500"
+                              : "text-green-500"
+                          )}
+                        >
+                          {formatPercentage(item.changePercentage)}
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted/50 font-bold border-t-2 border-black">
@@ -139,6 +241,26 @@ export default function EquityPage() {
                   <TableCell className="text-right">
                     {formatCurrency(report.totalEnding)}
                   </TableCell>
+                  {showComparative && (
+                    <>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatCurrency(report.previousTotalEnding || 0)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatCurrency(report.change || 0)}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right",
+                          (report.changePercentage || 0) < 0
+                            ? "text-red-500"
+                            : "text-green-500"
+                        )}
+                      >
+                        {formatPercentage(report.changePercentage)}
+                      </TableCell>
+                    </>
+                  )}
                 </TableRow>
               </TableBody>
             </Table>
