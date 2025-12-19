@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from "@prisma/client";
+import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -196,13 +197,17 @@ async function main() {
   }
 
   // Seed User
+  const password = await hash("password123", 10);
+
   const user = await prisma.user.upsert({
     where: { email: "admin@example.com" },
-    update: {},
+    update: {
+      password,
+    },
     create: {
       email: "admin@example.com",
       name: "Admin User",
-      password: "password123", // In a real app, this should be hashed
+      password,
       role: Role.superadmin,
     },
   });
