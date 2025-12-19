@@ -50,6 +50,7 @@ export async function createProduct(data: {
   categoryId?: string;
   price: number;
   cost: number;
+  minStock: number;
 }) {
   try {
     const product = await prisma.product.create({
@@ -83,6 +84,7 @@ export async function updateProduct(
     categoryId?: string;
     price: number;
     cost: number;
+    minStock: number;
     isActive: boolean;
   }
 ) {

@@ -23,7 +23,10 @@ import { deleteProduct } from "../actions";
 import { ProductDialog } from "./product-dialog";
 import { useState } from "react";
 
-type ProductWithDetails = Product & {
+type ProductWithDetails = Omit<Product, "price" | "cost"> & {
+  price: number;
+  cost: number;
+} & {
   category: Category | null;
   inventory: (Inventory & { warehouse: Warehouse })[];
 };
@@ -91,6 +94,7 @@ export function ProductTable({ products, categories }: ProductTableProps) {
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Cost</TableHead>
+              <TableHead>Min Stock</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
@@ -115,6 +119,7 @@ export function ProductTable({ products, categories }: ProductTableProps) {
                     <TableCell>{product.category?.name || "-"}</TableCell>
                     <TableCell>{Number(product.price).toFixed(2)}</TableCell>
                     <TableCell>{Number(product.cost).toFixed(2)}</TableCell>
+                    <TableCell>{product.minStock}</TableCell>
                     <TableCell>{totalStock}</TableCell>
                     <TableCell className="flex gap-2">
                       <ProductDialog

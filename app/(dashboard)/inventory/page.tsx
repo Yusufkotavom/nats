@@ -18,46 +18,62 @@ export default async function InventoryDashboardPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <h2 className="text-2xl font-bold tracking-tight">Inventory Overview</h2>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+
+      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Products
+            </CardTitle>
             <Box className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalProducts}</div>
-            <p className="text-xs text-muted-foreground">Active SKUs in catalog</p>
+            <p className="text-xs text-muted-foreground">
+              Active SKUs in catalog
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Valuation</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Valuation
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Based on average cost</p>
+            <p className="text-xs text-muted-foreground">
+              Based on average cost
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Low Stock Alerts
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{lowStockItems.length}</div>
-            <p className="text-xs text-muted-foreground">Items below reorder point</p>
+            <p className="text-xs text-muted-foreground">
+              Items below reorder point
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Movements</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Recent Movements
+            </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{recentMovements.length}</div>
-            <p className="text-xs text-muted-foreground">In the last 24 hours</p>
+            <p className="text-xs text-muted-foreground">
+              In the last 24 hours
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -84,7 +100,13 @@ export default async function InventoryDashboardPage() {
                       {movement.product.name}
                     </TableCell>
                     <TableCell>{movement.type}</TableCell>
-                    <TableCell className={movement.quantity < 0 ? "text-red-500" : "text-green-500"}>
+                    <TableCell
+                      className={
+                        movement.quantity < 0
+                          ? "text-red-500"
+                          : "text-green-500"
+                      }
+                    >
                       {movement.quantity}
                     </TableCell>
                     <TableCell>

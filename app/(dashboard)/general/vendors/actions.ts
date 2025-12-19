@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { Vendor } from "../types";
 
 export async function getVendors() {
   return await prisma.vendor.findMany({
@@ -9,13 +10,7 @@ export async function getVendors() {
   });
 }
 
-export async function createVendor(data: {
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  isActive?: boolean;
-}) {
+export async function createVendor(data: Vendor) {
   try {
     const vendor = await prisma.vendor.create({
       data,
@@ -28,16 +23,7 @@ export async function createVendor(data: {
   }
 }
 
-export async function updateVendor(
-  id: string,
-  data: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    isActive?: boolean;
-  }
-) {
+export async function updateVendor(id: string, data: Vendor) {
   try {
     const vendor = await prisma.vendor.update({
       where: { id },

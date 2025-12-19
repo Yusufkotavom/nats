@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
 type MovementWithDetails = InventoryMovement & {
-  product: Product;
+  product: Omit<Product, "price" | "cost"> & { price: number; cost: number };
   fromWarehouse: Warehouse | null;
   toWarehouse: Warehouse | null;
 };

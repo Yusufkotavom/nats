@@ -26,7 +26,7 @@ import { useState } from "react";
 import { createProduct, updateProduct, createCategory } from "../actions";
 
 interface ProductDialogProps {
-  product?: Product;
+  product?: Omit<Product, "price" | "cost"> & { price: number; cost: number };
   categories: Category[];
   trigger?: React.ReactNode;
 }
@@ -173,6 +173,19 @@ export function ProductDialog({
               type="number"
               step="0.01"
               defaultValue={product?.cost ? Number(product.cost) : 0}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="minStock" className="text-right">
+              Min Stock
+            </Label>
+            <Input
+              id="minStock"
+              name="minStock"
+              type="number"
+              defaultValue={product?.minStock || 0}
               className="col-span-3"
               required
             />

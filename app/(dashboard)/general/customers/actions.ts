@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { Customer } from "../types";
 
 export async function getCustomers() {
   return await prisma.customer.findMany({
@@ -9,13 +10,7 @@ export async function getCustomers() {
   });
 }
 
-export async function createCustomer(data: {
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  isActive?: boolean;
-}) {
+export async function createCustomer(data: Customer) {
   try {
     const customer = await prisma.customer.create({
       data,
@@ -28,16 +23,7 @@ export async function createCustomer(data: {
   }
 }
 
-export async function updateCustomer(
-  id: string,
-  data: {
-    name?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    isActive?: boolean;
-  }
-) {
+export async function updateCustomer(id: string, data: Customer) {
   try {
     const customer = await prisma.customer.update({
       where: { id },

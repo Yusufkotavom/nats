@@ -145,6 +145,7 @@ model Product {
   category    Category?           @relation(fields: [categoryId], references: [id])
   price       Decimal             @default(0)
   cost        Decimal             @default(0)
+  minStock    Int                 @default(0)
   isActive    Boolean             @default(true)
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt

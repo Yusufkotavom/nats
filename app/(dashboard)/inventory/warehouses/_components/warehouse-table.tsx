@@ -16,7 +16,9 @@ import { deleteWarehouse } from "../actions";
 import { WarehouseDialog } from "./warehouse-dialog";
 
 type WarehouseWithInventory = Warehouse & {
-  inventory: (Inventory & { product: Product })[];
+  inventory: (Inventory & {
+    product: Omit<Product, "price" | "cost"> & { price: number; cost: number };
+  })[];
 };
 
 interface WarehouseTableProps {

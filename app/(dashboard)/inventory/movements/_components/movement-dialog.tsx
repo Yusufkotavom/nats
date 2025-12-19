@@ -26,7 +26,10 @@ import { useState } from "react";
 import { createMovement } from "../actions";
 
 interface MovementDialogProps {
-  products: Product[];
+  products: (Omit<Product, "price" | "cost"> & {
+    price: number;
+    cost: number;
+  })[];
   warehouses: Warehouse[];
 }
 
