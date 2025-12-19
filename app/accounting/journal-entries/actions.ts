@@ -21,10 +21,11 @@ async function getDefaultUser() {
 
 export async function getJournalEntries(
   page: number = 1,
-  pageSize: number = 10,
+  pageSize: number = 20,
   startDate?: string,
   endDate?: string,
-  status?: string
+  status?: string,
+  search?: string
 ) {
   try {
     const where: Prisma.JournalEntryWhereInput = {};
@@ -42,6 +43,12 @@ export async function getJournalEntries(
         ...((where.transactionDate as Prisma.DateTimeFilter) || {}),
         lte: new Date(endDate),
       };
+    }
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: "insensitive" } },
+        { entryNumber: { contains: search, mode: "insensitive" } },
+      ];
     }
 
     const skip = (page - 1) * pageSize;
@@ -67,7 +74,17 @@ export async function getJournalEntries(
 
     return {
       success: true,
-      data: entries,
+      data: entries.map((entry) => {
+        const serializedEntry = {
+          ...entry,
+          lines: entry.lines.map((line) => ({
+            ...line,
+            debitAmount: Number(line.debitAmount),
+            creditAmount: Number(line.creditAmount),
+          })),
+        };
+        return serializedEntry;
+      }),
       pagination: {
         total,
         totalPages: Math.ceil(total / pageSize),
@@ -98,7 +115,17 @@ export async function getJournalEntry(id: string) {
       },
     });
     if (!entry) return { success: false, error: "Journal entry not found" };
-    return { success: true, data: entry };
+
+    const serializedEntry = {
+      ...entry,
+      lines: entry.lines.map((line) => ({
+        ...line,
+        debitAmount: Number(line.debitAmount),
+        creditAmount: Number(line.creditAmount),
+      })),
+    };
+
+    return { success: true, data: serializedEntry };
   } catch (error) {
     console.error("Failed to fetch journal entry:", error);
     return { success: false, error: "Failed to fetch journal entry" };
@@ -173,8 +200,39 @@ export async function createJournalEntry(data: CreateJournalEntryData) {
       },
     });
 
+    // Need to refetch to include relations or just return what we have with IDs?
+    // The UI might expect relations if it adds it to the list, but typically it redirects.
+    // However, createJournalEntry returns 'entry' which has no lines loaded (or they are in a different format).
+    // The create call returns the created object.
+
+    // Let's refetch to be safe and consistent with getJournalEntry
+    const createdEntry = await prisma.journalEntry.findUnique({
+      where: { id: entry.id },
+      include: {
+        lines: {
+          include: {
+            account: true,
+          },
+        },
+        user: {
+          select: { name: true, email: true },
+        },
+      },
+    });
+
+    if (!createdEntry) throw new Error("Failed to fetch created entry");
+
+    const serializedEntry = {
+      ...createdEntry,
+      lines: createdEntry.lines.map((line) => ({
+        ...line,
+        debitAmount: Number(line.debitAmount),
+        creditAmount: Number(line.creditAmount),
+      })),
+    };
+
     revalidatePath("/accounting/journal-entries");
-    return { success: true, data: entry };
+    return { success: true, data: serializedEntry };
   } catch (error) {
     console.error("Failed to create journal entry:", error);
     return { success: false, error: "Failed to create journal entry" };

@@ -42,29 +42,25 @@ import {
   postJournalEntry,
 } from "./actions";
 import { useRouter } from "next/navigation";
-import { Prisma } from "@prisma/client";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
 
 // Define type based on the return of getJournalEntries
-type JournalEntryWithDetails = Prisma.JournalEntryGetPayload<{
-  include: {
-    lines: { include: { account: true } };
-    user: { select: { name: true; email: true } };
-  };
-}>;
+type JournalEntryWithDetails = NonNullable<
+  Awaited<ReturnType<typeof getJournalEntries>>["data"]
+>[number];
 
 export default function JournalEntriesPage() {
   const [entries, setEntries] = useState<JournalEntryWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(20);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("all");
+  const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
   const fetchEntries = useCallback(
     async (page: number = 1) => {
@@ -73,7 +69,8 @@ export default function JournalEntriesPage() {
         pageSize,
         startDate,
         endDate,
-        status
+        status,
+        search
       );
       if (res.success && res.data) {
         setEntries(res.data);
@@ -84,16 +81,16 @@ export default function JournalEntriesPage() {
       }
       setLoading(false);
     },
-    [pageSize, startDate, endDate, status]
+    [pageSize, startDate, endDate, status, search]
   );
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(true);
       fetchEntries(1);
-    }, 0);
+    }, 500); // Debounce search
     return () => clearTimeout(timer);
-  }, [fetchEntries]);
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this journal entry?")) return;
@@ -139,7 +136,16 @@ export default function JournalEntriesPage() {
         </Link>
       </div>
 
-      <div className="flex items-end gap-4">
+      <div className="flex items-end gap-4 flex-wrap">
+        <div className="grid items-center gap-1.5 flex-1 min-w-[200px]">
+          <Label htmlFor="search">Search</Label>
+          <Input
+            id="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by description or entry #"
+          />
+        </div>
         <div className="grid items-center gap-1.5">
           <Label htmlFor="startDate">Start Date</Label>
           <Input
@@ -171,13 +177,14 @@ export default function JournalEntriesPage() {
             </SelectContent>
           </Select>
         </div>
-        {(startDate || endDate || status !== "all") && (
+        {(startDate || endDate || status !== "all" || search) && (
           <Button
             variant="secondary"
             onClick={() => {
               setStartDate("");
               setEndDate("");
               setStatus("all");
+              setSearch("");
             }}
           >
             Clear Filter
@@ -185,18 +192,18 @@ export default function JournalEntriesPage() {
         )}
       </div>
 
-      <div className="rounded-md border p-1">
+      <div className="rounded-md border">
         <Table>
           <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead className="rounded-tl-lg">Date</TableHead>
               <TableHead>Entry #</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Recorded By</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Total Debit</TableHead>
               <TableHead className="text-right">Total Credit</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="w-[70px] rounded-tr-lg"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

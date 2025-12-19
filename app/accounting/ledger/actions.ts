@@ -102,20 +102,26 @@ export async function getLedgerEntries(
       }),
     ]);
 
+    const serializedLines = lines.map((line) => ({
+      ...line,
+      debitAmount: Number(line.debitAmount),
+      creditAmount: Number(line.creditAmount),
+    }));
+
     return {
       success: true,
-      data: lines,
-      totals: {
-        debit: aggregates._sum.debitAmount?.toNumber() || 0,
-        credit: aggregates._sum.creditAmount?.toNumber() || 0,
-      },
-      account,
+      data: serializedLines,
       pagination: {
         total,
         totalPages: Math.ceil(total / pageSize),
         currentPage: page,
         pageSize,
       },
+      totals: {
+        debit: Number(aggregates._sum.debitAmount || 0),
+        credit: Number(aggregates._sum.creditAmount || 0),
+      },
+      account,
     };
   } catch (error) {
     console.error("Error fetching ledger entries:", error);

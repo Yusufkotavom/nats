@@ -242,16 +242,18 @@ export default function LedgerPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border p-1">
+          <div className="rounded-md border">
             <Table>
               <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
                 <TableRow>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="rounded-tl-lg">Date</TableHead>
                   <TableHead>Entry #</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-center rounded-tr-lg">
+                    Status
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

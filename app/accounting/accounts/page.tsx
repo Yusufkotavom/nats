@@ -398,15 +398,17 @@ export default function Page() {
       {error && !adding && (
         <div className="text-destructive text-sm">{error}</div>
       )}
-      <div className="rounded-lg border p-1">
+      <div className="rounded-lg border p-0">
         <Table className="w-full">
           <TableHeader className="bg-muted">
             <TableRow className="text-left text-sm text-muted-foreground">
-              <TableHead className="w-12"> </TableHead>
+              <TableHead className="w-12 rounded-tl-lg"> </TableHead>
               <TableHead className="w-28">Code</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead className="w-24 text-right">Actions</TableHead>
+              <TableHead className="w-24 text-right rounded-tr-lg">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -10,9 +10,6 @@ import {
 } from "../../actions";
 import { getAccounts } from "../../../accounts/actions";
 import { Account } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
 
 export default function EditJournalEntryPage({
   params,
@@ -84,13 +81,8 @@ export default function EditJournalEntryPage({
   return (
     <div className="flex flex-col gap-6 p-4 w-full mx-auto">
       <div className="flex items-center gap-4">
-        <Link href="/accounting/journal-entries">
-          <Button variant="ghost" size="icon">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </Link>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-lg font-bold tracking-tight">
             Edit Journal Entry
           </h2>
           <p className="text-muted-foreground">Edit existing journal entry</p>

@@ -41,16 +41,11 @@ export default async function JournalEntryDetailsPage({
     <div className="flex flex-col gap-6 p-4 w-full mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/accounting/journal-entries">
-            <Button variant="ghost" size="icon">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          </Link>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-lg font-bold tracking-tight">
               Journal Entry {entry.entryNumber}
             </h2>
-            <div className="flex items-center gap-2 text-muted-foreground mt-1">
+            <div className="flex items-center text-sm gap-2 text-muted-foreground mt-1">
               <span>
                 {new Date(entry.transactionDate).toLocaleDateString()}
               </span>
