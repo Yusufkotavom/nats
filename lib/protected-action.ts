@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 
 type ActionResponse<T> = { success: boolean; data?: T; error?: string };
 
@@ -12,6 +13,15 @@ export function authorizedAction<T, A extends unknown[]>(
 
     if (!session) {
       return { success: false, error: "Unauthorized" };
+    }
+
+    const role = await prisma.role.findUnique({
+      where: { id: session.roleId },
+      select: { isActive: true },
+    });
+
+    if (!role || !role.isActive) {
+      return { success: false, error: "Forbidden: Role is deactivated" };
     }
 
     if (!hasPermission(session.permissions, permission)) {

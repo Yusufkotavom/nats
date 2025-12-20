@@ -49,6 +49,14 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
+  if (!user.role.isActive) {
+    return {
+      errors: {
+        email: ["Your account role has been deactivated. Please contact support."],
+      },
+    };
+  }
+
   await createSession(user.id, user.role);
   redirect("/");
 }

@@ -1,12 +1,14 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 const secretKey = process.env.SESSION_SECRET || "default-secret-key-change-me";
 const key = new TextEncoder().encode(secretKey);
 
 export type SessionPayload = {
   userId: string;
+  roleId: string;
   role: string; // Storing role name
   permissions: string[];
   expiresAt: Date;
@@ -33,11 +35,12 @@ export async function decrypt(session: string | undefined = "") {
 
 export async function createSession(
   userId: string,
-  role: { name: string; permissions: string[] }
+  role: { id: string; name: string; permissions: string[] }
 ) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const session = await encrypt({
     userId,
+    roleId: role.id,
     role: role.name,
     permissions: role.permissions,
     expiresAt,
@@ -65,6 +68,7 @@ export async function getSession() {
   return {
     isAuth: true,
     userId: payload.userId,
+    roleId: payload.roleId,
     role: payload.role,
     permissions: payload.permissions,
   };

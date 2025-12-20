@@ -30,6 +30,7 @@ model Role {
   id          String   @id @default(cuid())
   name        String   @unique
   description String?
+  isActive    Boolean  @default(true)
   permissions String[]
   users       User[]
   createdAt   DateTime @default(now())
