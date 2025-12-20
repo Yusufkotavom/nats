@@ -1,26 +1,30 @@
 "use server";
 
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { compare } from "bcryptjs";
 import { createSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { deleteSession } from "@/lib/auth";
 
-const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
-  password: z.string().min(1, { message: "Password is required" }),
-});
+export async function login(prevState: unknown, formData: FormData) {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-export async function login(prevState: any, formData: FormData) {
-  const result = loginSchema.safeParse(Object.fromEntries(formData));
+  const errors: { email?: string[]; password?: string[] } = {};
 
-  if (!result.success) {
-    return {
-      errors: result.error.flatten().fieldErrors,
-    };
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = ["Invalid email address"];
   }
 
-  const { email, password } = result.data;
+  if (!password || password.length < 1) {
+    errors.password = ["Password is required"];
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return {
+      errors,
+    };
+  }
 
   const user = await prisma.user.findUnique({
     where: { email },
@@ -46,4 +50,8 @@ export async function login(prevState: any, formData: FormData) {
 
   await createSession(user.id, user.role);
   redirect("/");
+}
+
+export async function logout() {
+  await deleteSession();
 }

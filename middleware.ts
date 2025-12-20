@@ -4,12 +4,13 @@ import { decrypt } from "@/lib/auth";
 
 export async function middleware(request: NextRequest) {
   const protectedRoutes = ["/dashboard", "/accounting", "/admin"];
-  const publicRoutes = ["/login"];
-  
+  const publicRoutes = ["/auth"];
+
   // Check if the current path is a protected route
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  ) || request.nextUrl.pathname === "/"; // Root is also protected usually
+  const isProtectedRoute =
+    protectedRoutes.some((route) =>
+      request.nextUrl.pathname.startsWith(route)
+    ) || request.nextUrl.pathname === "/"; // Root is also protected usually
 
   const isPublicRoute = publicRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)

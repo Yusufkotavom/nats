@@ -51,7 +51,7 @@ export async function verifySession() {
   const payload = await decrypt(session);
 
   if (!session || !payload) {
-    redirect("/login");
+    redirect("/auth");
   }
 
   return { isAuth: true, userId: payload.userId, role: payload.role };
