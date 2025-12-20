@@ -51,7 +51,9 @@ export default function EditJournalEntryPage({
           })),
         });
       }
-      setAccounts(accountsData);
+      if (Array.isArray(accountsData)) {
+        setAccounts(accountsData);
+      }
       setLoading(false);
     };
 

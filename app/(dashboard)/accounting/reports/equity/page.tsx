@@ -41,13 +41,17 @@ export default function EquityPage() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const data = await getStatementOfChangesInEquity(
+      const res = await getStatementOfChangesInEquity(
         startDate,
         endDate,
         showComparative ? comparativeStartDate : undefined,
         showComparative ? comparativeEndDate : undefined
       );
-      setReport(data);
+      if (res.success && res.data) {
+        setReport(res.data);
+      } else {
+        console.error("Failed to fetch report:", res.error);
+      }
     } catch (error) {
       console.error("Failed to fetch report:", error);
     } finally {

@@ -118,13 +118,17 @@ export default function ProfitLossPage() {
   const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getProfitAndLoss(
+      const res = await getProfitAndLoss(
         startDate,
         endDate,
         showComparative ? comparativeStartDate : undefined,
         showComparative ? comparativeEndDate : undefined
       );
-      setReport(data);
+      if (res.success && res.data) {
+        setReport(res.data);
+      } else {
+        console.error("Failed to fetch report:", res.error);
+      }
     } catch (error) {
       console.error("Failed to fetch report:", error);
     } finally {

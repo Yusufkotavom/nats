@@ -37,11 +37,15 @@ export default function BalanceSheetPage() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const data = await getBalanceSheet(
+      const res = await getBalanceSheet(
         asOfDate,
         showComparative ? comparativeDate : undefined
       );
-      setReport(data);
+      if (res.success && res.data) {
+        setReport(res.data);
+      } else {
+        console.error("Failed to fetch report:", res.error);
+      }
     } catch (error) {
       console.error("Failed to fetch report:", error);
     } finally {

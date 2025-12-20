@@ -45,13 +45,17 @@ export default function CashFlowPage() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const data = await getCashFlowStatement(
+      const res = await getCashFlowStatement(
         startDate,
         endDate,
         showComparative ? comparativeStartDate : undefined,
         showComparative ? comparativeEndDate : undefined
       );
-      setReport(data);
+      if (res.success && res.data) {
+        setReport(res.data);
+      } else {
+        console.error("Failed to fetch report:", res.error);
+      }
     } catch (error) {
       console.error("Failed to fetch report:", error);
     } finally {
