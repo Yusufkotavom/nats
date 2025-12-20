@@ -14,13 +14,24 @@ model User {
   email          String         @unique
   password       String
   name           String
-  role           Role           @default(staff)
+  roleId         String
+  role           Role           @relation(fields: [roleId], references: [id])
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   journalEntries JournalEntry[]
 
   @@index([email])
-  @@index([role])
+  @@index([roleId])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions String[]
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Account {
@@ -75,13 +86,6 @@ model JournalEntryLine {
 
   @@index([journalEntryId])
   @@index([accountId])
-}
-
-enum Role {
-  staff
-  supervisor
-  manager
-  superadmin
 }
 
 enum AccountType {

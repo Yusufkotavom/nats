@@ -1,4 +1,3 @@
-import { Role } from "@/prisma/generated/prisma/enums";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -8,7 +7,8 @@ const key = new TextEncoder().encode(secretKey);
 
 export type SessionPayload = {
   userId: string;
-  role: Role;
+  role: string; // Storing role name
+  permissions: string[];
   expiresAt: Date;
 };
 
@@ -31,9 +31,17 @@ export async function decrypt(session: string | undefined = "") {
   }
 }
 
-export async function createSession(userId: string, role: Role) {
+export async function createSession(
+  userId: string,
+  role: { name: string; permissions: string[] }
+) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const session = await encrypt({ userId, role, expiresAt });
+  const session = await encrypt({
+    userId,
+    role: role.name,
+    permissions: role.permissions,
+    expiresAt,
+  });
   const cookieStore = await cookies();
 
   cookieStore.set("session", session, {
@@ -45,26 +53,34 @@ export async function createSession(userId: string, role: Role) {
   });
 }
 
-export async function verifySession() {
+export async function getSession() {
   const cookieStore = await cookies();
   const session = cookieStore.get("session")?.value;
   const payload = await decrypt(session);
 
   if (!session || !payload) {
+    return null;
+  }
+
+  return {
+    isAuth: true,
+    userId: payload.userId,
+    role: payload.role,
+    permissions: payload.permissions,
+  };
+}
+
+export async function verifySession() {
+  const session = await getSession();
+
+  if (!session) {
     redirect("/auth");
   }
 
-  return { isAuth: true, userId: payload.userId, role: payload.role };
+  return session;
 }
 
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete("session");
-}
-
-export async function getSession() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("session")?.value;
-  const payload = await decrypt(session);
-  return payload;
 }

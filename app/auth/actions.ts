@@ -28,6 +28,7 @@ export async function login(prevState: unknown, formData: FormData) {
 
   const user = await prisma.user.findUnique({
     where: { email },
+    include: { role: true },
   });
 
   if (!user) {

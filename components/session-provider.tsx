@@ -1,11 +1,10 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { Role } from "@/prisma/generated/prisma/enums";
 
 type SessionData = {
-  userId: string;
-  role: Role;
+  role: string;
+  permissions: string[];
 } | null;
 
 const SessionContext = createContext<SessionData>(null);

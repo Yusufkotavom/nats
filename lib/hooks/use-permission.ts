@@ -8,5 +8,5 @@ export function usePermission(permission: Permission) {
 
   if (!session) return false;
 
-  return hasPermission(session.role, permission);
+  return hasPermission(session.permissions, permission);
 }

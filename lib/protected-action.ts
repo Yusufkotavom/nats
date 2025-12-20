@@ -1,6 +1,5 @@
 import { getSession } from "@/lib/auth";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { Role } from "@/prisma/generated/prisma/enums";
 
 type ActionResponse<T> = { success: boolean; data?: T; error?: string };
 
@@ -15,7 +14,7 @@ export function authorizedAction<T, A extends unknown[]>(
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.role as Role, permission)) {
+    if (!hasPermission(session.permissions, permission)) {
       return { success: false, error: "Forbidden: Insufficient permissions" };
     }
 

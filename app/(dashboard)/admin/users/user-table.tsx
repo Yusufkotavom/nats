@@ -40,7 +40,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Role } from "@/prisma/generated/prisma/enums";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Protect } from "@/components/protect";
 
@@ -48,12 +47,16 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  role: {
+    id: string;
+    name: string;
+  };
   createdAt: string;
 }
 
 interface UserTableProps {
   initialUsers: User[];
+  roles: { id: string; name: string; description: string | null }[];
   page: number;
   totalPages: number;
   total: number;
@@ -61,6 +64,7 @@ interface UserTableProps {
 
 export function UserTable({
   initialUsers,
+  roles,
   page,
   totalPages,
   total,
@@ -136,7 +140,7 @@ export function UserTable({
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell className="capitalize">{user.role}</TableCell>
+                  <TableCell className="capitalize">{user.role.name}</TableCell>
                   <TableCell>
                     {format(new Date(user.createdAt), "PPP")}
                   </TableCell>
@@ -206,6 +210,7 @@ export function UserTable({
 
       <UserDialog
         user={selectedUser}
+        roles={roles}
         open={isDialogOpen}
         onOpenChange={(open) => {
           setIsDialogOpen(open);

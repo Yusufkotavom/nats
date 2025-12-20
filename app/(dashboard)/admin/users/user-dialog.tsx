@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,27 +21,42 @@ import {
 } from "@/components/ui/select";
 import { createUser, updateUser } from "./actions";
 import { Loader2 } from "lucide-react";
-import { ROLE_DESCRIPTIONS } from "@/lib/permissions";
-import { Role } from "@/prisma/generated/prisma/enums";
 
 interface UserDialogProps {
   user?: {
     id: string;
     name: string;
     email: string;
-    role: Role;
+    role: {
+      id: string;
+      name: string;
+    };
   };
+  roles: { id: string; name: string; description: string | null }[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
+export function UserDialog({
+  user,
+  roles,
+  open,
+  onOpenChange,
+}: UserDialogProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!user;
-
-  const [selectedRole, setSelectedRole] = useState<Role | undefined>(
-    user?.role || "staff"
+  const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(
+    undefined
   );
+
+  useEffect(() => {
+    if (user?.role.id) {
+      setSelectedRoleId(user.role.id);
+    } else if (!isEditing && roles.length > 0) {
+      // Default to the first role if creating new user
+      setSelectedRoleId(roles[0].id);
+    }
+  }, [user, roles, isEditing]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,7 +64,7 @@ export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
-    const role = formData.get("role") as Role;
+    const roleId = formData.get("roleId") as string;
     const password = formData.get("password") as string;
 
     try {
@@ -57,11 +72,11 @@ export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
         await updateUser(user.id, {
           name,
           email,
-          role,
-          password: password,
+          roleId,
+          password: password || undefined,
         });
       } else {
-        await createUser({ name, email, role, password });
+        await createUser({ name, email, roleId, password });
       }
       onOpenChange(false);
     } catch (error) {
@@ -70,6 +85,8 @@ export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
       setLoading(false);
     }
   };
+
+  const selectedRole = roles.find((r) => r.id === selectedRoleId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,28 +162,24 @@ export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
               </Label>
               <div className="col-span-3 space-y-2">
                 <Select
-                  name="role"
-                  defaultValue={selectedRole}
-                  onValueChange={(val) => setSelectedRole(val as Role)}
+                  name="roleId"
+                  value={selectedRoleId}
+                  onValueChange={setSelectedRoleId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(ROLE_DESCRIPTIONS).map((role) => (
-                      <SelectItem
-                        key={role}
-                        value={role}
-                        className="capitalize"
-                      >
-                        {role}
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedRole && (
+                {selectedRole?.description && (
                   <p className="text-xs text-muted-foreground">
-                    {ROLE_DESCRIPTIONS[selectedRole]}
+                    {selectedRole.description}
                   </p>
                 )}
               </div>

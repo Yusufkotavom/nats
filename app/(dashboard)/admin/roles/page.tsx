@@ -6,11 +6,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ROLE_PERMISSIONS, ROLE_DESCRIPTIONS } from "@/lib/permissions";
-import { Role } from "@/prisma/generated/prisma/enums";
+import { prisma } from "@/lib/prisma";
 
-export default function RolesPage() {
-  const roles = Object.keys(ROLE_PERMISSIONS) as Role[];
+export default async function RolesPage() {
+  const roles = await prisma.role.findMany({
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -20,23 +21,23 @@ export default function RolesPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         {roles.map((role) => (
-          <Card key={role}>
+          <Card key={role.id}>
             <CardHeader>
               <CardTitle className="capitalize flex items-center gap-2">
-                {role}
-                {role === "superadmin" && (
+                {role.name}
+                {role.name === "superadmin" && (
                   <Badge variant="default" className="bg-primary">
                     System
                   </Badge>
                 )}
               </CardTitle>
-              <CardDescription>{ROLE_DESCRIPTIONS[role]}</CardDescription>
+              <CardDescription>{role.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Permissions</h4>
                 <div className="flex flex-wrap gap-2">
-                  {ROLE_PERMISSIONS[role].map((permission) => (
+                  {role.permissions.map((permission) => (
                     <Badge key={permission} variant="secondary">
                       {permission}
                     </Badge>

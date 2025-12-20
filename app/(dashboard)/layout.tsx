@@ -1,7 +1,7 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { AppSidebar } from "@/components/app-sidebar";
-import { getSession } from "@/lib/auth";
+import { verifySession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/session-provider";
 
@@ -10,7 +10,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
+  const session = await verifySession();
 
   let userData = {
     name: "User",
@@ -29,7 +29,9 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SessionProvider value={{ userId: session?.userId, role: session?.role }}>
+    <SessionProvider
+      session={{ role: session.role, permissions: session.permissions }}
+    >
       <SidebarProvider
         style={
           {

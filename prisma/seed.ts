@@ -1,5 +1,4 @@
 import { hash } from "bcryptjs";
-import { Role } from "./generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 async function main() {
@@ -198,6 +197,17 @@ async function main() {
   // Seed User
   const password = await hash("password123", 10);
 
+  // Seed Roles
+  const superAdminRole = await prisma.role.upsert({
+    where: { name: "superadmin" },
+    update: {},
+    create: {
+      name: "superadmin",
+      description: "Super Administrator with full access",
+      permissions: ["*"],
+    },
+  });
+
   const user = await prisma.user.upsert({
     where: { email: "admin@example.com" },
     update: {
@@ -207,7 +217,7 @@ async function main() {
       email: "admin@example.com",
       name: "Admin User",
       password,
-      role: Role.superadmin,
+      roleId: superAdminRole.id,
     },
   });
 
