@@ -58,7 +58,7 @@ export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
           name,
           email,
           role,
-          password: password || undefined,
+          password: password,
         });
       } else {
         await createUser({ name, email, role, password });
@@ -153,10 +153,15 @@ export function UserDialog({ user, open, onOpenChange }: UserDialogProps) {
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="supervisor">Supervisor</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="superadmin">Superadmin</SelectItem>
+                    {Object.keys(ROLE_DESCRIPTIONS).map((role) => (
+                      <SelectItem
+                        key={role}
+                        value={role}
+                        className="capitalize"
+                      >
+                        {role}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {selectedRole && (
