@@ -4,6 +4,6 @@ export function hasPermission(
   userPermissions: string[],
   requiredPermission: Permission
 ): boolean {
-  if (userPermissions.includes("*")) return true;
-  return userPermissions.includes(requiredPermission);
+  if (userPermissions?.includes("*")) return true;
+  return userPermissions?.includes(requiredPermission);
 }
