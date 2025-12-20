@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 import { z } from "zod";
 
 const UserCreateSchema = z.object({

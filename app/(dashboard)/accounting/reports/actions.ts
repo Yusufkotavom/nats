@@ -240,7 +240,7 @@ function buildAccountHierarchy(
   return roots.map(mapToLine);
 }
 
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 
 export async function getProfitAndLoss(
   startDate: string,

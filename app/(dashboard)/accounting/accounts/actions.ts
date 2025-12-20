@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 

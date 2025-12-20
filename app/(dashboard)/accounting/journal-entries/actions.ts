@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { EntryStatus } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
-import { authorizedAction } from "@/lib/protected-action";
-import { getSession, verifySession } from "@/lib/auth";
+import { authorizedAction } from "@/lib/auth/protected-action";
+import { getSession, verifySession } from "@/lib/auth/auth";
 
 export const getJournalEntries = authorizedAction(
   "journal_entries.view",

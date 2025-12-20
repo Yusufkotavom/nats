@@ -1,7 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 
 const secretKey = process.env.SESSION_SECRET || "default-secret-key-change-me";
 const key = new TextEncoder().encode(secretKey);

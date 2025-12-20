@@ -3,12 +3,14 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 
 const roleSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  permissions: z.array(z.string()).min(1, "At least one permission is required"),
+  permissions: z
+    .array(z.string())
+    .min(1, "At least one permission is required"),
   isActive: z.boolean().default(true),
 });
 
@@ -101,7 +103,8 @@ export const deleteRole = authorizedAction(
     if (role._count.users > 0) {
       return {
         success: false,
-        error: "Cannot delete role with assigned users. Please reassign them first.",
+        error:
+          "Cannot delete role with assigned users. Please reassign them first.",
       };
     }
 

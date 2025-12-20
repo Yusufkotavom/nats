@@ -80,7 +80,7 @@ export async function getProducts(
   };
 }
 
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 
 export const createProduct = authorizedAction(
   "products.create",

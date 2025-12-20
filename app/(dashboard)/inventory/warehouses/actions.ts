@@ -28,53 +28,56 @@ export async function getWarehouses() {
   }));
 }
 
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 
-export const createWarehouse = authorizedAction("warehouses.create", async (data: {
-  name: string;
-  location?: string;
-}) => {
-  try {
-    const warehouse = await prisma.warehouse.create({
-      data,
-    });
-    revalidatePath("/inventory/warehouses");
-    return { success: true, data: warehouse };
-  } catch (error) {
-    console.error("Failed to create warehouse:", error);
-    return { success: false, error: "Failed to create warehouse" };
+export const createWarehouse = authorizedAction(
+  "warehouses.create",
+  async (data: { name: string; location?: string }) => {
+    try {
+      const warehouse = await prisma.warehouse.create({
+        data,
+      });
+      revalidatePath("/inventory/warehouses");
+      return { success: true, data: warehouse };
+    } catch (error) {
+      console.error("Failed to create warehouse:", error);
+      return { success: false, error: "Failed to create warehouse" };
+    }
   }
-});
+);
 
-export const updateWarehouse = authorizedAction("warehouses.edit", async (
-  id: string,
-  data: { name: string; location?: string }
-) => {
-  try {
-    const warehouse = await prisma.warehouse.update({
-      where: { id },
-      data,
-    });
-    revalidatePath("/inventory/warehouses");
-    return { success: true, data: warehouse };
-  } catch (error) {
-    console.error("Failed to update warehouse:", error);
-    return { success: false, error: "Failed to update warehouse" };
+export const updateWarehouse = authorizedAction(
+  "warehouses.edit",
+  async (id: string, data: { name: string; location?: string }) => {
+    try {
+      const warehouse = await prisma.warehouse.update({
+        where: { id },
+        data,
+      });
+      revalidatePath("/inventory/warehouses");
+      return { success: true, data: warehouse };
+    } catch (error) {
+      console.error("Failed to update warehouse:", error);
+      return { success: false, error: "Failed to update warehouse" };
+    }
   }
-});
+);
 
-export const deleteWarehouse = authorizedAction("warehouses.delete", async (id: string) => {
-  try {
-    await prisma.warehouse.delete({
-      where: { id },
-    });
-    revalidatePath("/inventory/warehouses");
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to delete warehouse:", error);
-    return { success: false, error: "Failed to delete warehouse" };
+export const deleteWarehouse = authorizedAction(
+  "warehouses.delete",
+  async (id: string) => {
+    try {
+      await prisma.warehouse.delete({
+        where: { id },
+      });
+      revalidatePath("/inventory/warehouses");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete warehouse:", error);
+      return { success: false, error: "Failed to delete warehouse" };
+    }
   }
-});
+);
 
 export async function getInventoryLevels(warehouseId?: string) {
   const where = warehouseId ? { warehouseId } : {};

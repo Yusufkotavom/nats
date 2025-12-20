@@ -2,9 +2,9 @@
 
 import { prisma } from "@/lib/prisma";
 import { compare } from "bcryptjs";
-import { createSession } from "@/lib/auth";
+import { createSession } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
-import { deleteSession } from "@/lib/auth";
+import { deleteSession } from "@/lib/auth/auth";
 
 export async function login(prevState: unknown, formData: FormData) {
   const email = formData.get("email") as string;
@@ -52,7 +52,9 @@ export async function login(prevState: unknown, formData: FormData) {
   if (!user.role.isActive) {
     return {
       errors: {
-        email: ["Your account role has been deactivated. Please contact support."],
+        email: [
+          "Your account role has been deactivated. Please contact support.",
+        ],
       },
     };
   }

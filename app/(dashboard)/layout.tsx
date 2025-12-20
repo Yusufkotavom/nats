@@ -1,7 +1,7 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { AppSidebar } from "@/components/app-sidebar";
-import { verifySession } from "@/lib/auth";
+import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/session-provider";
 

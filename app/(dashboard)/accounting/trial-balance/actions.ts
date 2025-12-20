@@ -7,7 +7,7 @@ import {
   TrialBalanceResult,
 } from "../types";
 
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 
 export const getTrialBalance = authorizedAction(
   "reports.view",

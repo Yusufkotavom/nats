@@ -2,34 +2,31 @@
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
-import { authorizedAction } from "@/lib/protected-action";
+import { authorizedAction } from "@/lib/auth/protected-action";
 
-export const getPostingAccounts = authorizedAction(
-  "ledger.view",
-  async () => {
-    try {
-      const accounts = await prisma.account.findMany({
-        where: {
-          isPosting: true,
-          isActive: true,
-        },
-        select: {
-          id: true,
-          code: true,
-          type: true,
-          name: true,
-        },
-        orderBy: {
-          code: "asc",
-        },
-      });
-      return { success: true, data: accounts };
-    } catch (error) {
-      console.error("Error fetching accounts:", error);
-      return { success: false, error: "Failed to fetch accounts" };
-    }
+export const getPostingAccounts = authorizedAction("ledger.view", async () => {
+  try {
+    const accounts = await prisma.account.findMany({
+      where: {
+        isPosting: true,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        code: true,
+        type: true,
+        name: true,
+      },
+      orderBy: {
+        code: "asc",
+      },
+    });
+    return { success: true, data: accounts };
+  } catch (error) {
+    console.error("Error fetching accounts:", error);
+    return { success: false, error: "Failed to fetch accounts" };
   }
-);
+});
 
 export const getLedgerEntries = authorizedAction(
   "ledger.view",

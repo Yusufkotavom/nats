@@ -1,5 +1,5 @@
-import { getSession } from "@/lib/auth";
-import { hasPermission, Permission } from "@/lib/permissions";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission, Permission } from "@/lib/auth/permissions";
 import { prisma } from "@/lib/prisma";
 
 type ActionResponse<T> = { success: boolean; data?: T; error?: string };
