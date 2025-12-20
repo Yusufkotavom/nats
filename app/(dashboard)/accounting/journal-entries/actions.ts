@@ -5,21 +5,7 @@ import { Prisma } from "@/prisma/generated/prisma/client";
 import { EntryStatus } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/protected-action";
-
-// Helper to get a default user since we don't have real auth yet
-async function getDefaultUser() {
-  const user = await prisma.user.findFirst();
-  if (user) return user;
-
-  return await prisma.user.create({
-    data: {
-      email: "demo@example.com",
-      name: "Demo User",
-      password: "password", // In a real app, this should be hashed
-      role: "superadmin",
-    },
-  });
-}
+import { getSession, verifySession } from "@/lib/auth";
 
 export const getJournalEntries = authorizedAction(
   "journal_entries.view",
@@ -145,7 +131,11 @@ export const createJournalEntry = authorizedAction(
   "journal_entries.create",
   async (data: CreateJournalEntryData) => {
     try {
-      const user = await getDefaultUser();
+      const user = await getSession();
+
+      if (!user?.userId) {
+        return { success: false, error: "User not authenticated" };
+      }
 
       // Validate debit = credit
       const totalDebit = data.lines.reduce(
@@ -183,7 +173,7 @@ export const createJournalEntry = authorizedAction(
 
       const entry = await prisma.journalEntry.create({
         data: {
-          userId: user.id,
+          userId: user?.userId,
           entryNumber,
           transactionDate: data.transactionDate,
           description: data.description,
