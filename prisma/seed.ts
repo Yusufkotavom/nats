@@ -1,7 +1,6 @@
 import { hash } from "bcryptjs";
-import { PrismaClient, Role } from "./generated/prisma/client";
-
-const prisma = new PrismaClient();
+import { Role } from "./generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 
 async function main() {
   console.log("Start seeding...");
