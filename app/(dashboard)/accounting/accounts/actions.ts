@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { authorizedAction } from "@/lib/protected-action";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 
@@ -51,28 +52,31 @@ export async function getAccounts(page?: number, pageSize?: number) {
   };
 }
 
-export async function createAccount(data: {
-  code: string;
-  name: string;
-  type: AccountType;
-  parentId?: string;
-}) {
-  try {
-    const account = await prisma.account.create({
-      data: {
-        code: data.code,
-        name: data.name,
-        type: data.type,
-        parentId: data.parentId || null,
-      },
-    });
-    revalidatePath("/accounting/accounts");
-    return { success: true, data: account };
-  } catch (error) {
-    console.error(error);
-    return { success: false, error: "Failed to create account" };
+export const createAccount = authorizedAction(
+  "accounts.create",
+  async (data: {
+    code: string;
+    name: string;
+    type: AccountType;
+    parentId?: string;
+  }) => {
+    try {
+      const account = await prisma.account.create({
+        data: {
+          code: data.code,
+          name: data.name,
+          type: data.type,
+          parentId: data.parentId || null,
+        },
+      });
+      revalidatePath("/accounting/accounts");
+      return { success: true, data: account };
+    } catch (error) {
+      console.error(error);
+      return { success: false, error: "Failed to create account" };
+    }
   }
-}
+);
 
 export async function getNextAccountCode(
   parentId: string | null,

@@ -13,6 +13,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { deleteCategory } from "../actions";
 import { CategoryDialog } from "./category-dialog";
 import { Category } from "@/prisma/generated/prisma/browser";
+import { Protect } from "@/components/protect";
 
 type CategoryWithCount = Category & {
   _count: { products: number };
@@ -54,33 +55,37 @@ export function CategoryTable({ categories }: CategoryTableProps) {
                 <TableCell>{category.description || "-"}</TableCell>
                 <TableCell>{category._count.products}</TableCell>
                 <TableCell className="flex gap-2">
-                  <CategoryDialog
-                    category={category}
-                    trigger={
-                      <Button variant="ghost" size="icon">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(category.id)}
-                    disabled={category._count.products > 0}
-                    title={
-                      category._count.products > 0
-                        ? "Cannot delete category with products"
-                        : "Delete category"
-                    }
-                  >
-                    <Trash2
-                      className={`h-4 w-4 ${
-                        category._count.products > 0
-                          ? "text-muted-foreground"
-                          : "text-red-500"
-                      }`}
+                  <Protect permission="categories.edit">
+                    <CategoryDialog
+                      category={category}
+                      trigger={
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      }
                     />
-                  </Button>
+                  </Protect>
+                  <Protect permission="categories.delete">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(category.id)}
+                      disabled={category._count.products > 0}
+                      title={
+                        category._count.products > 0
+                          ? "Cannot delete category with products"
+                          : "Delete category"
+                      }
+                    >
+                      <Trash2
+                        className={`h-4 w-4 ${
+                          category._count.products > 0
+                            ? "text-muted-foreground"
+                            : "text-red-500"
+                        }`}
+                      />
+                    </Button>
+                  </Protect>
                 </TableCell>
               </TableRow>
             ))

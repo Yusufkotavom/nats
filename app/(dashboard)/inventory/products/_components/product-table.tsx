@@ -30,7 +30,9 @@ import { ProductDialog } from "./product-dialog";
 import { useState, useEffect } from "react";
 import { ProductFormData } from "../../types";
 import { Category } from "@/prisma/generated/prisma/browser";
+
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Protect } from "@/components/protect";
 
 interface ProductTableProps {
   products: ProductFormData[];
@@ -160,22 +162,26 @@ export function ProductTable({
                     <TableCell>{product.minStock}</TableCell>
                     <TableCell>{totalStock}</TableCell>
                     <TableCell className="flex gap-2">
-                      <ProductDialog
-                        product={product}
-                        categories={categories}
-                        trigger={
-                          <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                      <Protect permission="products.edit">
+                        <ProductDialog
+                          product={product}
+                          categories={categories}
+                          trigger={
+                            <Button variant="ghost" size="icon">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                      </Protect>
+                      <Protect permission="products.delete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(product.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </Protect>
                     </TableCell>
                   </TableRow>
                 );

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { UserCreateInput } from "@/prisma/generated/prisma/models";
+import { authorizedAction } from "@/lib/protected-action";
 
 export async function getUsers(page: number = 1, pageSize: number = 10) {
   const skip = (page - 1) * pageSize;
@@ -26,63 +27,72 @@ export async function getUsers(page: number = 1, pageSize: number = 10) {
   return { users, total, totalPages: Math.ceil(total / pageSize) };
 }
 
-export async function createUser(data: UserCreateInput) {
-  try {
-    const hashedPassword = await bcrypt.hash(
-      data.password || "password123",
-      10
-    );
+export const createUser = authorizedAction(
+  "users.create",
+  async (data: UserCreateInput) => {
+    try {
+      const hashedPassword = await bcrypt.hash(
+        data.password || "password123",
+        10
+      );
 
-    const user = await prisma.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        password: hashedPassword,
-        role: data.role,
-      },
-    });
-    revalidatePath("/admin/users");
-    return { success: true, user };
-  } catch (error) {
-    console.error("Failed to create user:", error);
-    return { success: false, error: "Failed to create user" };
-  }
-}
-
-export async function updateUser(id: string, updateData: UserCreateInput) {
-  try {
-    // Remove undefined fields
-    Object.keys(updateData).forEach(
-      (key) =>
-        updateData[key as keyof typeof updateData] === undefined &&
-        delete updateData[key as keyof typeof updateData]
-    );
-
-    if (updateData.password) {
-      updateData.password = await bcrypt.hash(updateData.password, 10);
+      const user = await prisma.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          password: hashedPassword,
+          role: data.role,
+        },
+      });
+      revalidatePath("/admin/users");
+      return { success: true, user };
+    } catch (error) {
+      console.error("Failed to create user:", error);
+      return { success: false, error: "Failed to create user" };
     }
-
-    const user = await prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
-    revalidatePath("/admin/users");
-    return { success: true, user };
-  } catch (error) {
-    console.error("Failed to update user:", error);
-    return { success: false, error: "Failed to update user" };
   }
-}
+);
 
-export async function deleteUser(id: string) {
-  try {
-    await prisma.user.delete({
-      where: { id },
-    });
-    revalidatePath("/admin/users");
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to delete user:", error);
-    return { success: false, error: "Failed to delete user" };
+export const updateUser = authorizedAction(
+  "users.edit",
+  async (id: string, updateData: UserCreateInput) => {
+    try {
+      // Remove undefined fields
+      Object.keys(updateData).forEach(
+        (key) =>
+          updateData[key as keyof typeof updateData] === undefined &&
+          delete updateData[key as keyof typeof updateData]
+      );
+
+      if (updateData.password) {
+        updateData.password = await bcrypt.hash(updateData.password, 10);
+      }
+
+      const user = await prisma.user.update({
+        where: { id },
+        data: updateData,
+      });
+      revalidatePath("/admin/users");
+      return { success: true, user };
+    } catch (error) {
+      console.error("Failed to update user:", error);
+      return { success: false, error: "Failed to update user" };
+    }
   }
-}
+);
+
+export const deleteUser = authorizedAction(
+  "users.delete",
+  async (id: string) => {
+    try {
+      await prisma.user.delete({
+        where: { id },
+      });
+      revalidatePath("/admin/users");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      return { success: false, error: "Failed to delete user" };
+    }
+  }
+);

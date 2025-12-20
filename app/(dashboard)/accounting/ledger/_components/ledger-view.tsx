@@ -66,8 +66,6 @@ export function LedgerView({ accounts }: LedgerViewProps) {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [totals, setTotals] = useState<{ debit: number; credit: number }>({
     debit: 0,
     credit: 0,
@@ -86,25 +84,27 @@ export function LedgerView({ accounts }: LedgerViewProps) {
       setLoading(true);
       const res = await getLedgerEntries(
         selectedAccount.id,
-        currentPage,
-        20,
+        1,
+        10000,
         startDate,
         endDate,
         onlyDraft
       );
       if (res.success && res.data) {
         setEntries(res.data as unknown as LedgerEntry[]);
-        if (res.pagination) {
-          setTotalPages(res.pagination.totalPages);
-        }
-        if (res.totals) {
+        const responseWithExtras = res as typeof res & {
+          totals?: { debit: number | string; credit: number | string };
+          account?: { normalBalance: NormalBalance };
+        };
+
+        if (responseWithExtras.totals) {
           setTotals({
-            debit: Number(res.totals.debit),
-            credit: Number(res.totals.credit),
+            debit: Number(responseWithExtras.totals.debit),
+            credit: Number(responseWithExtras.totals.credit),
           });
         }
-        if (res.account) {
-          setAccountDetails(res.account as { normalBalance: NormalBalance });
+        if (responseWithExtras.account) {
+          setAccountDetails(responseWithExtras.account);
         }
       }
       setLoading(false);
@@ -115,12 +115,11 @@ export function LedgerView({ accounts }: LedgerViewProps) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [selectedAccount?.id, currentPage, startDate, endDate, onlyDraft]);
+  }, [selectedAccount?.id, startDate, endDate, onlyDraft]);
 
   const handleAccountChange = (value: string) => {
     const found = accounts?.find((item) => item.id == value);
     if (found) setSelectedAccount(found);
-    setCurrentPage(1);
   };
 
   const balance =
@@ -218,7 +217,6 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   value={startDate}
                   onChange={(e) => {
                     setStartDate(e.target.value);
-                    setCurrentPage(1);
                   }}
                 />
               </div>
@@ -229,7 +227,6 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   value={endDate}
                   onChange={(e) => {
                     setEndDate(e.target.value);
-                    setCurrentPage(1);
                   }}
                 />
               </div>
@@ -239,7 +236,6 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   checked={onlyDraft}
                   onCheckedChange={(checked) => {
                     setOnlyDraft(checked as boolean);
-                    setCurrentPage(1);
                   }}
                 />
                 <Label htmlFor="onlyDraft">Only Draft</Label>
@@ -308,32 +304,6 @@ export function LedgerView({ accounts }: LedgerViewProps) {
               </TableBody>
             </Table>
           </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1 || loading}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages || loading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

@@ -24,7 +24,9 @@ export async function getMovements() {
   }));
 }
 
-export async function createMovement(data: {
+import { authorizedAction } from "@/lib/protected-action";
+
+export const createMovement = authorizedAction("inventory_movements.create", async (data: {
   type: MovementType;
   productId: string;
   fromWarehouseId?: string;
@@ -32,7 +34,7 @@ export async function createMovement(data: {
   quantity: number;
   reference?: string;
   notes?: string;
-}) {
+}) => {
   const {
     type,
     productId,
@@ -225,4 +227,4 @@ export async function createMovement(data: {
         error instanceof Error ? error.message : "Failed to create movement",
     };
   }
-}
+});

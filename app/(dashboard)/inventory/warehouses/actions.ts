@@ -28,10 +28,12 @@ export async function getWarehouses() {
   }));
 }
 
-export async function createWarehouse(data: {
+import { authorizedAction } from "@/lib/protected-action";
+
+export const createWarehouse = authorizedAction("warehouses.create", async (data: {
   name: string;
   location?: string;
-}) {
+}) => {
   try {
     const warehouse = await prisma.warehouse.create({
       data,
@@ -42,12 +44,12 @@ export async function createWarehouse(data: {
     console.error("Failed to create warehouse:", error);
     return { success: false, error: "Failed to create warehouse" };
   }
-}
+});
 
-export async function updateWarehouse(
+export const updateWarehouse = authorizedAction("warehouses.edit", async (
   id: string,
   data: { name: string; location?: string }
-) {
+) => {
   try {
     const warehouse = await prisma.warehouse.update({
       where: { id },
@@ -59,9 +61,9 @@ export async function updateWarehouse(
     console.error("Failed to update warehouse:", error);
     return { success: false, error: "Failed to update warehouse" };
   }
-}
+});
 
-export async function deleteWarehouse(id: string) {
+export const deleteWarehouse = authorizedAction("warehouses.delete", async (id: string) => {
   try {
     await prisma.warehouse.delete({
       where: { id },
@@ -72,7 +74,7 @@ export async function deleteWarehouse(id: string) {
     console.error("Failed to delete warehouse:", error);
     return { success: false, error: "Failed to delete warehouse" };
   }
-}
+});
 
 export async function getInventoryLevels(warehouseId?: string) {
   const where = warehouseId ? { warehouseId } : {};

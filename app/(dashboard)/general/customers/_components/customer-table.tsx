@@ -19,9 +19,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  MoreHorizontal,
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { CustomerDialog } from "./customer-dialog";
 import { deleteCustomer } from "../actions";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,12 +53,18 @@ export function CustomerTable({ initialData }: CustomerTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>(undefined);
+  const [selectedCustomer, setSelectedCustomer] = useState<
+    Customer | undefined
+  >(undefined);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | undefined>(undefined);
+  const [customerToDelete, setCustomerToDelete] = useState<
+    Customer | undefined
+  >(undefined);
 
   // Search state
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [searchQuery, setSearchQuery] = useState(
+    searchParams.get("search") || ""
+  );
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,22 +114,24 @@ export function CustomerTable({ initialData }: CustomerTableProps) {
           Customer Management
         </h2>
         <div className="flex items-center gap-2">
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Search..."
-                        className="pl-8 w-[200px] lg:w-[300px]"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-                <Button type="submit" variant="secondary">Search</Button>
-            </form>
-            <Button onClick={handleAddCustomer}>
-            <Plus className="mr-2 h-4 w-4" /> Add Customer
+          <form onSubmit={handleSearch} className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search..."
+                className="pl-8 w-[200px] lg:w-[300px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="secondary">
+              Search
             </Button>
+          </form>
+          <Button onClick={handleAddCustomer}>
+            <Plus className="mr-2 h-4 w-4" /> Add Customer
+          </Button>
         </div>
       </div>
       <div className="rounded-md border">
@@ -184,7 +201,8 @@ export function CustomerTable({ initialData }: CustomerTableProps) {
       {/* Pagination Controls */}
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          Page {initialData.page} of {initialData.totalPages} ({initialData.total} items)
+          Page {initialData.page} of {initialData.totalPages} (
+          {initialData.total} items)
         </div>
         <div className="space-x-2">
           <Button

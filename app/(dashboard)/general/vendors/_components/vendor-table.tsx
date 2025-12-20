@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { VendorDialog } from "./vendor-dialog";
 import { deleteVendor } from "../actions";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +44,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Vendor, PaginatedResult } from "../../types";
+import { Protect } from "@/components/protect";
 
 interface VendorTableProps {
   initialData: PaginatedResult<Vendor>;
@@ -126,9 +128,11 @@ export function VendorTable({ initialData }: VendorTableProps) {
               Search
             </Button>
           </form>
-          <Button onClick={handleAddVendor}>
-            <Plus className="mr-2 h-4 w-4" /> Add Vendor
-          </Button>
+          <Protect permission="vendors.create">
+            <Button onClick={handleAddVendor}>
+              <Plus className="mr-2 h-4 w-4" /> Add Vendor
+            </Button>
+          </Protect>
         </div>
       </div>
       <div className="rounded-md border">
@@ -167,18 +171,22 @@ export function VendorTable({ initialData }: VendorTableProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem
-                        onClick={() => handleEditVendor(vendor)}
-                      >
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </DropdownMenuItem>
+                      <Protect permission="vendors.edit">
+                        <DropdownMenuItem
+                          onClick={() => handleEditVendor(vendor)}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                      </Protect>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDeleteClick(vendor)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
+                      <Protect permission="vendors.delete">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteClick(vendor)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </Protect>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

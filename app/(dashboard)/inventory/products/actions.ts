@@ -80,74 +80,85 @@ export async function getProducts(
   };
 }
 
-export async function createProduct(data: ProductFormData) {
-  try {
-    const product = await prisma.product.create({
-      data: {
-        name: data.name,
-        sku: data.sku,
-        description: data.description,
-        categoryId: data.categoryId,
-        price: Number(data.price),
-        cost: Number(data.cost),
-        minStock: data.minStock,
-        isActive: data.isActive,
-      },
-    });
-    revalidatePath("/inventory/products");
-    return {
-      success: true,
-      data: {
-        ...product,
-        price: Number(product.price),
-        cost: Number(product.cost),
-      },
-    };
-  } catch (error) {
-    console.error("Failed to create product:", error);
-    return { success: false, error: "Failed to create product" };
-  }
-}
+import { authorizedAction } from "@/lib/protected-action";
 
-export async function updateProduct(id: string, data: ProductFormData) {
-  try {
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        name: data.name,
-        sku: data.sku,
-        description: data.description,
-        categoryId: data.categoryId,
-        price: Number(data.price),
-        cost: Number(data.cost),
-        minStock: data.minStock,
-        isActive: data.isActive,
-      },
-    });
-    revalidatePath("/inventory/products");
-    return {
-      success: true,
-      data: {
-        ...product,
-        price: Number(product.price),
-        cost: Number(product.cost),
-      },
-    };
-  } catch (error) {
-    console.error("Failed to update product:", error);
-    return { success: false, error: "Failed to update product" };
+export const createProduct = authorizedAction(
+  "products.create",
+  async (data: ProductFormData) => {
+    try {
+      const product = await prisma.product.create({
+        data: {
+          name: data.name,
+          sku: data.sku,
+          description: data.description,
+          categoryId: data.categoryId,
+          price: Number(data.price),
+          cost: Number(data.cost),
+          minStock: data.minStock,
+          isActive: data.isActive,
+        },
+      });
+      revalidatePath("/inventory/products");
+      return {
+        success: true,
+        data: {
+          ...product,
+          price: Number(product.price),
+          cost: Number(product.cost),
+        },
+      };
+    } catch (error) {
+      console.error("Failed to create product:", error);
+      return { success: false, error: "Failed to create product" };
+    }
   }
-}
+);
 
-export async function deleteProduct(id: string) {
-  try {
-    await prisma.product.delete({
-      where: { id },
-    });
-    revalidatePath("/inventory/products");
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to delete product:", error);
-    return { success: false, error: "Failed to delete product" };
+export const updateProduct = authorizedAction(
+  "products.edit",
+  async (id: string, data: ProductFormData) => {
+    try {
+      const product = await prisma.product.update({
+        where: { id },
+        data: {
+          name: data.name,
+          sku: data.sku,
+          description: data.description,
+          categoryId: data.categoryId,
+          price: Number(data.price),
+          cost: Number(data.cost),
+          minStock: data.minStock,
+          isActive: data.isActive,
+        },
+      });
+      revalidatePath("/inventory/products");
+      return {
+        success: true,
+        data: {
+          ...product,
+          price: Number(product.price),
+          cost: Number(product.cost),
+        },
+      };
+    } catch (error) {
+      console.error("Failed to update product:", error);
+      return { success: false, error: "Failed to update product" };
+    }
   }
-}
+);
+
+export const deleteProduct = authorizedAction(
+  "products.delete",
+  async (id: string) => {
+    try {
+      await prisma.product.delete({
+        where: { id },
+      });
+      revalidatePath("/inventory/products");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      return { success: false, error: "Failed to delete product" };
+    }
+  }
+);

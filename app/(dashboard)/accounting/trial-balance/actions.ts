@@ -7,10 +7,17 @@ import {
   TrialBalanceResult,
 } from "../types";
 
-export async function getTrialBalance(
-  date: string
-): Promise<{ success: boolean; data?: TrialBalanceResult; error?: string }> {
-  try {
+import { authorizedAction } from "@/lib/protected-action";
+
+export const getTrialBalance = authorizedAction(
+  "reports.view",
+  async (
+    date: string
+  ): Promise<{
+    success: boolean;
+    data?: TrialBalanceResult;
+    error?: string;
+  }> => {
     const targetDate = new Date(date);
 
     // 1. Get ALL active accounts
@@ -60,7 +67,7 @@ export async function getTrialBalance(
         code: acc.code,
         name: acc.name,
         type: acc.type,
-        parentId: acc.parentId ?? undefined,
+        parentId: acc.parentId ?? null,
         level: acc.level, // We will re-verify level or trust it. Let's trust it for sorting but re-verify structure.
         ownDebit: bal.debit,
         ownCredit: bal.credit,
@@ -68,6 +75,15 @@ export async function getTrialBalance(
         totalCredit: 0,
         children: [],
         calculated: false,
+        parent: null,
+        _count: {
+          journalEntryLines: 0,
+        },
+        normalBalance: "debit",
+        isPosting: false,
+        isActive: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
     }
 
@@ -161,8 +177,5 @@ export async function getTrialBalance(
         totalCredit: grandTotalCredit,
       },
     };
-  } catch (error) {
-    console.error("Error calculating trial balance:", error);
-    return { success: false, error: "Failed to calculate trial balance" };
   }
-}
+);

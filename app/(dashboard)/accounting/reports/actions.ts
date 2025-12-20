@@ -240,9 +240,42 @@ function buildAccountHierarchy(
   return roots.map(mapToLine);
 }
 
-// --- Report Actions ---
+import { authorizedAction } from "@/lib/protected-action";
 
 export async function getProfitAndLoss(
+  startDate: string,
+  endDate: string,
+  comparativeStartDate?: string,
+  comparativeEndDate?: string
+) {
+  return authorizedAction(
+    "reports.view",
+    async (
+      startDate: string,
+      endDate: string,
+      comparativeStartDate?: string,
+      comparativeEndDate?: string
+    ) => {
+      try {
+        const data = await _getProfitAndLoss(
+          startDate,
+          endDate,
+          comparativeStartDate,
+          comparativeEndDate
+        );
+        return { success: true, data };
+      } catch (error) {
+        console.error(error);
+        return {
+          success: false,
+          error: "Failed to generate Profit & Loss report",
+        };
+      }
+    }
+  )(startDate, endDate, comparativeStartDate, comparativeEndDate);
+}
+
+async function _getProfitAndLoss(
   startDate: string,
   endDate: string,
   comparativeStartDate?: string,
@@ -318,7 +351,22 @@ export async function getProfitAndLoss(
   };
 }
 
-export async function getBalanceSheet(
+export async function getBalanceSheet(date: string, comparativeDate?: string) {
+  return authorizedAction(
+    "reports.view",
+    async (date: string, comparativeDate?: string) => {
+      try {
+        const data = await _getBalanceSheet(date, comparativeDate);
+        return { success: true, data };
+      } catch (error) {
+        console.error(error);
+        return { success: false, error: "Failed to generate Balance Sheet" };
+      }
+    }
+  )(date, comparativeDate);
+}
+
+async function _getBalanceSheet(
   date: string,
   comparativeDate?: string
 ): Promise<BalanceSheetReport> {
@@ -468,6 +516,39 @@ export async function getCashFlowStatement(
   endDate: string,
   comparativeStartDate?: string,
   comparativeEndDate?: string
+) {
+  return authorizedAction(
+    "reports.view",
+    async (
+      startDate: string,
+      endDate: string,
+      comparativeStartDate?: string,
+      comparativeEndDate?: string
+    ) => {
+      try {
+        const data = await _getCashFlowStatement(
+          startDate,
+          endDate,
+          comparativeStartDate,
+          comparativeEndDate
+        );
+        return { success: true, data };
+      } catch (error) {
+        console.error(error);
+        return {
+          success: false,
+          error: "Failed to generate Cash Flow Statement",
+        };
+      }
+    }
+  )(startDate, endDate, comparativeStartDate, comparativeEndDate);
+}
+
+async function _getCashFlowStatement(
+  startDate: string,
+  endDate: string,
+  comparativeStartDate?: string,
+  comparativeEndDate?: string
 ): Promise<CashFlowReport> {
   // Base Report
   const current = await calculateCashFlowForPeriod(startDate, endDate);
@@ -537,7 +618,7 @@ async function calculateCashFlowForPeriod(
   const end = new Date(endDate);
 
   // Operating Activities
-  const pl = await getProfitAndLoss(startDate, endDate);
+  const pl = await _getProfitAndLoss(startDate, endDate);
   const netIncome = pl.netIncome;
 
   const operatingActivities: ReportAccountLine[] = [
@@ -575,10 +656,10 @@ async function calculateCashFlowForPeriod(
   }
 
   // Changes in Working Capital
-  const balanceSheetStart = await getBalanceSheet(
+  const balanceSheetStart = await _getBalanceSheet(
     new Date(start.getTime() - 86400000).toISOString().split("T")[0]
   );
-  const balanceSheetEnd = await getBalanceSheet(endDate);
+  const balanceSheetEnd = await _getBalanceSheet(endDate);
 
   let changeInReceivables = 0;
   let changeInPayables = 0;
@@ -677,19 +758,52 @@ export async function getStatementOfChangesInEquity(
   endDate: string,
   comparativeStartDate?: string,
   comparativeEndDate?: string
+) {
+  return authorizedAction(
+    "reports.view",
+    async (
+      startDate: string,
+      endDate: string,
+      comparativeStartDate?: string,
+      comparativeEndDate?: string
+    ) => {
+      try {
+        const data = await _getStatementOfChangesInEquity(
+          startDate,
+          endDate,
+          comparativeStartDate,
+          comparativeEndDate
+        );
+        return { success: true, data };
+      } catch (error) {
+        console.error(error);
+        return {
+          success: false,
+          error: "Failed to generate Statement of Changes in Equity",
+        };
+      }
+    }
+  )(startDate, endDate, comparativeStartDate, comparativeEndDate);
+}
+
+async function _getStatementOfChangesInEquity(
+  startDate: string,
+  endDate: string,
+  comparativeStartDate?: string,
+  comparativeEndDate?: string
 ): Promise<EquityChangeReport> {
   const start = new Date(startDate);
   const dayBeforeStart = new Date(start.getTime() - 86400000)
     .toISOString()
     .split("T")[0];
 
-  const bsStart = await getBalanceSheet(dayBeforeStart);
-  const pl = await getProfitAndLoss(startDate, endDate);
-  const bsEnd = await getBalanceSheet(endDate);
+  const bsStart = await _getBalanceSheet(dayBeforeStart);
+  const pl = await _getProfitAndLoss(startDate, endDate);
+  const bsEnd = await _getBalanceSheet(endDate);
 
   let bsPrevEnd: BalanceSheetReport | null = null;
   if (comparativeEndDate) {
-    bsPrevEnd = await getBalanceSheet(comparativeEndDate);
+    bsPrevEnd = await _getBalanceSheet(comparativeEndDate);
   }
 
   function flatten(nodes: ReportAccountLine[]): ReportAccountLine[] {

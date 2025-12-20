@@ -32,8 +32,6 @@ import {
   Pencil,
   Trash2,
   CheckCircle,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -43,6 +41,7 @@ import {
 } from "../actions";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
+import { Protect } from "@/components/protect";
 
 // Define type based on the return of getJournalEntries
 type JournalEntryWithDetails = NonNullable<
@@ -52,41 +51,31 @@ type JournalEntryWithDetails = NonNullable<
 export function JournalEntryTable() {
   const [entries, setEntries] = useState<JournalEntryWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [pageSize] = useState(20);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  const fetchEntries = useCallback(
-    async (page: number = 1) => {
-      const res = await getJournalEntries(
-        page,
-        pageSize,
-        startDate,
-        endDate,
-        status,
-        search
-      );
-      if (res.success && res.data) {
-        setEntries(res.data);
-        if (res.pagination) {
-          setTotalPages(res.pagination.totalPages);
-          setCurrentPage(res.pagination.currentPage);
-        }
-      }
-      setLoading(false);
-    },
-    [pageSize, startDate, endDate, status, search]
-  );
+  const fetchEntries = useCallback(async () => {
+    const res = await getJournalEntries(
+      1,
+      10000,
+      startDate,
+      endDate,
+      status,
+      search
+    );
+    if (res.success && res.data) {
+      setEntries(res.data);
+    }
+    setLoading(false);
+  }, [startDate, endDate, status, search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(true);
-      fetchEntries(1);
+      fetchEntries();
     }, 500); // Debounce search
     return () => clearTimeout(timer);
   }, [fetchEntries]);
@@ -97,7 +86,7 @@ export function JournalEntryTable() {
     startTransition(async () => {
       const res = await deleteJournalEntry(id);
       if (res.success) {
-        fetchEntries(currentPage);
+        fetchEntries();
       } else {
         alert(res.error);
       }
@@ -115,7 +104,7 @@ export function JournalEntryTable() {
     startTransition(async () => {
       const res = await postJournalEntry(id);
       if (res.success) {
-        fetchEntries(currentPage);
+        fetchEntries();
       } else {
         alert(res.error);
       }
@@ -128,11 +117,13 @@ export function JournalEntryTable() {
         <div>
           <h2 className="text-lg font-bold tracking-tight">Journal Entries</h2>
         </div>
-        <Link href="/accounting/journal-entries/create">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> New Entry
-          </Button>
-        </Link>
+        <Protect permission="journal_entries.create">
+          <Link href="/accounting/journal-entries/create">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> New Entry
+            </Button>
+          </Link>
+        </Protect>
       </div>
 
       <div className="flex items-end gap-4 flex-wrap">
@@ -261,24 +252,30 @@ export function JournalEntryTable() {
                           </DropdownMenuItem>
                           {entry.status === "draft" && (
                             <>
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/accounting/journal-entries/${entry.id}/edit`}
+                              <Protect permission="journal_entries.edit">
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/accounting/journal-entries/${entry.id}/edit`}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                  </Link>
+                                </DropdownMenuItem>
+                              </Protect>
+                              <Protect permission="journal_entries.post">
+                                <DropdownMenuItem
+                                  onClick={() => handlePost(entry.id)}
                                 >
-                                  <Pencil className="mr-2 h-4 w-4" /> Edit
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handlePost(entry.id)}
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4" /> Post
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600 focus:text-red-600"
-                                onClick={() => handleDelete(entry.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                                  <CheckCircle className="mr-2 h-4 w-4" /> Post
+                                </DropdownMenuItem>
+                              </Protect>
+                              <Protect permission="journal_entries.delete">
+                                <DropdownMenuItem
+                                  className="text-red-600 focus:text-red-600"
+                                  onClick={() => handleDelete(entry.id)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              </Protect>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -290,36 +287,6 @@ export function JournalEntryTable() {
             )}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="flex items-center justify-end space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setLoading(true);
-            fetchEntries(currentPage - 1);
-          }}
-          disabled={currentPage <= 1 || loading}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
-        <div className="text-sm font-medium">
-          Page {currentPage} of {totalPages}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setLoading(true);
-            fetchEntries(currentPage + 1);
-          }}
-          disabled={currentPage >= totalPages || loading}
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
       </div>
     </div>
   );

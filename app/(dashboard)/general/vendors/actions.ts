@@ -9,6 +9,7 @@ import {
   Vendor,
 } from "../types";
 import { Prisma } from "@/prisma/generated/prisma/client";
+import { authorizedAction } from "@/lib/protected-action";
 
 export async function getVendors({
   page = 1,
@@ -50,42 +51,51 @@ export async function getVendors({
   };
 }
 
-export async function createVendor(data: CreateVendorInput) {
-  try {
-    const vendor = await prisma.vendor.create({
-      data,
-    });
-    revalidatePath("/general/vendors");
-    return { success: true, vendor };
-  } catch (error) {
-    console.error("Failed to create vendor:", error);
-    return { success: false, error: "Failed to create vendor" };
+export const createVendor = authorizedAction(
+  "vendors.create",
+  async (data: CreateVendorInput) => {
+    try {
+      const vendor = await prisma.vendor.create({
+        data,
+      });
+      revalidatePath("/general/vendors");
+      return { success: true, vendor };
+    } catch (error) {
+      console.error("Failed to create vendor:", error);
+      return { success: false, error: "Failed to create vendor" };
+    }
   }
-}
+);
 
-export async function updateVendor(id: string, data: UpdateVendorInput) {
-  try {
-    const vendor = await prisma.vendor.update({
-      where: { id },
-      data,
-    });
-    revalidatePath("/general/vendors");
-    return { success: true, vendor };
-  } catch (error) {
-    console.error("Failed to update vendor:", error);
-    return { success: false, error: "Failed to update vendor" };
+export const updateVendor = authorizedAction(
+  "vendors.edit",
+  async (id: string, data: UpdateVendorInput) => {
+    try {
+      const vendor = await prisma.vendor.update({
+        where: { id },
+        data,
+      });
+      revalidatePath("/general/vendors");
+      return { success: true, vendor };
+    } catch (error) {
+      console.error("Failed to update vendor:", error);
+      return { success: false, error: "Failed to update vendor" };
+    }
   }
-}
+);
 
-export async function deleteVendor(id: string) {
-  try {
-    await prisma.vendor.delete({
-      where: { id },
-    });
-    revalidatePath("/general/vendors");
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to delete vendor:", error);
-    return { success: false, error: "Failed to delete vendor" };
+export const deleteVendor = authorizedAction(
+  "vendors.delete",
+  async (id: string) => {
+    try {
+      await prisma.vendor.delete({
+        where: { id },
+      });
+      revalidatePath("/general/vendors");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete vendor:", error);
+      return { success: false, error: "Failed to delete vendor" };
+    }
   }
-}
+);

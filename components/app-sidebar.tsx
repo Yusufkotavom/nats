@@ -44,7 +44,7 @@ const data = {
     {
       name: "NATS Accounting",
       logo: GalleryVerticalEnd,
-      plan: "Free Version",
+      plan: "Community Version",
     },
   ],
   navMain: [

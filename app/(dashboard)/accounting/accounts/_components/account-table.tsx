@@ -16,6 +16,7 @@ import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
 import { updateAccount, deleteAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountDialog } from "./account-dialog";
+import { Protect } from "@/components/protect";
 
 interface AccountTableProps {
   initialAccounts: Account[];
@@ -139,15 +140,17 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
             ) : (
               <>
                 <span className="font-medium">{a.name}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => beginEdit(a)}
-                  title="Edit name"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Pencil />
-                </Button>
+                <Protect permission="accounts.edit">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => beginEdit(a)}
+                    title="Edit name"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Pencil />
+                  </Button>
+                </Protect>
               </>
             )}
           </div>
@@ -176,7 +179,7 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
       hasChildren && isOpen
         ? a
             .children!.sort((x, y) => x.code.localeCompare(y.code))
-            .flatMap((c) => renderRows(c, depth + 1))
+            .flatMap((c) => renderRows(c as Account, depth + 1))
         : [];
     return [row, ...childrenRows];
   }
@@ -205,12 +208,7 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {roots
-              .flatMap((r) => r.children || [])
-              .sort((a, b) => a.code.localeCompare(b.code))
-              .flatMap((r) => renderRows(r))}
-          </TableBody>
+          <TableBody>{roots.flatMap((r) => renderRows(r))}</TableBody>
         </Table>
       </div>
 

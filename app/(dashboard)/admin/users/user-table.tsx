@@ -18,10 +18,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  MoreHorizontal,
+  Plus,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { UserDialog } from "./user-dialog";
 import { deleteUser } from "./actions";
 import { format } from "date-fns";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +42,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Role } from "@/prisma/generated/prisma/enums";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Protect } from "@/components/protect";
 
 interface User {
   id: string;
@@ -50,7 +59,12 @@ interface UserTableProps {
   total: number;
 }
 
-export function UserTable({ initialUsers, page, totalPages, total }: UserTableProps) {
+export function UserTable({
+  initialUsers,
+  page,
+  totalPages,
+  total,
+}: UserTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -93,9 +107,11 @@ export function UserTable({ initialUsers, page, totalPages, total }: UserTablePr
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold tracking-tight">User Management</h2>
-        <Button onClick={handleAddUser}>
-          <Plus className="mr-2 h-4 w-4" /> Add User
-        </Button>
+        <Protect permission="users.create">
+          <Button onClick={handleAddUser}>
+            <Plus className="mr-2 h-4 w-4" /> Add User
+          </Button>
+        </Protect>
       </div>
       <div className="rounded-md border">
         <Table>
@@ -121,7 +137,9 @@ export function UserTable({ initialUsers, page, totalPages, total }: UserTablePr
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell className="capitalize">{user.role}</TableCell>
-                  <TableCell>{format(new Date(user.createdAt), "PPP")}</TableCell>
+                  <TableCell>
+                    {format(new Date(user.createdAt), "PPP")}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -132,18 +150,24 @@ export function UserTable({ initialUsers, page, totalPages, total }: UserTablePr
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
+                        <Protect permission="users.edit">
+                          <DropdownMenuItem
+                            onClick={() => handleEditUser(user)}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        </Protect>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDeleteClick(user)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
+                        <Protect permission="users.delete">
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDeleteClick(user)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </Protect>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

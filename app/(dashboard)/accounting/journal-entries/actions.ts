@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { EntryStatus } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import { authorizedAction } from "@/lib/protected-action";
 
 // Helper to get a default user since we don't have real auth yet
 async function getDefaultUser() {
@@ -20,15 +21,16 @@ async function getDefaultUser() {
   });
 }
 
-export async function getJournalEntries(
-  page: number = 1,
-  pageSize: number = 20,
-  startDate?: string,
-  endDate?: string,
-  status?: string,
-  search?: string
-) {
-  try {
+export const getJournalEntries = authorizedAction(
+  "journal_entries.view",
+  async (
+    page: number = 1,
+    pageSize: number = 20,
+    startDate?: string,
+    endDate?: string,
+    status?: string,
+    search?: string
+  ) => {
     const where: Prisma.JournalEntryWhereInput = {};
     if (status && status !== "all") {
       where.status = status as EntryStatus;
@@ -93,14 +95,12 @@ export async function getJournalEntries(
         pageSize,
       },
     };
-  } catch (error) {
-    console.error("Failed to fetch journal entries:", error);
-    return { success: false, error: "Failed to fetch journal entries" };
   }
-}
+);
 
-export async function getJournalEntry(id: string) {
-  try {
+export const getJournalEntry = authorizedAction(
+  "journal_entries.view",
+  async (id: string) => {
     const entry = await prisma.journalEntry.findUnique({
       where: { id },
       include: {
@@ -127,11 +127,8 @@ export async function getJournalEntry(id: string) {
     };
 
     return { success: true, data: serializedEntry };
-  } catch (error) {
-    console.error("Failed to fetch journal entry:", error);
-    return { success: false, error: "Failed to fetch journal entry" };
   }
-}
+);
 
 export type CreateJournalEntryData = {
   transactionDate: Date;
@@ -144,101 +141,104 @@ export type CreateJournalEntryData = {
   }[];
 };
 
-export async function createJournalEntry(data: CreateJournalEntryData) {
-  try {
-    const user = await getDefaultUser();
+export const createJournalEntry = authorizedAction(
+  "journal_entries.create",
+  async (data: CreateJournalEntryData) => {
+    try {
+      const user = await getDefaultUser();
 
-    // Validate debit = credit
-    const totalDebit = data.lines.reduce(
-      (sum, line) => sum + line.debitAmount,
-      0
-    );
-    const totalCredit = data.lines.reduce(
-      (sum, line) => sum + line.creditAmount,
-      0
-    );
+      // Validate debit = credit
+      const totalDebit = data.lines.reduce(
+        (sum, line) => sum + line.debitAmount,
+        0
+      );
+      const totalCredit = data.lines.reduce(
+        (sum, line) => sum + line.creditAmount,
+        0
+      );
 
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      // Floating point tolerance
-      return { success: false, error: "Debits must equal credits" };
-    }
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        // Floating point tolerance
+        return { success: false, error: "Debits must equal credits" };
+      }
 
-    // Generate entry number (simple auto-increment logic or similar)
-    // For now, let's use a timestamp-based random string or similar,
-    // or we can query the last one.
-    // Let's stick to a simple format: JE-YYYYMMDD-XXXX
-    const dateStr = data.transactionDate
-      .toISOString()
-      .slice(0, 10)
-      .replace(/-/g, "");
-    const count = await prisma.journalEntry.count({
-      where: {
-        entryNumber: {
-          startsWith: `JE-${dateStr}-`,
-        },
-      },
-    });
-    const entryNumber = `JE-${dateStr}-${(count + 1)
-      .toString()
-      .padStart(4, "0")}`;
-
-    const entry = await prisma.journalEntry.create({
-      data: {
-        userId: user.id,
-        entryNumber,
-        transactionDate: data.transactionDate,
-        description: data.description,
-        status: "draft",
-        lines: {
-          create: data.lines.map((line, index) => ({
-            accountId: line.accountId,
-            debitAmount: line.debitAmount,
-            creditAmount: line.creditAmount,
-            description: line.description,
-            lineNumber: index + 1,
-          })),
-        },
-      },
-    });
-
-    // Need to refetch to include relations or just return what we have with IDs?
-    // The UI might expect relations if it adds it to the list, but typically it redirects.
-    // However, createJournalEntry returns 'entry' which has no lines loaded (or they are in a different format).
-    // The create call returns the created object.
-
-    // Let's refetch to be safe and consistent with getJournalEntry
-    const createdEntry = await prisma.journalEntry.findUnique({
-      where: { id: entry.id },
-      include: {
-        lines: {
-          include: {
-            account: true,
+      // Generate entry number (simple auto-increment logic or similar)
+      // For now, let's use a timestamp-based random string or similar,
+      // or we can query the last one.
+      // Let's stick to a simple format: JE-YYYYMMDD-XXXX
+      const dateStr = data.transactionDate
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, "");
+      const count = await prisma.journalEntry.count({
+        where: {
+          entryNumber: {
+            startsWith: `JE-${dateStr}-`,
           },
         },
-        user: {
-          select: { name: true, email: true },
+      });
+      const entryNumber = `JE-${dateStr}-${(count + 1)
+        .toString()
+        .padStart(4, "0")}`;
+
+      const entry = await prisma.journalEntry.create({
+        data: {
+          userId: user.id,
+          entryNumber,
+          transactionDate: data.transactionDate,
+          description: data.description,
+          status: "draft",
+          lines: {
+            create: data.lines.map((line, index) => ({
+              accountId: line.accountId,
+              debitAmount: line.debitAmount,
+              creditAmount: line.creditAmount,
+              description: line.description,
+              lineNumber: index + 1,
+            })),
+          },
         },
-      },
-    });
+      });
 
-    if (!createdEntry) throw new Error("Failed to fetch created entry");
+      // Need to refetch to include relations or just return what we have with IDs?
+      // The UI might expect relations if it adds it to the list, but typically it redirects.
+      // However, createJournalEntry returns 'entry' which has no lines loaded (or they are in a different format).
+      // The create call returns the created object.
 
-    const serializedEntry = {
-      ...createdEntry,
-      lines: createdEntry.lines.map((line) => ({
-        ...line,
-        debitAmount: Number(line.debitAmount),
-        creditAmount: Number(line.creditAmount),
-      })),
-    };
+      // Let's refetch to be safe and consistent with getJournalEntry
+      const createdEntry = await prisma.journalEntry.findUnique({
+        where: { id: entry.id },
+        include: {
+          lines: {
+            include: {
+              account: true,
+            },
+          },
+          user: {
+            select: { name: true, email: true },
+          },
+        },
+      });
 
-    revalidatePath("/accounting/journal-entries");
-    return { success: true, data: serializedEntry };
-  } catch (error) {
-    console.error("Failed to create journal entry:", error);
-    return { success: false, error: "Failed to create journal entry" };
+      if (!createdEntry) throw new Error("Failed to fetch created entry");
+
+      const serializedEntry = {
+        ...createdEntry,
+        lines: createdEntry.lines.map((line) => ({
+          ...line,
+          debitAmount: Number(line.debitAmount),
+          creditAmount: Number(line.creditAmount),
+        })),
+      };
+
+      revalidatePath("/accounting/journal-entries");
+      return { success: true, data: serializedEntry };
+    } catch (error) {
+      console.error("Failed to create journal entry:", error);
+      return { success: false, error: "Failed to create journal entry" };
+    }
   }
-}
+);
 
 export async function updateJournalEntry(
   id: string,
@@ -337,47 +337,42 @@ export async function deleteJournalEntry(id: string) {
 }
 
 export async function postJournalEntry(id: string) {
-  try {
-    const existingEntry = await prisma.journalEntry.findUnique({
-      where: { id },
-      include: { lines: true },
-    });
+  const existingEntry = await prisma.journalEntry.findUnique({
+    where: { id },
+    include: { lines: true },
+  });
 
-    if (!existingEntry) {
-      return { success: false, error: "Journal entry not found" };
-    }
-
-    if (existingEntry.status === "posted") {
-      return { success: false, error: "Journal entry is already posted" };
-    }
-
-    // Double check balance
-    const totalDebit = existingEntry.lines.reduce(
-      (sum, line) => sum + Number(line.debitAmount),
-      0
-    );
-    const totalCredit = existingEntry.lines.reduce(
-      (sum, line) => sum + Number(line.creditAmount),
-      0
-    );
-
-    if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      return { success: false, error: "Cannot post unbalanced journal entry" };
-    }
-
-    await prisma.journalEntry.update({
-      where: { id },
-      data: {
-        status: "posted",
-        postedAt: new Date(),
-      },
-    });
-
-    revalidatePath("/accounting/journal-entries");
-    revalidatePath(`/accounting/journal-entries/${id}`);
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to post journal entry:", error);
-    return { success: false, error: "Failed to post journal entry" };
+  if (!existingEntry) {
+    return { success: false, error: "Journal entry not found" };
   }
+
+  if (existingEntry.status === "posted") {
+    return { success: false, error: "Journal entry is already posted" };
+  }
+
+  // Double check balance
+  const totalDebit = existingEntry.lines.reduce(
+    (sum, line) => sum + Number(line.debitAmount),
+    0
+  );
+  const totalCredit = existingEntry.lines.reduce(
+    (sum, line) => sum + Number(line.creditAmount),
+    0
+  );
+
+  if (Math.abs(totalDebit - totalCredit) > 0.01) {
+    return { success: false, error: "Cannot post unbalanced journal entry" };
+  }
+
+  await prisma.journalEntry.update({
+    where: { id },
+    data: {
+      status: "posted",
+      postedAt: new Date(),
+    },
+  });
+
+  revalidatePath("/accounting/journal-entries");
+  revalidatePath(`/accounting/journal-entries/${id}`);
+  return { success: true };
 }
