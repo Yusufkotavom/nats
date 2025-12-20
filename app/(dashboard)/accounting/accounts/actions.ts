@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { AccountType } from "@prisma/client";
+import { AccountType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 
 export async function getAccounts() {

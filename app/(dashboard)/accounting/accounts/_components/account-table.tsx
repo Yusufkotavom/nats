@@ -13,7 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
-import { AccountType } from "@prisma/client";
 import { updateAccount, deleteAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountDialog } from "./account-dialog";
@@ -190,9 +189,9 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
           <Plus className="mr-2" /> Add Account
         </Button>
       </div>
-      
+
       {error && <div className="text-destructive text-sm">{error}</div>}
-      
+
       <div className="rounded-lg border p-0">
         <Table className="w-full">
           <TableHeader className="bg-muted">

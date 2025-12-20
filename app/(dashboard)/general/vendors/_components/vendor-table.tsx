@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
-import { Vendor } from "@prisma/client";
 import { VendorDialog } from "./vendor-dialog";
 import { deleteVendor } from "../actions";
 import { format } from "date-fns";
@@ -34,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Vendor } from "../../types";
 
 interface VendorTableProps {
   initialVendors: Vendor[];
@@ -89,7 +89,6 @@ export function VendorTable({ initialVendors }: VendorTableProps) {
               <TableHead>Phone</TableHead>
               <TableHead>Address</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created At</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -106,9 +105,6 @@ export function VendorTable({ initialVendors }: VendorTableProps) {
                   <Badge variant={vendor.isActive ? "default" : "secondary"}>
                     {vendor.isActive ? "Active" : "Inactive"}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {format(new Date(vendor.createdAt), "PPP")}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Warehouse } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createWarehouse, updateWarehouse } from "../actions";
+import { Warehouse } from "@/prisma/generated/prisma/browser";
 
 interface WarehouseDialogProps {
   warehouse?: Warehouse;
@@ -65,7 +65,9 @@ export function WarehouseDialog({ warehouse, trigger }: WarehouseDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Warehouse" : "Add Warehouse"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Warehouse" : "Add Warehouse"}
+          </DialogTitle>
           <DialogDescription>
             {isEditing
               ? "Make changes to the warehouse here."

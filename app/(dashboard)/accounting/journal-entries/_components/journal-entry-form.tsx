@@ -23,7 +23,6 @@ import {
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Plus, Trash2, GripVertical, Save, ArrowLeft } from "lucide-react";
 import { CreateJournalEntryData } from "../actions";
-import { Account } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils";
 import {
   DndContext,
@@ -42,6 +41,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Account } from "@/prisma/generated/prisma/browser";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;

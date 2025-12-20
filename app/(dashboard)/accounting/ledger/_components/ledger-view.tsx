@@ -32,7 +32,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Prisma, NormalBalance, AccountType } from "@prisma/client";
 import { StatusBadge } from "@/components/status-badge";
 
 import { Input } from "@/components/ui/input";
@@ -40,6 +39,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatCurrency } from "@/lib/utils";
 import { Account } from "../../types";
+import {
+  AccountType,
+  NormalBalance,
+  Prisma,
+} from "@/prisma/generated/prisma/client";
 
 type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
   include: {

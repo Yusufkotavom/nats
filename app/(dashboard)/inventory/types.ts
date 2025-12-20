@@ -1,5 +1,3 @@
-import { Category } from "@prisma/client";
-
 export type ProductFormData = {
   name: string;
   id: string;

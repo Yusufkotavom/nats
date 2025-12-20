@@ -9,7 +9,7 @@ import {
   CreateJournalEntryData,
 } from "../../actions";
 import { getAccounts } from "../../../accounts/actions";
-import { Account } from "@prisma/client";
+import { Account } from "@/prisma/generated/prisma/browser";
 
 export default function EditJournalEntryPage({
   params,

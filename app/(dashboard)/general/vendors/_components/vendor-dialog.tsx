@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { createVendor, updateVendor } from "../actions";
 import { Loader2 } from "lucide-react";
-import { Vendor } from "@prisma/client";
+import { Vendor } from "../../types";
 
 interface VendorDialogProps {
   vendor?: Vendor;
@@ -24,7 +24,11 @@ interface VendorDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function VendorDialog({ vendor, open, onOpenChange }: VendorDialogProps) {
+export function VendorDialog({
+  vendor,
+  open,
+  onOpenChange,
+}: VendorDialogProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!vendor;
 
@@ -41,18 +45,20 @@ export function VendorDialog({ vendor, open, onOpenChange }: VendorDialogProps) 
     try {
       if (isEditing) {
         await updateVendor(vendor.id, {
+          id: vendor.id,
           name,
-          email: email || undefined,
-          phone: phone || undefined,
-          address: address || undefined,
+          email: email || "",
+          phone: phone || "",
+          address: address || "",
           isActive,
         });
       } else {
         await createVendor({
+          id: "",
           name,
-          email: email || undefined,
-          phone: phone || undefined,
-          address: address || undefined,
+          email: email || "",
+          phone: phone || "",
+          address: address || "",
           isActive,
         });
       }
@@ -123,7 +129,7 @@ export function VendorDialog({ vendor, open, onOpenChange }: VendorDialogProps) 
                 className="col-span-3"
               />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="isActive" className="text-right">
                 Active
               </Label>

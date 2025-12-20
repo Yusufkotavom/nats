@@ -20,10 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MovementType, Product, Warehouse } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createMovement } from "../actions";
+import {
+  MovementType,
+  Product,
+  Warehouse,
+} from "@/prisma/generated/prisma/client";
 
 interface MovementDialogProps {
   products: (Omit<Product, "price" | "cost"> & {
@@ -79,7 +83,8 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
         <DialogHeader>
           <DialogTitle>Record Inventory Movement</DialogTitle>
           <DialogDescription>
-            Record a new stock movement. This will update inventory levels immediately.
+            Record a new stock movement. This will update inventory levels
+            immediately.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -199,11 +204,7 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
             <Label htmlFor="notes" className="text-right">
               Notes
             </Label>
-            <Textarea
-              id="notes"
-              name="notes"
-              className="col-span-3"
-            />
+            <Textarea id="notes" name="notes" className="col-span-3" />
           </div>
 
           <DialogFooter>

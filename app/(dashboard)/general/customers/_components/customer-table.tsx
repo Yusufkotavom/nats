@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
-import { Customer } from "@prisma/client";
 import { CustomerDialog } from "./customer-dialog";
 import { deleteCustomer } from "../actions";
 import { format } from "date-fns";
@@ -34,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Customer } from "../../types";
 
 interface CustomerTableProps {
   initialCustomers: Customer[];
@@ -91,7 +91,6 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
               <TableHead>Phone</TableHead>
               <TableHead>Address</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created At</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -108,9 +107,6 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
                   <Badge variant={customer.isActive ? "default" : "secondary"}>
                     {customer.isActive ? "Active" : "Inactive"}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {format(new Date(customer.createdAt), "PPP")}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

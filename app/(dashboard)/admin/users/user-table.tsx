@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
-import { Role } from "@prisma/client";
 import { UserDialog } from "./user-dialog";
 import { deleteUser } from "./actions";
 import { format } from "date-fns";
@@ -33,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 interface User {
   id: string;

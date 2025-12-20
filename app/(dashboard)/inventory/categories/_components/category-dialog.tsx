@@ -13,10 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Category } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createCategory, updateCategory } from "../actions";
+import { Category } from "@/prisma/generated/prisma/browser";
 
 interface CategoryDialogProps {
   category?: Category;
@@ -66,7 +66,9 @@ export function CategoryDialog({ category, trigger }: CategoryDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Category" : "Add Category"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Category" : "Add Category"}
+          </DialogTitle>
           <DialogDescription>
             {isEditing
               ? "Make changes to the category here."

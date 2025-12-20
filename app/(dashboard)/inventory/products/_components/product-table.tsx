@@ -17,12 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Category } from "@prisma/client";
 import { Pencil, Trash2, Search, Filter } from "lucide-react";
 import { deleteProduct } from "../actions";
 import { ProductDialog } from "./product-dialog";
 import { useState } from "react";
 import { ProductFormData } from "../../types";
+import { Category } from "@/prisma/generated/prisma/browser";
 
 interface ProductTableProps {
   products: ProductFormData[];

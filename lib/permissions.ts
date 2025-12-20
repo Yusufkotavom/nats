@@ -1,5 +1,4 @@
-
-import { Role } from "@prisma/client";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export type Permission =
   | "users.manage"
@@ -40,15 +39,13 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "journal_entries.post",
     "reports.view",
   ],
-  staff: [
-    "journal_entries.view",
-    "journal_entries.create",
-  ],
+  staff: ["journal_entries.view", "journal_entries.create"],
 };
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   superadmin: "Full access to all system features and settings.",
-  manager: "Can manage accounting operations and view reports, but cannot manage users.",
+  manager:
+    "Can manage accounting operations and view reports, but cannot manage users.",
   supervisor: "Can create, edit, and post journal entries.",
   staff: "Can view and create draft journal entries.",
 };

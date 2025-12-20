@@ -1,8 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Product } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
 import { revalidatePath } from "next/cache";
 import { ProductFormData } from "../types";
 
@@ -54,8 +52,8 @@ export async function createProduct(data: ProductFormData) {
         sku: data.sku,
         description: data.description,
         categoryId: data.categoryId,
-        price: new Decimal(data.price),
-        cost: new Decimal(data.cost),
+        price: Number(data.price),
+        cost: Number(data.cost),
         minStock: data.minStock,
         isActive: data.isActive,
       },
@@ -65,8 +63,8 @@ export async function createProduct(data: ProductFormData) {
       success: true,
       data: {
         ...product,
-        price: new Decimal(product.price),
-        cost: new Decimal(product.cost),
+        price: Number(product.price),
+        cost: Number(product.cost),
       },
     };
   } catch (error) {
@@ -84,8 +82,8 @@ export async function updateProduct(id: string, data: ProductFormData) {
         sku: data.sku,
         description: data.description,
         categoryId: data.categoryId,
-        price: new Decimal(data.price),
-        cost: new Decimal(data.cost),
+        price: Number(data.price),
+        cost: Number(data.cost),
         minStock: data.minStock,
         isActive: data.isActive,
       },

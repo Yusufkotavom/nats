@@ -1,6 +1,6 @@
+import { Role } from "@/prisma/generated/prisma/enums";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 
 const secretKey = process.env.SESSION_SECRET || "default-secret-key-change-me";

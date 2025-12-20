@@ -8,9 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { InventoryMovement, Product, Warehouse } from "@prisma/client";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import {
+  InventoryMovement,
+  Product,
+  Warehouse,
+} from "@/prisma/generated/prisma/browser";
 
 type MovementWithDetails = InventoryMovement & {
   product: Omit<Product, "price" | "cost"> & { price: number; cost: number };
@@ -47,23 +51,35 @@ export function MovementTable({ movements }: MovementTableProps) {
           ) : (
             movements.map((m) => (
               <TableRow key={m.id}>
-                <TableCell>{format(new Date(m.createdAt), "MMM d, yyyy HH:mm")}</TableCell>
                 <TableCell>
-                  <Badge variant={
-                      m.type === 'IN' ? 'default' : 
-                      m.type === 'OUT' ? 'destructive' : 
-                      m.type === 'TRANSFER' ? 'outline' : 'secondary'
-                  }>
+                  {format(new Date(m.createdAt), "MMM d, yyyy HH:mm")}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      m.type === "IN"
+                        ? "default"
+                        : m.type === "OUT"
+                        ? "destructive"
+                        : m.type === "TRANSFER"
+                        ? "outline"
+                        : "secondary"
+                    }
+                  >
                     {m.type}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="font-medium">{m.product.sku}</div>
-                  <div className="text-xs text-muted-foreground">{m.product.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {m.product.name}
+                  </div>
                 </TableCell>
                 <TableCell>{m.fromWarehouse?.name || "-"}</TableCell>
                 <TableCell>{m.toWarehouse?.name || "-"}</TableCell>
-                <TableCell className={m.quantity < 0 ? "text-red-500" : "text-green-500"}>
+                <TableCell
+                  className={m.quantity < 0 ? "text-red-500" : "text-green-500"}
+                >
                   {m.quantity}
                 </TableCell>
                 <TableCell>{m.reference || "-"}</TableCell>

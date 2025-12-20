@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { createCustomer, updateCustomer } from "../actions";
 import { Loader2 } from "lucide-react";
-import { Customer } from "@prisma/client";
+import { Customer } from "../../types";
 
 interface CustomerDialogProps {
   customer?: Customer;
@@ -24,7 +24,11 @@ interface CustomerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CustomerDialog({ customer, open, onOpenChange }: CustomerDialogProps) {
+export function CustomerDialog({
+  customer,
+  open,
+  onOpenChange,
+}: CustomerDialogProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!customer;
 
@@ -41,18 +45,20 @@ export function CustomerDialog({ customer, open, onOpenChange }: CustomerDialogP
     try {
       if (isEditing) {
         await updateCustomer(customer.id, {
+          id: customer.id,
           name,
-          email: email || undefined,
-          phone: phone || undefined,
-          address: address || undefined,
+          email: email || "",
+          phone: phone || "",
+          address: address || "",
           isActive,
         });
       } else {
         await createCustomer({
+          id: "",
           name,
-          email: email || undefined,
-          phone: phone || undefined,
-          address: address || undefined,
+          email: email || "",
+          phone: phone || "",
+          address: address || "",
           isActive,
         });
       }
@@ -68,7 +74,9 @@ export function CustomerDialog({ customer, open, onOpenChange }: CustomerDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Customer" : "Add Customer"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Customer" : "Add Customer"}
+          </DialogTitle>
           <DialogDescription>
             {isEditing
               ? "Make changes to the customer profile here."
@@ -123,7 +131,7 @@ export function CustomerDialog({ customer, open, onOpenChange }: CustomerDialogP
                 className="col-span-3"
               />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="isActive" className="text-right">
                 Active
               </Label>

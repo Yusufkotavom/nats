@@ -9,11 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Inventory, Product, Warehouse } from "@prisma/client";
 import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { deleteWarehouse } from "../actions";
 import { WarehouseDialog } from "./warehouse-dialog";
+import {
+  Inventory,
+  Product,
+  Warehouse,
+} from "@/prisma/generated/prisma/browser";
 
 type WarehouseWithInventory = Warehouse & {
   inventory: (Inventory & {
@@ -61,7 +65,9 @@ export function WarehouseTable({ warehouses }: WarehouseTableProps) {
           ) : (
             warehouses.flatMap((warehouse) => {
               const isOpen = expanded[warehouse.id];
-              const uniqueProducts = new Set(warehouse.inventory.map((i) => i.productId)).size;
+              const uniqueProducts = new Set(
+                warehouse.inventory.map((i) => i.productId)
+              ).size;
               const totalValue = warehouse.inventory.reduce(
                 (acc, inv) => acc + inv.quantity * Number(inv.product.cost),
                 0
@@ -83,7 +89,9 @@ export function WarehouseTable({ warehouses }: WarehouseTableProps) {
                       )}
                     </Button>
                   </TableCell>
-                  <TableCell className="font-medium">{warehouse.name}</TableCell>
+                  <TableCell className="font-medium">
+                    {warehouse.name}
+                  </TableCell>
                   <TableCell>{warehouse.location || "-"}</TableCell>
                   <TableCell>{uniqueProducts}</TableCell>
                   <TableCell>${totalValue.toFixed(2)}</TableCell>
@@ -106,7 +114,10 @@ export function WarehouseTable({ warehouses }: WarehouseTableProps) {
                   </TableCell>
                 </TableRow>,
                 isOpen && (
-                  <TableRow key={`${warehouse.id}-detail`} className="bg-muted/50">
+                  <TableRow
+                    key={`${warehouse.id}-detail`}
+                    className="bg-muted/50"
+                  >
                     <TableCell colSpan={6} className="p-4">
                       <div className="rounded-md border bg-background">
                         <Table>
@@ -121,7 +132,10 @@ export function WarehouseTable({ warehouses }: WarehouseTableProps) {
                           <TableBody>
                             {warehouse.inventory.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                <TableCell
+                                  colSpan={4}
+                                  className="text-center text-muted-foreground"
+                                >
                                   No inventory in this warehouse.
                                 </TableCell>
                               </TableRow>
@@ -132,7 +146,10 @@ export function WarehouseTable({ warehouses }: WarehouseTableProps) {
                                   <TableCell>{inv.product.sku}</TableCell>
                                   <TableCell>{inv.quantity}</TableCell>
                                   <TableCell>
-                                    ${(inv.quantity * Number(inv.product.cost)).toFixed(2)}
+                                    $
+                                    {(
+                                      inv.quantity * Number(inv.product.cost)
+                                    ).toFixed(2)}
                                   </TableCell>
                                 </TableRow>
                               ))

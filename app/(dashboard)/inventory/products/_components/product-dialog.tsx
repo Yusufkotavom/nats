@@ -20,12 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Category, Product } from "@prisma/client";
 import { Plus, Pencil } from "lucide-react";
 import { useState } from "react";
 import { createProduct, updateProduct, createCategory } from "../actions";
 import { Switch } from "@/components/ui/switch";
 import { ProductFormData } from "../../types";
+import { Category } from "@/prisma/generated/prisma/browser";
 
 interface ProductDialogProps {
   product?: ProductFormData;

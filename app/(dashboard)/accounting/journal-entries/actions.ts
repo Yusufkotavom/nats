@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { EntryStatus, Prisma } from "@prisma/client";
+import { Prisma } from "@/prisma/generated/prisma/client";
+import { EntryStatus } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 
 // Helper to get a default user since we don't have real auth yet

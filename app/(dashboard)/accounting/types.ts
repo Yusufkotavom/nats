@@ -1,4 +1,4 @@
-import { AccountType } from "@prisma/client";
+import { AccountType } from "@/prisma/generated/prisma/enums";
 
 export type Account = {
   id: string;

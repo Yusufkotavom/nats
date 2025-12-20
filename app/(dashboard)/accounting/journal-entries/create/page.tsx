@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { JournalEntryForm } from "../_components/journal-entry-form";
 import { createJournalEntry, CreateJournalEntryData } from "../actions";
 import { getAccounts } from "../../accounts/actions";
-import { Account } from "@prisma/client";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
+import { Account } from "@/prisma/generated/prisma/browser";
 
 export default function CreateJournalEntryPage() {
   const [accounts, setAccounts] = useState<

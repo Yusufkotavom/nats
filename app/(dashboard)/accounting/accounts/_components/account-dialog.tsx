@@ -19,9 +19,9 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { AccountType } from "@prisma/client";
 import { createAccount } from "../actions";
 import { Account } from "../../types";
+import { AccountType } from "@/prisma/generated/prisma/enums";
 
 interface AccountDialogProps {
   open: boolean;
@@ -107,8 +107,8 @@ export function AccountDialog({
         <DialogHeader>
           <DialogTitle>Add New Account</DialogTitle>
           <DialogDescription>
-            Enter details for the new account. Type defines category; parent creates
-            hierarchy.
+            Enter details for the new account. Type defines category; parent
+            creates hierarchy.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">

@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { Account, AccountType } from "@prisma/client";
+import { Account } from "@/prisma/generated/prisma/client";
+import { AccountType } from "@/prisma/generated/prisma/enums";
 
 // --- Types ---
 

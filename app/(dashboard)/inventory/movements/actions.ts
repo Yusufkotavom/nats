@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { MovementType } from "@prisma/client";
+import { MovementType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 
 export async function getMovements() {

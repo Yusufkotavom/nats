@@ -9,7 +9,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,10 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Role } from "@prisma/client";
 import { createUser, updateUser } from "./actions";
 import { Loader2 } from "lucide-react";
 import { ROLE_DESCRIPTIONS } from "@/lib/permissions";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 interface UserDialogProps {
   user?: {

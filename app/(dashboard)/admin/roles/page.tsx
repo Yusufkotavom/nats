@@ -1,4 +1,3 @@
-
 import {
   Card,
   CardContent,
@@ -7,16 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ROLE_PERMISSIONS, ROLE_DESCRIPTIONS, Permission } from "@/lib/permissions";
-import { Role } from "@prisma/client";
+import { ROLE_PERMISSIONS, ROLE_DESCRIPTIONS } from "@/lib/permissions";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export default function RolesPage() {
   const roles = Object.keys(ROLE_PERMISSIONS) as Role[];
@@ -26,7 +17,7 @@ export default function RolesPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Role Definitions</h2>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         {roles.map((role) => (
           <Card key={role}>
@@ -34,7 +25,9 @@ export default function RolesPage() {
               <CardTitle className="capitalize flex items-center gap-2">
                 {role}
                 {role === "superadmin" && (
-                  <Badge variant="default" className="bg-primary">System</Badge>
+                  <Badge variant="default" className="bg-primary">
+                    System
+                  </Badge>
                 )}
               </CardTitle>
               <CardDescription>{ROLE_DESCRIPTIONS[role]}</CardDescription>
