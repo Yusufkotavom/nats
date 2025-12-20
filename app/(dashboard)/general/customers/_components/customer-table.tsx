@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -18,10 +19,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { CustomerDialog } from "./customer-dialog";
 import { deleteCustomer } from "../actions";
-import { format } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,21 +33,41 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Customer } from "../../types";
+import { Input } from "@/components/ui/input";
+import { Customer, PaginatedResult } from "../../types";
 
 interface CustomerTableProps {
-  initialCustomers: Customer[];
+  initialData: PaginatedResult<Customer>;
 }
 
-export function CustomerTable({ initialCustomers }: CustomerTableProps) {
+export function CustomerTable({ initialData }: CustomerTableProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<
-    Customer | undefined
-  >(undefined);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>(undefined);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [customerToDelete, setCustomerToDelete] = useState<
-    Customer | undefined
-  >(undefined);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | undefined>(undefined);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    if (searchQuery) {
+      params.set("search", searchQuery);
+    } else {
+      params.delete("search");
+    }
+    params.set("page", "1"); // Reset to page 1
+    router.push(`?${params.toString()}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", newPage.toString());
+    router.push(`?${params.toString()}`);
+  };
 
   const handleAddCustomer = () => {
     setSelectedCustomer(undefined);
@@ -74,13 +94,28 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-4">
         <h2 className="text-lg font-bold tracking-tight">
           Customer Management
         </h2>
-        <Button onClick={handleAddCustomer}>
-          <Plus className="mr-2 h-4 w-4" /> Add Customer
-        </Button>
+        <div className="flex items-center gap-2">
+            <form onSubmit={handleSearch} className="flex items-center gap-2">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search..."
+                        className="pl-8 w-[200px] lg:w-[300px]"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Button type="submit" variant="secondary">Search</Button>
+            </form>
+            <Button onClick={handleAddCustomer}>
+            <Plus className="mr-2 h-4 w-4" /> Add Customer
+            </Button>
+        </div>
       </div>
       <div className="rounded-md border">
         <Table>
@@ -95,7 +130,7 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {initialCustomers.map((customer) => (
+            {initialData.data.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell className="font-medium">{customer.name}</TableCell>
                 <TableCell>{customer.email}</TableCell>
@@ -135,15 +170,42 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
                 </TableCell>
               </TableRow>
             ))}
-            {initialCustomers.length === 0 && (
+            {initialData.data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No customers found.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          Page {initialData.page} of {initialData.totalPages} ({initialData.total} items)
+        </div>
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(initialData.page - 1)}
+            disabled={initialData.page <= 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(initialData.page + 1)}
+            disabled={initialData.page >= initialData.totalPages}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <CustomerDialog

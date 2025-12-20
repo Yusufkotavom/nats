@@ -2,15 +2,55 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { Vendor } from "../types";
+import {
+  CreateVendorInput,
+  UpdateVendorInput,
+  PaginatedResult,
+  Vendor,
+} from "../types";
+import { Prisma } from "@/prisma/generated/prisma/client";
 
-export async function getVendors() {
-  return await prisma.vendor.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+export async function getVendors({
+  page = 1,
+  pageSize = 10,
+  search = "",
+}: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+} = {}): Promise<PaginatedResult<Vendor>> {
+  const skip = (page - 1) * pageSize;
+
+  const where: Prisma.VendorWhereInput = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search, mode: "insensitive" } },
+        ],
+      }
+    : {};
+
+  const [data, total] = await Promise.all([
+    prisma.vendor.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.vendor.count({ where }),
+  ]);
+
+  return {
+    data,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
 }
 
-export async function createVendor(data: Vendor) {
+export async function createVendor(data: CreateVendorInput) {
   try {
     const vendor = await prisma.vendor.create({
       data,
@@ -23,7 +63,7 @@ export async function createVendor(data: Vendor) {
   }
 }
 
-export async function updateVendor(id: string, data: Vendor) {
+export async function updateVendor(id: string, data: UpdateVendorInput) {
   try {
     const vendor = await prisma.vendor.update({
       where: { id },

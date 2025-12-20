@@ -45,7 +45,6 @@ export function VendorDialog({
     try {
       if (isEditing) {
         await updateVendor(vendor.id, {
-          id: vendor.id,
           name,
           email: email || "",
           phone: phone || "",
@@ -54,7 +53,6 @@ export function VendorDialog({
         });
       } else {
         await createVendor({
-          id: "",
           name,
           email: email || "",
           phone: phone || "",

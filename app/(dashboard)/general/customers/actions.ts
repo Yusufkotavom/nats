@@ -2,15 +2,55 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { Customer } from "../types";
+import {
+  CreateCustomerInput,
+  UpdateCustomerInput,
+  PaginatedResult,
+  Customer,
+} from "../types";
+import { Prisma } from "@prisma/client";
 
-export async function getCustomers() {
-  return await prisma.customer.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+export async function getCustomers({
+  page = 1,
+  pageSize = 10,
+  search = "",
+}: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+} = {}): Promise<PaginatedResult<Customer>> {
+  const skip = (page - 1) * pageSize;
+
+  const where: Prisma.CustomerWhereInput = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search, mode: "insensitive" } },
+        ],
+      }
+    : {};
+
+  const [data, total] = await Promise.all([
+    prisma.customer.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.customer.count({ where }),
+  ]);
+
+  return {
+    data,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
 }
 
-export async function createCustomer(data: Customer) {
+export async function createCustomer(data: CreateCustomerInput) {
   try {
     const customer = await prisma.customer.create({
       data,
@@ -23,7 +63,7 @@ export async function createCustomer(data: Customer) {
   }
 }
 
-export async function updateCustomer(id: string, data: Customer) {
+export async function updateCustomer(id: string, data: UpdateCustomerInput) {
   try {
     const customer = await prisma.customer.update({
       where: { id },

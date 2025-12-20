@@ -45,7 +45,6 @@ export function CustomerDialog({
     try {
       if (isEditing) {
         await updateCustomer(customer.id, {
-          id: customer.id,
           name,
           email: email || "",
           phone: phone || "",
@@ -54,7 +53,6 @@ export function CustomerDialog({
         });
       } else {
         await createCustomer({
-          id: "",
           name,
           email: email || "",
           phone: phone || "",
