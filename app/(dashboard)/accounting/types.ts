@@ -1,23 +1,22 @@
-import { AccountType } from "@/prisma/generated/prisma/enums";
+import { Prisma } from "@/prisma/generated/prisma/client";
 
-export type Account = {
-  id: string;
-  code: string;
-  name: string;
-  type: AccountType;
-  parentId?: string;
-  children?: Account[];
-  isPosting?: boolean;
-  level?: number;
-  _count?: { journalEntryLines: number };
-};
+// Use Prisma's generated type for Account, including relations we commonly fetch
+export type Account = Prisma.AccountGetPayload<{
+  include: {
+    parent: true;
+    children: true;
+    _count: {
+      select: { journalEntryLines: true };
+    };
+  };
+}>;
 
 export type CalculatedAccount = Account & {
   ownDebit: number;
   ownCredit: number;
   totalDebit: number;
   totalCredit: number;
-  children: string[];
+  children: string[]; // IDs of children
   calculated: boolean;
   level: number;
 };

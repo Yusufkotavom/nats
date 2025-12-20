@@ -89,7 +89,7 @@ export function JournalEntryTable() {
       fetchEntries(1);
     }, 500); // Debounce search
     return () => clearTimeout(timer);
-  }, []);
+  }, [fetchEntries]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this journal entry?")) return;

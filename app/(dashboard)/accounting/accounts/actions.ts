@@ -4,19 +4,51 @@ import { prisma } from "@/lib/prisma";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 
-export async function getAccounts() {
-  return await prisma.account.findMany({
-    orderBy: {
-      code: "asc",
-    },
-    include: {
-      parent: true,
-      children: true,
-      _count: {
-        select: { journalEntryLines: true },
+export async function getAccounts(page?: number, pageSize?: number) {
+  // If no pagination provided, fetch all (for tree view)
+  if (!page || !pageSize) {
+    return await prisma.account.findMany({
+      orderBy: {
+        code: "asc",
       },
+      include: {
+        parent: true,
+        children: true,
+        _count: {
+          select: { journalEntryLines: true },
+        },
+      },
+    });
+  }
+
+  const skip = (page - 1) * pageSize;
+  const [data, total] = await Promise.all([
+    prisma.account.findMany({
+      orderBy: {
+        code: "asc",
+      },
+      include: {
+        parent: true,
+        children: true,
+        _count: {
+          select: { journalEntryLines: true },
+        },
+      },
+      skip,
+      take: pageSize,
+    }),
+    prisma.account.count(),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      total,
+      totalPages: Math.ceil(total / pageSize),
+      currentPage: page,
+      pageSize,
     },
-  });
+  };
 }
 
 export async function createAccount(data: {
@@ -73,7 +105,10 @@ export async function getNextAccountCode(
         return { success: true, code: `${prefix}000` };
       }
 
-      return { success: true, code: `${prefix}000` };
+      const lastCode = accounts[0].code;
+      const nextCode = (parseInt(lastCode) + 1000).toString(); // Logic depends on convention.
+
+      return { success: true, code: (parseInt(lastCode) + 100).toString() };
     }
 
     // Child level logic
@@ -87,17 +122,12 @@ export async function getNextAccountCode(
     }
 
     const parentCode = parent.code;
-    let step = 0;
+    let step = 1;
 
     // Determine increment step based on trailing zeros
     if (parentCode.endsWith("000")) step = 100;
     else if (parentCode.endsWith("00")) step = 10;
     else if (parentCode.endsWith("0")) step = 1;
-    else
-      return {
-        success: false,
-        error: "Cannot create sub-account for this level (max depth reached)",
-      };
 
     // Find max code among children
     const children = await prisma.account.findMany({
@@ -127,7 +157,7 @@ export async function updateAccount(id: string, data: { name: string }) {
       where: { id },
       data: { name: data.name },
     });
-    revalidatePath("/accounts");
+    revalidatePath("/accounting/accounts");
     return { success: true };
   } catch (error) {
     console.error(error);

@@ -43,7 +43,7 @@ import {
   AccountType,
   NormalBalance,
   Prisma,
-} from "@/prisma/generated/prisma/client";
+} from "@/prisma/generated/prisma/browser";
 
 type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
   include: {
