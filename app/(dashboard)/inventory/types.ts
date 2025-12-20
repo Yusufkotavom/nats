@@ -1,19 +1,16 @@
-export type ProductFormData = {
-  name: string;
-  id: string;
-  sku: string;
-  description: string | null;
-  categoryId: string | null;
+import { Prisma } from "@/prisma/generated/prisma/client";
+
+export type ProductFormData = Omit<
+  Prisma.ProductGetPayload<{
+    include: {
+      category: true;
+    };
+  }>,
+  "price" | "cost" | "createdAt" | "updatedAt"
+> & {
   price: number;
   cost: number;
-  minStock: number;
   inventory?: {
     quantity: number;
   }[];
-  category: {
-    id: string;
-    name: string;
-    description: string | null;
-  } | null;
-  isActive: boolean;
 };

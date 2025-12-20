@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { ProductFormData } from "../types";
 
@@ -30,18 +31,53 @@ export async function createCategory(data: {
 
 // Products
 
-export async function getProducts() {
-  return await prisma.product.findMany({
-    include: {
-      category: true,
-      inventory: {
-        include: {
-          warehouse: true,
+export async function getProducts(
+  page: number = 1,
+  limit: number = 10,
+  search?: string,
+  categoryId?: string
+) {
+  const skip = (page - 1) * limit;
+  const where: Prisma.ProductWhereInput = {
+    AND: [],
+  };
+
+  if (search) {
+    (where.AND as Prisma.ProductWhereInput[]).push({
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { sku: { contains: search, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (categoryId && categoryId !== "ALL") {
+    (where.AND as Prisma.ProductWhereInput[]).push({ categoryId });
+  }
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        inventory: {
+          include: {
+            warehouse: true,
+          },
         },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return {
+    products,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function createProduct(data: ProductFormData) {

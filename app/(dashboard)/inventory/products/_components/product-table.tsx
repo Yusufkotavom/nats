@@ -17,32 +17,77 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pencil, Trash2, Search, Filter } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { deleteProduct } from "../actions";
 import { ProductDialog } from "./product-dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProductFormData } from "../../types";
 import { Category } from "@/prisma/generated/prisma/browser";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 interface ProductTableProps {
   products: ProductFormData[];
   categories: Category[];
+  totalPages: number;
 }
 
-export function ProductTable({ products, categories }: ProductTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
+export function ProductTable({
+  products,
+  categories,
+  totalPages,
+}: ProductTableProps) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { replace } = useRouter();
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get("search") || ""
+  );
 
-    const matchesCategory =
-      categoryFilter === "ALL" || product.categoryId === categoryFilter;
+  const categoryFilter = searchParams.get("categoryId") || "ALL";
+  const currentPage = Number(searchParams.get("page")) || 1;
 
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams);
+      if (searchTerm) {
+        params.set("search", searchTerm);
+      } else {
+        params.delete("search");
+      }
+      params.set("page", "1");
+
+      // Only update if actually changed
+      if (params.get("search") !== (searchParams.get("search") || null)) {
+        replace(`${pathname}?${params.toString()}`);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm, searchParams, pathname, replace]);
+
+  const handleCategoryChange = (val: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (val && val !== "ALL") {
+      params.set("categoryId", val);
+    } else {
+      params.delete("categoryId");
+    }
+    params.set("page", "1");
+    replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", page.toString());
+    replace(`${pathname}?${params.toString()}`);
+  };
 
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this product?")) {
@@ -62,7 +107,7 @@ export function ProductTable({ products, categories }: ProductTableProps) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
           <SelectTrigger className="w-[180px]">
             <Filter className="mr-2 h-4 w-4" />
             <SelectValue placeholder="Category" />
@@ -93,14 +138,14 @@ export function ProductTable({ products, categories }: ProductTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.length === 0 ? (
+            {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   No products found.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProducts.map((product) => {
+              products.map((product) => {
                 const totalStock = product?.inventory?.reduce(
                   (acc, inv) => acc + inv.quantity,
                   0
@@ -138,6 +183,30 @@ export function ProductTable({ products, categories }: ProductTableProps) {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Previous
+        </Button>
+        <div className="text-sm text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages}
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
