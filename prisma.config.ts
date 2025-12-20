@@ -1,7 +1,12 @@
-// eslint-disable-next-line import/no-anonymous-default-export
-export default {
-  datasource: {
-    url: process.env.DATABASE_URL!,
-    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL!,
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  migrations: {
+    seed: "tsx prisma/seed.ts",
   },
-};
+  datasource: {
+    url: env("DATABASE_URL"),
+    shadowDatabaseUrl: env("SHADOW_DATABASE_URL"),
+  },
+});
