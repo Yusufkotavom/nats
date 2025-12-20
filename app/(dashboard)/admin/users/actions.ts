@@ -4,21 +4,20 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/auth/protected-action";
-import { z } from "zod";
 
-const UserCreateSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(6).optional(),
-  roleId: z.string(),
-});
+interface UserCreateData {
+  name: string;
+  email: string;
+  password?: string;
+  roleId: string;
+}
 
-const UserUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
-  password: z.string().min(6).optional(),
-  roleId: z.string().optional(),
-});
+interface UserUpdateData {
+  name?: string;
+  email?: string;
+  password?: string;
+  roleId?: string;
+}
 
 export async function getUsers(page: number, limit: number) {
   const skip = (page - 1) * limit;
@@ -59,8 +58,24 @@ export async function getRoles() {
 
 export const createUser = authorizedAction(
   "users.create",
-  async (data: z.infer<typeof UserCreateSchema>) => {
+  async (data: UserCreateData) => {
     try {
+      if (!data.name) {
+        return { success: false, error: "Name is required" };
+      }
+      if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        return { success: false, error: "Invalid email" };
+      }
+      if (!data.roleId) {
+        return { success: false, error: "Role is required" };
+      }
+      if (data.password && data.password.length < 6) {
+        return {
+          success: false,
+          error: "Password must be at least 6 characters",
+        };
+      }
+
       const hashedPassword = await bcrypt.hash(
         data.password || "password123",
         10
@@ -87,8 +102,24 @@ export const createUser = authorizedAction(
 
 export const updateUser = authorizedAction(
   "users.edit",
-  async (id: string, data: z.infer<typeof UserUpdateSchema>) => {
+  async (id: string, data: UserUpdateData) => {
     try {
+      if (data.name !== undefined && !data.name) {
+        return { success: false, error: "Name cannot be empty" };
+      }
+      if (
+        data.email !== undefined &&
+        (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+      ) {
+        return { success: false, error: "Invalid email" };
+      }
+      if (data.password && data.password.length < 6) {
+        return {
+          success: false,
+          error: "Password must be at least 6 characters",
+        };
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = { ...data };
       delete updateData.roleId;

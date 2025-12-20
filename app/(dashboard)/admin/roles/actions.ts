@@ -2,25 +2,29 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { authorizedAction } from "@/lib/auth/protected-action";
 
-const roleSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  description: z.string().optional(),
-  permissions: z
-    .array(z.string())
-    .min(1, "At least one permission is required"),
-  isActive: z.boolean().default(true),
-});
+interface RoleData {
+  name: string;
+  description?: string;
+  permissions: string[];
+  isActive?: boolean;
+}
 
 export const createRole = authorizedAction(
   "roles:create",
-  async (data: z.infer<typeof roleSchema>) => {
-    const validated = roleSchema.parse(data);
+  async (data: RoleData) => {
+    if (!data.name) {
+      return { success: false, error: "Name is required" };
+    }
+    if (!data.permissions || data.permissions.length === 0) {
+      return { success: false, error: "At least one permission is required" };
+    }
+
+    const isActive = data.isActive ?? true;
 
     const existing = await prisma.role.findUnique({
-      where: { name: validated.name },
+      where: { name: data.name },
     });
 
     if (existing) {
@@ -28,7 +32,10 @@ export const createRole = authorizedAction(
     }
 
     await prisma.role.create({
-      data: validated,
+      data: {
+        ...data,
+        isActive,
+      },
     });
 
     revalidatePath("/admin/roles");
@@ -38,11 +45,18 @@ export const createRole = authorizedAction(
 
 export const updateRole = authorizedAction(
   "roles:update",
-  async (id: string, data: z.infer<typeof roleSchema>) => {
-    const validated = roleSchema.parse(data);
+  async (id: string, data: RoleData) => {
+    if (!data.name) {
+      return { success: false, error: "Name is required" };
+    }
+    if (!data.permissions || data.permissions.length === 0) {
+      return { success: false, error: "At least one permission is required" };
+    }
+
+    const isActive = data.isActive ?? true;
 
     const existing = await prisma.role.findUnique({
-      where: { name: validated.name },
+      where: { name: data.name },
     });
 
     if (existing && existing.id !== id) {
@@ -51,7 +65,10 @@ export const updateRole = authorizedAction(
 
     await prisma.role.update({
       where: { id },
-      data: validated,
+      data: {
+        ...data,
+        isActive,
+      },
     });
 
     revalidatePath("/admin/roles");

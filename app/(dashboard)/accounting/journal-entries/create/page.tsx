@@ -16,7 +16,7 @@ export default function CreateJournalEntryPage() {
 
   useEffect(() => {
     getAccounts().then((data) => {
-      setAccounts(data);
+      setAccounts(Array.isArray(data) ? data : data.data || []);
     });
   }, []);
 
