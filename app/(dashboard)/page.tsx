@@ -1,5 +1,7 @@
-import { ComponentExample } from "@/components/component-example";
-
 export default function Page() {
-return <ComponentExample />;
+  return (
+    <div className="p-4">
+      <h1>Welcome to NATS Accounting</h1>
+    </div>
+  );
 }
