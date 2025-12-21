@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Pencil, Trash2 } from "lucide-react";
-import { Location } from "@/prisma/generated/prisma/client";
+import { Location } from "@/prisma/generated/prisma/browser";
 import { LocationDialog } from "./location-dialog";
 import { deleteLocation } from "../actions";
 

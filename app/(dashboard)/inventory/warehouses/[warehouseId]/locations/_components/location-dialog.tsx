@@ -22,7 +22,7 @@ import {
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createLocation, updateLocation } from "../actions";
-import { Location, LocationType } from "@/prisma/generated/prisma/client";
+import { Location, LocationType } from "@/prisma/generated/prisma/browser";
 
 interface LocationDialogProps {
   warehouseId: string;
@@ -30,7 +30,11 @@ interface LocationDialogProps {
   trigger?: React.ReactNode;
 }
 
-export function LocationDialog({ warehouseId, location, trigger }: LocationDialogProps) {
+export function LocationDialog({
+  warehouseId,
+  location,
+  trigger,
+}: LocationDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -49,9 +53,9 @@ export function LocationDialog({ warehouseId, location, trigger }: LocationDialo
     try {
       if (location) {
         await updateLocation(location.id, {
-            name: data.name,
-            code: data.code,
-            type: data.type
+          name: data.name,
+          code: data.code,
+          type: data.type,
         });
       } else {
         await createLocation(data);
@@ -77,7 +81,9 @@ export function LocationDialog({ warehouseId, location, trigger }: LocationDialo
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{location ? "Edit Location" : "Add Location"}</DialogTitle>
+          <DialogTitle>
+            {location ? "Edit Location" : "Add Location"}
+          </DialogTitle>
           <DialogDescription>
             {location
               ? "Make changes to the location here."

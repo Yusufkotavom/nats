@@ -21,6 +21,7 @@ import {
   Rocket,
   UsersIcon,
   Settings,
+  FileIcon,
 } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -178,7 +179,7 @@ const data = {
       ],
     },
     {
-      title: "Administration",
+      title: "General",
       url: "#",
       icon: Settings,
       items: [
@@ -189,6 +190,17 @@ const data = {
         {
           title: "Role Definitions",
           url: "/admin/roles",
+        },
+        {
+          title: "File Manager",
+          url: "#",
+          icon: FileIcon,
+          items: [
+            {
+              title: "File Manager",
+              url: "/general/files",
+            },
+          ],
         },
       ],
     },

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Pencil, Trash2 } from "lucide-react";
-import { Unit } from "@/prisma/generated/prisma/client";
+import { Unit } from "@/prisma/generated/prisma/browser";
 import { UomDialog } from "./uom-dialog";
 import { deleteUnit } from "../actions";
 import { format } from "date-fns";

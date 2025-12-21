@@ -21,6 +21,7 @@ model User {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   journalEntries JournalEntry[]
+  files          File[]
 
   @@index([email])
   @@index([roleId])
@@ -292,4 +293,18 @@ enum MovementStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+model File {
+  id           String   @id @default(cuid())
+  name         String
+  url          String
+  mimeType     String
+  size         Int
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([uploadedById])
 }

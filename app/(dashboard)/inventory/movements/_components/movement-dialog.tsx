@@ -30,7 +30,7 @@ import {
   Warehouse,
   Unit,
   Location,
-} from "@/prisma/generated/prisma/client";
+} from "@/prisma/generated/prisma/browser";
 
 interface MovementDialogProps {
   products: (Omit<Product, "price" | "cost"> & {
@@ -47,13 +47,13 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [type, setType] = useState<MovementType>("IN");
-  
+
   // State for selections
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(""); // For To/From based on Type
   const [locations, setLocations] = useState<Location[]>([]);
-  
-  const selectedProduct = products.find(p => p.id === selectedProductId);
+
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   // Fetch locations when warehouse changes
   useEffect(() => {
@@ -75,7 +75,11 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
       fromWarehouseId: (formData.get("fromWarehouseId") as string) || undefined,
       toWarehouseId: (formData.get("toWarehouseId") as string) || undefined,
       quantity: Number(formData.get("quantity")),
-      uomType: formData.get("uomType") as "base" | "purchase" | "sales" | undefined,
+      uomType: formData.get("uomType") as
+        | "base"
+        | "purchase"
+        | "sales"
+        | undefined,
       locationId: (formData.get("locationId") as string) || undefined,
       reference: formData.get("reference") as string,
       notes: formData.get("notes") as string,
@@ -124,8 +128,8 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 name="type"
                 value={type}
                 onValueChange={(v) => {
-                    setType(v as MovementType);
-                    setSelectedWarehouseId(""); // Reset warehouse selection on type change
+                  setType(v as MovementType);
+                  setSelectedWarehouseId(""); // Reset warehouse selection on type change
                 }}
               >
                 <SelectTrigger>
@@ -146,9 +150,9 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
               Product
             </Label>
             <div className="col-span-3">
-              <Select 
-                name="productId" 
-                required 
+              <Select
+                name="productId"
+                required
                 value={selectedProductId}
                 onValueChange={setSelectedProductId}
               >
@@ -172,15 +176,15 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 From
               </Label>
               <div className="col-span-3">
-                <Select 
-                    name="fromWarehouseId" 
-                    required
-                    onValueChange={(val) => {
-                        // Only set if this is the relevant warehouse for location picking?
-                        // Actually for OUT, we pick from specific location? 
-                        // Current logic in action doesn't support picking from specific location ID yet for OUT (it uses FIFO/Batch).
-                        // So we only need location selection for IN/ADJUSTMENT destination.
-                    }}
+                <Select
+                  name="fromWarehouseId"
+                  required
+                  onValueChange={(val) => {
+                    // Only set if this is the relevant warehouse for location picking?
+                    // Actually for OUT, we pick from specific location?
+                    // Current logic in action doesn't support picking from specific location ID yet for OUT (it uses FIFO/Batch).
+                    // So we only need location selection for IN/ADJUSTMENT destination.
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select source warehouse" />
@@ -203,11 +207,11 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 {type === "ADJUSTMENT" ? "Warehouse" : "To"}
               </Label>
               <div className="col-span-3">
-                <Select 
-                    name="toWarehouseId" 
-                    required
-                    value={selectedWarehouseId}
-                    onValueChange={setSelectedWarehouseId}
+                <Select
+                  name="toWarehouseId"
+                  required
+                  value={selectedWarehouseId}
+                  onValueChange={setSelectedWarehouseId}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select destination warehouse" />
@@ -226,26 +230,26 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
 
           {/* Location Selection (Only if Warehouse Selected and Locations exist) */}
           {selectedWarehouseId && locations.length > 0 && (
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="locationId" className="text-right">
-                  Location
-                </Label>
-                <div className="col-span-3">
-                  <Select name="locationId">
-                    <SelectTrigger>
-                      <SelectValue placeholder="General Area (Default)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">General Area</SelectItem>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc.id} value={loc.id}>
-                          {loc.code} - {loc.name} ({loc.type})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="locationId" className="text-right">
+                Location
+              </Label>
+              <div className="col-span-3">
+                <Select name="locationId">
+                  <SelectTrigger>
+                    <SelectValue placeholder="General Area (Default)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">General Area</SelectItem>
+                    {locations.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.code} - {loc.name} ({loc.type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           )}
 
           <div className="grid grid-cols-4 items-center gap-4">
@@ -253,33 +257,33 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
               Quantity
             </Label>
             <div className="col-span-3 flex gap-2">
-                <Input
-                  id="quantity"
-                  name="quantity"
-                  type="number"
-                  className="flex-1"
-                  required
-                />
-                <Select name="uomType" defaultValue="base">
-                    <SelectTrigger className="w-[120px]">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="base">
-                            {selectedProduct?.baseUnit?.symbol || "Base Unit"}
-                        </SelectItem>
-                        {selectedProduct?.purchaseUnit && (
-                            <SelectItem value="purchase">
-                                {selectedProduct.purchaseUnit.symbol} (Pur)
-                            </SelectItem>
-                        )}
-                        {selectedProduct?.salesUnit && (
-                            <SelectItem value="sales">
-                                {selectedProduct.salesUnit.symbol} (Sal)
-                            </SelectItem>
-                        )}
-                    </SelectContent>
-                </Select>
+              <Input
+                id="quantity"
+                name="quantity"
+                type="number"
+                className="flex-1"
+                required
+              />
+              <Select name="uomType" defaultValue="base">
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="base">
+                    {selectedProduct?.baseUnit?.symbol || "Base Unit"}
+                  </SelectItem>
+                  {selectedProduct?.purchaseUnit && (
+                    <SelectItem value="purchase">
+                      {selectedProduct.purchaseUnit.symbol} (Pur)
+                    </SelectItem>
+                  )}
+                  {selectedProduct?.salesUnit && (
+                    <SelectItem value="sales">
+                      {selectedProduct.salesUnit.symbol} (Sal)
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

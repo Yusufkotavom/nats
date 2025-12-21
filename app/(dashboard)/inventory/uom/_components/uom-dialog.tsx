@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createUnit, updateUnit } from "../actions";
-import { Unit } from "@/prisma/generated/prisma/client";
+import { Unit } from "@/prisma/generated/prisma/browser";
 
 interface UomDialogProps {
   unit?: Unit;
