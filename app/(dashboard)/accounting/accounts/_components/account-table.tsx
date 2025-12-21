@@ -12,7 +12,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  ChevronRight,
+  ChevronDown,
+  Pencil,
+  Trash2,
+  Plus,
+  Loader2,
+} from "lucide-react";
 import { updateAccount, deleteAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountDialog } from "./account-dialog";
@@ -28,6 +45,8 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
   const [draftName, setDraftName] = useState<string>("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const byId = useMemo(() => {
     const map: Record<string, Account> = {};
@@ -70,20 +89,40 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
     setDraftName("");
   }
 
-  async function handleDelete(a: Account) {
+  async function confirmDelete() {
+    if (!accountToDelete) return;
+    setIsDeleting(true);
     setError(null);
-    const res = await deleteAccount(a.id);
-    if (!res?.success) {
-      setError(res?.error || "Delete failed");
-      return;
+
+    try {
+      const res = await deleteAccount(accountToDelete.id);
+      if (!res?.success) {
+        setError(res?.error || "Delete failed");
+      } else {
+        setAccountToDelete(null);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+      console.error(err);
+    } finally {
+      setIsDeleting(false);
     }
-    // Data refresh is handled by Next.js Server Actions revalidation
+  }
+
+  function handleDelete(a: Account) {
+    setAccountToDelete(a);
   }
 
   function renderRows(a: Account, depth = 0): React.ReactElement[] {
     const hasChildren = (a.children?.length || 0) > 0;
     const isOpen = expanded[a.id] ?? true;
-    const canDelete = (a._count?.journalEntryLines || 0) === 0;
+    const isUsed = (a._count?.journalEntryLines || 0) > 0;
+    const canDelete = !isUsed && !hasChildren;
+
+    let deleteTooltip = "Delete account";
+    if (isUsed) deleteTooltip = "Cannot delete: used in transactions";
+    else if (hasChildren) deleteTooltip = "Cannot delete: has child accounts";
+
     const row = (
       <TableRow key={a.id} className="border-b last:border-b-0">
         <TableCell className="w-12 align-middle">
@@ -164,11 +203,7 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
             size="icon"
             disabled={!canDelete}
             onClick={() => handleDelete(a)}
-            title={
-              canDelete
-                ? "Delete account"
-                : "Cannot delete: used in transactions"
-            }
+            title={deleteTooltip}
           >
             <Trash2 />
           </Button>
@@ -220,6 +255,42 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
           // Success action (maybe toast?)
         }}
       />
+
+      <AlertDialog
+        open={!!accountToDelete}
+        onOpenChange={(open) =>
+          !open && !isDeleting && setAccountToDelete(null)
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              account
+              <span className="font-medium text-foreground">
+                {" "}
+                {accountToDelete?.code} — {accountToDelete?.name}
+              </span>
+              .
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

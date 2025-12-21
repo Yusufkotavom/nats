@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import {
 import { createAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountType } from "@/prisma/generated/prisma/enums";
+import { Loader2 } from "lucide-react";
 
 interface AccountDialogProps {
   open: boolean;
@@ -43,6 +44,11 @@ export function AccountDialog({
     parentId: string | null;
   }>({ name: "", code: "", type: "", parentId: null });
   const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const sortedAccounts = useMemo(() => {
+    return [...accounts].sort((x, y) => x.code.localeCompare(y.code));
+  }, [accounts]);
 
   const resetForm = () => {
     setAddForm({ name: "", code: "", type: "", parentId: null });
@@ -50,11 +56,12 @@ export function AccountDialog({
   };
 
   const handleCancel = () => {
+    if (isPending) return;
     onOpenChange(false);
     resetForm();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     setError(null);
     if (!addForm.name || !addForm.code || !addForm.type || !addForm.parentId) {
       setError("Please fill name, code, type, and select a parent");
@@ -86,19 +93,22 @@ export function AccountDialog({
       return;
     }
 
-    const res = await createAccount({
-      name: addForm.name,
-      code: addForm.code,
-      type: addForm.type as AccountType,
-      parentId: addForm.parentId,
-    });
-    if (!res?.success) {
-      setError(res?.error || "Failed to create account");
-      return;
-    }
+    startTransition(async () => {
+      const res = await createAccount({
+        name: addForm.name,
+        code: addForm.code,
+        type: addForm.type as AccountType,
+        parentId: addForm.parentId!,
+      });
 
-    onSuccess();
-    handleCancel();
+      if (!res?.success) {
+        setError(res?.error || "Failed to create account");
+        return;
+      }
+
+      onSuccess();
+      handleCancel();
+    });
   };
 
   return (
@@ -114,31 +124,10 @@ export function AccountDialog({
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 items-center">
             <div className="space-y-1">
-              <Label htmlFor="acc-name">Name</Label>
-              <Input
-                id="acc-name"
-                value={addForm.name}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, name: e.target.value }))
-                }
-                placeholder="e.g. Cash"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="acc-code">Code</Label>
-              <Input
-                id="acc-code"
-                value={addForm.code}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, code: e.target.value }))
-                }
-                placeholder="e.g. 1-1-3"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Parent</Label>
+              <Label>Parent/Group</Label>
               <Select
                 value={addForm.parentId || ""}
+                disabled={isPending}
                 onValueChange={(val) => {
                   const p = accounts.find((a) => a.id === val);
                   if (p) {
@@ -155,16 +144,39 @@ export function AccountDialog({
                   <SelectValue placeholder="Select parent" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts
-                    .sort((x, y) => x.code.localeCompare(y.code))
-                    .map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.code} — {a.name}
-                      </SelectItem>
-                    ))}
+                  {sortedAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.code} — {a.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="acc-code">Code</Label>
+              <Input
+                id="acc-code"
+                value={addForm.code}
+                onChange={(e) =>
+                  setAddForm((f) => ({ ...f, code: e.target.value }))
+                }
+                placeholder="e.g. 1-1-3"
+                disabled={isPending}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="acc-name">Name</Label>
+              <Input
+                id="acc-name"
+                value={addForm.name}
+                onChange={(e) =>
+                  setAddForm((f) => ({ ...f, name: e.target.value }))
+                }
+                placeholder="e.g. Cash"
+                disabled={isPending}
+              />
+            </div>
+
             <div className="space-y-1 w-full">
               <Label>Type</Label>
               <Select
@@ -193,10 +205,13 @@ export function AccountDialog({
           {error && <div className="text-destructive text-sm">{error}</div>}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="outline" onClick={handleCancel} disabled={isPending}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Save</Button>
+          <Button onClick={handleSubmit} disabled={isPending}>
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
