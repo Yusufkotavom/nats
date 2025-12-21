@@ -9,7 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Pencil,
+  Trash2,
+  MapPin,
+} from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { deleteWarehouse } from "../actions";
 import { WarehouseDialog } from "./warehouse-dialog";
@@ -96,6 +103,18 @@ export function WarehouseTable({ warehouses }: WarehouseTableProps) {
                   <TableCell>{uniqueProducts}</TableCell>
                   <TableCell>${totalValue.toFixed(2)}</TableCell>
                   <TableCell className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      asChild
+                      title="Manage Locations"
+                    >
+                      <Link
+                        href={`/inventory/warehouses/${warehouse.id}/locations`}
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </Link>
+                    </Button>
                     <WarehouseDialog
                       warehouse={warehouse}
                       trigger={

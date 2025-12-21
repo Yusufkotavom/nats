@@ -268,6 +268,7 @@ model InventoryMovement {
   toWarehouseId   String?
   toWarehouse     Warehouse?     @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
   quantity        Int
+  unitCost        Decimal        @default(0) // Recorded Cost at time of movement
   reference       String? // PO number, SO number, Adjustment ID
   notes           String?
   status          MovementStatus @default(PENDING)

@@ -34,8 +34,11 @@ export const createMovement = authorizedAction(
     fromWarehouseId?: string;
     toWarehouseId?: string;
     quantity: number;
+    uomType?: "base" | "purchase" | "sales";
+    unitCost?: number; // Optional override cost, otherwise use default
     reference?: string;
     notes?: string;
+    batchNumber?: string;
   }) => {
     const {
       type,
@@ -47,6 +50,15 @@ export const createMovement = authorizedAction(
       notes,
     } = data;
 
+    // Explicit Batch or Auto-Generate
+    const batchNumber =
+      data.batchNumber ||
+      (type === "IN"
+        ? new Date().toISOString().slice(0, 10).replace(/-/g, "") +
+          "-" +
+          Math.floor(Math.random() * 1000)
+        : "-");
+
     if (quantity <= 0 && type !== "ADJUSTMENT") {
       return {
         success: false,
@@ -54,63 +66,146 @@ export const createMovement = authorizedAction(
       };
     }
 
-    // Use "-" as default batch number for non-batched items to ensure uniqueness
-    const DEFAULT_BATCH = "-";
-
     try {
       await prisma.$transaction(async (tx) => {
-        // 1. Create Movement Record
+        // Fetch Product for Costing
+        const product = await tx.product.findUniqueOrThrow({
+          where: { id: productId },
+        });
+
+        // 0. Handle UOM Conversion
+        let conversionFactor = 1;
+        if (data.uomType === "purchase")
+          conversionFactor = Number(product.purchaseConversionFactor) || 1;
+        else if (data.uomType === "sales")
+          conversionFactor = Number(product.salesConversionFactor) || 1;
+
+        // Convert Input Quantity to Base Quantity
+        const baseQuantity = Math.floor(quantity * conversionFactor);
+
+        // Determine Unit Cost (Per Base Unit)
+        // If provided (e.g. from PO), it's usually Per Input Unit -> Convert to Per Base Unit
+        // If not provided, use Product Average Cost (which is already Per Base Unit)
+        let movementUnitCost = 0;
+        if (data.unitCost !== undefined) {
+          movementUnitCost = data.unitCost / conversionFactor;
+        } else {
+          movementUnitCost = Number(product.averageCost || product.cost);
+        }
+
+        // 1. Handle Valuation & Costing Updates (Moving Average)
+        if (type === "IN" && data.unitCost !== undefined) {
+          // Calculate New Weighted Average Cost
+          // Formula: ((Old Qty * Old Avg) + (New Qty * New Cost)) / (Old Qty + New Qty)
+          // Note: We need Total System Quantity for this product, not just one warehouse
+          const allInventory = await tx.inventory.aggregate({
+            where: { productId },
+            _sum: { quantity: true },
+          });
+
+          const totalExistingQty = allInventory._sum.quantity || 0;
+          const oldTotalValue = Number(product.averageCost) * totalExistingQty;
+          const newTotalValue = oldTotalValue + baseQuantity * movementUnitCost;
+          const newTotalQty = totalExistingQty + baseQuantity;
+
+          if (newTotalQty > 0) {
+            const newAverageCost = newTotalValue / newTotalQty;
+            await tx.product.update({
+              where: { id: productId },
+              data: { averageCost: newAverageCost },
+            });
+          }
+        } else if (type === "OUT") {
+          // For OUT, we consume cost. We don't change Average Cost.
+          // Ideally we should record the Cost of Goods Sold (COGS) here based on current Average Cost
+          movementUnitCost = Number(product.averageCost);
+        }
+
+        // 2. Create Movement Record
         await tx.inventoryMovement.create({
           data: {
             type,
             productId,
             fromWarehouseId: fromWarehouseId || null,
             toWarehouseId: toWarehouseId || null,
-            quantity,
+            quantity: baseQuantity,
+            unitCost: movementUnitCost,
             reference,
             notes,
-            status: "COMPLETED", // Auto-complete for now
+            status: "COMPLETED",
           },
         });
 
-        // 2. Update Inventory
+        // 3. Update Inventory (With Location & Batch Logic)
         if (type === "IN") {
           if (!toWarehouseId)
             throw new Error("Destination warehouse required for IN");
+
+          // For now, default to no specific location (null) if not provided
+          // TODO: Add locationId param support in future UI
 
           await tx.inventory.upsert({
             where: {
               productId_warehouseId_batchNumber: {
                 productId,
                 warehouseId: toWarehouseId,
-                batchNumber: DEFAULT_BATCH,
+                batchNumber: batchNumber,
               },
             },
             update: {
-              quantity: { increment: quantity },
+              quantity: { increment: baseQuantity },
+              // Update unitCost only if it's a restock of same batch?
+              // Usually IN is new batch. If same batch, maybe weighted avg again?
+              // For simplicity: keep existing unitCost if exists, or update if 0
             },
             create: {
               productId,
               warehouseId: toWarehouseId,
-              quantity: quantity,
-              batchNumber: DEFAULT_BATCH,
+              quantity: baseQuantity,
+              batchNumber: batchNumber,
+              unitCost: movementUnitCost,
+              locationId: null, // Default to General Warehouse Area
             },
           });
         } else if (type === "OUT") {
           if (!fromWarehouseId)
             throw new Error("Source warehouse required for OUT");
 
+          // FIFO Strategy or Specific Batch?
+          // For now, simple deduction from specific batch or oldest batch
+          // If batch not specified, we need to find stock!
+
+          let targetBatch = batchNumber;
+
+          if (targetBatch === "-") {
+            // Auto-find batch (FIFO logic: Find oldest batch with qty > 0)
+            const oldestStock = await tx.inventory.findFirst({
+              where: {
+                productId,
+                warehouseId: fromWarehouseId,
+                quantity: { gte: baseQuantity },
+              },
+              orderBy: { createdAt: "asc" },
+            });
+
+            if (!oldestStock)
+              throw new Error(
+                `Insufficient stock in warehouse ${fromWarehouseId} for product ${product.name}`
+              );
+            targetBatch = oldestStock.batchNumber || "-";
+          }
+
           const inventory = await tx.inventory.findUnique({
             where: {
               productId_warehouseId_batchNumber: {
                 productId,
                 warehouseId: fromWarehouseId,
-                batchNumber: DEFAULT_BATCH,
+                batchNumber: targetBatch,
               },
             },
           });
 
-          if (!inventory || inventory.quantity < quantity) {
+          if (!inventory || inventory.quantity < baseQuantity) {
             throw new Error(
               `Insufficient stock in warehouse ${fromWarehouseId}`
             );
@@ -121,99 +216,79 @@ export const createMovement = authorizedAction(
               productId_warehouseId_batchNumber: {
                 productId,
                 warehouseId: fromWarehouseId,
-                batchNumber: DEFAULT_BATCH,
+                batchNumber: targetBatch,
               },
             },
             data: {
-              quantity: { decrement: quantity },
+              quantity: { decrement: baseQuantity },
             },
           });
         } else if (type === "TRANSFER") {
+          // Similar logic to OUT + IN
+          // 1. Deduct Source
           if (!fromWarehouseId || !toWarehouseId)
-            throw new Error("Both warehouses required for TRANSFER");
+            throw new Error("Both warehouses required");
 
-          // Check source stock
-          const sourceInventory = await tx.inventory.findUnique({
+          // Find Source Batch (FIFO)
+          const sourceStock = await tx.inventory.findFirst({
             where: {
-              productId_warehouseId_batchNumber: {
-                productId,
-                warehouseId: fromWarehouseId,
-                batchNumber: DEFAULT_BATCH,
-              },
+              productId,
+              warehouseId: fromWarehouseId,
+              quantity: { gte: baseQuantity },
             },
+            orderBy: { createdAt: "asc" },
           });
 
-          if (!sourceInventory || sourceInventory.quantity < quantity) {
-            throw new Error(`Insufficient stock in source warehouse`);
-          }
+          if (!sourceStock) throw new Error("Insufficient source stock");
 
-          // Decrement Source
           await tx.inventory.update({
-            where: {
-              productId_warehouseId_batchNumber: {
-                productId,
-                warehouseId: fromWarehouseId,
-                batchNumber: DEFAULT_BATCH,
-              },
-            },
-            data: {
-              quantity: { decrement: quantity },
-            },
+            where: { id: sourceStock.id },
+            data: { quantity: { decrement: baseQuantity } },
           });
 
-          // Increment Destination
+          // 2. Add Destination (Keep same batch number & cost to maintain traceability)
           await tx.inventory.upsert({
             where: {
               productId_warehouseId_batchNumber: {
                 productId,
                 warehouseId: toWarehouseId,
-                batchNumber: DEFAULT_BATCH,
+                batchNumber: sourceStock.batchNumber || "-",
               },
             },
-            update: {
-              quantity: { increment: quantity },
-            },
+            update: { quantity: { increment: baseQuantity } },
             create: {
               productId,
               warehouseId: toWarehouseId,
-              quantity: quantity,
-              batchNumber: DEFAULT_BATCH,
+              quantity: baseQuantity,
+              batchNumber: sourceStock.batchNumber || "-",
+              unitCost: sourceStock.unitCost, // Carry over cost
             },
           });
         } else if (type === "ADJUSTMENT") {
-          if (!toWarehouseId)
-            throw new Error("Warehouse required for ADJUSTMENT");
+          // Adjustment logic...
+          if (!toWarehouseId) throw new Error("Warehouse required");
 
-          if (quantity < 0) {
-            const current = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId_batchNumber: {
-                  productId,
-                  warehouseId: toWarehouseId,
-                  batchNumber: DEFAULT_BATCH,
-                },
-              },
-            });
-            // Optional: prevent negative stock
-            // if (!current || current.quantity + quantity < 0) { ... }
-          }
+          // If batch provided use it, else default
+          const adjBatch =
+            batchNumber === "-" ? "ADJ-" + new Date().getTime() : batchNumber;
 
           await tx.inventory.upsert({
             where: {
               productId_warehouseId_batchNumber: {
                 productId,
                 warehouseId: toWarehouseId,
-                batchNumber: DEFAULT_BATCH,
+                batchNumber: adjBatch,
               },
             },
             update: {
-              quantity: { increment: quantity },
+              quantity: { increment: baseQuantity },
             },
             create: {
               productId,
               warehouseId: toWarehouseId,
-              quantity: quantity,
-              batchNumber: DEFAULT_BATCH,
+              quantity: baseQuantity,
+              batchNumber: adjBatch,
+              unitCost: movementUnitCost,
             },
           });
         }
