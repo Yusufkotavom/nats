@@ -9,7 +9,7 @@ import {
   Customer,
 } from "../types";
 import { Prisma } from "@prisma/client";
-import { authorizedAction } from "@/lib/auth/protected-action";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export async function getCustomers({
   page = 1,

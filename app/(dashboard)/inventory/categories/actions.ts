@@ -14,7 +14,7 @@ export async function getCategories() {
   });
 }
 
-import { authorizedAction } from "@/lib/auth/protected-action";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export const createCategory = authorizedAction(
   "categories.create",

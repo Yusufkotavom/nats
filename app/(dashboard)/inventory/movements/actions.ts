@@ -24,7 +24,7 @@ export async function getMovements() {
   }));
 }
 
-import { authorizedAction } from "@/lib/auth/protected-action";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export const createMovement = authorizedAction(
   "inventory_movements.create",

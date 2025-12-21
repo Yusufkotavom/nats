@@ -28,7 +28,7 @@ export async function getWarehouses() {
   }));
 }
 
-import { authorizedAction } from "@/lib/auth/protected-action";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export const createWarehouse = authorizedAction(
   "warehouses.create",

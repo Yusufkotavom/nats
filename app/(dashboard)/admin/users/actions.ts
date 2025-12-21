@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
-import { authorizedAction } from "@/lib/auth/protected-action";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 interface UserCreateData {
   name: string;

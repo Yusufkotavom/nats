@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
-import { authorizedAction } from "@/lib/auth/protected-action";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export const getPostingAccounts = authorizedAction("ledger.view", async () => {
   try {

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { authorizedAction } from "@/lib/auth/protected-action";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 interface RoleData {
   name: string;
@@ -17,9 +17,10 @@ export const createRole = authorizedAction(
     if (!data.name) {
       return { success: false, error: "Name is required" };
     }
-    if (!data.permissions || data.permissions.length === 0) {
-      return { success: false, error: "At least one permission is required" };
-    }
+    // Permissions are optional on creation now, can be added later
+    // if (!data.permissions || data.permissions.length === 0) {
+    //   return { success: false, error: "At least one permission is required" };
+    // }
 
     const isActive = data.isActive ?? true;
 
@@ -33,7 +34,9 @@ export const createRole = authorizedAction(
 
     await prisma.role.create({
       data: {
-        ...data,
+        name: data.name,
+        description: data.description,
+        permissions: data.permissions || [],
         isActive,
       },
     });
@@ -49,9 +52,10 @@ export const updateRole = authorizedAction(
     if (!data.name) {
       return { success: false, error: "Name is required" };
     }
-    if (!data.permissions || data.permissions.length === 0) {
-      return { success: false, error: "At least one permission is required" };
-    }
+    // Permissions check removed to allow updating just details
+    // if (!data.permissions || data.permissions.length === 0) {
+    //   return { success: false, error: "At least one permission is required" };
+    // }
 
     const isActive = data.isActive ?? true;
 
@@ -66,8 +70,25 @@ export const updateRole = authorizedAction(
     await prisma.role.update({
       where: { id },
       data: {
-        ...data,
+        name: data.name,
+        description: data.description,
+        permissions: data.permissions, // Optional update if provided
         isActive,
+      },
+    });
+
+    revalidatePath("/admin/roles");
+    return { success: true };
+  }
+);
+
+export const updateRolePermissions = authorizedAction(
+  "roles:update",
+  async (id: string, permissions: string[]) => {
+    await prisma.role.update({
+      where: { id },
+      data: {
+        permissions,
       },
     });
 

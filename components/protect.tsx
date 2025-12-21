@@ -1,7 +1,7 @@
 "use client";
 
-import { usePermission } from "@/lib/auth/use-permission";
-import { Permission } from "@/lib/auth/permissions";
+import { usePermission } from "@/lib/permissions/use-permission";
+import { Permission } from "@/lib/permissions/utils";
 
 interface ProtectProps {
   permission: Permission;

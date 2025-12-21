@@ -33,30 +33,15 @@ interface RoleDialogProps {
 export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!role;
-  const [permissions, setPermissions] = useState<string[]>([]);
-  const [newPermission, setNewPermission] = useState("");
   const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
     if (role) {
-      setPermissions(role.permissions);
       setIsActive(role.isActive);
     } else {
-      setPermissions([]);
       setIsActive(true);
     }
   }, [role, open]);
-
-  const handleAddPermission = () => {
-    if (newPermission.trim() && !permissions.includes(newPermission.trim())) {
-      setPermissions([...permissions, newPermission.trim()]);
-      setNewPermission("");
-    }
-  };
-
-  const handleRemovePermission = (perm: string) => {
-    setPermissions(permissions.filter((p) => p !== perm));
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,14 +55,14 @@ export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
         await updateRole(role.id, {
           name,
           description,
-          permissions,
+          permissions: role.permissions, // Keep existing permissions
           isActive,
         });
       } else {
         await createRole({
           name,
           description,
-          permissions,
+          permissions: [], // Initialize with no permissions
           isActive,
         });
       }
@@ -97,8 +82,8 @@ export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
           <DialogTitle>{isEditing ? "Edit Role" : "Add Role"}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Edit role details and permissions."
-              : "Create a new role with specific permissions."}
+              ? "Edit role details."
+              : "Create a new role."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -120,40 +105,6 @@ export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
               defaultValue={role?.description || ""}
               placeholder="Describe the role..."
             />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Permissions</Label>
-            <div className="flex gap-2">
-              <Input
-                value={newPermission}
-                onChange={(e) => setNewPermission(e.target.value)}
-                placeholder="e.g. accounts:create"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddPermission();
-                  }
-                }}
-              />
-              <Button type="button" variant="outline" onClick={handleAddPermission}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {permissions.map((perm) => (
-                <Badge key={perm} variant="secondary" className="gap-1 pr-1">
-                  {perm}
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePermission(perm)}
-                    className="hover:bg-destructive/20 rounded-full p-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
           </div>
 
           <div className="flex items-center space-x-2">

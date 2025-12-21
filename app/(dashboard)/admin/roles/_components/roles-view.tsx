@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Power, Ban } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, Ban, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RoleDialog } from "./role-dialog";
@@ -42,6 +42,7 @@ interface RolesViewProps {
 }
 
 export function RolesView({ roles }: RolesViewProps) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -55,6 +56,10 @@ export function RolesView({ roles }: RolesViewProps) {
   const handleEdit = (role: Role) => {
     setEditingRole(role);
     setDialogOpen(true);
+  };
+
+  const handlePermissions = (role: Role) => {
+    router.push(`/admin/roles/${role.id}`);
   };
 
   const handleDelete = async () => {
@@ -110,6 +115,14 @@ export function RolesView({ roles }: RolesViewProps) {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handlePermissions(role)}
+                        title="Manage Permissions"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleToggleStatus(role)}
                         title={role.isActive ? "Deactivate" : "Activate"}
                       >
@@ -126,14 +139,6 @@ export function RolesView({ roles }: RolesViewProps) {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(role.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </>
                   )}
                 </div>
@@ -142,13 +147,20 @@ export function RolesView({ roles }: RolesViewProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <h4 className="text-sm font-medium">Permissions</h4>
-                <div className="flex flex-wrap gap-2">
-                  {role.permissions.map((permission) => (
+                <h4 className="text-sm font-medium">
+                  Permissions ({role.permissions.length})
+                </h4>
+                <div className="flex flex-wrap gap-2 max-h-[100px] overflow-hidden relative">
+                  {role.permissions.slice(0, 10).map((permission) => (
                     <Badge key={permission} variant="secondary">
                       {permission}
                     </Badge>
                   ))}
+                  {role.permissions.length > 10 && (
+                    <Badge variant="outline">
+                      +{role.permissions.length - 10} more
+                    </Badge>
+                  )}
                 </div>
               </div>
             </CardContent>
