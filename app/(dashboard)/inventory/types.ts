@@ -9,10 +9,17 @@ export type ProductFormData = Omit<
       salesUnit: true;
     };
   }>,
-  "price" | "cost" | "createdAt" | "updatedAt"
+  | "price"
+  | "cost"
+  | "createdAt"
+  | "updatedAt"
+  | "purchaseConversionFactor"
+  | "salesConversionFactor"
 > & {
   price: number;
   cost: number;
+  purchaseConversionFactor: number;
+  salesConversionFactor: number;
   inventory?: {
     quantity: number;
   }[];

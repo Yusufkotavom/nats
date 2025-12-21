@@ -26,13 +26,13 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { deleteProduct } from "../actions";
-import { ProductDialog } from "./product-dialog";
 import { useState, useEffect } from "react";
 import { ProductFormData } from "../../types";
 import { Category, Unit } from "@/prisma/generated/prisma/browser";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Protect } from "@/components/protect";
+import Link from "next/link";
 
 interface ProductTableProps {
   products: ProductFormData[];
@@ -167,16 +167,11 @@ export function ProductTable({
                     </TableCell>
                     <TableCell className="flex gap-2">
                       <Protect permission="products.edit">
-                        <ProductDialog
-                          product={product}
-                          categories={categories}
-                          units={units}
-                          trigger={
-                            <Button variant="ghost" size="icon">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          }
-                        />
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/inventory/products/${product.id}/edit`}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
                       </Protect>
                       <Protect permission="products.delete">
                         <Button

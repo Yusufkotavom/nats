@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { ProductFormData, ProductInput } from "../types";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
 // Categories
 
@@ -83,7 +84,17 @@ export async function getProducts(
   };
 }
 
-import { authorizedAction } from "@/lib/permissions/protected-action";
+export async function getProduct(id: string) {
+  return await prisma.product.findUnique({
+    where: { id },
+    include: {
+      category: true,
+      baseUnit: true,
+      purchaseUnit: true,
+      salesUnit: true,
+    },
+  });
+}
 
 export const createProduct = authorizedAction(
   "products.create",
@@ -99,26 +110,15 @@ export const createProduct = authorizedAction(
           cost: Number(data.cost),
           minStock: data.minStock,
           isActive: data.isActive,
-          baseUnitId: data.baseUnitId || null,
-          purchaseUnitId: data.purchaseUnitId || null,
-          purchaseConversionFactor: data.purchaseConversionFactor
-            ? Number(data.purchaseConversionFactor)
-            : 1,
-          salesUnitId: data.salesUnitId || null,
-          salesConversionFactor: data.salesConversionFactor
-            ? Number(data.salesConversionFactor)
-            : 1,
+          baseUnitId: data.baseUnitId,
+          purchaseUnitId: data.purchaseUnitId,
+          purchaseConversionFactor: data.purchaseConversionFactor,
+          salesUnitId: data.salesUnitId,
+          salesConversionFactor: data.salesConversionFactor,
         },
       });
       revalidatePath("/inventory/products");
-      return {
-        success: true,
-        data: {
-          ...product,
-          price: Number(product.price),
-          cost: Number(product.cost),
-        },
-      };
+      return { success: true, data: product };
     } catch (error) {
       console.error("Failed to create product:", error);
       return { success: false, error: "Failed to create product" };
@@ -141,26 +141,15 @@ export const updateProduct = authorizedAction(
           cost: Number(data.cost),
           minStock: data.minStock,
           isActive: data.isActive,
-          baseUnitId: data.baseUnitId || null,
-          purchaseUnitId: data.purchaseUnitId || null,
-          purchaseConversionFactor: data.purchaseConversionFactor
-            ? Number(data.purchaseConversionFactor)
-            : 1,
-          salesUnitId: data.salesUnitId || null,
-          salesConversionFactor: data.salesConversionFactor
-            ? Number(data.salesConversionFactor)
-            : 1,
+          baseUnitId: data.baseUnitId,
+          purchaseUnitId: data.purchaseUnitId,
+          purchaseConversionFactor: data.purchaseConversionFactor,
+          salesUnitId: data.salesUnitId,
+          salesConversionFactor: data.salesConversionFactor,
         },
       });
       revalidatePath("/inventory/products");
-      return {
-        success: true,
-        data: {
-          ...product,
-          price: Number(product.price),
-          cost: Number(product.cost),
-        },
-      };
+      return { success: true, data: product };
     } catch (error) {
       console.error("Failed to update product:", error);
       return { success: false, error: "Failed to update product" };

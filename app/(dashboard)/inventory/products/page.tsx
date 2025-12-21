@@ -1,8 +1,10 @@
 import { getProducts, getCategories } from "./actions";
 import { getUnits } from "../uom/actions";
 import { ProductTable } from "./_components/product-table";
-import { ProductDialog } from "./_components/product-dialog";
 import { Protect } from "@/components/protect";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import Link from "next/link";
 
 export default async function Page({
   searchParams,
@@ -31,7 +33,11 @@ export default async function Page({
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Products</h2>
         <Protect permission="products.create">
-          <ProductDialog categories={categories} units={units} />
+          <Button asChild>
+            <Link href="/inventory/products/create">
+              <Plus className="mr-2 h-4 w-4" /> Create Product
+            </Link>
+          </Button>
         </Protect>
       </div>
       <ProductTable
@@ -39,6 +45,8 @@ export default async function Page({
           ...p,
           price: Number(p.price),
           cost: Number(p.cost),
+          purchaseConversionFactor: Number(p.purchaseConversionFactor),
+          salesConversionFactor: Number(p.salesConversionFactor),
         }))}
         categories={categories}
         units={units}
