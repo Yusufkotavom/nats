@@ -299,6 +299,157 @@ async function main() {
     }
   }
 
+  // Seed Warehouses
+  const warehouses = [
+    {
+      name: "Main Warehouse",
+      location: "New York",
+    },
+    {
+      name: "West Coast Hub",
+      location: "Los Angeles",
+    },
+  ];
+
+  for (const warehouse of warehouses) {
+    await prisma.warehouse.upsert({
+      where: { name: warehouse.name },
+      update: {},
+      create: {
+        name: warehouse.name,
+        location: warehouse.location,
+      },
+    });
+  }
+
+  // Seed Units
+  const units = [
+    { name: "Pieces", symbol: "PCS" },
+    { name: "Box", symbol: "BOX" },
+    { name: "Kilogram", symbol: "KG" },
+  ];
+
+  for (const unit of units) {
+    await prisma.unit.upsert({
+      where: { name: unit.name },
+      update: {},
+      create: {
+        name: unit.name,
+        symbol: unit.symbol,
+      },
+    });
+  }
+
+  // Seed Categories
+  const categories = [
+    { name: "Electronics", description: "Electronic devices and accessories" },
+    { name: "Furniture", description: "Office and home furniture" },
+    { name: "Office Supplies", description: "Paper, pens, and other supplies" },
+  ];
+
+  for (const category of categories) {
+    await prisma.category.upsert({
+      where: { name: category.name },
+      update: {},
+      create: {
+        name: category.name,
+        description: category.description,
+      },
+    });
+  }
+
+  // Helper to get ID
+  const getCategory = async (name: string) => prisma.category.findUnique({ where: { name } });
+  const getUnit = async (symbol: string) => prisma.unit.findUnique({ where: { symbol } });
+  const getWarehouse = async (name: string) => prisma.warehouse.findUnique({ where: { name } });
+
+  const catElectronics = await getCategory("Electronics");
+  const catFurniture = await getCategory("Furniture");
+  const catSupplies = await getCategory("Office Supplies");
+
+  const unitPcs = await getUnit("PCS");
+  const unitBox = await getUnit("BOX");
+
+  const mainWarehouse = await getWarehouse("Main Warehouse");
+
+  if (catElectronics && catFurniture && catSupplies && unitPcs && unitBox && mainWarehouse) {
+    // Seed Products
+    const products = [
+      {
+        sku: "ELEC-001",
+        name: "Pro Laptop 15",
+        description: "High performance laptop",
+        categoryId: catElectronics.id,
+        price: 1200,
+        cost: 800,
+        baseUnitId: unitPcs.id,
+        minStock: 10,
+      },
+      {
+        sku: "FURN-001",
+        name: "Ergo Chair",
+        description: "Ergonomic office chair",
+        categoryId: catFurniture.id,
+        price: 350,
+        cost: 150,
+        baseUnitId: unitPcs.id,
+        minStock: 5,
+      },
+      {
+        sku: "SUPP-001",
+        name: "A4 Paper Ream",
+        description: "Standard A4 paper, 500 sheets",
+        categoryId: catSupplies.id,
+        price: 5,
+        cost: 2.5,
+        baseUnitId: unitBox.id,
+        minStock: 50,
+      },
+    ];
+
+    for (const product of products) {
+      const p = await prisma.product.upsert({
+        where: { sku: product.sku },
+        update: {},
+        create: {
+          sku: product.sku,
+          name: product.name,
+          description: product.description,
+          categoryId: product.categoryId,
+          price: product.price,
+          cost: product.cost,
+          baseUnitId: product.baseUnitId,
+          minStock: product.minStock,
+        },
+      });
+
+      // Seed Inventory for this product in Main Warehouse
+      // Check if inventory exists
+      const inv = await prisma.inventory.findUnique({
+        where: {
+          productId_warehouseId_batchNumber: {
+            productId: p.id,
+            warehouseId: mainWarehouse.id,
+            batchNumber: "INITIAL",
+          },
+        },
+      });
+
+      if (!inv) {
+        await prisma.inventory.create({
+          data: {
+            productId: p.id,
+            warehouseId: mainWarehouse.id,
+            quantity: 100, // Initial stock
+            reorderPoint: product.minStock,
+            batchNumber: "INITIAL",
+            unitCost: product.cost,
+          },
+        });
+      }
+    }
+  }
+
   const getAccount = async (code: string) => {
     return prisma.account.findUnique({
       where: { code },
