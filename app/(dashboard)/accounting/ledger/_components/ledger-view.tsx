@@ -56,7 +56,7 @@ type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
       };
     };
   };
-}>;
+}> & { runningBalance: number };
 
 interface LedgerViewProps {
   accounts: Account[];
@@ -253,6 +253,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
                   <TableHead className="text-center rounded-tr-lg">
                     Status
                   </TableHead>
@@ -261,13 +262,13 @@ export function LedgerView({ accounts }: LedgerViewProps) {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : entries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       {selectedAccount?.id
                         ? "No transactions found."
                         : "Select an account to view transactions."}
@@ -294,6 +295,9 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                         {Number(entry.creditAmount) > 0
                           ? formatCurrency(Number(entry.creditAmount))
                           : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(entry.runningBalance)}
                       </TableCell>
                       <TableCell className="text-center">
                         <StatusBadge status={entry.journalEntry.status} />

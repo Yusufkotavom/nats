@@ -374,6 +374,25 @@ export async function postJournalEntry(id: string) {
     },
   });
 
+  // Recalculate running balances for affected accounts
+  // We need to do this AFTER status update so the query in recalculateAccountRunningBalances picks up this entry
+  const { recalculateAccountRunningBalances } = await import("../ledger/utils");
+
+  // Group lines by accountId to avoid duplicate calls if multiple lines affect same account (rare but possible)
+  const accountIds = Array.from(
+    new Set(existingEntry.lines.map((line) => line.accountId))
+  );
+
+  // We can run these in parallel
+  await Promise.all(
+    accountIds.map((accountId) =>
+      recalculateAccountRunningBalances(
+        accountId,
+        existingEntry.transactionDate
+      )
+    )
+  );
+
   revalidatePath("/accounting/journal-entries");
   revalidatePath(`/accounting/journal-entries/${id}`);
   return { success: true };

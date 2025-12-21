@@ -86,6 +86,7 @@ model JournalEntryLine {
   account        Account      @relation(fields: [accountId], references: [id])
   debitAmount    Decimal      @default(0)
   creditAmount   Decimal      @default(0)
+  runningBalance Decimal?
   description    String?
   lineNumber     Int
 
