@@ -36,6 +36,7 @@ export const createMovement = authorizedAction(
     quantity: number;
     uomType?: "base" | "purchase" | "sales";
     unitCost?: number; // Optional override cost, otherwise use default
+    locationId?: string; // For IN/TRANSFER/ADJUSTMENT
     reference?: string;
     notes?: string;
     batchNumber?: string;
@@ -164,7 +165,7 @@ export const createMovement = authorizedAction(
               quantity: baseQuantity,
               batchNumber: batchNumber,
               unitCost: movementUnitCost,
-              locationId: null, // Default to General Warehouse Area
+              locationId: data.locationId || null,
             },
           });
         } else if (type === "OUT") {
@@ -262,6 +263,7 @@ export const createMovement = authorizedAction(
               quantity: baseQuantity,
               batchNumber: sourceStock.batchNumber || "-",
               unitCost: sourceStock.unitCost, // Carry over cost
+              locationId: data.locationId || null,
             },
           });
         } else if (type === "ADJUSTMENT") {
@@ -289,6 +291,7 @@ export const createMovement = authorizedAction(
               quantity: baseQuantity,
               batchNumber: adjBatch,
               unitCost: movementUnitCost,
+              locationId: data.locationId || null,
             },
           });
         }

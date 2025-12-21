@@ -21,18 +21,24 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createMovement } from "../actions";
+import { getLocations } from "../../warehouses/[warehouseId]/locations/actions";
 import {
   MovementType,
   Product,
   Warehouse,
+  Unit,
+  Location,
 } from "@/prisma/generated/prisma/client";
 
 interface MovementDialogProps {
   products: (Omit<Product, "price" | "cost"> & {
     price: number;
     cost: number;
+    baseUnit?: Unit | null;
+    purchaseUnit?: Unit | null;
+    salesUnit?: Unit | null;
   })[];
   warehouses: Warehouse[];
 }
@@ -41,6 +47,22 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [type, setType] = useState<MovementType>("IN");
+  
+  // State for selections
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(""); // For To/From based on Type
+  const [locations, setLocations] = useState<Location[]>([]);
+  
+  const selectedProduct = products.find(p => p.id === selectedProductId);
+
+  // Fetch locations when warehouse changes
+  useEffect(() => {
+    if (selectedWarehouseId) {
+      getLocations(selectedWarehouseId).then(setLocations);
+    } else {
+      setLocations([]);
+    }
+  }, [selectedWarehouseId]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,6 +75,8 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
       fromWarehouseId: (formData.get("fromWarehouseId") as string) || undefined,
       toWarehouseId: (formData.get("toWarehouseId") as string) || undefined,
       quantity: Number(formData.get("quantity")),
+      uomType: formData.get("uomType") as "base" | "purchase" | "sales" | undefined,
+      locationId: (formData.get("locationId") as string) || undefined,
       reference: formData.get("reference") as string,
       notes: formData.get("notes") as string,
     };
@@ -61,6 +85,9 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
       const res = await createMovement(data);
       if (res.success) {
         setOpen(false);
+        // Reset form state if needed
+        setSelectedProductId("");
+        setSelectedWarehouseId("");
       } else {
         alert(res.error);
       }
@@ -79,7 +106,7 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
           <Plus className="mr-2 h-4 w-4" /> Record Movement
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Record Inventory Movement</DialogTitle>
           <DialogDescription>
@@ -96,7 +123,10 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
               <Select
                 name="type"
                 value={type}
-                onValueChange={(v) => setType(v as MovementType)}
+                onValueChange={(v) => {
+                    setType(v as MovementType);
+                    setSelectedWarehouseId(""); // Reset warehouse selection on type change
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
@@ -116,7 +146,12 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
               Product
             </Label>
             <div className="col-span-3">
-              <Select name="productId" required>
+              <Select 
+                name="productId" 
+                required 
+                value={selectedProductId}
+                onValueChange={setSelectedProductId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
@@ -137,7 +172,16 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 From
               </Label>
               <div className="col-span-3">
-                <Select name="fromWarehouseId" required>
+                <Select 
+                    name="fromWarehouseId" 
+                    required
+                    onValueChange={(val) => {
+                        // Only set if this is the relevant warehouse for location picking?
+                        // Actually for OUT, we pick from specific location? 
+                        // Current logic in action doesn't support picking from specific location ID yet for OUT (it uses FIFO/Batch).
+                        // So we only need location selection for IN/ADJUSTMENT destination.
+                    }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select source warehouse" />
                   </SelectTrigger>
@@ -159,7 +203,12 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 {type === "ADJUSTMENT" ? "Warehouse" : "To"}
               </Label>
               <div className="col-span-3">
-                <Select name="toWarehouseId" required>
+                <Select 
+                    name="toWarehouseId" 
+                    required
+                    value={selectedWarehouseId}
+                    onValueChange={setSelectedWarehouseId}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select destination warehouse" />
                   </SelectTrigger>
@@ -175,17 +224,63 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
             </div>
           )}
 
+          {/* Location Selection (Only if Warehouse Selected and Locations exist) */}
+          {selectedWarehouseId && locations.length > 0 && (
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="locationId" className="text-right">
+                  Location
+                </Label>
+                <div className="col-span-3">
+                  <Select name="locationId">
+                    <SelectTrigger>
+                      <SelectValue placeholder="General Area (Default)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">General Area</SelectItem>
+                      {locations.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>
+                          {loc.code} - {loc.name} ({loc.type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+             </div>
+          )}
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="quantity" className="text-right">
               Quantity
             </Label>
-            <Input
-              id="quantity"
-              name="quantity"
-              type="number"
-              className="col-span-3"
-              required
-            />
+            <div className="col-span-3 flex gap-2">
+                <Input
+                  id="quantity"
+                  name="quantity"
+                  type="number"
+                  className="flex-1"
+                  required
+                />
+                <Select name="uomType" defaultValue="base">
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="base">
+                            {selectedProduct?.baseUnit?.symbol || "Base Unit"}
+                        </SelectItem>
+                        {selectedProduct?.purchaseUnit && (
+                            <SelectItem value="purchase">
+                                {selectedProduct.purchaseUnit.symbol} (Pur)
+                            </SelectItem>
+                        )}
+                        {selectedProduct?.salesUnit && (
+                            <SelectItem value="sales">
+                                {selectedProduct.salesUnit.symbol} (Sal)
+                            </SelectItem>
+                        )}
+                    </SelectContent>
+                </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">

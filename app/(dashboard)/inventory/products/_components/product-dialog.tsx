@@ -22,25 +22,26 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil } from "lucide-react";
 import { useState } from "react";
-import { createProduct, updateProduct, createCategory } from "../actions";
+import { createProduct, updateProduct } from "../actions";
 import { Switch } from "@/components/ui/switch";
 import { ProductFormData } from "../../types";
-import { Category } from "@/prisma/generated/prisma/browser";
+import { Category, Unit } from "@/prisma/generated/prisma/browser";
 
 interface ProductDialogProps {
   product?: ProductFormData;
   categories: Category[];
+  units: Unit[];
   trigger?: React.ReactNode;
 }
 
 export function ProductDialog({
   product,
   categories,
+  units,
   trigger,
 }: ProductDialogProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
 
   const isEditing = !!product;
 
@@ -49,17 +50,44 @@ export function ProductDialog({
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
+
+    // Validation
+    const purchaseFactor = Number(formData.get("purchaseConversionFactor"));
+    const salesFactor = Number(formData.get("salesConversionFactor"));
+    const baseUnitId = formData.get("baseUnitId");
+
+    if (!baseUnitId) {
+      alert("Base Unit is required");
+      setIsLoading(false);
+      return;
+    }
+
+    if (purchaseFactor < 0) {
+      alert("Purchase conversion factor must be positive");
+      setIsLoading(false);
+      return;
+    }
+
+    if (salesFactor < 0) {
+      alert("Sales conversion factor must be positive");
+      setIsLoading(false);
+      return;
+    }
+
     const data = {
-      id: product?.id || "",
       sku: formData.get("sku") as string,
       name: formData.get("name") as string,
       description: formData.get("description") as string,
       categoryId: (formData.get("categoryId") as string) || null,
-      category: null,
       price: Number(formData.get("price")),
       cost: Number(formData.get("cost")),
       minStock: Number(formData.get("minStock")),
       isActive: formData.get("isActive") === "on",
+      baseUnitId: (formData.get("baseUnitId") as string) || null,
+      purchaseUnitId: (formData.get("purchaseUnitId") as string) || null,
+      purchaseConversionFactor: purchaseFactor || 1,
+      salesUnitId: (formData.get("salesUnitId") as string) || null,
+      salesConversionFactor: salesFactor || 1,
     };
 
     try {
@@ -71,15 +99,10 @@ export function ProductDialog({
       setOpen(false);
     } catch (error) {
       console.error(error);
+      alert("Failed to save product");
     } finally {
       setIsLoading(false);
     }
-  }
-
-  async function handleCreateCategory() {
-    if (!newCategoryName) return;
-    await createCategory({ name: newCategoryName });
-    setNewCategoryName("");
   }
 
   return (
@@ -93,7 +116,7 @@ export function ProductDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Product" : "Add Product"}
@@ -149,10 +172,113 @@ export function ProductDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {/* Simple inline category creation could be here or separate dialog */}
             </div>
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="baseUnitId" className="text-right">
+              Base Unit
+            </Label>
+            <div className="col-span-3">
+              <Select
+                name="baseUnitId"
+                defaultValue={product?.baseUnitId || undefined}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select base unit (e.g. Pcs)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {units.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} ({u.symbol})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="col-span-4 border-t my-2 pt-2">
+            <h4 className="mb-2 font-medium text-sm">
+              Purchase Unit Conversion
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block text-xs">Purchase Unit</Label>
+                <Select
+                  name="purchaseUnitId"
+                  defaultValue={product?.purchaseUnitId || undefined}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit (e.g. Box)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-2 block text-xs">
+                  Conversion Factor (1 Pur = ? Base)
+                </Label>
+                <Input
+                  name="purchaseConversionFactor"
+                  type="number"
+                  step="0.0001"
+                  defaultValue={
+                    product?.purchaseConversionFactor
+                      ? Number(product.purchaseConversionFactor)
+                      : 1
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-4 border-t my-2 pt-2">
+            <h4 className="mb-2 font-medium text-sm">Sales Unit Conversion</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-2 block text-xs">Sales Unit</Label>
+                <Select
+                  name="salesUnitId"
+                  defaultValue={product?.salesUnitId || undefined}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit (e.g. Pcs)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-2 block text-xs">
+                  Conversion Factor (1 Sale = ? Base)
+                </Label>
+                <Input
+                  name="salesConversionFactor"
+                  type="number"
+                  step="0.0001"
+                  defaultValue={
+                    product?.salesConversionFactor
+                      ? Number(product.salesConversionFactor)
+                      : 1
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4 border-t pt-4">
             <Label htmlFor="price" className="text-right">
               Price
             </Label>
@@ -167,20 +293,6 @@ export function ProductDialog({
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="price" className="text-right">
-              Min. Stock
-            </Label>
-            <Input
-              id="minStock"
-              name="minStock"
-              type="number"
-              step="0.01"
-              defaultValue={product?.minStock ? Number(product.minStock) : 0}
-              className="col-span-3"
-              required
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="cost" className="text-right">
               Cost
             </Label>
@@ -190,6 +302,20 @@ export function ProductDialog({
               type="number"
               step="0.01"
               defaultValue={product?.cost ? Number(product.cost) : 0}
+              className="col-span-3"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="price" className="text-right">
+              Min. Stock
+            </Label>
+            <Input
+              id="minStock"
+              name="minStock"
+              type="number"
+              step="0.01"
+              defaultValue={product?.minStock ? Number(product.minStock) : 0}
               className="col-span-3"
               required
             />

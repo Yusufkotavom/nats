@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
-import { ProductFormData } from "../types";
+import { ProductFormData, ProductInput } from "../types";
 
 // Categories
 
@@ -60,6 +60,9 @@ export async function getProducts(
       where,
       include: {
         category: true,
+        baseUnit: true,
+        purchaseUnit: true,
+        salesUnit: true,
         inventory: {
           include: {
             warehouse: true,
@@ -84,7 +87,7 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export const createProduct = authorizedAction(
   "products.create",
-  async (data: ProductFormData) => {
+  async (data: ProductInput) => {
     try {
       const product = await prisma.product.create({
         data: {
@@ -96,6 +99,15 @@ export const createProduct = authorizedAction(
           cost: Number(data.cost),
           minStock: data.minStock,
           isActive: data.isActive,
+          baseUnitId: data.baseUnitId || null,
+          purchaseUnitId: data.purchaseUnitId || null,
+          purchaseConversionFactor: data.purchaseConversionFactor
+            ? Number(data.purchaseConversionFactor)
+            : 1,
+          salesUnitId: data.salesUnitId || null,
+          salesConversionFactor: data.salesConversionFactor
+            ? Number(data.salesConversionFactor)
+            : 1,
         },
       });
       revalidatePath("/inventory/products");
@@ -116,7 +128,7 @@ export const createProduct = authorizedAction(
 
 export const updateProduct = authorizedAction(
   "products.edit",
-  async (id: string, data: ProductFormData) => {
+  async (id: string, data: ProductInput) => {
     try {
       const product = await prisma.product.update({
         where: { id },
@@ -129,6 +141,15 @@ export const updateProduct = authorizedAction(
           cost: Number(data.cost),
           minStock: data.minStock,
           isActive: data.isActive,
+          baseUnitId: data.baseUnitId || null,
+          purchaseUnitId: data.purchaseUnitId || null,
+          purchaseConversionFactor: data.purchaseConversionFactor
+            ? Number(data.purchaseConversionFactor)
+            : 1,
+          salesUnitId: data.salesUnitId || null,
+          salesConversionFactor: data.salesConversionFactor
+            ? Number(data.salesConversionFactor)
+            : 1,
         },
       });
       revalidatePath("/inventory/products");

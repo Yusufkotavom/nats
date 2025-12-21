@@ -29,7 +29,7 @@ import { deleteProduct } from "../actions";
 import { ProductDialog } from "./product-dialog";
 import { useState, useEffect } from "react";
 import { ProductFormData } from "../../types";
-import { Category } from "@/prisma/generated/prisma/browser";
+import { Category, Unit } from "@/prisma/generated/prisma/browser";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Protect } from "@/components/protect";
@@ -37,12 +37,14 @@ import { Protect } from "@/components/protect";
 interface ProductTableProps {
   products: ProductFormData[];
   categories: Category[];
+  units: Unit[];
   totalPages: number;
 }
 
 export function ProductTable({
   products,
   categories,
+  units,
   totalPages,
 }: ProductTableProps) {
   const searchParams = useSearchParams();
@@ -160,12 +162,15 @@ export function ProductTable({
                     <TableCell>{Number(product.price).toFixed(2)}</TableCell>
                     <TableCell>{Number(product.cost).toFixed(2)}</TableCell>
                     <TableCell>{product.minStock}</TableCell>
-                    <TableCell>{totalStock}</TableCell>
+                    <TableCell>
+                      {totalStock} {product.baseUnit?.symbol}
+                    </TableCell>
                     <TableCell className="flex gap-2">
                       <Protect permission="products.edit">
                         <ProductDialog
                           product={product}
                           categories={categories}
+                          units={units}
                           trigger={
                             <Button variant="ghost" size="icon">
                               <Pencil className="h-4 w-4" />

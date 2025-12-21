@@ -102,6 +102,10 @@ const data = {
           title: "Movements",
           url: "/inventory/movements",
         },
+        {
+          title: "Units (UOM)",
+          url: "/inventory/uom",
+        },
       ],
     },
     {
