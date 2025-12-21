@@ -19,6 +19,8 @@ import {
   Building,
   ShoppingCart,
   Rocket,
+  UsersIcon,
+  Settings,
 } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -48,21 +50,6 @@ const data = {
     },
   ],
   navMain: [
-    {
-      title: "Stakeholders",
-      url: "#",
-      icon: Frame,
-      items: [
-        {
-          title: "Customers",
-          url: "/general/customers",
-        },
-        {
-          title: "Vendors",
-          url: "/general/vendors",
-        },
-      ],
-    },
     {
       title: "Accounting",
       url: "#",
@@ -172,9 +159,24 @@ const data = {
       ],
     },
     {
+      title: "Stakeholders",
+      url: "#",
+      icon: UsersIcon,
+      items: [
+        {
+          title: "Customers",
+          url: "/general/customers",
+        },
+        {
+          title: "Vendors",
+          url: "/general/vendors",
+        },
+      ],
+    },
+    {
       title: "Administration",
       url: "#",
-      icon: Users,
+      icon: Settings,
       items: [
         {
           title: "User Management",
