@@ -193,14 +193,7 @@ const data = {
         },
         {
           title: "File Manager",
-          url: "#",
-          icon: FileIcon,
-          items: [
-            {
-              title: "File Manager",
-              url: "/general/files",
-            },
-          ],
+          url: "/general/files",
         },
       ],
     },

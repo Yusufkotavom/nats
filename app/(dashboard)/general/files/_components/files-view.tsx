@@ -28,7 +28,7 @@ export function FilesView({ files }: FilesViewProps) {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Files</h2>
+        <h2 className="text-lg font-bold tracking-tight">Files</h2>
         <div className="flex items-center space-x-2">
           <Button onClick={() => setOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Upload File

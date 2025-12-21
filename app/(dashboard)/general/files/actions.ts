@@ -12,9 +12,15 @@ export async function uploadFile(formData: FormData) {
   }
 
   const file = formData.get("file") as File;
-  
+
   if (!file) {
     return { error: "No file provided" };
+  }
+
+  const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || "5242880"); // Default 5MB
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeInMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(2);
+    return { error: `File size exceeds the limit of ${sizeInMB}MB` };
   }
 
   try {
@@ -70,15 +76,15 @@ export async function deleteFile(id: string) {
 export async function getFiles() {
   const session = await getSession();
   if (!session) return [];
-  
+
   return await prisma.file.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-        uploadedBy: {
-            select: {
-                name: true
-            }
-        }
-    }
+      uploadedBy: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 }
