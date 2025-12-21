@@ -86,7 +86,7 @@ export function RolesView({ roles }: RolesViewProps) {
   return (
     <>
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">Role Definitions</h2>
+        <h2 className="text-lg font-bold tracking-tight">Role Definitions</h2>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
           Add Role

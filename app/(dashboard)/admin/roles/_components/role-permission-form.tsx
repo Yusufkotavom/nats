@@ -94,17 +94,10 @@ export function RolePermissionForm({ role }: RolePermissionFormProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-lg font-bold tracking-tight">
               Manage Permissions
             </h2>
-            <p className="text-muted-foreground">
-              Configure access control for role:{" "}
-              <span className="font-medium text-foreground">{role.name}</span>
-            </p>
           </div>
         </div>
         <div className="flex gap-2">
