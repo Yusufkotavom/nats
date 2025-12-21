@@ -131,6 +131,18 @@ model Vendor {
   updatedAt DateTime @updatedAt
 }
 
+model Unit {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  symbol    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productsBase     Product[] @relation("BaseUnit")
+  productsPurchase Product[] @relation("PurchaseUnit")
+  productsSales    Product[] @relation("SalesUnit")
+}
+
 // Inventory Management System
 
 model Category {
@@ -143,20 +155,34 @@ model Category {
 }
 
 model Product {
-  id          String              @id @default(cuid())
-  sku         String              @unique
+  id          String    @id @default(cuid())
+  sku         String    @unique
   name        String
   description String?
   categoryId  String?
-  category    Category?           @relation(fields: [categoryId], references: [id])
-  price       Decimal             @default(0)
-  cost        Decimal             @default(0)
-  minStock    Int                 @default(0)
-  isActive    Boolean             @default(true)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  inventory   Inventory[]
-  movements   InventoryMovement[]
+  category    Category? @relation(fields: [categoryId], references: [id])
+  price       Decimal   @default(0)
+  cost        Decimal   @default(0)
+  averageCost Decimal   @default(0) // Valuation: Moving Average Cost
+  minStock    Int       @default(0)
+
+  // UOM Configuration
+  baseUnitId String?
+  baseUnit   Unit?   @relation("BaseUnit", fields: [baseUnitId], references: [id])
+
+  purchaseUnitId           String?
+  purchaseUnit             Unit?   @relation("PurchaseUnit", fields: [purchaseUnitId], references: [id])
+  purchaseConversionFactor Decimal @default(1)
+
+  salesUnitId           String?
+  salesUnit             Unit?   @relation("SalesUnit", fields: [salesUnitId], references: [id])
+  salesConversionFactor Decimal @default(1)
+
+  isActive  Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  inventory Inventory[]
+  movements InventoryMovement[]
 
   @@index([categoryId])
   @@index([sku])
@@ -169,27 +195,67 @@ model Warehouse {
   inventory     Inventory[]
   fromMovements InventoryMovement[] @relation("FromWarehouse")
   toMovements   InventoryMovement[] @relation("ToWarehouse")
+  locations     Location[]
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 }
 
+model Location {
+  id          String       @id @default(cuid())
+  name        String
+  code        String
+  warehouseId String
+  warehouse   Warehouse    @relation(fields: [warehouseId], references: [id])
+  type        LocationType @default(STORAGE)
+  inventory   Inventory[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([warehouseId, code])
+}
+
+enum LocationType {
+  STORAGE
+  RECEIVING
+  SHIPPING
+  RETURN
+  QUARANTINE
+  PICKING
+}
+
 model Inventory {
-  id           String    @id @default(cuid())
-  productId    String
-  product      Product   @relation(fields: [productId], references: [id])
-  warehouseId  String
-  warehouse    Warehouse @relation(fields: [warehouseId], references: [id])
-  quantity     Int       @default(0)
+  id          String    @id @default(cuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  // Storage Hierarchy
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+
+  // Stock Levels
+  quantity          Int @default(0) // Physical On-Hand
+  quantityAllocated Int @default(0) // Soft Reserved (Committed to Orders)
+  quantityReserved  Int @default(0) // Hard Reserved (e.g. Quarantine)
+
+  // Valuation Layer (Snapshot for FIFO/Specific ID)
+  unitCost Decimal @default(0)
+
   reorderPoint Int       @default(10)
-  location     String? // Shelf/Bin location
+  // location     String? // Deprecated in favor of locationId, kept for migration
   batchNumber  String?
   expiryDate   DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Updated constraint: If location is used, we need to be careful.
+  // Ideally: @@unique([productId, locationId, batchNumber])
+  // But for backward compatibility with existing "Warehouse Level" logic:
   @@unique([productId, warehouseId, batchNumber])
   @@index([productId])
   @@index([warehouseId])
+  @@index([locationId])
 }
 
 model InventoryMovement {
