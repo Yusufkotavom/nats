@@ -216,6 +216,7 @@ export function AppSidebar({
     name: string;
     email: string;
     avatar: string;
+    role: string;
   };
 }) {
   return (
