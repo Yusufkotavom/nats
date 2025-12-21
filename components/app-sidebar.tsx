@@ -57,6 +57,10 @@ const data = {
       icon: Scale,
       items: [
         {
+          title: "Dashboard",
+          url: "/accounting/dashboard",
+        },
+        {
           title: "Chart of Accounts",
           url: "/accounting/accounts",
         },
