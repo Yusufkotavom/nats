@@ -71,6 +71,7 @@ model JournalEntry {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   lines           JournalEntryLine[]
+  attachments     File[]
 
   @@index([transactionDate])
   @@index([status])
@@ -296,15 +297,17 @@ enum MovementStatus {
 }
 
 model File {
-  id           String   @id @default(cuid())
-  name         String
-  url          String
-  mimeType     String
-  size         Int
-  uploadedById String?
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String        @id @default(cuid())
+  name           String
+  url            String
+  mimeType       String
+  size           Int
+  uploadedById   String?
+  uploadedBy     User?         @relation(fields: [uploadedById], references: [id])
+  journalEntryId String?
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([uploadedById])
 }

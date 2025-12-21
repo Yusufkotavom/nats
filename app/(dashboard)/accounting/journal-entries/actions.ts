@@ -54,6 +54,7 @@ export const getJournalEntries = authorizedAction(
           user: {
             select: { name: true, email: true },
           },
+          attachments: true,
         },
         skip,
         take: pageSize,
@@ -99,6 +100,7 @@ export const getJournalEntry = authorizedAction(
         user: {
           select: { name: true, email: true },
         },
+        attachments: true,
       },
     });
     if (!entry) return { success: false, error: "Journal entry not found" };
@@ -125,6 +127,7 @@ export type CreateJournalEntryData = {
     creditAmount: number;
     description?: string;
   }[];
+  attachments?: { id: string; name: string; url: string }[];
 };
 
 export const createJournalEntry = authorizedAction(
@@ -187,6 +190,11 @@ export const createJournalEntry = authorizedAction(
               lineNumber: index + 1,
             })),
           },
+          attachments: data.attachments?.length
+            ? {
+                connect: data.attachments.map((a) => ({ id: a.id })),
+              }
+            : undefined,
         },
       });
 
@@ -207,6 +215,7 @@ export const createJournalEntry = authorizedAction(
           user: {
             select: { name: true, email: true },
           },
+          attachments: true,
         },
       });
 
@@ -282,6 +291,9 @@ export async function updateJournalEntry(
               description: line.description,
               lineNumber: index + 1,
             })),
+          },
+          attachments: {
+            set: data.attachments?.map((a) => ({ id: a.id })) || [],
           },
         },
       });

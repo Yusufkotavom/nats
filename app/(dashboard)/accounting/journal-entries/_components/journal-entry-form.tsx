@@ -21,7 +21,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Plus, Trash2, GripVertical, Save, ArrowLeft } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  Save,
+  ArrowLeft,
+  Paperclip,
+  X,
+  Loader2,
+  FileIcon,
+} from "lucide-react";
 import { CreateJournalEntryData } from "../actions";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -42,6 +52,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Account } from "@/prisma/generated/prisma/browser";
+import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -144,6 +155,10 @@ export function JournalEntryForm({
       },
     ]
   );
+  const [attachments, setAttachments] = useState<
+    { id: string; name: string; url: string }[]
+  >(initialData?.attachments || []);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -213,6 +228,7 @@ export function JournalEntryForm({
         creditAmount: parseFloat(l.creditAmount) || 0,
         description: l.description,
       })),
+      attachments,
     });
   };
 
@@ -249,6 +265,36 @@ export function JournalEntryForm({
     const newLines = [...lines];
     newLines.splice(index, 1);
     setLines(newLines);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const result = await uploadFile(formData);
+      if (result.success && result.file) {
+        setAttachments([...attachments, result.file]);
+      } else {
+        alert(result.error || "Failed to upload file");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to upload file");
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    const newAttachments = [...attachments];
+    newAttachments.splice(index, 1);
+    setAttachments(newAttachments);
   };
 
   // Initialize account search state is handled in useState initializer now
@@ -400,9 +446,67 @@ export function JournalEntryForm({
           </Table>
         </DndContext>
       </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <input
+              type="file"
+              id="file-upload"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => document.getElementById("file-upload")?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+              ) : (
+                <Paperclip className="mr-2 h-3 w-3" />
+              )}
+              {isUploading ? "Uploading..." : "Attach File"}
+            </Button>
+          </div>
+        </div>
+
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((file, index) => (
+              <div
+                key={file.id}
+                className="flex items-center gap-2 rounded-md border bg-muted px-3 py-1 text-sm"
+              >
+                <a
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline flex gap-1 items-center"
+                >
+                  <FileIcon className="w-4 h-4" />
+                  {file.name}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(index)}
+                  className="cursor-pointer text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {error && <div className="text-red-600 text-sm">{error}</div>}
 
-      <div className="flex justify-between">
+      <div className="flex justify-between border-t pt-4">
         <div className="flex items-start">
           <Button type="button" variant="outline" onClick={addLine}>
             <Plus className="mr-2 h-4 w-4" /> Add Line

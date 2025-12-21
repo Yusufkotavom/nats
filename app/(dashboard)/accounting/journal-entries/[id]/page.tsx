@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, Paperclip } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
 
@@ -117,6 +117,30 @@ export default async function JournalEntryDetailsPage({
               </TableBody>
             </Table>
           </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-4">
+            Attachments
+          </h3>
+          {entry.attachments && entry.attachments.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {entry.attachments.map((file) => (
+                <a
+                  key={file.id}
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm hover:bg-muted/80"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  {file.name}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No attachments</p>
+          )}
         </div>
 
         <div className="text-sm text-muted-foreground">

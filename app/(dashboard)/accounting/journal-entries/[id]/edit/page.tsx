@@ -49,6 +49,12 @@ export default function EditJournalEntryPage({
             creditAmount: Number(line.creditAmount),
             description: line.description || undefined,
           })),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          attachments: entryRes.data.attachments?.map((file: any) => ({
+            id: file.id,
+            name: file.name,
+            url: file.url,
+          })),
         });
       }
       if (Array.isArray(accountsData)) {
