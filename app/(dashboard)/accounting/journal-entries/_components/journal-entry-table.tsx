@@ -20,6 +20,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -32,6 +42,7 @@ import {
   Pencil,
   Trash2,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -56,6 +67,9 @@ export function JournalEntryTable() {
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [entryToDelete, setEntryToDelete] =
+    useState<JournalEntryWithDetails | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchEntries = useCallback(async () => {
     const res = await getJournalEntries(
@@ -80,17 +94,24 @@ export function JournalEntryTable() {
     return () => clearTimeout(timer);
   }, [fetchEntries]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this journal entry?")) return;
+  const confirmDelete = async () => {
+    if (!entryToDelete) return;
+    setIsDeleting(true);
 
     startTransition(async () => {
-      const res = await deleteJournalEntry(id);
+      const res = await deleteJournalEntry(entryToDelete.id);
       if (res.success) {
         fetchEntries();
+        setEntryToDelete(null);
       } else {
         alert(res.error);
       }
+      setIsDeleting(false);
     });
+  };
+
+  const handleDelete = (entry: JournalEntryWithDetails) => {
+    setEntryToDelete(entry);
   };
 
   const handlePost = async (id: string) => {
@@ -271,7 +292,7 @@ export function JournalEntryTable() {
                               <Protect permission="journal_entries.delete">
                                 <DropdownMenuItem
                                   className="text-red-600 focus:text-red-600"
-                                  onClick={() => handleDelete(entry.id)}
+                                  onClick={() => handleDelete(entry)}
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" /> Delete
                                 </DropdownMenuItem>
@@ -288,6 +309,40 @@ export function JournalEntryTable() {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog
+        open={!!entryToDelete}
+        onOpenChange={(open) => !open && !isDeleting && setEntryToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              journal entry
+              <span className="font-medium text-foreground">
+                {" "}
+                #{entryToDelete?.entryNumber}
+              </span>
+              .
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
