@@ -16,10 +16,14 @@ export async function getMovements() {
 
   return movements.map((movement) => ({
     ...movement,
+    unitCost: Number(movement.unitCost),
     product: {
       ...movement.product,
       price: Number(movement.product.price),
       cost: Number(movement.product.cost),
+      averageCost: Number(movement.product.averageCost),
+      purchaseConversionFactor: Number(movement.product.purchaseConversionFactor),
+      salesConversionFactor: Number(movement.product.salesConversionFactor),
     },
   }));
 }

@@ -78,14 +78,25 @@ export async function getProducts(
   ]);
 
   return {
-    products,
+    products: products.map((p) => ({
+      ...p,
+      price: Number(p.price),
+      cost: Number(p.cost),
+      averageCost: Number(p.averageCost),
+      purchaseConversionFactor: Number(p.purchaseConversionFactor),
+      salesConversionFactor: Number(p.salesConversionFactor),
+      inventory: p.inventory.map((i) => ({
+        ...i,
+        unitCost: Number(i.unitCost),
+      })),
+    })),
     total,
     totalPages: Math.ceil(total / limit),
   };
 }
 
 export async function getProduct(id: string) {
-  return await prisma.product.findUnique({
+  const product = await prisma.product.findUnique({
     where: { id },
     include: {
       category: true,
@@ -94,6 +105,17 @@ export async function getProduct(id: string) {
       salesUnit: true,
     },
   });
+
+  if (!product) return null;
+
+  return {
+    ...product,
+    price: Number(product.price),
+    cost: Number(product.cost),
+    averageCost: Number(product.averageCost),
+    purchaseConversionFactor: Number(product.purchaseConversionFactor),
+    salesConversionFactor: Number(product.salesConversionFactor),
+  };
 }
 
 export const createProduct = authorizedAction(
@@ -118,7 +140,17 @@ export const createProduct = authorizedAction(
         },
       });
       revalidatePath("/inventory/products");
-      return { success: true, data: product };
+      return {
+        success: true,
+        data: {
+          ...product,
+          price: Number(product.price),
+          cost: Number(product.cost),
+          averageCost: Number(product.averageCost),
+          purchaseConversionFactor: Number(product.purchaseConversionFactor),
+          salesConversionFactor: Number(product.salesConversionFactor),
+        },
+      };
     } catch (error) {
       console.error("Failed to create product:", error);
       return { success: false, error: "Failed to create product" };
@@ -149,8 +181,19 @@ export const updateProduct = authorizedAction(
         },
       });
       revalidatePath("/inventory/products");
-      return { success: true, data: product };
+      return {
+        success: true,
+        data: {
+          ...product,
+          price: Number(product.price),
+          cost: Number(product.cost),
+          averageCost: Number(product.averageCost),
+          purchaseConversionFactor: Number(product.purchaseConversionFactor),
+          salesConversionFactor: Number(product.salesConversionFactor),
+        },
+      };
     } catch (error) {
+
       console.error("Failed to update product:", error);
       return { success: false, error: "Failed to update product" };
     }
