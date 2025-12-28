@@ -155,7 +155,7 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                   name="categoryId"
                   defaultValue={product?.categoryId || undefined}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,7 +222,7 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                     name="baseUnitId"
                     defaultValue={product?.baseUnitId || undefined}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select base unit" />
                     </SelectTrigger>
                     <SelectContent>
@@ -243,7 +243,7 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                     name="purchaseUnitId"
                     defaultValue={product?.purchaseUnitId || undefined}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Same as Base Unit" />
                     </SelectTrigger>
                     <SelectContent>
@@ -258,6 +258,9 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                 <div className="grid gap-2">
                   <Label htmlFor="purchaseConversionFactor">
                     Purchase Conversion Factor
+                    <span className="text-xs text-muted-foreground">
+                      (1 Purchase Unit = X Base Units)
+                    </span>
                   </Label>
                   <Input
                     id="purchaseConversionFactor"
@@ -269,9 +272,6 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                       product?.purchaseConversionFactor?.toString() || "1"
                     }
                   />
-                  <p className="text-xs text-muted-foreground">
-                    1 Purchase Unit = X Base Units
-                  </p>
                 </div>
               </div>
 
@@ -282,7 +282,7 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                     name="salesUnitId"
                     defaultValue={product?.salesUnitId || undefined}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Same as Base Unit" />
                     </SelectTrigger>
                     <SelectContent>
@@ -297,6 +297,9 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                 <div className="grid gap-2">
                   <Label htmlFor="salesConversionFactor">
                     Sales Conversion Factor
+                    <span className="text-xs text-muted-foreground">
+                      (1 Sales Unit = X Base Units)
+                    </span>
                   </Label>
                   <Input
                     id="salesConversionFactor"
@@ -308,9 +311,6 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
                       product?.salesConversionFactor?.toString() || "1"
                     }
                   />
-                  <p className="text-xs text-muted-foreground">
-                    1 Sales Unit = X Base Units
-                  </p>
                 </div>
               </div>
             </div>
