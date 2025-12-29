@@ -125,7 +125,7 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
                 value={scope}
                 onValueChange={(v: PricingScope) => setScope(v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -139,7 +139,7 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
               <div className="space-y-2">
                 <Label>Category</Label>
                 <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -161,7 +161,7 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
                 value={action}
                 onValueChange={(v: PricingAction) => setAction(v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

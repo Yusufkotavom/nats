@@ -22,8 +22,10 @@ import {
 import { Search, Filter, Save, Loader2, Check } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Category } from "@/prisma/generated/prisma/browser";
+import { Discount } from "@/prisma/generated/prisma/client";
 import { updateSinglePrice } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { DiscountManager } from "./discount-manager";
 import {
   Pagination,
   PaginationContent,
@@ -44,6 +46,7 @@ interface PricingProduct {
   category: {
     name: string;
   } | null;
+  discounts: (Omit<Discount, "value"> & { value: number })[];
 }
 
 interface IndividualPricingTableProps {
@@ -180,13 +183,14 @@ export function IndividualPricingTable({
               <TableHead>Category</TableHead>
               <TableHead className="text-right">Cost</TableHead>
               <TableHead className="text-right">Current Price</TableHead>
+              <TableHead className="text-center">Discounts</TableHead>
               <TableHead className="w-[150px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No products found.
                 </TableCell>
               </TableRow>
@@ -211,6 +215,13 @@ export function IndividualPricingTable({
                     ) : (
                       formatCurrency(product.price)
                     )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <DiscountManager
+                      productId={product.id}
+                      productName={product.name}
+                      discounts={product.discounts}
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     {editingId === product.id ? (

@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { batchUpdateProductPrices } from "@/lib/pricing-service";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { Prisma, DiscountType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
 import { updateProductPrice } from "@/lib/pricing-service";
@@ -65,6 +65,10 @@ export async function getPricingProducts(
         category: {
           select: { name: true },
         },
+        discounts: {
+          where: { isActive: true },
+          orderBy: { priority: "desc" },
+        },
       },
       orderBy: { name: "asc" },
       skip,
@@ -78,6 +82,20 @@ export async function getPricingProducts(
       ...p,
       price: Number(p.price),
       cost: Number(p.cost),
+      discounts: p.discounts.map((d) => ({
+        id: d.id,
+        code: d.code,
+        description: d.description,
+        type: d.type,
+        value: Number(d.value),
+        startDate: d.startDate,
+        endDate: d.endDate,
+        isActive: d.isActive,
+        minQuantity: d.minQuantity,
+        priority: d.priority,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
+      })),
     })),
     total,
     totalPages: Math.ceil(total / limit),
@@ -94,6 +112,108 @@ export const updateSinglePrice = authorizedAction(
     } catch (error) {
       console.error("Update price error:", error);
       return { success: false, error: "Failed to update price" };
+    }
+  }
+);
+
+export async function getProductDiscounts(productId: string) {
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      discounts: {
+        orderBy: { priority: "desc" },
+      },
+    },
+  });
+  return product?.discounts || [];
+}
+
+export const createAndAssignDiscount = authorizedAction(
+  "products.edit",
+  async (data: {
+    productId: string;
+    code: string;
+    description?: string;
+    type: DiscountType;
+    value: number;
+    startDate: Date;
+    endDate?: Date;
+    minQuantity?: number;
+    priority?: number;
+  }) => {
+    try {
+      // Create discount and connect to product
+      // We check if discount with code exists first
+      const existingDiscount = await prisma.discount.findUnique({
+        where: { code: data.code },
+      });
+
+      if (existingDiscount) {
+        // Connect existing
+        await prisma.product.update({
+          where: { id: data.productId },
+          data: {
+            discounts: {
+              connect: { id: existingDiscount.id },
+            },
+          },
+        });
+        return {
+          success: true,
+          discount: {
+            ...existingDiscount,
+            value: Number(existingDiscount.value),
+          },
+        };
+      }
+
+      const discount = await prisma.discount.create({
+        data: {
+          code: data.code,
+          description: data.description,
+          type: data.type,
+          value: data.value,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          minQuantity: data.minQuantity,
+          priority: data.priority || 0,
+          products: {
+            connect: { id: data.productId },
+          },
+        },
+      });
+      revalidatePath("/inventory/pricing");
+      return {
+        success: true,
+        discount: {
+          ...discount,
+          value: Number(discount.value),
+        },
+      };
+    } catch (error) {
+      console.error("Create discount error:", error);
+      return { success: false, error: "Failed to create/assign discount" };
+    }
+  }
+);
+
+export const removeDiscountFromProduct = authorizedAction(
+  "products.edit",
+  async (data: { productId: string; discountId: string }) => {
+    try {
+      await prisma.product.update({
+        where: { id: data.productId },
+        data: {
+          discounts: {
+            disconnect: { id: data.discountId },
+          },
+        },
+      });
+      revalidatePath("/inventory/pricing");
+      return { success: true };
+    } catch (error) {
+      console.error("Remove discount error:", error);
+      return { success: false, error: "Failed to remove discount" };
     }
   }
 );
