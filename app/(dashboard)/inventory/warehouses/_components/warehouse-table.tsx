@@ -27,8 +27,21 @@ import {
 } from "@/prisma/generated/prisma/browser";
 
 type WarehouseWithInventory = Warehouse & {
-  inventory: (Inventory & {
-    product: Omit<Product, "price" | "cost"> & { price: number; cost: number };
+  inventory: (Omit<Inventory, "unitCost"> & { unitCost: number } & {
+    product: Omit<
+      Product,
+      | "price"
+      | "cost"
+      | "averageCost"
+      | "purchaseConversionFactor"
+      | "salesConversionFactor"
+    > & {
+      price: number;
+      cost: number;
+      averageCost: number;
+      purchaseConversionFactor: number;
+      salesConversionFactor: number;
+    };
   })[];
 };
 

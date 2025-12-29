@@ -19,10 +19,14 @@ export async function getWarehouses() {
     ...warehouse,
     inventory: warehouse.inventory.map((inv) => ({
       ...inv,
+      unitCost: Number(inv.unitCost),
       product: {
         ...inv.product,
         price: Number(inv.product.price),
         cost: Number(inv.product.cost),
+        averageCost: Number(inv.product.averageCost),
+        purchaseConversionFactor: Number(inv.product.purchaseConversionFactor),
+        salesConversionFactor: Number(inv.product.salesConversionFactor),
       },
     })),
   }));
