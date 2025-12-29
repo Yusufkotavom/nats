@@ -19,6 +19,13 @@ interface CompanyProfileData {
   timezone: string;
 }
 
+/**
+ * Update company profile settings.
+ * Permission: "company.settings"
+ *
+ * @param data - The company profile data
+ * @returns    - Success flag or error
+ */
 export const updateCompanyProfile = authorizedAction(
   "company.settings",
   async (data: CompanyProfileData) => {

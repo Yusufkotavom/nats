@@ -11,6 +11,13 @@ interface RoleData {
   isActive?: boolean;
 }
 
+/**
+ * Create a new user role.
+ * Permission: "roles:create"
+ *
+ * @param data - The role data (name, description, permissions, etc.)
+ * @returns    - Success flag or error
+ */
 export const createRole = authorizedAction(
   "roles:create",
   async (data: RoleData) => {
@@ -46,6 +53,14 @@ export const createRole = authorizedAction(
   }
 );
 
+/**
+ * Update an existing role.
+ * Permission: "roles:update"
+ *
+ * @param id   - The ID of the role to update
+ * @param data - The new role data
+ * @returns    - Success flag or error
+ */
 export const updateRole = authorizedAction(
   "roles:update",
   async (id: string, data: RoleData) => {
@@ -82,6 +97,14 @@ export const updateRole = authorizedAction(
   }
 );
 
+/**
+ * Update permissions for a specific role.
+ * Permission: "roles:update"
+ *
+ * @param id          - The ID of the role
+ * @param permissions - List of permission strings
+ * @returns           - Success flag or error
+ */
 export const updateRolePermissions = authorizedAction(
   "roles:update",
   async (id: string, permissions: string[]) => {
@@ -97,6 +120,14 @@ export const updateRolePermissions = authorizedAction(
   }
 );
 
+/**
+ * Toggle the active status of a role.
+ * Cannot deactivate the "superadmin" role.
+ * Permission: "roles:update"
+ *
+ * @param id - The ID of the role
+ * @returns  - Success flag or error
+ */
 export const toggleRoleStatus = authorizedAction(
   "roles:update",
   async (id: string) => {
@@ -122,6 +153,14 @@ export const toggleRoleStatus = authorizedAction(
   }
 );
 
+/**
+ * Delete a role.
+ * Cannot delete "superadmin" or if users are assigned to it.
+ * Permission: "roles:delete"
+ *
+ * @param id - The ID of the role
+ * @returns  - Success flag or error
+ */
 export const deleteRole = authorizedAction(
   "roles:delete",
   async (id: string) => {

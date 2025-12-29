@@ -19,6 +19,13 @@ interface UserUpdateData {
   roleId?: string;
 }
 
+/**
+ * Fetch users with pagination.
+ *
+ * @param page  - Page number
+ * @param limit - Items per page
+ * @returns     - Object containing users list and pagination metadata
+ */
 export async function getUsers(page: number, limit: number) {
   const skip = (page - 1) * limit;
 
@@ -46,6 +53,12 @@ export async function getUsers(page: number, limit: number) {
   return { users, total, totalPages: Math.ceil(total / limit) };
 }
 
+/**
+ * Fetch all available roles.
+ * Used for role selection in user management.
+ *
+ * @returns - List of roles
+ */
 export async function getRoles() {
   return prisma.role.findMany({
     select: {
@@ -154,6 +167,13 @@ export const updateUser = authorizedAction(
   }
 );
 
+/**
+ * Delete a user.
+ * Permission: "users.delete"
+ *
+ * @param id - The ID of the user to delete
+ * @returns  - Success flag or error
+ */
 export const deleteUser = authorizedAction(
   "users.delete",
   async (id: string) => {

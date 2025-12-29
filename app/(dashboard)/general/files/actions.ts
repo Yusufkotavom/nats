@@ -5,6 +5,12 @@ import { saveFileToDisk, deleteFileFromDisk } from "@/lib/file-service";
 import { getSession } from "@/lib/auth/auth";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Upload a file to local storage.
+ *
+ * @param formData - FormData containing the file
+ * @returns        - Object containing success/error and file info
+ */
 export async function uploadFile(formData: FormData) {
   const session = await getSession();
   if (!session) {
@@ -44,6 +50,12 @@ export async function uploadFile(formData: FormData) {
   }
 }
 
+/**
+ * Delete a file from local storage and database.
+ *
+ * @param id - The ID of the file to delete
+ * @returns  - Success flag or error
+ */
 export async function deleteFile(id: string) {
   const session = await getSession();
   if (!session) {
@@ -73,6 +85,11 @@ export async function deleteFile(id: string) {
   }
 }
 
+/**
+ * Fetch all uploaded files.
+ *
+ * @returns - List of files with uploader info
+ */
 export async function getFiles() {
   const session = await getSession();
   if (!session) return [];

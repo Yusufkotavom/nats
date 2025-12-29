@@ -7,6 +7,19 @@ import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 
+/**
+ * Fetch journal entries with pagination and filtering.
+ * Permission: "journal_entries.view"
+ *
+ * @param page      - Page number (default: 1)
+ * @param pageSize  - Items per page (default: 20)
+ * @param startDate - Optional start date filter
+ * @param endDate   - Optional end date filter
+ * @param status    - Optional status filter ("draft", "posted", "all")
+ * @param search    - Optional search string for description or entry number
+ *
+ * @returns - Object containing entries and pagination metadata
+ */
 export const getJournalEntries = authorizedAction(
   "journal_entries.view",
   async (
@@ -75,6 +88,13 @@ export const getJournalEntries = authorizedAction(
   }
 );
 
+/**
+ * Fetch a single journal entry by ID.
+ * Permission: "journal_entries.view"
+ *
+ * @param id - The ID of the journal entry
+ * @returns - Object containing the journal entry with lines, user, and attachments
+ */
 export const getJournalEntry = authorizedAction(
   "journal_entries.view",
   async (id: string) => {
@@ -111,6 +131,13 @@ export type CreateJournalEntryData = {
   attachments?: { id: string; name: string; url: string }[];
 };
 
+/**
+ * Create a new journal entry.
+ * Permission: "journal_entries.create"
+ *
+ * @param data - The journal entry data including lines and attachments
+ * @returns - Object containing the created entry or error
+ */
 export const createJournalEntry = authorizedAction(
   "journal_entries.create",
   async (data: CreateJournalEntryData) => {
@@ -280,6 +307,13 @@ export async function updateJournalEntry(
   }
 }
 
+/**
+ * Delete a journal entry.
+ * Cannot delete if the entry is already posted.
+ *
+ * @param id - The ID of the entry to delete
+ * @returns  - Success flag or error
+ */
 export async function deleteJournalEntry(id: string) {
   try {
     const existingEntry = await prisma.journalEntry.findUnique({

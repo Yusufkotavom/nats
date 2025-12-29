@@ -9,6 +9,15 @@ import {
 
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
+/**
+ * Fetch Trial Balance report.
+ * Aggregates all account balances up to a specific date.
+ * Validates the fundamental accounting equation (Debit = Credit).
+ * Permission: "reports.view"
+ *
+ * @param date - The cut-off date for the report
+ * @returns    - Object containing list of accounts with their debit/credit balances and totals
+ */
 export const getTrialBalance = authorizedAction(
   "reports.view",
   async (

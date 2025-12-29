@@ -242,6 +242,18 @@ function buildAccountHierarchy(
 
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
+/**
+ * Generate Profit & Loss (Income Statement) report.
+ * Shows Revenue, Expenses, and Net Income for a specific period.
+ * Supports comparative analysis with a previous period.
+ * Permission: "reports.view"
+ *
+ * @param startDate            - Start date of the period
+ * @param endDate              - End date of the period
+ * @param comparativeStartDate - Optional start date for comparison
+ * @param comparativeEndDate   - Optional end date for comparison
+ * @returns                    - Hierarchical report data
+ */
 export async function getProfitAndLoss(
   startDate: string,
   endDate: string,
@@ -753,6 +765,17 @@ async function calculateCashFlowForPeriod(
   };
 }
 
+/**
+ * Generate Statement of Changes in Equity.
+ * Shows movement in equity accounts over a period.
+ * Permission: "reports.view"
+ *
+ * @param startDate            - Start date of the period
+ * @param endDate              - End date of the period
+ * @param comparativeStartDate - Optional start date for comparison
+ * @param comparativeEndDate   - Optional end date for comparison
+ * @returns                    - Equity change report data
+ */
 export async function getStatementOfChangesInEquity(
   startDate: string,
   endDate: string,

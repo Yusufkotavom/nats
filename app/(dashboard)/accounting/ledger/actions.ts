@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
+/**
+ * Fetch all accounts that can be posted to (isPosting = true).
+ * Used for populating account selectors in forms.
+ * Permission: "ledger.view"
+ *
+ * @returns - Object containing list of posting accounts
+ */
 export const getPostingAccounts = authorizedAction("ledger.view", async () => {
   try {
     const accounts = await prisma.account.findMany({
@@ -28,6 +35,20 @@ export const getPostingAccounts = authorizedAction("ledger.view", async () => {
   }
 });
 
+/**
+ * Fetch ledger entries for a specific account with pagination and filtering.
+ * Calculates running balances dynamically, handling both draft and posted entries.
+ * Permission: "ledger.view"
+ *
+ * @param accountId - The ID of the account to fetch ledger for
+ * @param page      - Page number (1-based, default: 1)
+ * @param pageSize  - Items per page (default: 20)
+ * @param startDate - Optional start date filter
+ * @param endDate   - Optional end date filter
+ * @param onlyDraft - If true, only shows draft entries
+ *
+ * @returns - Object containing ledger lines, pagination metadata, totals, and account info
+ */
 export const getLedgerEntries = authorizedAction(
   "ledger.view",
   async (

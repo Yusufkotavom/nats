@@ -11,6 +11,14 @@ import {
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
+/**
+ * Fetch vendors with pagination and search.
+ *
+ * @param page     - Page number (default: 1)
+ * @param pageSize - Items per page (default: 10)
+ * @param search   - Search term for name, email, or phone
+ * @returns        - Object containing vendors list and pagination metadata
+ */
 export async function getVendors({
   page = 1,
   pageSize = 10,
@@ -84,6 +92,13 @@ export const updateVendor = authorizedAction(
   }
 );
 
+/**
+ * Delete a vendor.
+ * Permission: "vendors.delete"
+ *
+ * @param id - The ID of the vendor to delete
+ * @returns  - Success flag or error
+ */
 export const deleteVendor = authorizedAction(
   "vendors.delete",
   async (id: string) => {

@@ -11,6 +11,14 @@ import {
 import { Prisma } from "@prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
+/**
+ * Fetch customers with pagination and search.
+ *
+ * @param page     - Page number (default: 1)
+ * @param pageSize - Items per page (default: 10)
+ * @param search   - Search term for name, email, or phone
+ * @returns        - Object containing customers list and pagination metadata
+ */
 export async function getCustomers({
   page = 1,
   pageSize = 10,
@@ -51,6 +59,13 @@ export async function getCustomers({
   };
 }
 
+/**
+ * Create a new customer.
+ * Permission: "customers.create"
+ *
+ * @param data - The customer creation data
+ * @returns    - Success flag or error
+ */
 export const createCustomer = authorizedAction(
   "customers.create",
   async (data: CreateCustomerInput) => {
@@ -67,6 +82,14 @@ export const createCustomer = authorizedAction(
   }
 );
 
+/**
+ * Update an existing customer.
+ * Permission: "customers.edit"
+ *
+ * @param id   - The ID of the customer to update
+ * @param data - The new customer data
+ * @returns    - Success flag or error
+ */
 export const updateCustomer = authorizedAction(
   "customers.edit",
   async (id: string, data: UpdateCustomerInput) => {
@@ -84,6 +107,13 @@ export const updateCustomer = authorizedAction(
   }
 );
 
+/**
+ * Delete a customer.
+ * Permission: "customers.delete"
+ *
+ * @param id - The ID of the customer to delete
+ * @returns  - Success flag or error
+ */
 export const deleteCustomer = authorizedAction(
   "customers.delete",
   async (id: string) => {

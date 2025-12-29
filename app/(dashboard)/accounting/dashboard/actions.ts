@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
+/**
+ * Fetch dashboard summary metrics.
+ * Includes: Total Revenue, Total Expenses, Net Income, Accounts Receivable, Accounts Payable.
+ * Permission: "reports.view"
+ *
+ * @returns - Object containing summary metrics
+ */
 export async function getDashboardSummary() {
   return authorizedAction("reports.view", async () => {
     const now = new Date();
@@ -131,6 +138,13 @@ export async function getDashboardSummary() {
   })();
 }
 
+/**
+ * Fetch financial trends for the last 6 months.
+ * Shows Revenue vs Expense comparison over time.
+ * Permission: "reports.view"
+ *
+ * @returns - List of trend data points (month, revenue, expense)
+ */
 export async function getFinancialTrends() {
   return authorizedAction("reports.view", async () => {
     const now = new Date();
@@ -198,6 +212,13 @@ export async function getFinancialTrends() {
   })();
 }
 
+/**
+ * Fetch top expense breakdown for the current month.
+ * Returns top 5 expense accounts by amount.
+ * Permission: "reports.view"
+ *
+ * @returns - List of expense categories with values
+ */
 export async function getExpenseBreakdown() {
   return authorizedAction("reports.view", async () => {
     const now = new Date();
@@ -248,6 +269,12 @@ export async function getExpenseBreakdown() {
   })();
 }
 
+/**
+ * Fetch 5 most recent posted journal entries.
+ * Permission: "reports.view"
+ *
+ * @returns - List of recent transactions
+ */
 export async function getRecentTransactions() {
   return authorizedAction("reports.view", async () => {
     const transactions = await prisma.journalEntry.findMany({
