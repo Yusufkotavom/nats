@@ -43,7 +43,12 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
       <PieChart>
         <ChartTooltip
           cursor={false}
-          content={<ChartTooltipContent hideLabel formatter={(value) => formatCurrency(Number(value))} />}
+          content={
+            <ChartTooltipContent
+              hideLabel
+              formatter={(value) => formatCurrency(Number(value))}
+            />
+          }
         />
         <Pie
           data={coloredData}
