@@ -34,9 +34,27 @@ export default async function DashboardLayout({
     }
   }
 
+  const companyProfile = await prisma.companyProfile.findFirst();
+
   return (
     <SessionProvider
-      session={{ role: session.role, permissions: session.permissions }}
+      session={{
+        role: session.role,
+        permissions: session.permissions,
+        companyProfile: companyProfile
+          ? {
+              name: companyProfile.name,
+              address: companyProfile.address,
+              phone: companyProfile.phone,
+              email: companyProfile.email,
+              website: companyProfile.website,
+              taxId: companyProfile.taxId,
+              currency: companyProfile.currency,
+              locale: companyProfile.locale,
+              timezone: companyProfile.timezone,
+            }
+          : null,
+      }}
     >
       <SidebarProvider
         style={

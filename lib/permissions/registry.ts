@@ -103,6 +103,13 @@ export const register: PermissionType[] = [
     module: "products",
   },
 
+  // Company Settings
+  {
+    name: "company.settings",
+    description: "Allows managing company settings",
+    module: "settings",
+  },
+
   // Categories (Inventory)
   {
     name: "categories.create",

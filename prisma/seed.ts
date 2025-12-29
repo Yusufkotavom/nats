@@ -358,6 +358,26 @@ async function main() {
     });
   }
 
+  // Seed Company Profile
+  const companyProfile = {
+    name: "NATS Accounting",
+    address: "123 Business Rd, Tech City",
+    phone: "555-0100",
+    email: "contact@nats.com",
+    website: "https://nats.com",
+    taxId: "123-456-789",
+    currency: "USD",
+    locale: "en-US",
+    timezone: "UTC",
+  };
+
+  const existingProfile = await prisma.companyProfile.findFirst();
+  if (!existingProfile) {
+    await prisma.companyProfile.create({
+      data: companyProfile,
+    });
+  }
+
   // Helper to get ID
   const getCategory = async (name: string) => prisma.category.findUnique({ where: { name } });
   const getUnit = async (symbol: string) => prisma.unit.findUnique({ where: { symbol } });

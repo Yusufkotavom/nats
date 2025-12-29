@@ -199,24 +199,11 @@ const data = {
           title: "File Manager",
           url: "/general/files",
         },
+        {
+          title: "Settings",
+          url: "/admin/settings",
+        },
       ],
-    },
-  ],
-  settings: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 };
