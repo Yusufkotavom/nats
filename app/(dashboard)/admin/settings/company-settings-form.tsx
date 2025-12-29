@@ -192,7 +192,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                   name="currencyFormat"
                   defaultValue={initialData.currencyFormat || "standard"}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select currency format" />
                   </SelectTrigger>
                   <SelectContent>
