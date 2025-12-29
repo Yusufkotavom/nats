@@ -103,6 +103,9 @@ export async function getProduct(id: string) {
       baseUnit: true,
       purchaseUnit: true,
       salesUnit: true,
+      priceHistory: {
+        orderBy: { effectiveDate: "desc" },
+      },
     },
   });
 
@@ -115,6 +118,10 @@ export async function getProduct(id: string) {
     averageCost: Number(product.averageCost),
     purchaseConversionFactor: Number(product.purchaseConversionFactor),
     salesConversionFactor: Number(product.salesConversionFactor),
+    priceHistory: product.priceHistory.map((ph) => ({
+      ...ph,
+      price: Number(ph.price),
+    })),
   };
 }
 
@@ -122,23 +129,37 @@ export const createProduct = authorizedAction(
   "products.create",
   async (data: ProductInput) => {
     try {
-      const product = await prisma.product.create({
-        data: {
-          name: data.name,
-          sku: data.sku,
-          description: data.description,
-          categoryId: data.categoryId,
-          price: Number(data.price),
-          cost: Number(data.cost),
-          minStock: data.minStock,
-          isActive: data.isActive,
-          baseUnitId: data.baseUnitId,
-          purchaseUnitId: data.purchaseUnitId,
-          purchaseConversionFactor: data.purchaseConversionFactor,
-          salesUnitId: data.salesUnitId,
-          salesConversionFactor: data.salesConversionFactor,
-        },
+      const product = await prisma.$transaction(async (tx) => {
+        const newProduct = await tx.product.create({
+          data: {
+            name: data.name,
+            sku: data.sku,
+            description: data.description,
+            categoryId: data.categoryId,
+            price: Number(data.price),
+            cost: Number(data.cost),
+            minStock: data.minStock,
+            isActive: data.isActive,
+            baseUnitId: data.baseUnitId,
+            purchaseUnitId: data.purchaseUnitId,
+            purchaseConversionFactor: data.purchaseConversionFactor,
+            salesUnitId: data.salesUnitId,
+            salesConversionFactor: data.salesConversionFactor,
+          },
+        });
+
+        // Add initial price history
+        await tx.priceHistory.create({
+          data: {
+            productId: newProduct.id,
+            price: Number(data.price),
+            effectiveDate: new Date(),
+          },
+        });
+
+        return newProduct;
       });
+
       revalidatePath("/inventory/products");
       return {
         success: true,
@@ -162,24 +183,53 @@ export const updateProduct = authorizedAction(
   "products.edit",
   async (id: string, data: ProductInput) => {
     try {
-      const product = await prisma.product.update({
+      const currentProduct = await prisma.product.findUnique({
         where: { id },
-        data: {
-          name: data.name,
-          sku: data.sku,
-          description: data.description,
-          categoryId: data.categoryId,
-          price: Number(data.price),
-          cost: Number(data.cost),
-          minStock: data.minStock,
-          isActive: data.isActive,
-          baseUnitId: data.baseUnitId,
-          purchaseUnitId: data.purchaseUnitId,
-          purchaseConversionFactor: data.purchaseConversionFactor,
-          salesUnitId: data.salesUnitId,
-          salesConversionFactor: data.salesConversionFactor,
-        },
+        select: { price: true },
       });
+
+      if (!currentProduct) {
+        return { success: false, error: "Product not found" };
+      }
+
+      const newPrice = Number(data.price);
+      const oldPrice = Number(currentProduct.price);
+
+      // If price changed, we need to record history
+      // We can do this in a transaction to ensure data integrity
+      const product = await prisma.$transaction(async (tx) => {
+        const updated = await tx.product.update({
+          where: { id },
+          data: {
+            name: data.name,
+            sku: data.sku,
+            description: data.description,
+            categoryId: data.categoryId,
+            price: newPrice,
+            cost: Number(data.cost),
+            minStock: data.minStock,
+            isActive: data.isActive,
+            baseUnitId: data.baseUnitId,
+            purchaseUnitId: data.purchaseUnitId,
+            purchaseConversionFactor: data.purchaseConversionFactor,
+            salesUnitId: data.salesUnitId,
+            salesConversionFactor: data.salesConversionFactor,
+          },
+        });
+
+        if (newPrice !== oldPrice) {
+          await tx.priceHistory.create({
+            data: {
+              productId: id,
+              price: newPrice,
+              effectiveDate: new Date(),
+            },
+          });
+        }
+
+        return updated;
+      });
+
       revalidatePath("/inventory/products");
       return {
         success: true,
@@ -193,7 +243,6 @@ export const updateProduct = authorizedAction(
         },
       };
     } catch (error) {
-
       console.error("Failed to update product:", error);
       return { success: false, error: "Failed to update product" };
     }

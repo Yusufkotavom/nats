@@ -96,6 +96,10 @@ const data = {
           url: "/inventory/products",
         },
         {
+          title: "Pricing",
+          url: "/inventory/pricing",
+        },
+        {
           title: "Categories",
           url: "/inventory/categories",
         },

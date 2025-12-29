@@ -23,6 +23,11 @@ export type ProductFormData = Omit<
   inventory?: {
     quantity: number;
   }[];
+  priceHistory?: {
+    id: string;
+    price: number;
+    effectiveDate: Date;
+  }[];
 };
 
 export type ProductInput = {

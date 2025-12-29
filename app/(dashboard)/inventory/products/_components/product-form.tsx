@@ -21,6 +21,7 @@ import { Category, Unit } from "@/prisma/generated/prisma/browser";
 import { useRouter } from "next/navigation";
 import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { PriceHistory } from "./price-history";
 
 interface ProductFormProps {
   product?: ProductFormData;
@@ -331,6 +332,12 @@ export function ProductForm({ product, categories, units }: ProductFormProps) {
           </CardFooter>
         </form>
       </Card>
+
+      {isEditing && product?.priceHistory && (
+        <div className="mt-6">
+          <PriceHistory history={product.priceHistory} />
+        </div>
+      )}
     </div>
   );
 }
