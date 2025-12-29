@@ -379,9 +379,12 @@ async function main() {
   }
 
   // Helper to get ID
-  const getCategory = async (name: string) => prisma.category.findUnique({ where: { name } });
-  const getUnit = async (symbol: string) => prisma.unit.findUnique({ where: { symbol } });
-  const getWarehouse = async (name: string) => prisma.warehouse.findUnique({ where: { name } });
+  const getCategory = async (name: string) =>
+    prisma.category.findUnique({ where: { name } });
+  const getUnit = async (symbol: string) =>
+    prisma.unit.findUnique({ where: { symbol } });
+  const getWarehouse = async (name: string) =>
+    prisma.warehouse.findUnique({ where: { name } });
 
   const catElectronics = await getCategory("Electronics");
   const catFurniture = await getCategory("Furniture");
@@ -392,7 +395,14 @@ async function main() {
 
   const mainWarehouse = await getWarehouse("Main Warehouse");
 
-  if (catElectronics && catFurniture && catSupplies && unitPcs && unitBox && mainWarehouse) {
+  if (
+    catElectronics &&
+    catFurniture &&
+    catSupplies &&
+    unitPcs &&
+    unitBox &&
+    mainWarehouse
+  ) {
     // Seed Products
     const products = [
       {
@@ -493,7 +503,7 @@ async function main() {
     update: {},
     create: {
       entryNumber: "JE-001",
-      transactionDate: new Date("2024-01-01"),
+      transactionDate: new Date("2025-01-01"),
       description: "Initial Capital Investment",
       status: "posted",
       userId: user.id,
@@ -524,7 +534,7 @@ async function main() {
     update: {},
     create: {
       entryNumber: "JE-002",
-      transactionDate: new Date("2024-01-15"),
+      transactionDate: new Date("2025-01-15"),
       description: "Service Revenue",
       status: "posted",
       userId: user.id,
@@ -555,7 +565,7 @@ async function main() {
     update: {},
     create: {
       entryNumber: "JE-003",
-      transactionDate: new Date("2024-01-20"),
+      transactionDate: new Date("2025-01-20"),
       description: "Office Supplies",
       status: "posted",
       userId: user.id,
@@ -604,7 +614,7 @@ async function main() {
     // Random date within 2024
     const month = Math.floor(Math.random() * 12);
     const day = Math.floor(Math.random() * 28) + 1;
-    const date = new Date(2024, month, day);
+    const date = new Date(2025, month, day);
 
     await prisma.journalEntry.upsert({
       where: { entryNumber },
