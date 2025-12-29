@@ -12,18 +12,19 @@ datasource db {
 }
 
 model CompanyProfile {
-  id        String   @id @default(cuid())
-  name      String
-  address   String?
-  phone     String?
-  email     String?
-  website   String?
-  taxId     String?
-  currency  String   @default("USD")
-  locale    String   @default("en-US")
-  timezone  String   @default("UTC")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  address        String?
+  phone          String?
+  email          String?
+  website        String?
+  taxId          String?
+  currency       String   @default("USD")
+  currencySymbol String   @default("$")
+  locale         String   @default("en-US")
+  timezone       String   @default("UTC")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model User {

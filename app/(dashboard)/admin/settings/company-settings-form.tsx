@@ -32,6 +32,7 @@ interface CompanySettingsFormProps {
     website: string | null;
     taxId: string | null;
     currency: string;
+    currencySymbol: string;
     locale: string;
     timezone: string;
   };
@@ -41,6 +42,21 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [currencySymbol, setCurrencySymbol] = useState(
+    initialData.currencySymbol
+  );
+
+  const handleCurrencyChange = (value: string) => {
+    // Map currency code to symbol (simple map, could be expanded)
+    const symbols: Record<string, string> = {
+      USD: "$",
+      EUR: "€",
+      GBP: "£",
+      IDR: "Rp",
+      JPY: "¥",
+    };
+    setCurrencySymbol(symbols[value] || "");
+  };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,6 +72,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
       website: formData.get("website") as string,
       taxId: formData.get("taxId") as string,
       currency: formData.get("currency") as string,
+      currencySymbol: formData.get("currencySymbol") as string,
       locale: formData.get("locale") as string,
       timezone: formData.get("timezone") as string,
     };
@@ -139,7 +156,11 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
-                <Select name="currency" defaultValue={initialData.currency}>
+                <Select
+                  name="currency"
+                  defaultValue={initialData.currency}
+                  onValueChange={handleCurrencyChange}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
@@ -151,6 +172,15 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                     <SelectItem value="JPY">JPY (¥)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currencySymbol">Currency Symbol</Label>
+                <Input
+                  id="currencySymbol"
+                  name="currencySymbol"
+                  value={currencySymbol}
+                  onChange={(e) => setCurrencySymbol(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="locale">Locale</Label>

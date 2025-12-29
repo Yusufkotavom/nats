@@ -13,6 +13,7 @@ type SessionData = {
     website: string | null;
     taxId: string | null;
     currency: string;
+    currencySymbol: string;
     locale: string;
     timezone: string;
   } | null;

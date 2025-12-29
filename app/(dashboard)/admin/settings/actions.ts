@@ -12,6 +12,7 @@ interface CompanyProfileData {
   website?: string | null;
   taxId?: string | null;
   currency: string;
+  currencySymbol: string;
   locale: string;
   timezone: string;
 }
@@ -36,6 +37,7 @@ export const updateCompanyProfile = authorizedAction(
           website: data.website,
           taxId: data.taxId,
           currency: data.currency,
+          currencySymbol: data.currencySymbol,
           locale: data.locale,
           timezone: data.timezone,
         },
@@ -50,6 +52,7 @@ export const updateCompanyProfile = authorizedAction(
           website: data.website,
           taxId: data.taxId,
           currency: data.currency,
+          currencySymbol: data.currencySymbol,
           locale: data.locale,
           timezone: data.timezone,
         },
