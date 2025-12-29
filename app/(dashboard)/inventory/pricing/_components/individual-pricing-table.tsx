@@ -19,19 +19,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Save,
-  Loader2,
-  Check,
-} from "lucide-react";
+import { Search, Filter, Save, Loader2, Check } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Category } from "@/prisma/generated/prisma/browser";
 import { updateSinglePrice } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { generatePagination } from "@/lib/utils";
 
 interface PricingProduct {
   id: string;
@@ -92,6 +94,7 @@ export function IndividualPricingTable({
 
   const categoryFilter = searchParams.get("categoryId") || "ALL";
   const currentPage = Number(searchParams.get("page")) || 1;
+  const paginationPages = generatePagination(currentPage, totalPages);
 
   const handleCategoryChange = (val: string) => {
     const params = new URLSearchParams(searchParams);
@@ -168,7 +171,7 @@ export function IndividualPricingTable({
         </div>
       </div>
 
-      <div className="rounded-md border bg-white">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -190,7 +193,7 @@ export function IndividualPricingTable({
             ) : (
               products.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell className="font-mono">{product.sku}</TableCell>
+                  <TableCell>{product.sku}</TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{product.category?.name || "-"}</TableCell>
                   <TableCell className="text-right">
@@ -253,28 +256,63 @@ export function IndividualPricingTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
-        <div className="text-sm font-medium">
-          Page {currentPage} of {totalPages}
+      <div className="flex flex-col gap-4 py-4">
+        <div className="text-sm text-muted-foreground text-center">
+          {products.length > 0
+            ? `Page ${currentPage} of ${totalPages}`
+            : "No products found"}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        {totalPages > 1 && (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage > 1) handlePageChange(currentPage - 1);
+                  }}
+                  className={
+                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
+                  }
+                />
+              </PaginationItem>
+              {paginationPages.map((pageNum, i) => (
+                <PaginationItem key={i}>
+                  {pageNum === "..." ? (
+                    <PaginationEllipsis />
+                  ) : (
+                    <PaginationLink
+                      href="#"
+                      isActive={currentPage === pageNum}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(Number(pageNum));
+                      }}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  )}
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (currentPage < totalPages)
+                      handlePageChange(currentPage + 1);
+                  }}
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50"
+                      : ""
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
     </div>
   );
