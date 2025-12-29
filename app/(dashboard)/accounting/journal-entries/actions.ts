@@ -1,11 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, serializePrisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { EntryStatus } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
-import { getSession, verifySession } from "@/lib/auth/auth";
+import { getSession } from "@/lib/auth/auth";
 
 export const getJournalEntries = authorizedAction(
   "journal_entries.view",
@@ -64,17 +64,7 @@ export const getJournalEntries = authorizedAction(
 
     return {
       success: true,
-      data: entries.map((entry) => {
-        const serializedEntry = {
-          ...entry,
-          lines: entry.lines.map((line) => ({
-            ...line,
-            debitAmount: Number(line.debitAmount),
-            creditAmount: Number(line.creditAmount),
-          })),
-        };
-        return serializedEntry;
-      }),
+      data: serializePrisma(entries),
       pagination: {
         total,
         totalPages: Math.ceil(total / pageSize),
@@ -105,16 +95,7 @@ export const getJournalEntry = authorizedAction(
     });
     if (!entry) return { success: false, error: "Journal entry not found" };
 
-    const serializedEntry = {
-      ...entry,
-      lines: entry.lines.map((line) => ({
-        ...line,
-        debitAmount: Number(line.debitAmount),
-        creditAmount: Number(line.creditAmount),
-      })),
-    };
-
-    return { success: true, data: serializedEntry };
+    return { success: true, data: serializePrisma(entry) };
   }
 );
 
@@ -221,17 +202,8 @@ export const createJournalEntry = authorizedAction(
 
       if (!createdEntry) throw new Error("Failed to fetch created entry");
 
-      const serializedEntry = {
-        ...createdEntry,
-        lines: createdEntry.lines.map((line) => ({
-          ...line,
-          debitAmount: Number(line.debitAmount),
-          creditAmount: Number(line.creditAmount),
-        })),
-      };
-
       revalidatePath("/accounting/journal-entries");
-      return { success: true, data: serializedEntry };
+      return { success: true, data: serializePrisma(entry) };
     } catch (error) {
       console.error("Failed to create journal entry:", error);
       return { success: false, error: "Failed to create journal entry" };
@@ -354,11 +326,11 @@ export async function postJournalEntry(id: string) {
 
   // Double check balance
   const totalDebit = existingEntry.lines.reduce(
-    (sum, line) => sum + Number(line.debitAmount),
+    (sum, line) => sum + line.debitAmount.toNumber(),
     0
   );
   const totalCredit = existingEntry.lines.reduce(
-    (sum, line) => sum + Number(line.creditAmount),
+    (sum, line) => sum + line.creditAmount.toNumber(),
     0
   );
 
