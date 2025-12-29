@@ -206,8 +206,9 @@ model Product {
   movements InventoryMovement[]
 
   // Pricing & Discounts
-  priceHistory PriceHistory[]
-  discounts    Discount[]
+  priceHistory             PriceHistory[]
+  discounts                Discount[]
+  inventoryMovementDetails InventoryMovementDetail[]
 
   @@index([categoryId])
   @@index([sku])
@@ -254,9 +255,10 @@ model Warehouse {
   inventory     Inventory[]
   fromMovements InventoryMovement[] @relation("FromWarehouse")
   toMovements   InventoryMovement[] @relation("ToWarehouse")
-  locations     Location[]
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+
+  locations Location[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Location {
@@ -320,24 +322,46 @@ model Inventory {
 model InventoryMovement {
   id              String         @id @default(cuid())
   type            MovementType
-  productId       String
-  product         Product        @relation(fields: [productId], references: [id])
-  fromWarehouseId String?
-  fromWarehouse   Warehouse?     @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
-  toWarehouseId   String?
-  toWarehouse     Warehouse?     @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
-  quantity        Int
-  unitCost        Decimal        @default(0) // Recorded Cost at time of movement
-  reference       String? // PO number, SO number, Adjustment ID
+  reference       String?
   notes           String?
   status          MovementStatus @default(PENDING)
-  createdBy       String? // User ID (optional for now as we don't have auth context passed everywhere yet)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  transactionDate DateTime       @default(now())
+
+  fromWarehouseId String?
+  fromWarehouse   Warehouse? @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String?
+  toWarehouse     Warehouse? @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
+
+  details InventoryMovementDetail[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+
+  @@index([type])
+  @@index([transactionDate])
+}
+
+model InventoryMovementDetail {
+  id                  String            @id @default(cuid())
+  inventoryMovementId String
+  inventoryMovement   InventoryMovement @relation(fields: [inventoryMovementId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitCost  Decimal @default(0) // Recorded Cost at time of movement
+  notes     String?
+
+  // Item specific details
+  batchNumber String? // Inventory Batch Number
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([productId])
-  @@index([type])
-  @@index([createdAt])
+  @@index([inventoryMovementId])
 }
 
 enum MovementType {
