@@ -30,6 +30,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Account } from "../../types";
 import {
   AccountType,
@@ -141,9 +142,13 @@ export function LedgerView({ accounts }: LedgerViewProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(totals.debit)}
-              </div>
+              {loading ? (
+                <Skeleton className="h-8 w-32" />
+              ) : (
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totals.debit)}
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -158,9 +163,13 @@ export function LedgerView({ accounts }: LedgerViewProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(totals.credit)}
-              </div>
+              {loading ? (
+                <Skeleton className="h-8 w-32" />
+              ) : (
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totals.credit)}
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -171,12 +180,16 @@ export function LedgerView({ accounts }: LedgerViewProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(balance)}
-                <span className="text-xs text-muted-foreground ml-2">
-                  ({accountDetails?.normalBalance})
-                </span>
-              </div>
+              {loading ? (
+                <Skeleton className="h-8 w-32" />
+              ) : (
+                <div className="text-2xl font-bold">
+                  {formatCurrency(balance)}
+                  <span className="text-xs text-muted-foreground ml-2">
+                    ({accountDetails?.normalBalance})
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -255,11 +268,31 @@ export function LedgerView({ accounts }: LedgerViewProps) {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-48" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-4 w-20 ml-auto" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-4 w-20 ml-auto" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Skeleton className="h-4 w-24 ml-auto" />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Skeleton className="h-6 w-16 mx-auto rounded-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
                 ) : entries.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">

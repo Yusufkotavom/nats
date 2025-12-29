@@ -53,6 +53,7 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { Protect } from "@/components/protect";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Define type based on the return of getJournalEntries
 type JournalEntryWithDetails = NonNullable<
@@ -219,11 +220,31 @@ export function JournalEntryTable() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-48" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-4 w-24 ml-auto" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-8 w-8 rounded-md ml-auto" />
+                  </TableCell>
+                </TableRow>
+              ))
             ) : entries.length === 0 ? (
               <TableRow>
                 <TableCell
