@@ -7,6 +7,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 const chartConfig = {
   amount: {
@@ -25,14 +26,12 @@ type ExpenseBreakdownChartProps = {
   }[];
 };
 
-import { useFormatCurrency } from "@/hooks/use-format-currency";
-
 export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
   const formatCurrency = useFormatCurrency();
   // Assign colors dynamically
   const coloredData = data.map((item, index) => ({
     ...item,
-    fill: `hsl(var(--chart-${(index % 5) + 1}))`,
+    fill: `var(--color-chart-${(index % 5) + 1})`,
   }));
 
   return (

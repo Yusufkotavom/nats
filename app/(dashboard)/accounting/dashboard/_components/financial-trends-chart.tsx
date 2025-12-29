@@ -53,7 +53,7 @@ export function FinancialTrendsChart({ data }: FinancialTrendsChartProps) {
         />
         <ChartLegend content={<ChartLegendContent />} />
         <Bar dataKey="revenue" fill="var(--color-chart-1)" radius={4} />
-        <Bar dataKey="expense" fill="var(--color-chart-2)" radius={4} />
+        <Bar dataKey="expense" fill="var(--color-chart-5)" radius={4} />
       </BarChart>
     </ChartContainer>
   );
