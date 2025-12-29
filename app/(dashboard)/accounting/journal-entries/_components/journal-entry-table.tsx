@@ -46,6 +46,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { generatePagination } from "@/lib/utils";
+import {
   getJournalEntries,
   deleteJournalEntry,
   postJournalEntry,
@@ -67,6 +77,9 @@ export function JournalEntryTable() {
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
   const [isPending, startTransition] = useTransition();
   const [entryToDelete, setEntryToDelete] =
@@ -75,8 +88,8 @@ export function JournalEntryTable() {
 
   const fetchEntries = useCallback(async () => {
     const res = await getJournalEntries(
-      1,
-      10000,
+      page,
+      pageSize,
       startDate,
       endDate,
       status,
@@ -84,9 +97,15 @@ export function JournalEntryTable() {
     );
     if (res.success && res.data) {
       setEntries(res.data);
+      const responseWithPagination = res as typeof res & {
+        pagination?: { total: number };
+      };
+      if (responseWithPagination.pagination) {
+        setTotal(responseWithPagination.pagination.total);
+      }
     }
     setLoading(false);
-  }, [startDate, endDate, status, search]);
+  }, [startDate, endDate, status, search, page, pageSize]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -134,6 +153,9 @@ export function JournalEntryTable() {
     });
   };
 
+  const totalPages = Math.ceil(total / pageSize);
+  const paginationPages = generatePagination(page, totalPages);
+
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -155,7 +177,10 @@ export function JournalEntryTable() {
           <Input
             id="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             placeholder="Search by description or entry #"
           />
         </div>
@@ -165,7 +190,10 @@ export function JournalEntryTable() {
             type="date"
             id="startDate"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
         <div className="grid items-center gap-1.5">
@@ -174,12 +202,21 @@ export function JournalEntryTable() {
             type="date"
             id="endDate"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
         <div className="grid items-center gap-1.5 w-[150px]">
           <Label htmlFor="status">Status</Label>
-          <Select value={status} onValueChange={setStatus}>
+          <Select
+            value={status}
+            onValueChange={(val) => {
+              setStatus(val);
+              setPage(1);
+            }}
+          >
             <SelectTrigger id="status">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -198,6 +235,7 @@ export function JournalEntryTable() {
               setEndDate("");
               setStatus("all");
               setSearch("");
+              setPage(1);
             }}
           >
             Clear Filter
@@ -330,6 +368,69 @@ export function JournalEntryTable() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex flex-row justify-between py-2">
+        <div className="content-center text-sm text-muted-foreground">
+          {total > 0
+            ? `Showing ${(page - 1) * pageSize + 1} to ${Math.min(
+                page * pageSize,
+                total
+              )} of ${total} entries`
+            : "No entries found"}
+        </div>
+        <div>
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page > 1) setPage(page - 1);
+                    }}
+                    className={
+                      page === 1 ? "pointer-events-none opacity-50" : ""
+                    }
+                  />
+                </PaginationItem>
+                {paginationPages.map((pageNum, i) => (
+                  <PaginationItem key={i}>
+                    {pageNum === "..." ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        href="#"
+                        isActive={page === pageNum}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setPage(Number(pageNum));
+                        }}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page < totalPages) setPage(page + 1);
+                    }}
+                    className={
+                      page === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
       </div>
 
       <AlertDialog

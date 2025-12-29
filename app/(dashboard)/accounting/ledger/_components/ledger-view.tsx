@@ -33,6 +33,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Account } from "../../types";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { generatePagination } from "@/lib/utils";
+import {
   AccountType,
   NormalBalance,
   Prisma,
@@ -70,6 +80,9 @@ export function LedgerView({ accounts }: LedgerViewProps) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [onlyDraft, setOnlyDraft] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
 
   useEffect(() => {
@@ -79,8 +92,8 @@ export function LedgerView({ accounts }: LedgerViewProps) {
       setLoading(true);
       const res = await getLedgerEntries(
         selectedAccount.id,
-        1,
-        10000,
+        page,
+        pageSize,
         startDate,
         endDate,
         onlyDraft
@@ -90,7 +103,12 @@ export function LedgerView({ accounts }: LedgerViewProps) {
         const responseWithExtras = res as typeof res & {
           totals?: { debit: number | string; credit: number | string };
           account?: { normalBalance: NormalBalance };
+          pagination?: { total: number };
         };
+
+        if (responseWithExtras.pagination) {
+          setTotal(responseWithExtras.pagination.total);
+        }
 
         if (responseWithExtras.totals) {
           setTotals({
@@ -110,17 +128,23 @@ export function LedgerView({ accounts }: LedgerViewProps) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [selectedAccount?.id, startDate, endDate, onlyDraft]);
+  }, [selectedAccount?.id, startDate, endDate, onlyDraft, page, pageSize]);
 
   const handleAccountChange = (value: string) => {
     const found = accounts?.find((item) => item.id == value);
-    if (found) setSelectedAccount(found);
+    if (found) {
+      setSelectedAccount(found);
+      setPage(1);
+    }
   };
 
   const balance =
     accountDetails?.normalBalance === "debit"
       ? totals.debit - totals.credit
       : totals.credit - totals.debit;
+
+  const totalPages = Math.ceil(total / pageSize);
+  const paginationPages = generatePagination(page, totalPages);
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -224,6 +248,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   value={startDate}
                   onChange={(e) => {
                     setStartDate(e.target.value);
+                    setPage(1);
                   }}
                 />
               </div>
@@ -234,6 +259,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   value={endDate}
                   onChange={(e) => {
                     setEndDate(e.target.value);
+                    setPage(1);
                   }}
                 />
               </div>
@@ -243,6 +269,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   checked={onlyDraft}
                   onCheckedChange={(checked) => {
                     setOnlyDraft(checked as boolean);
+                    setPage(1);
                   }}
                 />
                 <Label htmlFor="onlyDraft">Only Draft</Label>
@@ -334,6 +361,68 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                 )}
               </TableBody>
             </Table>
+          </div>
+          <div className="flex flex-row gap-4 py-4 justify-between">
+            <div className="content-center text-sm text-muted-foreground text-center">
+              {total > 0
+                ? `Showing ${(page - 1) * pageSize + 1} to ${Math.min(
+                    page * pageSize,
+                    total
+                  )} of ${total} entries`
+                : "No entries found"}
+            </div>
+            <div>
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (page > 1) setPage(page - 1);
+                        }}
+                        className={
+                          page === 1 ? "pointer-events-none opacity-50" : ""
+                        }
+                      />
+                    </PaginationItem>
+                    {paginationPages.map((pageNum, i) => (
+                      <PaginationItem key={i}>
+                        {pageNum === "..." ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink
+                            href="#"
+                            isActive={page === pageNum}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setPage(Number(pageNum));
+                            }}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (page < totalPages) setPage(page + 1);
+                        }}
+                        className={
+                          page === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
