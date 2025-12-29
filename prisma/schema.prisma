@@ -21,6 +21,8 @@ model CompanyProfile {
   taxId          String?
   currency       String   @default("USD")
   currencySymbol String   @default("$")
+  dateFormat     String   @default("MM/dd/yyyy")
+  currencyFormat String   @default("standard")
   locale         String   @default("en-US")
   timezone       String   @default("UTC")
   createdAt      DateTime @default(now())

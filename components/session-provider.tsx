@@ -14,6 +14,8 @@ type SessionData = {
     taxId: string | null;
     currency: string;
     currencySymbol: string;
+    dateFormat: string;
+    currencyFormat: string;
     locale: string;
     timezone: string;
   } | null;

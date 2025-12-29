@@ -24,6 +24,8 @@ export default async function SettingsPage() {
           taxId: companyProfile.taxId,
           currency: companyProfile.currency,
           currencySymbol: companyProfile.currencySymbol,
+          dateFormat: companyProfile.dateFormat,
+          currencyFormat: companyProfile.currencyFormat,
           locale: companyProfile.locale,
           timezone: companyProfile.timezone,
         }}

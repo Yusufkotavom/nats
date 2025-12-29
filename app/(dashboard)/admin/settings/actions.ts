@@ -13,6 +13,8 @@ interface CompanyProfileData {
   taxId?: string | null;
   currency: string;
   currencySymbol: string;
+  dateFormat: string;
+  currencyFormat: string;
   locale: string;
   timezone: string;
 }
@@ -38,6 +40,8 @@ export const updateCompanyProfile = authorizedAction(
           taxId: data.taxId,
           currency: data.currency,
           currencySymbol: data.currencySymbol,
+          dateFormat: data.dateFormat,
+          currencyFormat: data.currencyFormat,
           locale: data.locale,
           timezone: data.timezone,
         },
@@ -53,6 +57,8 @@ export const updateCompanyProfile = authorizedAction(
           taxId: data.taxId,
           currency: data.currency,
           currencySymbol: data.currencySymbol,
+          dateFormat: data.dateFormat,
+          currencyFormat: data.currencyFormat,
           locale: data.locale,
           timezone: data.timezone,
         },

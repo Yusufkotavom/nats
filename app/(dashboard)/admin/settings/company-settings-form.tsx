@@ -33,6 +33,8 @@ interface CompanySettingsFormProps {
     taxId: string | null;
     currency: string;
     currencySymbol: string;
+    dateFormat: string;
+    currencyFormat: string;
     locale: string;
     timezone: string;
   };
@@ -73,6 +75,8 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
       taxId: formData.get("taxId") as string,
       currency: formData.get("currency") as string,
       currencySymbol: formData.get("currencySymbol") as string,
+      dateFormat: formData.get("dateFormat") as string,
+      currencyFormat: formData.get("currencyFormat") as string,
       locale: formData.get("locale") as string,
       timezone: formData.get("timezone") as string,
     };
@@ -181,6 +185,51 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                   value={currencySymbol}
                   onChange={(e) => setCurrencySymbol(e.target.value)}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currencyFormat">Currency Format</Label>
+                <Select
+                  name="currencyFormat"
+                  defaultValue={initialData.currencyFormat || "standard"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">
+                      Standard (1,234.56)
+                    </SelectItem>
+                    <SelectItem value="european">
+                      European (1.234,56)
+                    </SelectItem>
+                    <SelectItem value="indian">Indian (1,23,456.78)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFormat">Date Format</Label>
+                <Select
+                  name="dateFormat"
+                  defaultValue={initialData.dateFormat || "MM/dd/yyyy"}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select date format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MM/dd/yyyy">
+                      MM/dd/yyyy (12/31/2023)
+                    </SelectItem>
+                    <SelectItem value="dd/MM/yyyy">
+                      dd/MM/yyyy (31/12/2023)
+                    </SelectItem>
+                    <SelectItem value="yyyy-MM-dd">
+                      yyyy-MM-dd (2023-12-31)
+                    </SelectItem>
+                    <SelectItem value="dd MMM yyyy">
+                      dd MMM yyyy (31 Dec 2023)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="locale">Locale</Label>
