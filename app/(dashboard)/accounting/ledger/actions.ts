@@ -95,7 +95,7 @@ export const getLedgerEntries = authorizedAction(
         });
 
         if (lastPosted) {
-          const baseBalance = Number(lastPosted.runningBalance);
+          const baseBalance = lastPosted.runningBalance?.toNumber() || 0;
 
           // Add SUM(All Drafts < startDate)
           const draftSumWhere: Prisma.JournalEntryLineWhereInput = {
@@ -112,8 +112,8 @@ export const getLedgerEntries = authorizedAction(
           });
 
           const draftNet =
-            (Number(draftAgg._sum.debitAmount) || 0) -
-            (Number(draftAgg._sum.creditAmount) || 0);
+            (draftAgg._sum.debitAmount?.toNumber() || 0) -
+            (draftAgg._sum.creditAmount?.toNumber() || 0);
           openingBalance = baseBalance + draftNet;
           calculatedFromStored = true;
         }
@@ -141,8 +141,8 @@ export const getLedgerEntries = authorizedAction(
         });
 
         openingBalance =
-          (Number(openingAgg._sum.debitAmount) || 0) -
-          (Number(openingAgg._sum.creditAmount) || 0);
+          (openingAgg._sum.debitAmount?.toNumber() || 0) -
+          (openingAgg._sum.creditAmount?.toNumber() || 0);
       }
 
       const [total, lines, aggregates, account] = await prisma.$transaction([
@@ -184,10 +184,10 @@ export const getLedgerEntries = authorizedAction(
       // Process lines with stored runningBalance optimization
       let processedLines = lines.map((line) => ({
         ...line,
-        debitAmount: Number(line.debitAmount),
-        creditAmount: Number(line.creditAmount),
+        debitAmount: line.debitAmount.toNumber(),
+        creditAmount: line.creditAmount.toNumber(),
         runningBalance: line.runningBalance
-          ? Number(line.runningBalance)
+          ? line.runningBalance.toNumber()
           : null,
       }));
 
@@ -278,8 +278,9 @@ export const getLedgerEntries = authorizedAction(
             take: skip,
           });
 
-          const totalPeriodDebit = Number(aggregates._sum.debitAmount || 0);
-          const totalPeriodCredit = Number(aggregates._sum.creditAmount || 0);
+          const totalPeriodDebit = aggregates._sum.debitAmount?.toNumber() || 0;
+          const totalPeriodCredit =
+            aggregates._sum.creditAmount?.toNumber() || 0;
           const periodNetDebit = totalPeriodDebit - totalPeriodCredit;
 
           // If we used Optimized Opening Balance, `openingBalance` is correct.
@@ -287,7 +288,8 @@ export const getLedgerEntries = authorizedAction(
           const endingBalance = openingBalance + periodNetDebit;
 
           const skippedNet = skippedLines.reduce(
-            (sum, l) => sum + (Number(l.debitAmount) - Number(l.creditAmount)),
+            (sum, l) =>
+              sum + (l.debitAmount.toNumber() - l.creditAmount.toNumber()),
             0
           );
           const currentRunningBalance = endingBalance - skippedNet;
@@ -360,8 +362,8 @@ export const getLedgerEntries = authorizedAction(
           pageSize,
         },
         totals: {
-          debit: Number(aggregates._sum.debitAmount || 0),
-          credit: Number(aggregates._sum.creditAmount || 0),
+          debit: aggregates._sum.debitAmount?.toNumber() || 0,
+          credit: aggregates._sum.creditAmount?.toNumber() || 0,
         },
         account,
       };
