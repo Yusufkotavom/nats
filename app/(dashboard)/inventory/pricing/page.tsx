@@ -1,7 +1,7 @@
 import { getCategories, getPricingProducts } from "./actions";
 import { BatchPricingForm } from "./_components/batch-pricing-form";
 import { IndividualPricingTable } from "./_components/individual-pricing-table";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function PricingPage({

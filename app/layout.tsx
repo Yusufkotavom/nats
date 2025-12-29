@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeColorProvider } from "@/components/theme-color-provider";
+import { ThemeProvider } from "@/components/layout/theme-provider";
+import { ThemeColorProvider } from "@/components/layout/theme-color-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 

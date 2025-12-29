@@ -1,7 +1,7 @@
 import { getCategories } from "../actions";
 import { getUnits } from "../../uom/actions";
 import { ProductForm } from "../_components/product-form";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 
 export default async function CreateProductPage() {
   const [categories, units] = await Promise.all([getCategories(), getUnits()]);

@@ -44,7 +44,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Vendor, PaginatedResult } from "../../types";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 
 interface VendorTableProps {
   initialData: PaginatedResult<Vendor>;

@@ -41,7 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 
 interface User {
   id: string;

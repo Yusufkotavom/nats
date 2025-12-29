@@ -33,7 +33,7 @@ import {
 import { updateAccount, deleteAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountDialog } from "./account-dialog";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 
 interface AccountTableProps {
   initialAccounts: Account[];

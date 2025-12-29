@@ -1,7 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Breadcrumb,
@@ -13,8 +11,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { usePathname } from "next/navigation";
 import React from "react";
-import { ModeToggle } from "@/components/mode-toggle";
-import { ThemeCustomizer } from "@/components/theme-customizer";
+import { ModeToggle } from "@/components/layout/mode-toggle";
+import { ThemeCustomizer } from "@/components/layout/theme-customizer";
 
 export function SiteHeader() {
   const pathname = usePathname();

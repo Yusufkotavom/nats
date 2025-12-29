@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { Pencil, Paperclip } from "lucide-react";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 

@@ -13,7 +13,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { deleteCategory } from "../actions";
 import { CategoryDialog } from "./category-dialog";
 import { Category } from "@/prisma/generated/prisma/browser";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 
 type CategoryWithCount = Category & {
   _count: { products: number };

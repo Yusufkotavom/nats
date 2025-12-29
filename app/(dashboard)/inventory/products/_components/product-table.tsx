@@ -31,7 +31,7 @@ import { ProductFormData } from "../../types";
 import { Category, Unit } from "@/prisma/generated/prisma/browser";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 import Link from "next/link";
 
 interface ProductTableProps {

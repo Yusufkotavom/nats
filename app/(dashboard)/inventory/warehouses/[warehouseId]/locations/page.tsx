@@ -1,12 +1,16 @@
 import { getLocations, getWarehouse } from "./actions";
 import { LocationTable } from "./_components/location-table";
 import { LocationDialog } from "./_components/location-dialog";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
-export default async function Page({ params }: { params: Promise<{ warehouseId: string }> }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ warehouseId: string }>;
+}) {
   const { warehouseId } = await params;
   const locations = await getLocations(warehouseId);
   const warehouse = await getWarehouse(warehouseId);
@@ -15,17 +19,17 @@ export default async function Page({ params }: { params: Promise<{ warehouseId: 
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-            <Link href="/inventory/warehouses">
-                <ArrowLeft className="h-4 w-4" />
-            </Link>
+          <Link href="/inventory/warehouses">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
         </Button>
         <div className="flex-1">
-            <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight">
             {warehouse?.name} - Locations
-            </h2>
-            <p className="text-sm text-muted-foreground">
-                Manage locations/bins for this warehouse
-            </p>
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Manage locations/bins for this warehouse
+          </p>
         </div>
         <Protect permission="warehouses.edit">
           <LocationDialog warehouseId={warehouseId} />

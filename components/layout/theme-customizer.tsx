@@ -12,7 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useThemeColor, ThemeColor } from "@/components/theme-color-provider";
+import {
+  useThemeColor,
+  ThemeColor,
+} from "@/components/layout/theme-color-provider";
 import { cn } from "@/lib/utils";
 
 export function ThemeCustomizer() {

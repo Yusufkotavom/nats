@@ -1,7 +1,7 @@
 import { getProducts, getCategories } from "./actions";
 import { getUnits } from "../uom/actions";
 import { ProductTable } from "./_components/product-table";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";

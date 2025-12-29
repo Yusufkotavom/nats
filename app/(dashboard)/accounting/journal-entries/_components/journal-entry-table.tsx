@@ -60,8 +60,8 @@ import {
   deleteJournalEntry,
   postJournalEntry,
 } from "../actions";
-import { StatusBadge } from "@/components/status-badge";
-import { Protect } from "@/components/protect";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Protect } from "@/components/ui/protect";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 import { Skeleton } from "@/components/ui/skeleton";

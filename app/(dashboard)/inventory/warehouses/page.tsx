@@ -1,7 +1,7 @@
 import { getWarehouses } from "./actions";
 import { WarehouseTable } from "./_components/warehouse-table";
 import { WarehouseDialog } from "./_components/warehouse-dialog";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 
 export default async function Page() {
   const warehouses = await getWarehouses();

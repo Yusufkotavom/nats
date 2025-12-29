@@ -1,6 +1,6 @@
 import { getMovementBatches } from "./actions";
 import { BatchTable, BatchWithDetails } from "./_components/batch-table";
-import { Protect } from "@/components/protect";
+import { Protect } from "@/components/ui/protect";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";

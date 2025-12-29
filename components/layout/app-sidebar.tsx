@@ -2,18 +2,7 @@
 
 import * as React from "react";
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
-  ShieldCheck,
-  Settings2,
-  Users,
-  SquareTerminal,
   BoxIcon,
   Scale,
   Building,
@@ -21,10 +10,9 @@ import {
   Rocket,
   UsersIcon,
   Settings,
-  FileIcon,
 } from "lucide-react";
 
-import { NavMain } from "./nav-main";
+import { NavMain } from "@/components/layout/nav-main";
 import {
   Sidebar,
   SidebarContent,
@@ -32,9 +20,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { TeamSwitcher } from "./team-switcher";
-import { NavProjects } from "./nav-projects";
-import { NavUser } from "./nav-user";
+import { TeamSwitcher } from "@/components/layout/team-switcher";
+import { NavUser } from "@/components/layout/nav-user";
 
 // This is sample data.
 const data = {
