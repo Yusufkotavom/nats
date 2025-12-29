@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountTreeRow } from "../_components/account-tree-row";
 import { Loader2 } from "lucide-react";
-import { formatCurrency, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
@@ -21,6 +23,8 @@ import {
 } from "@/components/ui/table";
 
 export default function BalanceSheetPage() {
+  const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [asOfDate, setAsOfDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -161,8 +165,8 @@ export default function BalanceSheetPage() {
               Statement of Financial Position
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              As of {asOfDate}
-              {showComparative && ` compared to ${comparativeDate}`}
+              As of {formatDate(asOfDate)}
+              {showComparative && ` compared to ${formatDate(comparativeDate)}`}
             </p>
           </CardHeader>
           <CardContent>

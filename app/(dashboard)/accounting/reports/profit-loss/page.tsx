@@ -11,8 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountTreeRow } from "../_components/account-tree-row";
 import { Loader2 } from "lucide-react";
-import { formatCurrency, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
@@ -99,6 +107,7 @@ const ReportSection = ({
 
 export default function ProfitLossPage() {
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [startDate, setStartDate] = useState(
     new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0]
   );
@@ -246,9 +255,11 @@ export default function ProfitLossPage() {
               Income Statement
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              For the period {startDate} to {endDate}
+              For the period {formatDate(startDate)} to {formatDate(endDate)}
               {showComparative &&
-                ` compared to ${comparativeStartDate} to ${comparativeEndDate}`}
+                ` compared to ${formatDate(
+                  comparativeStartDate
+                )} to ${formatDate(comparativeEndDate)}`}
             </p>
           </CardHeader>
           <CardContent>

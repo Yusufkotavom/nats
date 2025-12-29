@@ -8,9 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 
 type RecentTransactionsProps = {
   data: {
@@ -24,6 +24,7 @@ type RecentTransactionsProps = {
 
 export function RecentTransactions({ data }: RecentTransactionsProps) {
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   return (
     <div className="rounded-md border">
@@ -39,7 +40,7 @@ export function RecentTransactions({ data }: RecentTransactionsProps) {
         <TableBody>
           {data.map((transaction) => (
             <TableRow key={transaction.id}>
-              <TableCell>{format(transaction.date, "MMM dd, yyyy")}</TableCell>
+              <TableCell>{formatDate(transaction.date)}</TableCell>
               <TableCell className="font-medium">
                 {transaction.entryNumber}
               </TableCell>

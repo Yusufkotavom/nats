@@ -1,9 +1,30 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { format } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export interface FormatDateOptions {
+  dateFormat?: string;
+  includeTime?: boolean;
+}
+
+export const formatDate = (
+  date: Date | string | number,
+  options?: FormatDateOptions
+) => {
+  const { dateFormat = "MMM dd, yyyy", includeTime = false } = options || {};
+
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    return "";
+  }
+
+  const formatStr = includeTime ? `${dateFormat} HH:mm` : dateFormat;
+  return format(dateObj, formatStr);
+};
 
 export interface FormatCurrencyOptions {
   currency?: string;

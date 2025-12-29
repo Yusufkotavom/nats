@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -9,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 
 interface PriceHistoryProps {
   history?: {
@@ -20,6 +20,7 @@ interface PriceHistoryProps {
 
 export function PriceHistory({ history }: PriceHistoryProps) {
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   if (!history || history.length === 0) {
     return null;
@@ -42,7 +43,7 @@ export function PriceHistory({ history }: PriceHistoryProps) {
             {history.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>
-                  {format(new Date(entry.effectiveDate), "MMM d, yyyy HH:mm")}
+                  {formatDate(entry.effectiveDate, { includeTime: true })}
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatCurrency(entry.price)}

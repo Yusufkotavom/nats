@@ -63,6 +63,7 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { Protect } from "@/components/protect";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Define type based on the return of getJournalEntries
@@ -81,6 +82,7 @@ export function JournalEntryTable() {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [isPending, startTransition] = useTransition();
   const [entryToDelete, setEntryToDelete] =
     useState<JournalEntryWithDetails | null>(null);
@@ -301,9 +303,7 @@ export function JournalEntryTable() {
 
                 return (
                   <TableRow key={entry.id}>
-                    <TableCell>
-                      {new Date(entry.transactionDate).toLocaleDateString()}
-                    </TableCell>
+                    <TableCell>{formatDate(entry.transactionDate)}</TableCell>
                     <TableCell className="font-medium">
                       {entry.entryNumber}
                     </TableCell>

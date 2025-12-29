@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,6 +26,7 @@ import {
 
 export default function CashFlowPage() {
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [startDate, setStartDate] = useState(
     new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0]
   );
@@ -223,9 +225,11 @@ export default function CashFlowPage() {
               Statement of Cash Flows
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              For the period {startDate} to {endDate}
+              For the period {formatDate(startDate)} to {formatDate(endDate)}
               {showComparative &&
-                ` compared to ${comparativeStartDate} to ${comparativeEndDate}`}
+                ` compared to ${formatDate(
+                  comparativeStartDate
+                )} to ${formatDate(comparativeEndDate)}`}
             </p>
           </CardHeader>
           <CardContent>

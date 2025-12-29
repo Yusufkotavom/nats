@@ -16,11 +16,13 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
 export default function EquityPage() {
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [startDate, setStartDate] = useState(
     new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0]
   );
@@ -155,9 +157,11 @@ export default function EquityPage() {
               Statement of Changes in Equity
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              For the period {startDate} to {endDate}
+              For the period {formatDate(startDate)} to {formatDate(endDate)}
               {showComparative &&
-                ` compared to ${comparativeStartDate} - ${comparativeEndDate}`}
+                ` compared to ${formatDate(
+                  comparativeStartDate
+                )} - ${formatDate(comparativeEndDate)}`}
             </p>
           </CardHeader>
           <CardContent>

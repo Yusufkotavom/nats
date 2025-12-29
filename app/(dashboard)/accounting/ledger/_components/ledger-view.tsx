@@ -48,6 +48,7 @@ import {
   Prisma,
 } from "@/prisma/generated/prisma/browser";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 
 type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
   include: {
@@ -84,6 +85,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   useEffect(() => {
     if (!selectedAccount?.id) return;
@@ -332,9 +334,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   entries.map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell>
-                        {new Date(
-                          entry.journalEntry.transactionDate
-                        ).toLocaleDateString()}
+                        {formatDate(entry.journalEntry.transactionDate)}
                       </TableCell>
                       <TableCell>{entry.journalEntry.entryNumber}</TableCell>
                       <TableCell>
