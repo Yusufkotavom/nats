@@ -51,8 +51,8 @@ import {
   postJournalEntry,
 } from "../actions";
 import { StatusBadge } from "@/components/status-badge";
-import { formatCurrency } from "@/lib/utils";
 import { Protect } from "@/components/protect";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 // Define type based on the return of getJournalEntries
 type JournalEntryWithDetails = NonNullable<
@@ -66,6 +66,7 @@ export function JournalEntryTable() {
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const formatCurrency = useFormatCurrency();
   const [isPending, startTransition] = useTransition();
   const [entryToDelete, setEntryToDelete] =
     useState<JournalEntryWithDetails | null>(null);

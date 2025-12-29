@@ -25,7 +25,10 @@ type ExpenseBreakdownChartProps = {
   }[];
 };
 
+import { useFormatCurrency } from "@/hooks/use-format-currency";
+
 export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
+  const formatCurrency = useFormatCurrency();
   // Assign colors dynamically
   const coloredData = data.map((item, index) => ({
     ...item,
@@ -40,7 +43,7 @@ export function ExpenseBreakdownChart({ data }: ExpenseBreakdownChartProps) {
       <PieChart>
         <ChartTooltip
           cursor={false}
-          content={<ChartTooltipContent hideLabel />}
+          content={<ChartTooltipContent hideLabel formatter={(value) => formatCurrency(Number(value))} />}
         />
         <Pie
           data={coloredData}

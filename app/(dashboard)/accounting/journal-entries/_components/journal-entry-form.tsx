@@ -33,7 +33,7 @@ import {
   FileIcon,
 } from "lucide-react";
 import { CreateJournalEntryData } from "../actions";
-import { formatCurrency } from "@/lib/utils";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 import {
   DndContext,
   closestCenter,
@@ -112,6 +112,7 @@ export function JournalEntryForm({
   isSubmitting,
   onCancel,
 }: JournalEntryFormProps) {
+  const formatCurrency = useFormatCurrency();
   const leafAccounts = accounts.filter(
     (a) => !a.children || a.children.length === 0
   );

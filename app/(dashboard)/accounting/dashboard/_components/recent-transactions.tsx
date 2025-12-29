@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Table,
   TableBody,
@@ -8,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 type RecentTransactionsProps = {
   data: {
@@ -20,6 +23,8 @@ type RecentTransactionsProps = {
 };
 
 export function RecentTransactions({ data }: RecentTransactionsProps) {
+  const formatCurrency = useFormatCurrency();
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -40,10 +45,7 @@ export function RecentTransactions({ data }: RecentTransactionsProps) {
               </TableCell>
               <TableCell>{transaction.description || "N/A"}</TableCell>
               <TableCell className="text-right">
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: "USD",
-                }).format(transaction.amount)}
+                {formatCurrency(transaction.amount)}
               </TableCell>
             </TableRow>
           ))}

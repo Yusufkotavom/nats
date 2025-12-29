@@ -29,7 +29,10 @@ type FinancialTrendsChartProps = {
   }[];
 };
 
+import { useFormatCurrency } from "@/hooks/use-format-currency";
+
 export function FinancialTrendsChart({ data }: FinancialTrendsChartProps) {
+  const formatCurrency = useFormatCurrency();
   return (
     <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
       <BarChart accessibilityLayer data={data}>
@@ -41,7 +44,13 @@ export function FinancialTrendsChart({ data }: FinancialTrendsChartProps) {
           axisLine={false}
           tickFormatter={(value) => value.slice(0, 3)}
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              formatter={(value) => formatCurrency(Number(value))}
+            />
+          }
+        />
         <ChartLegend content={<ChartLegendContent />} />
         <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
         <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />

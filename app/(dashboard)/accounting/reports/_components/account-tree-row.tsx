@@ -1,5 +1,6 @@
 import { ReportAccountLine } from "../actions";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { TableRow, TableCell } from "@/components/ui/table";
 
 interface AccountTreeRowProps {
@@ -13,6 +14,7 @@ export function AccountTreeRow({
   level = 0,
   showComparative = false,
 }: AccountTreeRowProps) {
+  const formatCurrency = useFormatCurrency();
   const hasChildren = node.children && node.children.length > 0;
   const paddingLeft = level * 20 + (hasChildren ? 0 : 20);
 

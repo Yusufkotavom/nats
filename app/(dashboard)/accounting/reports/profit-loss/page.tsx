@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountTreeRow } from "../_components/account-tree-row";
 import { Loader2 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
@@ -41,6 +42,7 @@ const ReportSection = ({
   previousTotal,
   showComparative,
 }: ReportSectionProps) => {
+  const formatCurrency = useFormatCurrency();
   const change = (total || 0) - (previousTotal || 0);
   const percent =
     previousTotal && previousTotal !== 0
@@ -96,6 +98,7 @@ const ReportSection = ({
 };
 
 export default function ProfitLossPage() {
+  const formatCurrency = useFormatCurrency();
   const [startDate, setStartDate] = useState(
     new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0]
   );

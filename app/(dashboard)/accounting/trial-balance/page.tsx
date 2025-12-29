@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { formatCurrency } from "@/lib/utils";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 import {
   Table,
   TableBody,
@@ -25,6 +25,7 @@ import { Loader2, RefreshCw, ChevronRight, ChevronDown } from "lucide-react";
 import { TrialBalanceItem } from "../types";
 
 export default function TrialBalancePage() {
+  const formatCurrency = useFormatCurrency();
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );

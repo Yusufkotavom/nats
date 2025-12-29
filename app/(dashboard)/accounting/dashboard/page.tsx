@@ -25,8 +25,20 @@ import {
   FileText,
   PieChart,
 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { formatCurrency } from "@/lib/utils";
 
 export default async function AccountingDashboardPage() {
+  const companyProfile = await prisma.companyProfile.findFirst();
+  const currencyOptions = {
+    currency: companyProfile?.currency,
+    currencySymbol: companyProfile?.currencySymbol || undefined,
+    currencyFormat: companyProfile?.currencyFormat || undefined,
+    locale: companyProfile?.locale,
+  };
+
+  const format = (val: number) => formatCurrency(val, currencyOptions);
+
   const [summaryRes, trendsRes, breakdownRes, transactionsRes] =
     await Promise.all([
       getDashboardSummary(),
@@ -80,10 +92,7 @@ export default async function AccountingDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(summary?.totalRevenue || 0)}
+              {format(summary?.totalRevenue || 0)}
             </div>
             <p className="text-xs text-muted-foreground">Current Month</p>
           </CardContent>
@@ -97,10 +106,7 @@ export default async function AccountingDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(summary?.totalExpenses || 0)}
+              {format(summary?.totalExpenses || 0)}
             </div>
             <p className="text-xs text-muted-foreground">Current Month</p>
           </CardContent>
@@ -112,10 +118,7 @@ export default async function AccountingDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(summary?.netIncome || 0)}
+              {format(summary?.netIncome || 0)}
             </div>
             <p className="text-xs text-muted-foreground">Current Month</p>
           </CardContent>
@@ -127,10 +130,7 @@ export default async function AccountingDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(summary?.accountsReceivable || 0)}
+              {format(summary?.accountsReceivable || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Outstanding Invoices

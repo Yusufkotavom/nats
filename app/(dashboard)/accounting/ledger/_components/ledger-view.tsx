@@ -16,14 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ScaleIcon,
-  TrendingDownIcon,
-  TrendingUpIcon,
-} from "lucide-react";
+import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import { getLedgerEntries } from "../actions";
 import {
   Card,
@@ -37,13 +30,13 @@ import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatCurrency } from "@/lib/utils";
 import { Account } from "../../types";
 import {
   AccountType,
   NormalBalance,
   Prisma,
 } from "@/prisma/generated/prisma/browser";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
   include: {
@@ -76,6 +69,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [onlyDraft, setOnlyDraft] = useState(false);
+  const formatCurrency = useFormatCurrency();
 
   useEffect(() => {
     if (!selectedAccount?.id) return;

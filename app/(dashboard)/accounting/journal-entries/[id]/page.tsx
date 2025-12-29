@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Pencil, Paperclip } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 export default async function JournalEntryDetailsPage({
   params,
@@ -20,6 +21,16 @@ export default async function JournalEntryDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const companyProfile = await prisma.companyProfile.findFirst();
+  const currencyOptions = {
+    currency: companyProfile?.currency,
+    currencySymbol: companyProfile?.currencySymbol || undefined,
+    currencyFormat: companyProfile?.currencyFormat || undefined,
+    locale: companyProfile?.locale,
+  };
+
+  const format = (val: number) => formatCurrency(val, currencyOptions);
+
   const res = await getJournalEntry(id);
 
   if (!res.success || !res.data) {
@@ -93,12 +104,12 @@ export default async function JournalEntryDetailsPage({
                     <TableCell>{line.description || "-"}</TableCell>
                     <TableCell className="text-right">
                       {Number(line.debitAmount) > 0
-                        ? formatCurrency(Number(line.debitAmount))
+                        ? format(Number(line.debitAmount))
                         : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       {Number(line.creditAmount) > 0
-                        ? formatCurrency(Number(line.creditAmount))
+                        ? format(Number(line.creditAmount))
                         : "-"}
                     </TableCell>
                   </TableRow>
@@ -108,10 +119,10 @@ export default async function JournalEntryDetailsPage({
                     Total
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(totalDebit)}
+                    {format(totalDebit)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(totalCredit)}
+                    {format(totalCredit)}
                   </TableCell>
                 </TableRow>
               </TableBody>
