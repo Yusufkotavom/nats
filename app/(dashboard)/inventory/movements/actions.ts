@@ -4,21 +4,35 @@ import { prisma } from "@/lib/prisma";
 import { MovementType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 
-export async function getMovementBatches() {
-  const batches = await prisma.inventoryMovement.findMany({
-    include: {
-      fromWarehouse: true,
-      toWarehouse: true,
-      details: {
-        include: {
-          product: true,
+export async function getMovementBatches(
+  page: number = 1,
+  limit: number = 10
+) {
+  const skip = (page - 1) * limit;
+
+  const [batches, total] = await Promise.all([
+    prisma.inventoryMovement.findMany({
+      include: {
+        fromWarehouse: true,
+        toWarehouse: true,
+        details: {
+          include: {
+            product: true,
+          },
         },
       },
-    },
-    orderBy: { transactionDate: "desc" },
-  });
+      orderBy: { transactionDate: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.inventoryMovement.count(),
+  ]);
 
-  return batches;
+  return {
+    batches,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getMovements() {

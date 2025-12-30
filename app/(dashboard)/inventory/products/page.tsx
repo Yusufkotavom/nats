@@ -26,7 +26,7 @@ export default async function Page({
     getUnits(),
   ]);
 
-  const { products, totalPages } = productsData;
+  const { products, totalPages, total } = productsData;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -51,6 +51,7 @@ export default async function Page({
         categories={categories}
         units={units}
         totalPages={totalPages}
+        totalEntries={total}
       />
     </div>
   );

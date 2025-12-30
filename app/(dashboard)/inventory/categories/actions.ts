@@ -2,16 +2,47 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@/prisma/generated/prisma/client";
 
-export async function getCategories() {
-  return await prisma.category.findMany({
-    include: {
-      _count: {
-        select: { products: true },
+export async function getCategories(
+  page: number = 1,
+  limit: number = 10,
+  search?: string
+) {
+  const skip = (page - 1) * limit;
+  const where: Prisma.CategoryWhereInput = {
+    AND: [],
+  };
+
+  if (search) {
+    (where.AND as Prisma.CategoryWhereInput[]).push({
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  const [categories, total] = await Promise.all([
+    prisma.category.findMany({
+      where,
+      include: {
+        _count: {
+          select: { products: true },
+        },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.category.count({ where }),
+  ]);
+
+  return {
+    categories,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 import { authorizedAction } from "@/lib/permissions/protected-action";

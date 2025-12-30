@@ -20,6 +20,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CustomPagination } from "@/components/ui/custom-pagination";
 
 export type BatchWithDetails = InventoryMovement & {
   fromWarehouse: Warehouse | null;
@@ -31,35 +32,39 @@ export type BatchWithDetails = InventoryMovement & {
 
 interface BatchTableProps {
   batches: BatchWithDetails[];
+  totalEntries: number;
 }
 
-export function BatchTable({ batches }: BatchTableProps) {
+export function BatchTable({ batches, totalEntries }: BatchTableProps) {
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px]"></TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Reference</TableHead>
-            <TableHead>From</TableHead>
-            <TableHead>To</TableHead>
-            <TableHead>Items</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {batches.length === 0 ? (
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
-                No movement batches found.
-              </TableCell>
+              <TableHead className="w-[50px]"></TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Reference</TableHead>
+              <TableHead>From</TableHead>
+              <TableHead>To</TableHead>
+              <TableHead>Items</TableHead>
             </TableRow>
-          ) : (
-            batches.map((batch) => <BatchRow key={batch.id} batch={batch} />)
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {batches.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center">
+                  No movement batches found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              batches.map((batch) => <BatchRow key={batch.id} batch={batch} />)
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <CustomPagination totalEntries={totalEntries} pageSize={10} />
     </div>
   );
 }

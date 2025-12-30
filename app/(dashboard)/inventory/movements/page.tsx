@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-export default async function Page() {
-  const batches = await getMovementBatches();
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const params = await searchParams;
+  const page = Number(params.page) || 1;
+
+  const { batches, total } = await getMovementBatches(page, 10);
 
   // Convert Decimals to numbers for client component serialization
   const formattedBatches = batches.map((batch) => ({
@@ -44,7 +51,7 @@ export default async function Page() {
           </Button>
         </Protect>
       </div>
-      <BatchTable batches={typedBatches} />
+      <BatchTable batches={typedBatches} totalEntries={total} />
     </div>
   );
 }

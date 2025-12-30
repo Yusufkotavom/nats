@@ -23,7 +23,7 @@ export default async function PricingPage({
     getPricingProducts(page, 10, search, categoryId),
   ]);
 
-  const { products, totalPages } = productsData;
+  const { products, totalPages, total } = productsData;
 
   return (
     <div className="flex-1 space-y-4 px-4">
@@ -55,6 +55,7 @@ export default async function PricingPage({
               initialProducts={products}
               categories={categories}
               totalPages={totalPages}
+              totalEntries={total}
             />
           </Protect>
         </TabsContent>

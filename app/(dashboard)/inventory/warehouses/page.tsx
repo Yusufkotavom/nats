@@ -3,8 +3,14 @@ import { WarehouseTable } from "./_components/warehouse-table";
 import { WarehouseDialog } from "./_components/warehouse-dialog";
 import { Protect } from "@/components/ui/protect";
 
-export default async function Page() {
-  const warehouses = await getWarehouses();
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const page = Number(resolvedSearchParams.page) || 1;
+  const { warehouses, total } = await getWarehouses(page);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -16,7 +22,7 @@ export default async function Page() {
           <WarehouseDialog />
         </Protect>
       </div>
-      <WarehouseTable warehouses={warehouses} />
+      <WarehouseTable warehouses={warehouses} totalEntries={total} />
     </div>
   );
 }

@@ -21,16 +21,7 @@ import { Discount } from "@/prisma/generated/prisma/client";
 import { updateSinglePrice } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DiscountManager } from "./discount-manager";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { generatePagination } from "@/lib/utils";
+import { CustomPagination } from "@/components/ui/custom-pagination";
 
 interface PricingProduct {
   id: string;
@@ -48,12 +39,14 @@ interface IndividualPricingTableProps {
   initialProducts: PricingProduct[];
   categories: Category[];
   totalPages: number;
+  totalEntries: number;
 }
 
 export function IndividualPricingTable({
   initialProducts,
   categories,
   totalPages,
+  totalEntries,
 }: IndividualPricingTableProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -92,7 +85,6 @@ export function IndividualPricingTable({
 
   const categoryFilter = searchParams.get("categoryId") || "ALL";
   const currentPage = Number(searchParams.get("page")) || 1;
-  const paginationPages = generatePagination(currentPage, totalPages);
 
   const handleCategoryChange = (val: string) => {
     const params = new URLSearchParams(searchParams);
@@ -105,43 +97,34 @@ export function IndividualPricingTable({
     replace(`${pathname}?${params.toString()}`);
   };
 
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", page.toString());
-    replace(`${pathname}?${params.toString()}`);
-  };
+  async function updatePrice(id: string, newPrice: number) {
+    if (isNaN(newPrice) || newPrice < 0) return;
 
-  const startEditing = (product: PricingProduct) => {
+    setIsSaving(true);
+    const result = await updateSinglePrice({ id, price: newPrice });
+    setIsSaving(false);
+
+    if (result.success) {
+      setEditingId(null);
+      refresh();
+    } else {
+      alert("Failed to update price");
+    }
+  }
+
+  function startEditing(product: PricingProduct) {
     setEditingId(product.id);
     setEditValue(product.price);
-  };
+  }
 
-  const cancelEditing = () => {
+  function cancelEditing() {
     setEditingId(null);
     setEditValue("");
-  };
-
-  const savePrice = async (id: string) => {
-    setIsSaving(true);
-    try {
-      const result = await updateSinglePrice({ id, price: Number(editValue) });
-      if (result.success) {
-        setEditingId(null);
-        refresh(); // Refresh to get latest data and update server state
-      } else {
-        alert(result.error || "Failed to update price");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to update price");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex gap-4 items-center">
         <div className="relative flex-1 max-w-sm">
           <CustomInput
             placeholder="Search products..."
@@ -152,81 +135,67 @@ export function IndividualPricingTable({
           />
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <CustomSelect
-            value={categoryFilter}
-            onValueChange={handleCategoryChange}
-            containerClassName="w-[180px]"
-            placeholder="All Categories"
-          >
-            <SelectItem value="ALL">All Categories</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </CustomSelect>
-        </div>
+        <CustomSelect
+          value={categoryFilter}
+          onValueChange={handleCategoryChange}
+          containerClassName="w-[180px]"
+          placeholder="Category"
+        >
+          <SelectItem value="ALL">All Categories</SelectItem>
+          {categories.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.name}
+            </SelectItem>
+          ))}
+        </CustomSelect>
       </div>
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead className="text-right">Cost</TableHead>
-              <TableHead className="text-right">Current Price</TableHead>
-              <TableHead className="text-center">Discounts</TableHead>
-              <TableHead className="w-[150px] text-right">Actions</TableHead>
+              <TableHead>Cost</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Discounts</TableHead>
+              <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={6} className="text-center">
                   No products found.
                 </TableCell>
               </TableRow>
             ) : (
               products.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell>{product.sku}</TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.category?.name || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(product.cost)}
+                  <TableCell>
+                    <div className="font-medium">{product.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {product.sku}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>{product.category?.name || "-"}</TableCell>
+                  <TableCell>{formatCurrency(product.cost)}</TableCell>
+                  <TableCell>
                     {editingId === product.id ? (
-                      <div className="flex justify-end">
+                      <div className="flex items-center gap-2">
                         <CurrencyInput
                           value={editValue}
                           onChange={setEditValue}
                           className="h-8 w-24 text-right"
+                          autoFocus
                         />
-                      </div>
-                    ) : (
-                      formatCurrency(product.price)
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <DiscountManager
-                      productId={product.id}
-                      productName={product.name}
-                      discounts={product.discounts}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {editingId === product.id ? (
-                      <div className="flex justify-end gap-2">
                         <Button
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-green-600"
-                          onClick={() => savePrice(product.id)}
+                          onClick={() =>
+                            updatePrice(product.id, Number(editValue))
+                          }
                           disabled={isSaving}
                         >
                           {isSaving ? (
@@ -238,15 +207,26 @@ export function IndividualPricingTable({
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-red-600"
+                          className="h-8 w-8 text-red-500"
                           onClick={cancelEditing}
                           disabled={isSaving}
                         >
-                          <span className="sr-only">Cancel</span>
-                          <span aria-hidden>×</span>
+                          <Filter className="h-4 w-4 rotate-45" />{" "}
                         </Button>
                       </div>
                     ) : (
+                      formatCurrency(product.price)
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <DiscountManager
+                      productId={product.id}
+                      productName={product.name}
+                      discounts={product.discounts}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {editingId !== product.id && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -263,63 +243,12 @@ export function IndividualPricingTable({
         </Table>
       </div>
 
-      <div className="flex flex-col gap-4 py-4">
-        <div className="text-sm text-muted-foreground text-center">
-          {products.length > 0
-            ? `Page ${currentPage} of ${totalPages}`
-            : "No products found"}
-        </div>
-        {totalPages > 1 && (
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage > 1) handlePageChange(currentPage - 1);
-                  }}
-                  className={
-                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
-                  }
-                />
-              </PaginationItem>
-              {paginationPages.map((pageNum, i) => (
-                <PaginationItem key={i}>
-                  {pageNum === "..." ? (
-                    <PaginationEllipsis />
-                  ) : (
-                    <PaginationLink
-                      href="#"
-                      isActive={currentPage === pageNum}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handlePageChange(Number(pageNum));
-                      }}
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  )}
-                </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage < totalPages)
-                      handlePageChange(currentPage + 1);
-                  }}
-                  className={
-                    currentPage === totalPages
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
+      <div className="py-4">
+        <CustomPagination
+          totalEntries={totalEntries}
+          pageSize={10}
+          currentPage={currentPage}
+        />
       </div>
     </div>
   );

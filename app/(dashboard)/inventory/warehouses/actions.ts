@@ -3,33 +3,46 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function getWarehouses() {
-  const warehouses = await prisma.warehouse.findMany({
-    include: {
-      inventory: {
-        include: {
-          product: true,
+export async function getWarehouses(page: number = 1, limit: number = 10) {
+  const skip = (page - 1) * limit;
+
+  const [warehouses, total] = await Promise.all([
+    prisma.warehouse.findMany({
+      include: {
+        inventory: {
+          include: {
+            product: true,
+          },
         },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.warehouse.count(),
+  ]);
 
-  return warehouses.map((warehouse) => ({
-    ...warehouse,
-    inventory: warehouse.inventory.map((inv) => ({
-      ...inv,
-      unitCost: Number(inv.unitCost),
-      product: {
-        ...inv.product,
-        price: Number(inv.product.price),
-        cost: Number(inv.product.cost),
-        averageCost: Number(inv.product.averageCost),
-        purchaseConversionFactor: Number(inv.product.purchaseConversionFactor),
-        salesConversionFactor: Number(inv.product.salesConversionFactor),
-      },
+  return {
+    warehouses: warehouses.map((warehouse) => ({
+      ...warehouse,
+      inventory: warehouse.inventory.map((inv) => ({
+        ...inv,
+        unitCost: Number(inv.unitCost),
+        product: {
+          ...inv.product,
+          price: Number(inv.product.price),
+          cost: Number(inv.product.cost),
+          averageCost: Number(inv.product.averageCost),
+          purchaseConversionFactor: Number(
+            inv.product.purchaseConversionFactor
+          ),
+          salesConversionFactor: Number(inv.product.salesConversionFactor),
+        },
+      })),
     })),
-  }));
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 import { authorizedAction } from "@/lib/permissions/protected-action";

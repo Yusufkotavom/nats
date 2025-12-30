@@ -5,12 +5,26 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { LocationType } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
-export async function getLocations(warehouseId: string) {
-  const locations = await prisma.location.findMany({
-    where: { warehouseId },
-    orderBy: { code: "asc" },
-  });
-  return locations;
+export async function getLocations(
+  warehouseId: string,
+  page: number = 1,
+  limit: number = 10
+) {
+  const skip = (page - 1) * limit;
+
+  const [locations, total] = await Promise.all([
+    prisma.location.findMany({
+      where: { warehouseId },
+      orderBy: { code: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.location.count({
+      where: { warehouseId },
+    }),
+  ]);
+
+  return { locations, total };
 }
 
 export async function getWarehouse(warehouseId: string) {

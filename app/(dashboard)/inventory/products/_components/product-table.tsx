@@ -30,11 +30,14 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Protect } from "@/components/ui/protect";
 import Link from "next/link";
 
+import { CustomPagination } from "@/components/ui/custom-pagination";
+
 interface ProductTableProps {
   products: ProductFormData[];
   categories: Category[];
   units: Unit[];
   totalPages: number;
+  totalEntries: number;
 }
 
 export function ProductTable({
@@ -42,6 +45,7 @@ export function ProductTable({
   categories,
   units,
   totalPages,
+  totalEntries,
 }: ProductTableProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -80,12 +84,6 @@ export function ProductTable({
       params.delete("categoryId");
     }
     params.set("page", "1");
-    replace(`${pathname}?${params.toString()}`);
-  };
-
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("page", page.toString());
     replace(`${pathname}?${params.toString()}`);
   };
 
@@ -194,28 +192,12 @@ export function ProductTable({
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
-        <div className="text-sm text-muted-foreground">
-          Page {currentPage} of {totalPages}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+      <div className="py-4">
+        <CustomPagination
+          totalEntries={totalEntries}
+          pageSize={10}
+          currentPage={currentPage}
+        />
       </div>
     </div>
   );

@@ -53,7 +53,9 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
   // Fetch locations when warehouse changes
   useEffect(() => {
     if (selectedWarehouseId) {
-      getLocations(selectedWarehouseId).then(setLocations);
+      getLocations(selectedWarehouseId).then(({ locations }) =>
+        setLocations(locations)
+      );
     } else {
       setLocations([]);
     }

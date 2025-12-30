@@ -3,8 +3,14 @@ import { UomTable } from "./_components/uom-table";
 import { UomDialog } from "./_components/uom-dialog";
 import { Protect } from "@/components/ui/protect";
 
-export default async function Page() {
-  const units = await getUnits();
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const page = Number(resolvedSearchParams.page) || 1;
+  const { units, total } = await getUnits(page);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -14,7 +20,7 @@ export default async function Page() {
           <UomDialog />
         </Protect>
       </div>
-      <UomTable units={units} />
+      <UomTable units={units} totalEntries={total} />
     </div>
   );
 }

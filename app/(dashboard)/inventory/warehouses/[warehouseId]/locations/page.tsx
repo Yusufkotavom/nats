@@ -8,11 +8,15 @@ import { ArrowLeft } from "lucide-react";
 
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ warehouseId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { warehouseId } = await params;
-  const locations = await getLocations(warehouseId);
+  const resolvedSearchParams = await searchParams;
+  const page = Number(resolvedSearchParams.page) || 1;
+  const { locations, total } = await getLocations(warehouseId, page);
   const warehouse = await getWarehouse(warehouseId);
 
   return (
@@ -35,7 +39,11 @@ export default async function Page({
           <LocationDialog warehouseId={warehouseId} />
         </Protect>
       </div>
-      <LocationTable warehouseId={warehouseId} locations={locations} />
+      <LocationTable
+        warehouseId={warehouseId}
+        locations={locations}
+        totalEntries={total}
+      />
     </div>
   );
 }

@@ -4,11 +4,23 @@ import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
 
-export async function getUnits() {
-  const units = await prisma.unit.findMany({
-    orderBy: { name: "asc" },
-  });
-  return units;
+export async function getUnits(page: number = 1, limit: number = 10) {
+  const skip = (page - 1) * limit;
+
+  const [units, total] = await Promise.all([
+    prisma.unit.findMany({
+      orderBy: { name: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.unit.count(),
+  ]);
+
+  return {
+    units,
+    total,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export const createUnit = authorizedAction(
