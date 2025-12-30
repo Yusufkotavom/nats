@@ -12,24 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  ChevronRight,
-  ChevronDown,
-  Pencil,
-  Trash2,
-  Plus,
-  Loader2,
-} from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
 import { updateAccount, deleteAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountDialog } from "./account-dialog";
@@ -256,41 +240,28 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
         }}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!accountToDelete}
         onOpenChange={(open) =>
           !open && !isDeleting && setAccountToDelete(null)
         }
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              account
-              <span className="font-medium text-foreground">
-                {" "}
-                {accountToDelete?.code} — {accountToDelete?.name}
-              </span>
-              .
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDelete();
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Are you sure?"
+        description={
+          <>
+            This action cannot be undone. This will permanently delete the
+            account
+            <span className="font-medium text-foreground">
+              {" "}
+              {accountToDelete?.code} — {accountToDelete?.name}
+            </span>
+            .
+          </>
+        }
+        onConfirm={confirmDelete}
+        confirmText="Delete"
+        variant="destructive"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

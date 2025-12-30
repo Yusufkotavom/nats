@@ -14,16 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { RoleDialog } from "./role-dialog";
 import { deleteRole, toggleRoleStatus } from "../actions";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Define Role interface manually to avoid importing from prisma client in client component if needed,
 // but usually passing data from server component is fine.
@@ -174,33 +165,16 @@ export function RolesView({ roles }: RolesViewProps) {
         onOpenChange={setDialogOpen}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={!!deleteId}
         onOpenChange={(open) => !open && setDeleteId(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              role.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive hover:bg-destructive/90"
-              disabled={loading}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Are you absolutely sure?"
+        description="This action cannot be undone. This will permanently delete the role."
+        onConfirm={handleDelete}
+        confirmText="Delete"
+        variant="destructive"
+        isLoading={loading}
+      />
     </>
   );
 }
-
-import { Loader2 } from "lucide-react";

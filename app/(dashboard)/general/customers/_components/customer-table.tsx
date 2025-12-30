@@ -31,16 +31,7 @@ import {
 import { CustomerDialog } from "./customer-dialog";
 import { deleteCustomer } from "../actions";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CustomInput } from "@/components/ui/custom-input";
 import { Customer, PaginatedResult } from "../../types";
@@ -232,29 +223,15 @@ export function CustomerTable({ initialData }: CustomerTableProps) {
         customer={selectedCustomer}
       />
 
-      <AlertDialog
+      <ConfirmDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              customer and remove their data from our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Are you absolutely sure?"
+        description="This action cannot be undone. This will permanently delete the customer and remove their data from our servers."
+        onConfirm={handleConfirmDelete}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }
