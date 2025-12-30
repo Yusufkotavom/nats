@@ -35,6 +35,15 @@ async function main() {
       parentCode: "11000",
     },
     {
+      code: "11110",
+      name: "Bank - Main",
+      type: "asset",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "11000",
+    },
+    {
       code: "11200",
       name: "Accounts Receivable",
       type: "asset",
@@ -135,9 +144,36 @@ async function main() {
       name: "Operating Revenue",
       type: "revenue",
       normalBalance: "credit",
-      isPosting: true,
+      isPosting: false,
       level: 1,
       parentCode: "40000",
+    },
+    {
+      code: "41100",
+      name: "Service Revenue",
+      type: "revenue",
+      normalBalance: "credit",
+      isPosting: true,
+      level: 2,
+      parentCode: "41000",
+    },
+    {
+      code: "41200",
+      name: "Product Sales",
+      type: "revenue",
+      normalBalance: "credit",
+      isPosting: true,
+      level: 2,
+      parentCode: "41000",
+    },
+    {
+      code: "41300",
+      name: "Consulting Income",
+      type: "revenue",
+      normalBalance: "credit",
+      isPosting: true,
+      level: 2,
+      parentCode: "41000",
     },
 
     // 5. EXPENSES
@@ -155,9 +191,81 @@ async function main() {
       name: "Operating Expenses",
       type: "expense",
       normalBalance: "debit",
-      isPosting: true,
+      isPosting: false,
       level: 1,
       parentCode: "50000",
+    },
+    {
+      code: "51100",
+      name: "Rent Expense",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51200",
+      name: "Utilities Expense",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51300",
+      name: "Office Supplies",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51400",
+      name: "Salaries and Wages",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51500",
+      name: "Software Subscriptions",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51600",
+      name: "Travel Expense",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51700",
+      name: "Marketing",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51800",
+      name: "Insurance Expense",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
     },
   ] as const;
 
@@ -454,7 +562,6 @@ async function main() {
       });
 
       // Seed Inventory for this product in Main Warehouse
-      // Check if inventory exists
       const inv = await prisma.inventory.findUnique({
         where: {
           productId_warehouseId_batchNumber: {
@@ -487,11 +594,37 @@ async function main() {
   };
 
   const cashAccount = await getAccount("11100");
+  const bankAccount = await getAccount("11110");
+  const arAccount = await getAccount("11200");
+  const apAccount = await getAccount("21100");
   const capitalAccount = await getAccount("31000");
-  const revenueAccount = await getAccount("41000");
-  const expenseAccount = await getAccount("51000");
 
-  if (!cashAccount || !capitalAccount || !revenueAccount || !expenseAccount) {
+  const revenueAccountCodes = ["41100", "41200", "41300"];
+  const expenseAccountCodes = [
+    "51100",
+    "51200",
+    "51300",
+    "51400",
+    "51500",
+    "51600",
+    "51700",
+    "51800",
+  ];
+
+  const revenueAccounts = (
+    await Promise.all(revenueAccountCodes.map(getAccount))
+  ).filter((a): a is NonNullable<typeof a> => a !== null);
+  const expenseAccounts = (
+    await Promise.all(expenseAccountCodes.map(getAccount))
+  ).filter((a): a is NonNullable<typeof a> => a !== null);
+
+  if (
+    !cashAccount ||
+    !bankAccount ||
+    !capitalAccount ||
+    revenueAccounts.length === 0 ||
+    expenseAccounts.length === 0
+  ) {
     console.error("Required accounts not found for journal entry seeding.");
     return;
   }
@@ -510,11 +643,11 @@ async function main() {
       lines: {
         create: [
           {
-            accountId: cashAccount.id,
+            accountId: bankAccount.id,
             debitAmount: 100000,
             creditAmount: 0,
             lineNumber: 1,
-            description: "Cash investment",
+            description: "Cash investment to Bank",
           },
           {
             accountId: capitalAccount.id,
@@ -528,14 +661,14 @@ async function main() {
     },
   });
 
-  // 2. Service Revenue
+  // 2. Service Revenue (Cash)
   await prisma.journalEntry.upsert({
     where: { entryNumber: "JE-002" },
     update: {},
     create: {
       entryNumber: "JE-002",
       transactionDate: new Date("2025-01-15"),
-      description: "Service Revenue",
+      description: "Service Revenue - Consulting",
       status: "posted",
       userId: user.id,
       lines: {
@@ -548,7 +681,9 @@ async function main() {
             description: "Cash received",
           },
           {
-            accountId: revenueAccount.id,
+            accountId:
+              revenueAccounts.find((a) => a.name.includes("Consulting"))?.id ||
+              revenueAccounts[0].id,
             debitAmount: 0,
             creditAmount: 5000,
             lineNumber: 2,
@@ -559,31 +694,33 @@ async function main() {
     },
   });
 
-  // 3. Operating Expense
+  // 3. Operating Expense (Rent)
   await prisma.journalEntry.upsert({
     where: { entryNumber: "JE-003" },
     update: {},
     create: {
       entryNumber: "JE-003",
       transactionDate: new Date("2025-01-20"),
-      description: "Office Supplies",
+      description: "Monthly Rent Payment",
       status: "posted",
       userId: user.id,
       lines: {
         create: [
           {
-            accountId: expenseAccount.id,
-            debitAmount: 500,
+            accountId:
+              expenseAccounts.find((a) => a.name.includes("Rent"))?.id ||
+              expenseAccounts[0].id,
+            debitAmount: 2000,
             creditAmount: 0,
             lineNumber: 1,
-            description: "Supplies purchased",
+            description: "Rent Expense",
           },
           {
-            accountId: cashAccount.id,
+            accountId: bankAccount.id,
             debitAmount: 0,
-            creditAmount: 500,
+            creditAmount: 2000,
             lineNumber: 2,
-            description: "Cash paid",
+            description: "Bank transfer",
           },
         ],
       },
@@ -602,19 +739,52 @@ async function main() {
     "Office Supplies",
     "Travel Expense",
     "Software License",
+    "Marketing Campaign",
+    "Client Lunch",
+    "Insurance Premium",
   ];
 
   for (let i = 1; i <= 100; i++) {
     const entryNumber = `JE-GEN-${i.toString().padStart(3, "0")}`;
-    const isRevenue = Math.random() > 0.5; // 50% chance of revenue vs expense
-    const amount = Math.floor(Math.random() * 1000) + 50; // Random amount between 50 and 1050
+    const isRevenue = Math.random() > 0.4; // 60% revenue
+    const amount = Math.floor(Math.random() * 2000) + 50;
     const description =
       descriptions[Math.floor(Math.random() * descriptions.length)];
 
-    // Random date within 2024
+    // Random date within 2025
     const month = Math.floor(Math.random() * 12);
     const day = Math.floor(Math.random() * 28) + 1;
     const date = new Date(2025, month, day);
+
+    let debitAccount, creditAccount;
+
+    if (isRevenue) {
+      // Revenue Transaction
+      const revenueAccount =
+        revenueAccounts[Math.floor(Math.random() * revenueAccounts.length)];
+      creditAccount = revenueAccount;
+
+      // 70% chance Bank/Cash, 30% chance AR
+      const isCash = Math.random() > 0.3;
+      if (isCash) {
+        debitAccount = Math.random() > 0.5 ? bankAccount : cashAccount;
+      } else {
+        debitAccount = arAccount || bankAccount; // Fallback to bank if AR missing (unlikely)
+      }
+    } else {
+      // Expense Transaction
+      const expenseAccount =
+        expenseAccounts[Math.floor(Math.random() * expenseAccounts.length)];
+      debitAccount = expenseAccount;
+
+      // 80% chance Bank/Cash, 20% chance AP
+      const isPaid = Math.random() > 0.2;
+      if (isPaid) {
+        creditAccount = Math.random() > 0.5 ? bankAccount : cashAccount;
+      } else {
+        creditAccount = apAccount || bankAccount;
+      }
+    }
 
     await prisma.journalEntry.upsert({
       where: { entryNumber },
@@ -626,41 +796,22 @@ async function main() {
         status: "posted",
         userId: user.id,
         lines: {
-          create: isRevenue
-            ? [
-                // Revenue: Debit Cash, Credit Revenue
-                {
-                  accountId: cashAccount.id,
-                  debitAmount: amount,
-                  creditAmount: 0,
-                  lineNumber: 1,
-                  description: "Cash received",
-                },
-                {
-                  accountId: revenueAccount.id,
-                  debitAmount: 0,
-                  creditAmount: amount,
-                  lineNumber: 2,
-                  description: "Service performed",
-                },
-              ]
-            : [
-                // Expense: Debit Expense, Credit Cash
-                {
-                  accountId: expenseAccount.id,
-                  debitAmount: amount,
-                  creditAmount: 0,
-                  lineNumber: 1,
-                  description: "Expense incurred",
-                },
-                {
-                  accountId: cashAccount.id,
-                  debitAmount: 0,
-                  creditAmount: amount,
-                  lineNumber: 2,
-                  description: "Cash paid",
-                },
-              ],
+          create: [
+            {
+              accountId: debitAccount.id,
+              debitAmount: amount,
+              creditAmount: 0,
+              lineNumber: 1,
+              description: isRevenue ? "Payment/Receivable" : description,
+            },
+            {
+              accountId: creditAccount.id,
+              debitAmount: 0,
+              creditAmount: amount,
+              lineNumber: 2,
+              description: isRevenue ? description : "Payment/Payable",
+            },
+          ],
         },
       },
     });
