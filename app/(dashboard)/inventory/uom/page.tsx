@@ -8,7 +8,7 @@ export default async function Page({
 }) {
   const resolvedSearchParams = await searchParams;
   const page = Number(resolvedSearchParams.page) || 1;
-  const { units, total } = await getUnits(page);
+  const { data: units, total } = await getUnits(page);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

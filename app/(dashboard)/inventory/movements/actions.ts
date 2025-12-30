@@ -41,6 +41,29 @@ export async function getMovementBatches(page: number = 1, limit: number = 10) {
   };
 }
 
+export async function getMovementBatchById(id: string) {
+  const batch = await prisma.inventoryMovement.findUnique({
+    where: { id },
+    include: {
+      fromWarehouse: true,
+      toWarehouse: true,
+      details: {
+        include: {
+          product: true,
+        },
+      },
+      approvedBy: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  return batch;
+}
+
 export async function getMovements() {
   const movements = await prisma.inventoryMovementDetail.findMany({
     include: {
