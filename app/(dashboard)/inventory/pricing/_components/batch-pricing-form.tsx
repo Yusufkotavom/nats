@@ -247,11 +247,11 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
                           {change.sku}
                         </TableCell>
                         <TableCell>{change.name}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">
+                        <TableCell className="text-right">
                           {formatCurrency(change.cost)}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {change.margin.toFixed(1)}%
+                        <TableCell className="text-right">
+                          {change.margin.toFixed(2)}%
                         </TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(change.currentPrice)}

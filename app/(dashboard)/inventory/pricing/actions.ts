@@ -214,7 +214,7 @@ export async function previewPriceChanges(data: BatchPricingInput) {
         newPrice = currentPrice * (1 - data.value / 100);
         break;
       case "COST_MARGIN":
-        newPrice = cost * (1 + data.value / 100);
+        newPrice = cost + cost * (data.value / 100);
         break;
       case "FIXED_AMOUNT_INC":
         newPrice = currentPrice + data.value;
@@ -230,7 +230,7 @@ export async function previewPriceChanges(data: BatchPricingInput) {
     // Ensure not negative
     if (newPrice < 0) newPrice = 0;
 
-    const margin = newPrice > 0 ? ((newPrice - cost) / newPrice) * 100 : 0;
+    const margin = ((newPrice - cost) / cost) * 100;
 
     return {
       id: p.id,
