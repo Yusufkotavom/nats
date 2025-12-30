@@ -15,9 +15,7 @@ export default async function Page({
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">
-          Warehouses & Stock
-        </h2>
+        <h2 className="text-2xl font-bold tracking-tight">Warehouses</h2>
         <Protect permission="warehouses.create">
           <WarehouseDialog />
         </Protect>

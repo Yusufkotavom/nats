@@ -9,17 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ChevronDown,
-  ChevronRight,
-  Pencil,
-  Trash2,
-  MapPin,
-} from "lucide-react";
+import { Pencil, Trash2, MapPin, Eye } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { deleteWarehouse } from "../actions";
 import { WarehouseDialog } from "./warehouse-dialog";
+
 import {
   Inventory,
   Product,
@@ -59,12 +53,7 @@ export function WarehouseTable({
 }: WarehouseTableProps) {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const formatCurrency = useFormatCurrency();
-
-  function toggleExpand(id: string) {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  }
 
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this warehouse?")) {
@@ -78,7 +67,6 @@ export function WarehouseTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Total Products</TableHead>
@@ -89,13 +77,12 @@ export function WarehouseTable({
           <TableBody>
             {warehouses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={5} className="text-center">
                   No warehouses found.
                 </TableCell>
               </TableRow>
             ) : (
-              warehouses.flatMap((warehouse) => {
-                const isOpen = expanded[warehouse.id];
+              warehouses.map((warehouse) => {
                 const uniqueProducts = new Set(
                   warehouse.inventory.map((i) => i.productId)
                 ).size;
@@ -104,22 +91,8 @@ export function WarehouseTable({
                   0
                 );
 
-                return [
+                return (
                   <TableRow key={warehouse.id} className="border-b">
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleExpand(warehouse.id)}
-                        className="h-8 w-8"
-                      >
-                        {isOpen ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableCell>
                     <TableCell className="font-medium">
                       {warehouse.name}
                     </TableCell>
@@ -131,12 +104,10 @@ export function WarehouseTable({
                         variant="ghost"
                         size="icon"
                         asChild
-                        title="Manage Locations"
+                        title="View Details"
                       >
-                        <Link
-                          href={`/inventory/warehouses/${warehouse.id}/locations`}
-                        >
-                          <MapPin className="h-4 w-4" />
+                        <Link href={`/inventory/warehouses/${warehouse.id}`}>
+                          <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
                       <WarehouseDialog
@@ -155,54 +126,8 @@ export function WarehouseTable({
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </TableCell>
-                  </TableRow>,
-                  isOpen && (
-                    <TableRow
-                      key={`${warehouse.id}-detail`}
-                      className="bg-muted/50"
-                    >
-                      <TableCell colSpan={6} className="p-4">
-                        <div className="rounded-md border bg-background">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Product</TableHead>
-                                <TableHead>SKU</TableHead>
-                                <TableHead>Quantity</TableHead>
-                                <TableHead>Value</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {warehouse.inventory.length === 0 ? (
-                                <TableRow>
-                                  <TableCell
-                                    colSpan={4}
-                                    className="text-center text-muted-foreground"
-                                  >
-                                    No inventory in this warehouse.
-                                  </TableCell>
-                                </TableRow>
-                              ) : (
-                                warehouse.inventory.map((inv) => (
-                                  <TableRow key={inv.id}>
-                                    <TableCell>{inv.product.name}</TableCell>
-                                    <TableCell>{inv.product.sku}</TableCell>
-                                    <TableCell>{inv.quantity}</TableCell>
-                                    <TableCell>
-                                      {formatCurrency(
-                                        inv.quantity * Number(inv.product.cost)
-                                      )}
-                                    </TableCell>
-                                  </TableRow>
-                                ))
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ),
-                ];
+                  </TableRow>
+                );
               })
             )}
           </TableBody>
