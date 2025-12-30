@@ -87,16 +87,16 @@ const data = {
           url: "/inventory/pricing",
         },
         {
-          title: "Categories",
-          url: "/inventory/categories",
-        },
-        {
           title: "Warehouses",
           url: "/inventory/warehouses",
         },
         {
           title: "Movements",
           url: "/inventory/movements",
+        },
+        {
+          title: "Categories",
+          url: "/inventory/categories",
         },
         {
           title: "Units (UOM)",
