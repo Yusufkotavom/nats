@@ -10,9 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { createVendor, updateVendor } from "../actions";
 import { Loader2 } from "lucide-react";
@@ -81,52 +81,32 @@ export function VendorDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={vendor?.name}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                defaultValue={vendor?.email || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input
-                id="phone"
-                name="phone"
-                defaultValue={vendor?.phone || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address
-              </Label>
-              <Textarea
-                id="address"
-                name="address"
-                defaultValue={vendor?.address || ""}
-                className="col-span-3"
-              />
-            </div>
+            <CustomInput
+              label="Name"
+              id="name"
+              name="name"
+              defaultValue={vendor?.name}
+              required
+            />
+            <CustomInput
+              label="Email"
+              id="email"
+              name="email"
+              type="email"
+              defaultValue={vendor?.email || ""}
+            />
+            <CustomInput
+              label="Phone"
+              id="phone"
+              name="phone"
+              defaultValue={vendor?.phone || ""}
+            />
+            <CustomTextarea
+              label="Address"
+              id="address"
+              name="address"
+              defaultValue={vendor?.address || ""}
+            />
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="isActive" className="text-right">
                 Active

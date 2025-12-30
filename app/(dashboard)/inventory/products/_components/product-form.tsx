@@ -2,20 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
+import { SelectItem } from "@/components/ui/select";
 import { useState } from "react";
 import { createProduct, updateProduct } from "../actions";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { ProductFormData } from "../../types";
 import { Category, Unit } from "@/prisma/generated/prisma/browser";
 import { useRouter } from "next/navigation";
@@ -131,58 +126,50 @@ export function ProductForm({
           <fieldset className="group">
             <CardContent className="grid gap-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    name="sku"
-                    defaultValue={product?.sku}
-                    required
-                    disabled={readonly}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    defaultValue={product?.name}
-                    required
-                    disabled={readonly}
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  defaultValue={product?.description || ""}
+                <CustomInput
+                  label="SKU"
+                  id="sku"
+                  name="sku"
+                  defaultValue={product?.sku}
+                  required
                   disabled={readonly}
+                  containerClassName="grid gap-2"
+                />
+                <CustomInput
+                  label="Name"
+                  id="name"
+                  name="name"
+                  defaultValue={product?.name}
+                  required
+                  disabled={readonly}
+                  containerClassName="grid gap-2"
                 />
               </div>
 
+              <CustomTextarea
+                label="Description"
+                id="description"
+                name="description"
+                defaultValue={product?.description || ""}
+                disabled={readonly}
+                containerClassName="grid gap-2"
+              />
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="categoryId">Category</Label>
-                  <Select
-                    name="categoryId"
-                    defaultValue={product?.categoryId || undefined}
-                    disabled={readonly}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <CustomSelect
+                  label="Category"
+                  name="categoryId"
+                  defaultValue={product?.categoryId || undefined}
+                  disabled={readonly}
+                  placeholder="Select category"
+                  containerClassName="grid gap-2"
+                >
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
                 <div className="flex items-center space-x-2 pt-8">
                   <Switch
                     id="isActive"
@@ -219,124 +206,110 @@ export function ProductForm({
                     disabled={readonly}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="minStock">Min Stock Level</Label>
-                  <Input
-                    id="minStock"
-                    name="minStock"
-                    type="number"
-                    min="0"
-                    defaultValue={product?.minStock}
-                    required
-                    disabled={readonly}
-                  />
-                </div>
+                <CustomInput
+                  label="Min Stock Level"
+                  id="minStock"
+                  name="minStock"
+                  type="number"
+                  min="0"
+                  defaultValue={product?.minStock}
+                  required
+                  disabled={readonly}
+                  containerClassName="grid gap-2"
+                />
               </div>
 
               <div className="border-t pt-4">
                 <h3 className="mb-4 text-lg font-medium">Unit Configuration</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="baseUnitId">Base Unit</Label>
-                    <Select
-                      name="baseUnitId"
-                      defaultValue={product?.baseUnitId || undefined}
-                      disabled={readonly}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select base unit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {units.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.name} ({u.symbol})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <CustomSelect
+                    label="Base Unit"
+                    name="baseUnitId"
+                    defaultValue={product?.baseUnitId || undefined}
+                    disabled={readonly}
+                    placeholder="Select base unit"
+                    containerClassName="grid gap-2"
+                  >
+                    {units.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="purchaseUnitId">Purchase Unit</Label>
-                    <Select
-                      name="purchaseUnitId"
-                      defaultValue={product?.purchaseUnitId || undefined}
-                      disabled={readonly}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Same as Base Unit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {units.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.name} ({u.symbol})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="purchaseConversionFactor">
-                      Purchase Conversion Factor
-                      <span className="text-xs text-muted-foreground">
-                        (1 Purchase Unit = X Base Units)
-                      </span>
-                    </Label>
-                    <Input
-                      id="purchaseConversionFactor"
-                      name="purchaseConversionFactor"
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      defaultValue={
-                        product?.purchaseConversionFactor?.toString() || "1"
-                      }
-                      disabled={readonly}
-                    />
-                  </div>
+                  <CustomSelect
+                    label="Purchase Unit"
+                    name="purchaseUnitId"
+                    defaultValue={product?.purchaseUnitId || undefined}
+                    disabled={readonly}
+                    placeholder="Same as Base Unit"
+                    containerClassName="grid gap-2"
+                  >
+                    {units.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                  <CustomInput
+                    label={
+                      <>
+                        Purchase Conversion Factor
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (1 Purchase Unit = X Base Units)
+                        </span>
+                      </>
+                    }
+                    id="purchaseConversionFactor"
+                    name="purchaseConversionFactor"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    defaultValue={
+                      product?.purchaseConversionFactor?.toString() || "1"
+                    }
+                    disabled={readonly}
+                    containerClassName="grid gap-2"
+                  />
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="salesUnitId">Sales Unit</Label>
-                    <Select
-                      name="salesUnitId"
-                      defaultValue={product?.salesUnitId || undefined}
-                      disabled={readonly}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Same as Base Unit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {units.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.name} ({u.symbol})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="salesConversionFactor">
-                      Sales Conversion Factor
-                      <span className="text-xs text-muted-foreground">
-                        (1 Sales Unit = X Base Units)
-                      </span>
-                    </Label>
-                    <Input
-                      id="salesConversionFactor"
-                      name="salesConversionFactor"
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      defaultValue={
-                        product?.salesConversionFactor?.toString() || "1"
-                      }
-                      disabled={readonly}
-                    />
-                  </div>
+                  <CustomSelect
+                    label="Sales Unit"
+                    name="salesUnitId"
+                    defaultValue={product?.salesUnitId || undefined}
+                    disabled={readonly}
+                    placeholder="Same as Base Unit"
+                    containerClassName="grid gap-2"
+                  >
+                    {units.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                  <CustomInput
+                    label={
+                      <>
+                        Sales Conversion Factor
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (1 Sales Unit = X Base Units)
+                        </span>
+                      </>
+                    }
+                    id="salesConversionFactor"
+                    name="salesConversionFactor"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    defaultValue={
+                      product?.salesConversionFactor?.toString() || "1"
+                    }
+                    disabled={readonly}
+                    containerClassName="grid gap-2"
+                  />
                 </div>
               </div>
             </CardContent>

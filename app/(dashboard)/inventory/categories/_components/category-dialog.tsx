@@ -10,9 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createCategory, updateCategory } from "../actions";
@@ -80,11 +80,11 @@ export function CategoryDialog({ category, trigger }: CategoryDialogProps) {
             <Label htmlFor="name" className="text-right">
               Name
             </Label>
-            <Input
+            <CustomInput
               id="name"
               name="name"
               defaultValue={category?.name}
-              className="col-span-3"
+              containerClassName="col-span-3"
               required
             />
           </div>
@@ -92,11 +92,11 @@ export function CategoryDialog({ category, trigger }: CategoryDialogProps) {
             <Label htmlFor="description" className="text-right">
               Desc
             </Label>
-            <Textarea
+            <CustomTextarea
               id="description"
               name="description"
               defaultValue={category?.description || ""}
-              className="col-span-3"
+              containerClassName="col-span-3"
             />
           </div>
           <DialogFooter>

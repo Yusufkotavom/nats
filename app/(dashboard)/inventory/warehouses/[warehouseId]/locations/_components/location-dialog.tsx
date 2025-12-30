@@ -10,15 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createLocation, updateLocation } from "../actions";
@@ -92,39 +86,32 @@ export function LocationDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={location?.name}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="code">Code</Label>
-              <Input
-                id="code"
-                name="code"
-                defaultValue={location?.code}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="type">Type</Label>
-              <Select name="type" defaultValue={location?.type || "STORAGE"}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(LocationType).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <CustomInput
+              label="Name"
+              name="name"
+              id="name"
+              defaultValue={location?.name}
+              required
+            />
+            <CustomInput
+              label="Code"
+              name="code"
+              id="code"
+              defaultValue={location?.code}
+              required
+            />
+            <CustomSelect
+              label="Type"
+              name="type"
+              defaultValue={location?.type || "STORAGE"}
+              placeholder="Select type"
+            >
+              {Object.values(LocationType).map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </CustomSelect>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>

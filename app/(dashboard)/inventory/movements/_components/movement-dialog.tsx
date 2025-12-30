@@ -10,16 +10,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { SelectItem } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { createMovement } from "../actions";
@@ -124,24 +119,20 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
               Type
             </Label>
             <div className="col-span-3">
-              <Select
+              <CustomSelect
                 name="type"
                 value={type}
                 onValueChange={(v) => {
                   setType(v as MovementType);
                   setSelectedWarehouseId(""); // Reset warehouse selection on type change
                 }}
+                placeholder="Select type"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IN">Receive (IN)</SelectItem>
-                  <SelectItem value="OUT">Shipment (OUT)</SelectItem>
-                  <SelectItem value="TRANSFER">Transfer</SelectItem>
-                  <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
-                </SelectContent>
-              </Select>
+                <SelectItem value="IN">Receive (IN)</SelectItem>
+                <SelectItem value="OUT">Shipment (OUT)</SelectItem>
+                <SelectItem value="TRANSFER">Transfer</SelectItem>
+                <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
+              </CustomSelect>
             </div>
           </div>
 
@@ -150,23 +141,19 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
               Product
             </Label>
             <div className="col-span-3">
-              <Select
+              <CustomSelect
                 name="productId"
                 required
                 value={selectedProductId}
                 onValueChange={setSelectedProductId}
+                placeholder="Select product"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.sku} - {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {products.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.sku} - {p.name}
+                  </SelectItem>
+                ))}
+              </CustomSelect>
             </div>
           </div>
 
@@ -176,7 +163,7 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 From
               </Label>
               <div className="col-span-3">
-                <Select
+                <CustomSelect
                   name="fromWarehouseId"
                   required
                   onValueChange={(val) => {
@@ -185,18 +172,14 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                     // Current logic in action doesn't support picking from specific location ID yet for OUT (it uses FIFO/Batch).
                     // So we only need location selection for IN/ADJUSTMENT destination.
                   }}
+                  placeholder="Select source warehouse"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select source warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {warehouses.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.name}
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
               </div>
             </div>
           )}
@@ -207,23 +190,19 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 {type === "ADJUSTMENT" ? "Warehouse" : "To"}
               </Label>
               <div className="col-span-3">
-                <Select
+                <CustomSelect
                   name="toWarehouseId"
                   required
                   value={selectedWarehouseId}
                   onValueChange={setSelectedWarehouseId}
+                  placeholder="Select destination warehouse"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select destination warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {warehouses.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.name}
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
               </div>
             </div>
           )}
@@ -235,19 +214,17 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
                 Location
               </Label>
               <div className="col-span-3">
-                <Select name="locationId">
-                  <SelectTrigger>
-                    <SelectValue placeholder="General Area (Default)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">General Area</SelectItem>
-                    {locations.map((loc) => (
-                      <SelectItem key={loc.id} value={loc.id}>
-                        {loc.code} - {loc.name} ({loc.type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CustomSelect
+                  name="locationId"
+                  placeholder="General Area (Default)"
+                >
+                  <SelectItem value="">General Area</SelectItem>
+                  {locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.code} - {loc.name} ({loc.type})
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
               </div>
             </div>
           )}
@@ -257,33 +234,32 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
               Quantity
             </Label>
             <div className="col-span-3 flex gap-2">
-              <Input
+              <CustomInput
                 id="quantity"
                 name="quantity"
                 type="number"
-                className="flex-1"
+                containerClassName="flex-1"
                 required
               />
-              <Select name="uomType" defaultValue="base">
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="base">
-                    {selectedProduct?.baseUnit?.symbol || "Base Unit"}
+              <CustomSelect
+                name="uomType"
+                defaultValue="base"
+                containerClassName="w-[120px]"
+              >
+                <SelectItem value="base">
+                  {selectedProduct?.baseUnit?.symbol || "Base Unit"}
+                </SelectItem>
+                {selectedProduct?.purchaseUnit && (
+                  <SelectItem value="purchase">
+                    {selectedProduct.purchaseUnit.symbol} (Pur)
                   </SelectItem>
-                  {selectedProduct?.purchaseUnit && (
-                    <SelectItem value="purchase">
-                      {selectedProduct.purchaseUnit.symbol} (Pur)
-                    </SelectItem>
-                  )}
-                  {selectedProduct?.salesUnit && (
-                    <SelectItem value="sales">
-                      {selectedProduct.salesUnit.symbol} (Sal)
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                )}
+                {selectedProduct?.salesUnit && (
+                  <SelectItem value="sales">
+                    {selectedProduct.salesUnit.symbol} (Sal)
+                  </SelectItem>
+                )}
+              </CustomSelect>
             </div>
           </div>
 
@@ -291,11 +267,11 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
             <Label htmlFor="reference" className="text-right">
               Ref #
             </Label>
-            <Input
+            <CustomInput
               id="reference"
               name="reference"
               placeholder="PO-123, SO-456"
-              className="col-span-3"
+              containerClassName="col-span-3"
             />
           </div>
 
@@ -303,7 +279,11 @@ export function MovementDialog({ products, warehouses }: MovementDialogProps) {
             <Label htmlFor="notes" className="text-right">
               Notes
             </Label>
-            <Textarea id="notes" name="notes" className="col-span-3" />
+            <CustomTextarea
+              id="notes"
+              name="notes"
+              containerClassName="col-span-3"
+            />
           </div>
 
           <DialogFooter>

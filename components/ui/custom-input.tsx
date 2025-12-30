@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export interface CustomInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
+  label?: React.ReactNode;
   containerClassName?: string;
 }
 

@@ -283,10 +283,14 @@ export const applyBatchPricing = authorizedAction(
 
       revalidatePath("/inventory/products");
 
-      return { success: true, count };
+      return { success: true, count, error: "" };
     } catch (error) {
       console.error("Batch pricing error:", error);
-      return { success: false, error: "Failed to apply batch pricing." };
+      return {
+        success: false,
+        count: undefined,
+        error: "Failed to apply batch pricing.",
+      };
     }
   }
 );

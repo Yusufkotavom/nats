@@ -9,15 +9,9 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { SelectItem } from "@/components/ui/select";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -28,27 +22,37 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Category } from "@/prisma/generated/prisma/browser";
-import {
-  applyBatchPricing,
-  previewPriceChanges,
-  BatchPricingInput,
-  PricingAction,
-  PricingScope,
-} from "../actions";
-import { Loader2, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { applyBatchPricing, previewPriceChanges } from "../actions";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { BatchPricingInput, PricingAction, PricingScope } from "../types";
 
 interface BatchPricingFormProps {
   categories: Category[];
 }
 
+interface PreviewData {
+  totalProducts: number;
+  changes: {
+    id: string;
+    sku: string;
+    name: string;
+    currentPrice: number;
+    newPrice: number;
+    difference: number;
+  }[];
+}
 export function BatchPricingForm({ categories }: BatchPricingFormProps) {
   const [scope, setScope] = useState<PricingScope>("ALL");
   const [action, setAction] = useState<PricingAction>("PERCENTAGE_INC");
   const [isLoading, setIsLoading] = useState(false);
-  const [previewData, setPreviewData] = useState<any>(null);
-  const [result, setResult] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    count?: number;
+    error?: string;
+  } | null>(null);
   const formatCurrency = useFormatCurrency();
 
   // Simple form state
@@ -119,86 +123,71 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Scope</Label>
-              <Select
-                value={scope}
-                onValueChange={(v: PricingScope) => setScope(v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Products</SelectItem>
-                  <SelectItem value="CATEGORY">Specific Category</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <CustomSelect
+              label="Scope"
+              value={scope}
+              onValueChange={(v: string) => setScope(v as PricingScope)}
+              containerClassName="space-y-2"
+            >
+              <SelectItem value="ALL">All Products</SelectItem>
+              <SelectItem value="CATEGORY">Specific Category</SelectItem>
+            </CustomSelect>
 
             {scope === "CATEGORY" && (
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <CustomSelect
+                label="Category"
+                value={categoryId}
+                onValueChange={setCategoryId}
+                placeholder="Select category"
+                containerClassName="space-y-2"
+              >
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </CustomSelect>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Action</Label>
-              <Select
-                value={action}
-                onValueChange={(v: PricingAction) => setAction(v)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PERCENTAGE_INC">
-                    Increase by Percentage (%)
-                  </SelectItem>
-                  <SelectItem value="PERCENTAGE_DEC">
-                    Decrease by Percentage (%)
-                  </SelectItem>
-                  <SelectItem value="COST_MARGIN">
-                    Set based on Cost + Margin (%)
-                  </SelectItem>
-                  <SelectItem value="FIXED_AMOUNT_INC">
-                    Increase by Fixed Amount
-                  </SelectItem>
-                  <SelectItem value="FIXED_AMOUNT_DEC">
-                    Decrease by Fixed Amount
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <CustomSelect
+              label="Action"
+              value={action}
+              onValueChange={(v: string) => setAction(v as PricingAction)}
+              containerClassName="space-y-2"
+            >
+              <SelectItem value="PERCENTAGE_INC">
+                Increase by Percentage (%)
+              </SelectItem>
+              <SelectItem value="PERCENTAGE_DEC">
+                Decrease by Percentage (%)
+              </SelectItem>
+              <SelectItem value="COST_MARGIN">
+                Set based on Cost + Margin (%)
+              </SelectItem>
+              <SelectItem value="FIXED_AMOUNT_INC">
+                Increase by Fixed Amount
+              </SelectItem>
+              <SelectItem value="FIXED_AMOUNT_DEC">
+                Decrease by Fixed Amount
+              </SelectItem>
+            </CustomSelect>
 
-            <div className="space-y-2">
-              <Label>Value</Label>
-              <Input
-                type="number"
-                placeholder={
-                  action.includes("PERCENTAGE") || action === "COST_MARGIN"
-                    ? "Percentage (e.g. 10)"
-                    : "Amount (e.g. 5.00)"
-                }
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                min="0"
-                step="0.01"
-              />
-            </div>
+            <CustomInput
+              label="Value"
+              type="number"
+              placeholder={
+                action.includes("PERCENTAGE") || action === "COST_MARGIN"
+                  ? "Percentage (e.g. 10)"
+                  : "Amount (e.g. 5.00)"
+              }
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              min="0"
+              step="0.01"
+              containerClassName="space-y-2"
+            />
           </div>
         </CardContent>
         <CardFooter className="flex justify-end space-x-2">
@@ -248,7 +237,7 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {previewData.changes.map((change: any) => (
+                    {previewData.changes.map((change) => (
                       <TableRow key={change.id}>
                         <TableCell className="font-mono text-xs">
                           {change.sku}

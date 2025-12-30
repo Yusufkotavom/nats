@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,13 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { createRole, updateRole } from "../actions";
-import { Loader2, X, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
+import { createRole, updateRole } from "../actions";
 
 interface RoleDialogProps {
   role?: {
@@ -81,31 +80,27 @@ export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Role" : "Add Role"}</DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Edit role details."
-              : "Create a new role."}
+            {isEditing ? "Edit role details." : "Create a new role."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              name="name"
-              defaultValue={role?.name}
-              placeholder="e.g. Accountant"
-              required
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              defaultValue={role?.description || ""}
-              placeholder="Describe the role..."
-            />
-          </div>
+          <CustomInput
+            label="Name"
+            id="name"
+            name="name"
+            defaultValue={role?.name}
+            placeholder="e.g. Accountant"
+            required
+            containerClassName="grid gap-2"
+          />
+          <CustomTextarea
+            label="Description"
+            id="description"
+            name="description"
+            defaultValue={role?.description || ""}
+            placeholder="Describe the role..."
+            containerClassName="grid gap-2"
+          />
 
           <div className="flex items-center space-x-2">
             <Switch

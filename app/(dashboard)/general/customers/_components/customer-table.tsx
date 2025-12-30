@@ -42,7 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Customer, PaginatedResult } from "../../types";
 
 interface CustomerTableProps {
@@ -117,7 +117,7 @@ export function CustomerTable({ initialData }: CustomerTableProps) {
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
+              <CustomInput
                 type="search"
                 placeholder="Search..."
                 className="pl-8 w-[200px] lg:w-[300px]"

@@ -18,7 +18,7 @@ export interface CustomSelectOption {
 
 export interface CustomSelectProps
   extends React.ComponentPropsWithoutRef<typeof Select> {
-  label?: string;
+  label?: React.ReactNode;
   placeholder?: string;
   options?: CustomSelectOption[];
   containerClassName?: string;

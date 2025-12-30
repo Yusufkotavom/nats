@@ -10,8 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createWarehouse, updateWarehouse } from "../actions";
@@ -79,11 +79,11 @@ export function WarehouseDialog({ warehouse, trigger }: WarehouseDialogProps) {
             <Label htmlFor="name" className="text-right">
               Name
             </Label>
-            <Input
+            <CustomInput
               id="name"
               name="name"
               defaultValue={warehouse?.name}
-              className="col-span-3"
+              containerClassName="col-span-3"
               required
             />
           </div>
@@ -91,11 +91,11 @@ export function WarehouseDialog({ warehouse, trigger }: WarehouseDialogProps) {
             <Label htmlFor="location" className="text-right">
               Location
             </Label>
-            <Input
+            <CustomInput
               id="location"
               name="location"
               defaultValue={warehouse?.location || ""}
-              className="col-span-3"
+              containerClassName="col-span-3"
             />
           </div>
           <DialogFooter>

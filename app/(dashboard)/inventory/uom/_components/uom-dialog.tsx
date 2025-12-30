@@ -10,8 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { createUnit, updateUnit } from "../actions";
@@ -78,26 +77,24 @@ export function UomDialog({ unit, trigger }: UomDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={unit?.name}
-                placeholder="e.g. Kilogram"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="symbol">Symbol</Label>
-              <Input
-                id="symbol"
-                name="symbol"
-                defaultValue={unit?.symbol}
-                placeholder="e.g. kg"
-                required
-              />
-            </div>
+            <CustomInput
+              label="Name"
+              id="name"
+              name="name"
+              defaultValue={unit?.name}
+              placeholder="e.g. Kilogram"
+              required
+              containerClassName="grid gap-2"
+            />
+            <CustomInput
+              label="Symbol"
+              id="symbol"
+              name="symbol"
+              defaultValue={unit?.symbol}
+              placeholder="e.g. kg"
+              required
+              containerClassName="grid gap-2"
+            />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>

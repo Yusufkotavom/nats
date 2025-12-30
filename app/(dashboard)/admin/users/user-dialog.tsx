@@ -10,15 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { createUser, updateUser } from "./actions";
 import { Loader2 } from "lucide-react";
 
@@ -101,89 +96,59 @@ export function UserDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={user?.name}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                defaultValue={user?.email}
-                className="col-span-3"
-                required
-              />
-            </div>
+            <CustomInput
+              label="Name"
+              id="name"
+              name="name"
+              defaultValue={user?.name}
+              required
+            />
+            <CustomInput
+              label="Email"
+              id="email"
+              name="email"
+              type="email"
+              defaultValue={user?.email}
+              required
+            />
             {!isEditing && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="password" className="text-right">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  className="col-span-3"
-                  required={!isEditing}
-                  placeholder={isEditing ? "Leave blank to keep current" : ""}
-                />
-              </div>
+              <CustomInput
+                label="Password"
+                id="password"
+                name="password"
+                type="password"
+                required={!isEditing}
+                placeholder={isEditing ? "Leave blank to keep current" : ""}
+              />
             )}
             {isEditing && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="password" className="text-right">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  className="col-span-3"
-                  placeholder="Leave blank to keep current"
-                />
-              </div>
+              <CustomInput
+                label="Password"
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Leave blank to keep current"
+              />
             )}
 
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="role" className="text-right pt-2">
-                Role
-              </Label>
-              <div className="col-span-3 space-y-2">
-                <Select
-                  name="roleId"
-                  value={selectedRoleId}
-                  onValueChange={setSelectedRoleId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedRole?.description && (
-                  <p className="text-xs text-muted-foreground">
-                    {selectedRole.description}
-                  </p>
-                )}
-              </div>
-            </div>
+            <CustomSelect
+              label="Role"
+              name="roleId"
+              value={selectedRoleId}
+              onValueChange={setSelectedRoleId}
+              placeholder="Select a role"
+            >
+              {roles.map((role) => (
+                <SelectItem key={role.id} value={role.id}>
+                  {role.name}
+                </SelectItem>
+              ))}
+            </CustomSelect>
+            {selectedRole?.description && (
+              <p className="text-xs text-muted-foreground ml-1">
+                {selectedRole.description}
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>

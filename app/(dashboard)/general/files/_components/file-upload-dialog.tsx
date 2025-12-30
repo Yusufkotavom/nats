@@ -10,8 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CustomInput } from "@/components/ui/custom-input";
 import { uploadFile } from "../actions";
 import { Loader2, Upload } from "lucide-react";
 
@@ -32,7 +31,7 @@ export function FileUploadDialog({
     setLoading(true);
     setError(null);
     const formData = new FormData(e.currentTarget);
-    
+
     try {
       const result = await uploadFile(formData);
       if (result.error) {
@@ -59,20 +58,15 @@ export function FileUploadDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="file" className="text-right">
-                File
-              </Label>
-              <Input
-                id="file"
-                name="file"
-                type="file"
-                className="col-span-3"
-                required
-              />
-            </div>
+            <CustomInput
+              label="File"
+              id="file"
+              name="file"
+              type="file"
+              required
+            />
             {error && (
-                <div className="text-red-500 text-sm text-center">{error}</div>
+              <div className="text-red-500 text-sm text-center">{error}</div>
             )}
           </div>
           <DialogFooter>
@@ -84,8 +78,8 @@ export function FileUploadDialog({
                 </>
               ) : (
                 <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload
                 </>
               )}
             </Button>

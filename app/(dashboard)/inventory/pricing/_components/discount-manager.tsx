@@ -9,15 +9,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2, Tag } from "lucide-react";
 import { Discount, DiscountType } from "@/prisma/generated/prisma/client";
@@ -172,70 +166,61 @@ export function DiscountManager({
             <div className="space-y-4 border-t pt-4">
               <h3 className="font-medium">Add New Discount</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Code</Label>
-                  <Input
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    placeholder="SUMMER2024"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Type</Label>
-                  <Select
-                    value={type}
-                    onValueChange={(v) => setType(v as DiscountType)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PERCENTAGE">Percentage</SelectItem>
-                      <SelectItem value="FIXED_AMOUNT">Fixed Amount</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Value</Label>
-                  <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Priority</Label>
-                  <Input
-                    type="number"
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Min Quantity</Label>
-                  <Input
-                    type="number"
-                    value={minQuantity}
-                    onChange={(e) => setMinQuantity(e.target.value)}
-                  />
-                </div>
+                <CustomInput
+                  label="Code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="SUMMER2024"
+                  containerClassName="space-y-2"
+                />
+                <CustomSelect
+                  label="Type"
+                  value={type}
+                  onValueChange={(v) => setType(v as DiscountType)}
+                  containerClassName="space-y-2"
+                >
+                  <SelectItem value="PERCENTAGE">Percentage</SelectItem>
+                  <SelectItem value="FIXED_AMOUNT">Fixed Amount</SelectItem>
+                </CustomSelect>
+                <CustomInput
+                  label="Value"
+                  type="number"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="10"
+                  containerClassName="space-y-2"
+                />
+                <CustomInput
+                  label="Priority"
+                  type="number"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  placeholder="0"
+                  containerClassName="space-y-2"
+                />
+                <CustomInput
+                  label="Min Quantity"
+                  type="number"
+                  value={minQuantity}
+                  onChange={(e) => setMinQuantity(e.target.value)}
+                  placeholder="Optional"
+                  containerClassName="space-y-2"
+                />
+                <CustomInput
+                  label="Start Date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  containerClassName="space-y-2"
+                />
+                <CustomInput
+                  label="End Date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  placeholder="Optional"
+                  containerClassName="space-y-2"
+                />
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setIsCreating(false)}>

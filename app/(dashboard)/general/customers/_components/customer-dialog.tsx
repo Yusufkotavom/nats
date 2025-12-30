@@ -10,9 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { createCustomer, updateCustomer } from "../actions";
 import { Loader2 } from "lucide-react";
@@ -83,52 +83,32 @@ export function CustomerDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                defaultValue={customer?.name}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                defaultValue={customer?.email || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input
-                id="phone"
-                name="phone"
-                defaultValue={customer?.phone || ""}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="address" className="text-right">
-                Address
-              </Label>
-              <Textarea
-                id="address"
-                name="address"
-                defaultValue={customer?.address || ""}
-                className="col-span-3"
-              />
-            </div>
+            <CustomInput
+              label="Name"
+              id="name"
+              name="name"
+              defaultValue={customer?.name}
+              required
+            />
+            <CustomInput
+              label="Email"
+              id="email"
+              name="email"
+              type="email"
+              defaultValue={customer?.email || ""}
+            />
+            <CustomInput
+              label="Phone"
+              id="phone"
+              name="phone"
+              defaultValue={customer?.phone || ""}
+            />
+            <CustomTextarea
+              label="Address"
+              id="address"
+              name="address"
+              defaultValue={customer?.address || ""}
+            />
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="isActive" className="text-right">
                 Active

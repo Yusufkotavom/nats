@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
 import {
   Table,
   TableBody,
@@ -12,13 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
 import {
   Plus,
   Trash2,
@@ -51,7 +46,6 @@ import {
 } from "@/prisma/generated/prisma/browser";
 import { createBatchMovement } from "../actions";
 import { useRouter } from "next/navigation";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface BatchMovementFormProps {
@@ -275,91 +269,70 @@ export function BatchMovementForm({
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Movement Type</Label>
-              <Select
-                value={type}
-                onValueChange={(val) => {
-                  setType(val as MovementType);
-                  // Reset warehouses if needed, or keep them
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IN">Receive (IN)</SelectItem>
-                  <SelectItem value="OUT">Shipment (OUT)</SelectItem>
-                  <SelectItem value="TRANSFER">Transfer</SelectItem>
-                  <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reference">Reference</Label>
-              <Input
-                id="reference"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-                placeholder="PO #, SO #, etc."
-              />
-            </div>
+            <CustomSelect
+              label="Type"
+              value={type}
+              onValueChange={(v: string) => setType(v as MovementType)}
+              containerClassName="space-y-2"
+            >
+              <SelectItem value="IN">In (Purchase/Return)</SelectItem>
+              <SelectItem value="OUT">Out (Sale/Loss)</SelectItem>
+              <SelectItem value="TRANSFER">Transfer</SelectItem>
+              <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
+            </CustomSelect>
+
+            <CustomInput
+              label="Reference"
+              placeholder="PO-123, SO-456, etc."
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              containerClassName="space-y-2"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             {(type === "OUT" || type === "TRANSFER") && (
-              <div className="space-y-2">
-                <Label htmlFor="fromWarehouse">From Warehouse</Label>
-                <Select
-                  value={fromWarehouseId}
-                  onValueChange={setFromWarehouseId}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select source warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <CustomSelect
+                label="From Warehouse"
+                value={fromWarehouseId}
+                onValueChange={setFromWarehouseId}
+                placeholder="Select source warehouse"
+                containerClassName="space-y-2"
+              >
+                {warehouses.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.name}
+                  </SelectItem>
+                ))}
+              </CustomSelect>
             )}
+
             {(type === "IN" ||
               type === "TRANSFER" ||
               type === "ADJUSTMENT") && (
-              <div className="space-y-2">
-                <Label htmlFor="toWarehouse">
-                  {type === "TRANSFER" ? "To Warehouse" : "Warehouse"}
-                </Label>
-                <Select value={toWarehouseId} onValueChange={setToWarehouseId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select destination warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <CustomSelect
+                label={type === "TRANSFER" ? "To Warehouse" : "Warehouse"}
+                value={toWarehouseId}
+                onValueChange={setToWarehouseId}
+                placeholder="Select destination warehouse"
+                containerClassName="space-y-2"
+              >
+                {warehouses.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.name}
+                  </SelectItem>
+                ))}
+              </CustomSelect>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="General notes for this movement batch"
-              className="h-20"
-            />
-          </div>
+          <CustomTextarea
+            label="Notes"
+            placeholder="Additional notes about this movement batch..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            containerClassName="space-y-2"
+          />
 
           <div className="rounded-md border">
             <DndContext
@@ -386,26 +359,23 @@ export function BatchMovementForm({
                     {items.map((item, index) => (
                       <SortableTableRow key={item.id} id={item.id}>
                         <TableCell>
-                          <Select
+                          <CustomSelect
                             value={item.productId}
                             onValueChange={(val) =>
                               updateItem(index, "productId", val)
                             }
+                            placeholder="Select product"
+                            containerClassName="w-full"
                           >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select product" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map((product) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.sku} - {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.sku} - {product.name}
+                              </SelectItem>
+                            ))}
+                          </CustomSelect>
                         </TableCell>
                         <TableCell>
-                          <Input
+                          <CustomInput
                             type="number"
                             min="0"
                             step="any"
@@ -413,10 +383,11 @@ export function BatchMovementForm({
                             onChange={(e) =>
                               updateItem(index, "quantity", e.target.value)
                             }
+                            containerClassName="w-full"
                           />
                         </TableCell>
                         <TableCell>
-                          <Input
+                          <CustomInput
                             type="number"
                             min="0"
                             step="any"
@@ -425,15 +396,17 @@ export function BatchMovementForm({
                               updateItem(index, "unitCost", e.target.value)
                             }
                             placeholder="Optional"
+                            containerClassName="w-full"
                           />
                         </TableCell>
                         <TableCell>
-                          <Input
+                          <CustomInput
                             value={item.notes}
                             onChange={(e) =>
                               updateItem(index, "notes", e.target.value)
                             }
                             placeholder="Item notes"
+                            containerClassName="w-full"
                           />
                         </TableCell>
                         <TableCell>
