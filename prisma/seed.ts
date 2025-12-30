@@ -630,104 +630,88 @@ async function main() {
   }
 
   // Seed Journal Entries
+  // Prepare for running balance calculation
+  const allAccounts = await prisma.account.findMany();
+  const accountMap = new Map(allAccounts.map((a) => [a.id, a]));
+  const accountBalances: Record<string, number> = {}; // accountId -> balance
+
+  const entries: {
+    entryNumber: string;
+    date: Date;
+    description: string;
+    lines: {
+      accountId: string;
+      debit: number;
+      credit: number;
+      description: string;
+    }[];
+  }[] = [];
+
   // 1. Initial Investment
-  await prisma.journalEntry.upsert({
-    where: { entryNumber: "JE-001" },
-    update: {},
-    create: {
-      entryNumber: "JE-001",
-      transactionDate: new Date("2025-01-01"),
-      postedAt: new Date("2025-01-01"),
-      description: "Initial Capital Investment",
-      status: "posted",
-      userId: user.id,
-      lines: {
-        create: [
-          {
-            accountId: bankAccount.id,
-            debitAmount: 100000,
-            creditAmount: 0,
-            lineNumber: 1,
-            description: "Cash investment to Bank",
-          },
-          {
-            accountId: capitalAccount.id,
-            debitAmount: 0,
-            creditAmount: 100000,
-            lineNumber: 2,
-            description: "Owner capital",
-          },
-        ],
+  entries.push({
+    entryNumber: "JE-001",
+    date: new Date("2025-01-01"),
+    description: "Initial Capital Investment",
+    lines: [
+      {
+        accountId: bankAccount.id,
+        debit: 100000,
+        credit: 0,
+        description: "Cash investment to Bank",
       },
-    },
+      {
+        accountId: capitalAccount.id,
+        debit: 0,
+        credit: 100000,
+        description: "Owner capital",
+      },
+    ],
   });
 
   // 2. Service Revenue (Cash)
-  await prisma.journalEntry.upsert({
-    where: { entryNumber: "JE-002" },
-    update: {},
-    create: {
-      entryNumber: "JE-002",
-      transactionDate: new Date("2025-01-15"),
-      postedAt: new Date("2025-01-15"),
-      description: "Service Revenue - Consulting",
-      status: "posted",
-      userId: user.id,
-      lines: {
-        create: [
-          {
-            accountId: cashAccount.id,
-            debitAmount: 5000,
-            creditAmount: 0,
-            lineNumber: 1,
-            description: "Cash received",
-          },
-          {
-            accountId:
-              revenueAccounts.find((a) => a.name.includes("Consulting"))?.id ||
-              revenueAccounts[0].id,
-            debitAmount: 0,
-            creditAmount: 5000,
-            lineNumber: 2,
-            description: "Service performed",
-          },
-        ],
+  entries.push({
+    entryNumber: "JE-002",
+    date: new Date("2025-01-15"),
+    description: "Service Revenue - Consulting",
+    lines: [
+      {
+        accountId: cashAccount.id,
+        debit: 5000,
+        credit: 0,
+        description: "Cash received",
       },
-    },
+      {
+        accountId:
+          revenueAccounts.find((a) => a.name.includes("Consulting"))?.id ||
+          revenueAccounts[0].id,
+        debit: 0,
+        credit: 5000,
+        description: "Service performed",
+      },
+    ],
   });
 
   // 3. Operating Expense (Rent)
-  await prisma.journalEntry.upsert({
-    where: { entryNumber: "JE-003" },
-    update: {},
-    create: {
-      entryNumber: "JE-003",
-      transactionDate: new Date("2025-01-20"),
-      postedAt: new Date("2025-01-20"),
-      description: "Monthly Rent Payment",
-      status: "posted",
-      userId: user.id,
-      lines: {
-        create: [
-          {
-            accountId:
-              expenseAccounts.find((a) => a.name.includes("Rent"))?.id ||
-              expenseAccounts[0].id,
-            debitAmount: 2000,
-            creditAmount: 0,
-            lineNumber: 1,
-            description: "Rent Expense",
-          },
-          {
-            accountId: bankAccount.id,
-            debitAmount: 0,
-            creditAmount: 2000,
-            lineNumber: 2,
-            description: "Bank transfer",
-          },
-        ],
+  entries.push({
+    entryNumber: "JE-003",
+    date: new Date("2025-01-20"),
+    description: "Monthly Rent Payment",
+    lines: [
+      {
+        accountId:
+          expenseAccounts.find((a) => a.name.includes("Rent"))?.id ||
+          expenseAccounts[0].id,
+        debit: 2000,
+        credit: 0,
+        description: "Rent Expense",
       },
-    },
+      {
+        accountId: bankAccount.id,
+        debit: 0,
+        credit: 2000,
+        description: "Bank transfer",
+      },
+    ],
   });
 
   // Generate 100 additional random transactions
@@ -789,33 +773,80 @@ async function main() {
       }
     }
 
+    entries.push({
+      entryNumber,
+      date,
+      description: `${description} #${i}`,
+      lines: [
+        {
+          accountId: debitAccount.id,
+          debit: amount,
+          credit: 0,
+          description: isRevenue ? "Payment/Receivable" : description,
+        },
+        {
+          accountId: creditAccount.id,
+          debit: 0,
+          credit: amount,
+          description: isRevenue ? description : "Payment/Payable",
+        },
+      ],
+    });
+  }
+
+  // Sort entries by date to ensure correct running balance calculation
+  entries.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Insert entries
+  for (const entry of entries) {
+    const linesCreate = [];
+
+    for (let j = 0; j < entry.lines.length; j++) {
+      const line = entry.lines[j];
+      const account = accountMap.get(line.accountId);
+
+      let runningBalance = 0;
+      if (account) {
+        const currentBalance = accountBalances[line.accountId] || 0;
+        if (account.normalBalance === "credit") {
+          runningBalance = currentBalance - line.debit + line.credit;
+        } else {
+          runningBalance = currentBalance + line.debit - line.credit;
+        }
+        accountBalances[line.accountId] = runningBalance;
+      }
+
+      linesCreate.push({
+        accountId: line.accountId,
+        debitAmount: line.debit,
+        creditAmount: line.credit,
+        lineNumber: j + 1,
+        description: line.description,
+        runningBalance: runningBalance,
+      });
+    }
+
     await prisma.journalEntry.upsert({
-      where: { entryNumber },
-      update: {},
+      where: { entryNumber: entry.entryNumber },
+      update: {
+        transactionDate: entry.date,
+        postedAt: entry.date,
+        description: entry.description,
+        status: "posted",
+        lines: {
+          deleteMany: {},
+          create: linesCreate,
+        },
+      },
       create: {
-        entryNumber,
-        transactionDate: date,
-        postedAt: date,
-        description: `${description} #${i}`,
+        entryNumber: entry.entryNumber,
+        transactionDate: entry.date,
+        postedAt: entry.date,
+        description: entry.description,
         status: "posted",
         userId: user.id,
         lines: {
-          create: [
-            {
-              accountId: debitAccount.id,
-              debitAmount: amount,
-              creditAmount: 0,
-              lineNumber: 1,
-              description: isRevenue ? "Payment/Receivable" : description,
-            },
-            {
-              accountId: creditAccount.id,
-              debitAmount: 0,
-              creditAmount: amount,
-              lineNumber: 2,
-              description: isRevenue ? description : "Payment/Payable",
-            },
-          ],
+          create: linesCreate,
         },
       },
     });
