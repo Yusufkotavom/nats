@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma, DiscountType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
@@ -61,25 +61,7 @@ export async function getPricingProducts(
   ]);
 
   return {
-    products: products.map((p) => ({
-      ...p,
-      price: Number(p.price),
-      cost: Number(p.cost),
-      discounts: p.discounts.map((d) => ({
-        id: d.id,
-        code: d.code,
-        description: d.description,
-        type: d.type,
-        value: Number(d.value),
-        startDate: d.startDate,
-        endDate: d.endDate,
-        isActive: d.isActive,
-        minQuantity: d.minQuantity,
-        priority: d.priority,
-        createdAt: d.createdAt,
-        updatedAt: d.updatedAt,
-      })),
-    })),
+    products: serializePrisma(products),
     total,
     totalPages: Math.ceil(total / limit),
   };
@@ -145,7 +127,7 @@ export const createAndAssignDiscount = authorizedAction(
           success: true,
           discount: {
             ...existingDiscount,
-            value: Number(existingDiscount.value),
+            value: existingDiscount.value.toNumber(),
           },
         };
       }
@@ -170,7 +152,7 @@ export const createAndAssignDiscount = authorizedAction(
         success: true,
         discount: {
           ...discount,
-          value: Number(discount.value),
+          value: discount.value.toNumber(),
         },
       };
     } catch (error) {
@@ -220,8 +202,8 @@ export async function previewPriceChanges(data: BatchPricingInput) {
   });
 
   const changes = products.map((p) => {
-    const currentPrice = Number(p.price);
-    const cost = Number(p.cost);
+    const currentPrice = p.price.toNumber();
+    const cost = p.cost.toNumber();
     let newPrice = currentPrice;
 
     switch (data.action) {
@@ -327,7 +309,7 @@ export async function calculateProductPrice(
     throw new Error(`Product with ID ${productId} not found`);
   }
 
-  let finalPrice = Number(product.price);
+  let finalPrice = product.price.toNumber();
   const originalPrice = finalPrice;
   let discountAmount = 0;
   let appliedDiscount = undefined;
@@ -336,7 +318,7 @@ export async function calculateProductPrice(
   const discount = product.discounts[0];
 
   if (discount) {
-    const discountValue = Number(discount.value);
+    const discountValue = discount.value.toNumber();
 
     if (discount.type === DiscountType.PERCENTAGE) {
       discountAmount = originalPrice * (discountValue / 100);
@@ -415,7 +397,7 @@ export async function batchUpdateProductPrices(
 
       if (!product) continue;
 
-      const oldPrice = Number(product.price);
+      const oldPrice = product.price.toNumber();
       const newPrice = update.price;
 
       if (oldPrice !== newPrice) {

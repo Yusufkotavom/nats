@@ -17,23 +17,14 @@ import { SelectItem } from "@/components/ui/select";
 import { Search, Filter, Save, Loader2, Check } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Category } from "@/prisma/generated/prisma/browser";
-import { Discount } from "@/prisma/generated/prisma/client";
-import { updateSinglePrice } from "../actions";
+import { getPricingProducts, updateSinglePrice } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DiscountManager } from "./discount-manager";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 
-interface PricingProduct {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  cost: number;
-  category: {
-    name: string;
-  } | null;
-  discounts: (Omit<Discount, "value"> & { value: number })[];
-}
+type PricingProduct = Awaited<
+  ReturnType<typeof getPricingProducts>
+>["products"][number];
 
 interface IndividualPricingTableProps {
   initialProducts: PricingProduct[];
@@ -45,7 +36,6 @@ interface IndividualPricingTableProps {
 export function IndividualPricingTable({
   initialProducts,
   categories,
-  totalPages,
   totalEntries,
 }: IndividualPricingTableProps) {
   const searchParams = useSearchParams();
@@ -114,7 +104,7 @@ export function IndividualPricingTable({
 
   function startEditing(product: PricingProduct) {
     setEditingId(product.id);
-    setEditValue(product.price);
+    setEditValue(Number(product.price));
   }
 
   function cancelEditing() {
@@ -173,13 +163,13 @@ export function IndividualPricingTable({
               products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
-                    <div className="font-medium">{product.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {product.sku}
                     </div>
+                    <div className="font-medium">{product.name}</div>
                   </TableCell>
                   <TableCell>{product.category?.name || "-"}</TableCell>
-                  <TableCell>{formatCurrency(product.cost)}</TableCell>
+                  <TableCell>{formatCurrency(Number(product.cost))}</TableCell>
                   <TableCell>
                     {editingId === product.id ? (
                       <div className="flex items-center gap-2">
@@ -215,7 +205,7 @@ export function IndividualPricingTable({
                         </Button>
                       </div>
                     ) : (
-                      formatCurrency(product.price)
+                      formatCurrency(Number(product.price))
                     )}
                   </TableCell>
                   <TableCell>

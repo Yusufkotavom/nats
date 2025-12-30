@@ -1,13 +1,11 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, serializePrisma } from "@/lib/prisma";
 import { MovementType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import { authorizedAction } from "@/lib/permissions/protected-action";
 
-export async function getMovementBatches(
-  page: number = 1,
-  limit: number = 10
-) {
+export async function getMovementBatches(page: number = 1, limit: number = 10) {
   const skip = (page - 1) * limit;
 
   const [batches, total] = await Promise.all([
@@ -49,28 +47,8 @@ export async function getMovements() {
     orderBy: { createdAt: "desc" },
   });
 
-  return movements.map((movement) => ({
-    ...movement,
-    unitCost: Number(movement.unitCost),
-    product: {
-      ...movement.product,
-      price: Number(movement.product.price),
-      cost: Number(movement.product.cost),
-      averageCost: Number(movement.product.averageCost),
-      purchaseConversionFactor: Number(
-        movement.product.purchaseConversionFactor
-      ),
-      salesConversionFactor: Number(movement.product.salesConversionFactor),
-    },
-    // Map master fields for compatibility if needed
-    type: movement.inventoryMovement.type,
-    fromWarehouse: movement.inventoryMovement.fromWarehouse,
-    toWarehouse: movement.inventoryMovement.toWarehouse,
-    reference: movement.inventoryMovement.reference,
-  }));
+  return serializePrisma(movements);
 }
-
-import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export const createBatchMovement = authorizedAction(
   "inventory_movements.create",
@@ -168,7 +146,6 @@ async function processMovement(
     fromWarehouseId,
     toWarehouseId,
     quantity,
-    reference,
     notes,
     inventoryMovementId,
   } = data;
@@ -194,9 +171,9 @@ async function processMovement(
   // 0. Handle UOM Conversion
   let conversionFactor = 1;
   if (data.uomType === "purchase")
-    conversionFactor = Number(product.purchaseConversionFactor) || 1;
+    conversionFactor = product.purchaseConversionFactor?.toNumber() || 1;
   else if (data.uomType === "sales")
-    conversionFactor = Number(product.salesConversionFactor) || 1;
+    conversionFactor = product.salesConversionFactor?.toNumber() || 1;
 
   // Convert Input Quantity to Base Quantity
   const baseQuantity = Math.floor(quantity * conversionFactor);
@@ -206,7 +183,8 @@ async function processMovement(
   if (data.unitCost !== undefined) {
     movementUnitCost = data.unitCost / conversionFactor;
   } else {
-    movementUnitCost = Number(product.averageCost || product.cost);
+    movementUnitCost =
+      product.averageCost?.toNumber() || product.cost?.toNumber() || 0;
   }
 
   // 1. Handle Valuation & Costing Updates (Moving Average)
@@ -217,7 +195,7 @@ async function processMovement(
     });
 
     const totalExistingQty = allInventory._sum.quantity || 0;
-    const oldTotalValue = Number(product.averageCost) * totalExistingQty;
+    const oldTotalValue = product.averageCost.toNumber() * totalExistingQty;
     const newTotalValue = oldTotalValue + baseQuantity * movementUnitCost;
     const newTotalQty = totalExistingQty + baseQuantity;
 
@@ -229,7 +207,7 @@ async function processMovement(
       });
     }
   } else if (type === "OUT") {
-    movementUnitCost = Number(product.averageCost);
+    movementUnitCost = product.averageCost.toNumber();
   }
 
   // 2. Create Movement Detail Record

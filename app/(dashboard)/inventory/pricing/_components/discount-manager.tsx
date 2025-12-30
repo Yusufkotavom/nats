@@ -15,13 +15,21 @@ import { SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2, Tag } from "lucide-react";
 import { Discount, DiscountType } from "@/prisma/generated/prisma/client";
-import { createAndAssignDiscount, removeDiscountFromProduct } from "../actions";
+import {
+  createAndAssignDiscount,
+  getPricingProducts,
+  removeDiscountFromProduct,
+} from "../actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+
+type DiscountProps = Awaited<
+  ReturnType<typeof getPricingProducts>
+>["products"][number]["discounts"][number];
 
 interface DiscountManagerProps {
   productId: string;
   productName: string;
-  discounts: (Omit<Discount, "value"> & { value: number })[];
+  discounts: DiscountProps[];
 }
 
 export function DiscountManager({

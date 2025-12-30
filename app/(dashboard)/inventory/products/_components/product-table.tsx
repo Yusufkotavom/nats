@@ -138,8 +138,7 @@ export function ProductTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>SKU</TableHead>
-              <TableHead>Name</TableHead>
+              <TableHead>SKU/Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Cost</TableHead>
@@ -163,8 +162,12 @@ export function ProductTable({
                 );
                 return (
                   <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.sku}</TableCell>
-                    <TableCell>{product.name}</TableCell>
+                    <TableCell>
+                      <div className="text-xs text-muted-foreground">
+                        {product.sku}
+                      </div>
+                      <div className="font-medium">{product.name}</div>
+                    </TableCell>
                     <TableCell>{product.category?.name || "-"}</TableCell>
                     <TableCell>{formatCurrency(product.price)}</TableCell>
                     <TableCell>{formatCurrency(product.cost)}</TableCell>

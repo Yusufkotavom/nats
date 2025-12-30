@@ -54,27 +54,30 @@ export async function getInventoryDashboardMetrics() {
     totalValue: Number(totalValue),
     lowStockItems: lowStockItems.map((item) => ({
       ...item,
-      unitCost: Number(item.unitCost),
+      unitCost: item.unitCost.toNumber(),
       product: {
         ...item.product,
-        price: Number(item.product.price),
-        cost: Number(item.product.cost),
-        averageCost: Number(item.product.averageCost),
-        purchaseConversionFactor: Number(item.product.purchaseConversionFactor),
-        salesConversionFactor: Number(item.product.salesConversionFactor),
+        price: item.product.price?.toNumber(),
+        cost: item.product.cost?.toNumber(),
+        averageCost: item.product.averageCost?.toNumber(),
+        purchaseConversionFactor:
+          item.product.purchaseConversionFactor?.toNumber(),
+        salesConversionFactor: item.product.salesConversionFactor?.toNumber(),
       },
     })),
 
     recentMovements: recentMovements.map((movement) => ({
       ...movement,
-      unitCost: Number(movement.unitCost),
+      unitCost: movement.product?.cost?.toNumber(),
       product: {
         ...movement.product,
-        price: Number(movement.product.price),
-        cost: Number(movement.product.cost),
-        averageCost: Number(movement.product.averageCost),
-        purchaseConversionFactor: Number(movement.product.purchaseConversionFactor),
-        salesConversionFactor: Number(movement.product.salesConversionFactor),
+        price: movement?.product?.price?.toNumber(),
+        cost: movement?.product?.cost?.toNumber(),
+        averageCost: movement?.product?.averageCost?.toNumber(),
+        purchaseConversionFactor:
+          movement?.product?.purchaseConversionFactor?.toNumber(),
+        salesConversionFactor:
+          movement?.product?.salesConversionFactor?.toNumber(),
       },
     })),
   };

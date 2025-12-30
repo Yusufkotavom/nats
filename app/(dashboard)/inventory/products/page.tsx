@@ -49,7 +49,7 @@ export default async function Page({
           salesConversionFactor: Number(p.salesConversionFactor),
         }))}
         categories={categories}
-        units={units}
+        units={units.data}
         totalPages={totalPages}
         totalEntries={total}
       />
