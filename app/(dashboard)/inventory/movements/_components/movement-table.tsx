@@ -15,6 +15,7 @@ import {
   Product,
   Warehouse,
 } from "@/prisma/generated/prisma/browser";
+import { formatDate } from "@/lib/utils";
 
 type MovementWithDetails = InventoryMovement & {
   product: Omit<Product, "price" | "cost"> & { price: number; cost: number };
@@ -50,9 +51,7 @@ export function MovementTable({ movements }: MovementTableProps) {
           ) : (
             movements.map((m) => (
               <TableRow key={m.id}>
-                <TableCell>
-                  {format(new Date(m.createdAt), "MMM d, yyyy HH:mm")}
-                </TableCell>
+                <TableCell>{formatDate(m.createdAt)}</TableCell>
                 <TableCell>
                   <Badge
                     variant={

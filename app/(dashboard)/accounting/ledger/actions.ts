@@ -178,6 +178,7 @@ export const getLedgerEntries = authorizedAction(
                 entryNumber: true,
                 transactionDate: true,
                 description: true,
+                createdAt: true,
                 status: true,
               },
             },

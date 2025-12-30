@@ -41,6 +41,7 @@ type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
       select: {
         entryNumber: true;
         transactionDate: true;
+        createdAt: true;
         description: true;
         status: true;
       };
@@ -254,7 +255,10 @@ export function LedgerView({ accounts }: LedgerViewProps) {
             <Table>
               <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="rounded-tl-lg">Date</TableHead>
+                  <TableHead className="rounded-tl-lg">Created At</TableHead>
+                  <TableHead className="rounded-tl-lg">
+                    Transaction Date
+                  </TableHead>
                   <TableHead>Entry #</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
@@ -269,6 +273,9 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, index) => (
                     <TableRow key={index}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-24" />
+                      </TableCell>
                       <TableCell>
                         <Skeleton className="h-4 w-24" />
                       </TableCell>
@@ -303,6 +310,9 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                 ) : (
                   entries.map((entry) => (
                     <TableRow key={entry.id}>
+                      <TableCell>
+                        {formatDate(entry.journalEntry.createdAt)}
+                      </TableCell>
                       <TableCell>
                         {formatDate(entry.journalEntry.transactionDate)}
                       </TableCell>

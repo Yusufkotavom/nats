@@ -57,7 +57,7 @@ export const getJournalEntries = authorizedAction(
     const [entries, total] = await Promise.all([
       prisma.journalEntry.findMany({
         where,
-        orderBy: { transactionDate: "desc" },
+        orderBy: { createdAt: "desc" },
         include: {
           lines: {
             include: {
