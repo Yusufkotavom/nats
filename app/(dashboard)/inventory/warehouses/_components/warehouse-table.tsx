@@ -9,10 +9,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2, MapPin, Eye } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
 import Link from "next/link";
 import { deleteWarehouse } from "../actions";
 import { WarehouseDialog } from "./warehouse-dialog";
+import { useState } from "react";
 
 import {
   Inventory,
@@ -54,6 +62,10 @@ export function WarehouseTable({
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
   const formatCurrency = useFormatCurrency();
+  const [editingWarehouse, setEditingWarehouse] = useState<
+    WarehouseWithInventory | undefined
+  >(undefined);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this warehouse?")) {
@@ -99,32 +111,43 @@ export function WarehouseTable({
                     <TableCell>{warehouse.location || "-"}</TableCell>
                     <TableCell>{uniqueProducts}</TableCell>
                     <TableCell>{formatCurrency(totalValue)}</TableCell>
-                    <TableCell className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                        title="View Details"
-                      >
-                        <Link href={`/inventory/warehouses/${warehouse.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <WarehouseDialog
-                        warehouse={warehouse}
-                        trigger={
-                          <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(warehouse.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/inventory/warehouses/${warehouse.id}`}
+                              className="flex items-center"
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditingWarehouse(warehouse);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(warehouse.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );

@@ -20,11 +20,22 @@ import { Warehouse } from "@/prisma/generated/prisma/browser";
 interface WarehouseDialogProps {
   warehouse?: Warehouse;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function WarehouseDialog({ warehouse, trigger }: WarehouseDialogProps) {
-  const [open, setOpen] = useState(false);
+export function WarehouseDialog({
+  warehouse,
+  trigger,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+}: WarehouseDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? setControlledOpen : setInternalOpen;
 
   const isEditing = !!warehouse;
 
@@ -44,7 +55,7 @@ export function WarehouseDialog({ warehouse, trigger }: WarehouseDialogProps) {
       } else {
         await createWarehouse(data);
       }
-      setOpen(false);
+      setOpen?.(false);
     } catch (error) {
       console.error(error);
     } finally {
