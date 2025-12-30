@@ -230,6 +230,8 @@ export async function previewPriceChanges(data: BatchPricingInput) {
     // Ensure not negative
     if (newPrice < 0) newPrice = 0;
 
+    const margin = newPrice > 0 ? ((newPrice - cost) / newPrice) * 100 : 0;
+
     return {
       id: p.id,
       sku: p.sku,
@@ -237,6 +239,8 @@ export async function previewPriceChanges(data: BatchPricingInput) {
       currentPrice,
       newPrice,
       difference: newPrice - currentPrice,
+      cost,
+      margin,
     };
   });
 

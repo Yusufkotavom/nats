@@ -41,6 +41,8 @@ interface PreviewData {
     currentPrice: number;
     newPrice: number;
     difference: number;
+    cost: number;
+    margin: number;
   }[];
 }
 export function BatchPricingForm({ categories }: BatchPricingFormProps) {
@@ -229,6 +231,8 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
                     <TableRow>
                       <TableHead>SKU</TableHead>
                       <TableHead>Product Name</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
+                      <TableHead className="text-right">Margin</TableHead>
                       <TableHead className="text-right">
                         Current Price
                       </TableHead>
@@ -243,6 +247,12 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
                           {change.sku}
                         </TableCell>
                         <TableCell>{change.name}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatCurrency(change.cost)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {change.margin.toFixed(1)}%
+                        </TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(change.currentPrice)}
                         </TableCell>
