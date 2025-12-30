@@ -2,15 +2,9 @@
 
 import { useEffect, useState, useTransition, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -163,8 +157,8 @@ export function JournalEntryTable() {
 
       <div className="flex items-end gap-4 flex-wrap">
         <div className="grid items-center gap-1.5 flex-1 min-w-[200px]">
-          <Label htmlFor="search">Search</Label>
-          <Input
+          <CustomInput
+            label="Search"
             id="search"
             value={search}
             onChange={(e) => {
@@ -175,8 +169,8 @@ export function JournalEntryTable() {
           />
         </div>
         <div className="grid items-center gap-1.5">
-          <Label htmlFor="startDate">Start Date</Label>
-          <Input
+          <CustomInput
+            label="Start Date"
             type="date"
             id="startDate"
             value={startDate}
@@ -187,8 +181,8 @@ export function JournalEntryTable() {
           />
         </div>
         <div className="grid items-center gap-1.5">
-          <Label htmlFor="endDate">End Date</Label>
-          <Input
+          <CustomInput
+            label="End Date"
             type="date"
             id="endDate"
             value={endDate}
@@ -199,23 +193,20 @@ export function JournalEntryTable() {
           />
         </div>
         <div className="grid items-center gap-1.5 w-[150px]">
-          <Label htmlFor="status">Status</Label>
-          <Select
+          <CustomSelect
+            label="Status"
             value={status}
             onValueChange={(val) => {
               setStatus(val);
               setPage(1);
             }}
-          >
-            <SelectTrigger id="status">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="posted">Posted</SelectItem>
-            </SelectContent>
-          </Select>
+            placeholder="Filter by status"
+            options={[
+              { value: "all", label: "All Statuses" },
+              { value: "draft", label: "Draft" },
+              { value: "posted", label: "Posted" },
+            ]}
+          />
         </div>
         {(startDate || endDate || status !== "all" || search) && (
           <Button

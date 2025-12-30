@@ -17,7 +17,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { getTrialBalance } from "./actions";
@@ -134,7 +134,7 @@ export default function TrialBalancePage() {
         <CardContent>
           <div className="flex flex-col space-y-2 max-w-xs">
             <Label htmlFor="date">As of Date</Label>
-            <Input
+            <CustomInput
               id="date"
               type="date"
               value={date}

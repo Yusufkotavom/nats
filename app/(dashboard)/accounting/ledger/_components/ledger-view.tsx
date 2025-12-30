@@ -9,13 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import { getLedgerEntries } from "../actions";
 import {
@@ -27,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -213,46 +207,34 @@ export function LedgerView({ accounts }: LedgerViewProps) {
         <CardHeader>
           <CardDescription>
             <div className="flex items-end gap-4 flex-wrap">
-              <div className="flex flex-col space-y-1">
-                <Label>Account</Label>
-                <Select
-                  value={selectedAccount?.id}
-                  onValueChange={handleAccountChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.code} - {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col space-y-1">
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    setPage(1);
-                  }}
-                />
-              </div>
-              <div className="flex flex-col space-y-1">
-                <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value);
-                    setPage(1);
-                  }}
-                />
-              </div>
+              <CustomSelect
+                label="Account"
+                placeholder="Select Account"
+                value={selectedAccount?.id}
+                onValueChange={handleAccountChange}
+                options={accounts.map((account) => ({
+                  value: account.id,
+                  label: `${account.code} - ${account.name}`,
+                }))}
+              />
+              <CustomInput
+                label="Start Date"
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
+              />
+              <CustomInput
+                label="End Date"
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
+              />
               <div className="flex items-center space-x-2 pb-2">
                 <Checkbox
                   id="onlyDraft"

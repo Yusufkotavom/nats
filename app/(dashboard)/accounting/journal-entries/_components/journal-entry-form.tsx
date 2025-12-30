@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -13,13 +13,7 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Plus,
@@ -308,25 +302,23 @@ export function JournalEntryForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="date">Transaction Date</Label>
-          <Input
-            id="date"
-            type="date"
-            value={transactionDate}
-            onChange={(e) => setTransactionDate(e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-2 flex-1">
-          <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="General transaction description"
-          />
-        </div>
+        <CustomInput
+          label="Transaction Date"
+          id="date"
+          type="date"
+          value={transactionDate}
+          onChange={(e) => setTransactionDate(e.target.value)}
+          required
+          containerClassName="space-y-2"
+        />
+        <CustomInput
+          label="Description"
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="General transaction description"
+          containerClassName="space-y-2 flex-1"
+        />
       </div>
 
       <div className="rounded-md border">
@@ -354,26 +346,21 @@ export function JournalEntryForm({
                 {lines.map((line, index) => (
                   <SortableTableRow key={line.id} id={line.id}>
                     <TableCell>
-                      <Select
+                      <CustomSelect
                         value={line.accountId}
                         onValueChange={(val) =>
                           updateLine(index, "accountId", val)
                         }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select account" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {leafAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.code} - {account.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Select account"
+                        triggerClassName="w-full"
+                        options={leafAccounts.map((account) => ({
+                          value: account.id,
+                          label: `${account.code} - ${account.name}`,
+                        }))}
+                      />
                     </TableCell>
                     <TableCell>
-                      <Input
+                      <CustomInput
                         value={line.description}
                         onChange={(e) =>
                           updateLine(index, "description", e.target.value)

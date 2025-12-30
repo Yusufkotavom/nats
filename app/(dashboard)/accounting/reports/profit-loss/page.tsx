@@ -7,20 +7,13 @@ import {
   ReportAccountLine,
 } from "../actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountTreeRow } from "../_components/account-tree-row";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
@@ -191,7 +184,7 @@ export default function ProfitLossPage() {
         <div className="flex flex-wrap items-center gap-4 bg-muted/20 p-4 rounded-lg border">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">From:</span>
-            <Input
+            <CustomInput
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -200,7 +193,7 @@ export default function ProfitLossPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">To:</span>
-            <Input
+            <CustomInput
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -225,7 +218,7 @@ export default function ProfitLossPage() {
                 <span className="text-sm font-medium text-muted-foreground">
                   Comp. From:
                 </span>
-                <Input
+                <CustomInput
                   type="date"
                   value={comparativeStartDate}
                   onChange={(e) => setComparativeStartDate(e.target.value)}
@@ -236,7 +229,7 @@ export default function ProfitLossPage() {
                 <span className="text-sm font-medium text-muted-foreground">
                   Comp. To:
                 </span>
-                <Input
+                <CustomInput
                   type="date"
                   value={comparativeEndDate}
                   onChange={(e) => setComparativeEndDate(e.target.value)}

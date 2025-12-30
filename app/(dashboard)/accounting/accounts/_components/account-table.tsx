@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import {
   Table,
   TableBody,
@@ -147,7 +147,7 @@ export function AccountTable({ initialAccounts }: AccountTableProps) {
           >
             {editingId === a.id ? (
               <>
-                <Input
+                <CustomInput
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
                   onKeyDown={(e) => {

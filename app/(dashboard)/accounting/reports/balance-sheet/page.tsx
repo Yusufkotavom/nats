@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getBalanceSheet, BalanceSheetReport } from "../actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CustomInput } from "@/components/ui/custom-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountTreeRow } from "../_components/account-tree-row";
 import { Loader2 } from "lucide-react";
@@ -123,7 +123,7 @@ export default function BalanceSheetPage() {
         <div className="flex flex-wrap items-center gap-4 bg-muted/20 p-4 rounded-lg border">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">As Of:</span>
-            <Input
+            <CustomInput
               type="date"
               value={asOfDate}
               onChange={(e) => setAsOfDate(e.target.value)}
@@ -147,7 +147,7 @@ export default function BalanceSheetPage() {
               <span className="text-sm font-medium text-muted-foreground">
                 Comp. Date:
               </span>
-              <Input
+              <CustomInput
                 type="date"
                 value={comparativeDate}
                 onChange={(e) => setComparativeDate(e.target.value)}
