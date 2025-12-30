@@ -317,7 +317,14 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                       </TableCell>
                       <TableCell>{entry.journalEntry.entryNumber}</TableCell>
                       <TableCell>
-                        {entry.description || entry.journalEntry.description}
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">
+                            {entry.description}
+                          </span>
+                          <span className="text-xs">
+                            {entry.journalEntry.description}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         {Number(entry.debitAmount) > 0
