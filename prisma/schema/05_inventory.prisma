@@ -25,6 +25,7 @@ model Product {
   sku         String    @unique
   name        String
   description String?
+  image       String?
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id])
   price       Decimal   @default(0)

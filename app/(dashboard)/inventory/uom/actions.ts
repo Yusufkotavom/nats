@@ -24,7 +24,7 @@ export async function getUnits(page: number = 1, limit: number = 10) {
   ]);
 
   return {
-    units,
+    data: units,
     total,
     totalPages: Math.ceil(total / limit),
   };

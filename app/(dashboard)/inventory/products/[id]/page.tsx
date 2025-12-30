@@ -34,7 +34,7 @@ export default async function ProductViewPage({
       <ProductForm
         product={productFormData}
         categories={categories}
-        units={units}
+        units={units.data}
         readonly={true}
       />
     </div>

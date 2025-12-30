@@ -135,6 +135,7 @@ export const createProduct = authorizedAction(
             name: data.name,
             sku: data.sku,
             description: data.description,
+            image: data.image,
             categoryId: data.categoryId,
             price: Number(data.price),
             cost: Number(data.cost),

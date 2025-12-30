@@ -12,15 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SelectItem } from "@/components/ui/select";
-import {
-  Pencil,
-  Trash2,
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-} from "lucide-react";
+import { Pencil, Trash2, Search, Eye, MoreHorizontal } from "lucide-react";
 import { deleteProduct } from "../actions";
 import { useState, useEffect } from "react";
 import { ProductFormData } from "../../types";
@@ -31,6 +23,15 @@ import { Protect } from "@/components/ui/protect";
 import Link from "next/link";
 
 import { CustomPagination } from "@/components/ui/custom-pagination";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ProductTableProps {
   products: ProductFormData[];
@@ -43,8 +44,6 @@ interface ProductTableProps {
 export function ProductTable({
   products,
   categories,
-  units,
-  totalPages,
   totalEntries,
 }: ProductTableProps) {
   const searchParams = useSearchParams();
@@ -53,6 +52,11 @@ export function ProductTable({
 
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
+  );
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | undefined>(
+    undefined
   );
 
   const categoryFilter = searchParams.get("categoryId") || "ALL";
@@ -87,11 +91,18 @@ export function ProductTable({
     replace(`${pathname}?${params.toString()}`);
   };
 
-  async function handleDelete(id: string) {
-    if (confirm("Are you sure you want to delete this product?")) {
-      await deleteProduct(id);
+  const handleDeleteClick = (id: string) => {
+    setProductToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (productToDelete) {
+      await deleteProduct(productToDelete);
+      setIsDeleteDialogOpen(false);
+      setProductToDelete(undefined);
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -125,6 +136,7 @@ export function ProductTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]"></TableHead>
               <TableHead>SKU</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
@@ -138,7 +150,7 @@ export function ProductTable({
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   No products found.
                 </TableCell>
               </TableRow>
@@ -159,30 +171,47 @@ export function ProductTable({
                     <TableCell>
                       {totalStock} {product.baseUnit?.symbol}
                     </TableCell>
-                    <TableCell className="flex gap-2">
-                      <Protect permission="products.view">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/inventory/products/${product.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </Protect>
-                      <Protect permission="products.edit">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/inventory/products/${product.id}/edit`}>
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </Protect>
-                      <Protect permission="products.delete">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(product.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </Protect>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <Protect permission="products.view">
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/inventory/products/${product.id}`}
+                                className="flex items-center"
+                              >
+                                <Eye className="mr-2 h-4 w-4" /> Details
+                              </Link>
+                            </DropdownMenuItem>
+                          </Protect>
+                          <Protect permission="products.edit">
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/inventory/products/${product.id}/edit`}
+                                className="flex items-center"
+                              >
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                              </Link>
+                            </DropdownMenuItem>
+                          </Protect>
+                          <DropdownMenuSeparator />
+                          <Protect permission="products.delete">
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteClick(product.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </Protect>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );
@@ -199,6 +228,16 @@ export function ProductTable({
           currentPage={currentPage}
         />
       </div>
+
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Are you sure you want to delete this product?"
+        description="This action cannot be undone. This will permanently delete the product."
+        onConfirm={handleConfirmDelete}
+        confirmText="Delete"
+        variant="destructive"
+      />
     </div>
   );
 }

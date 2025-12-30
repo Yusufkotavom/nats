@@ -12,7 +12,7 @@ export default async function CreateProductPage() {
         permission="products.create"
         fallback={<div>You do not have permission to create products.</div>}
       >
-        <ProductForm categories={categories} units={units} />
+        <ProductForm categories={categories} units={units.data} />
       </Protect>
     </div>
   );

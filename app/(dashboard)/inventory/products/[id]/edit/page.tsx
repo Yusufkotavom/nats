@@ -39,7 +39,7 @@ export default async function EditProductPage({
         <ProductForm
           product={productFormData}
           categories={categories}
-          units={units}
+          units={units.data}
         />
       </Protect>
     </div>

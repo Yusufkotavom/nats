@@ -36,6 +36,7 @@ export type ProductInput = {
   name: string;
   sku: string;
   description?: string | null;
+  image?: string | null;
   categoryId?: string | null;
   price: number;
   cost: number;

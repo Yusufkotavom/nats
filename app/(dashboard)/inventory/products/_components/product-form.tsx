@@ -14,9 +14,11 @@ import { Label } from "@/components/ui/label";
 import { ProductFormData } from "../../types";
 import { Category, Unit } from "@/prisma/generated/prisma/browser";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Upload, ImageIcon } from "lucide-react";
 import { PriceHistory } from "./price-history";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { uploadFile } from "@/app/(dashboard)/general/files/actions";
+import Image from "next/image";
 
 interface ProductFormProps {
   product?: ProductFormData;
@@ -33,24 +35,68 @@ export function ProductForm({
 }: ProductFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const isEditing = !!product;
 
-  // State for controlled CurrencyInputs
-  const [price, setPrice] = useState<string | number>(product?.price || "");
-  const [cost, setCost] = useState<string | number>(product?.cost || "");
+  // Fully controlled form state
+  const [formData, setFormData] = useState({
+    sku: product?.sku || "",
+    name: product?.name || "",
+    description: product?.description || "",
+    categoryId: product?.categoryId || "",
+    price: product?.price || "",
+    cost: product?.cost || "",
+    minStock: product?.minStock || 0,
+    isActive: product?.isActive ?? true,
+    baseUnitId: product?.baseUnitId || "",
+    purchaseUnitId: product?.purchaseUnitId || "",
+    purchaseConversionFactor: product?.purchaseConversionFactor || 1,
+    salesUnitId: product?.salesUnitId || "",
+    salesConversionFactor: product?.salesConversionFactor || 1,
+    image: product?.image || "",
+  });
+
+  const handleInputChange = (
+    field: string,
+    value: string | number | boolean | null
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    try {
+      const result = await uploadFile(uploadData);
+      if (result.success && result.file) {
+        handleInputChange("image", result.file.url);
+      } else {
+        alert(result.error || "Failed to upload file");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to upload file");
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      e.target.value = "";
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-
     // Validation
-    const purchaseFactor = Number(formData.get("purchaseConversionFactor"));
-    const salesFactor = Number(formData.get("salesConversionFactor"));
-    const baseUnitId = formData.get("baseUnitId");
+    const purchaseFactor = Number(formData.purchaseConversionFactor);
+    const salesFactor = Number(formData.salesConversionFactor);
 
-    if (!baseUnitId) {
+    if (!formData.baseUnitId) {
       alert("Base Unit is required");
       setIsLoading(false);
       return;
@@ -68,22 +114,23 @@ export function ProductForm({
       return;
     }
 
-    const priceValue = Number(price);
-    const costValue = Number(cost);
+    const priceValue = Number(formData.price);
+    const costValue = Number(formData.cost);
 
     const data = {
-      sku: formData.get("sku") as string,
-      name: formData.get("name") as string,
-      description: formData.get("description") as string,
-      categoryId: (formData.get("categoryId") as string) || null,
+      sku: formData.sku,
+      name: formData.name,
+      description: formData.description,
+      image: formData.image,
+      categoryId: formData.categoryId || null,
       price: priceValue,
       cost: costValue,
-      minStock: Number(formData.get("minStock")),
-      isActive: formData.get("isActive") === "on",
-      baseUnitId: (formData.get("baseUnitId") as string) || null,
-      purchaseUnitId: (formData.get("purchaseUnitId") as string) || null,
+      minStock: Number(formData.minStock),
+      isActive: formData.isActive,
+      baseUnitId: formData.baseUnitId || null,
+      purchaseUnitId: formData.purchaseUnitId || null,
       purchaseConversionFactor: purchaseFactor || 1,
-      salesUnitId: (formData.get("salesUnitId") as string) || null,
+      salesUnitId: formData.salesUnitId || null,
       salesConversionFactor: salesFactor || 1,
     };
 
@@ -121,199 +168,312 @@ export function ProductForm({
         </h2>
       </div>
 
-      <Card>
-        <form onSubmit={handleSubmit}>
-          <fieldset className="group">
-            <CardContent className="grid gap-6">
-              <div className="grid grid-cols-2 gap-4">
-                <CustomInput
-                  label="SKU"
-                  id="sku"
-                  name="sku"
-                  defaultValue={product?.sku}
-                  required
-                  disabled={readonly}
-                  containerClassName="grid gap-2"
-                />
-                <CustomInput
-                  label="Name"
-                  id="name"
-                  name="name"
-                  defaultValue={product?.name}
-                  required
-                  disabled={readonly}
-                  containerClassName="grid gap-2"
-                />
-              </div>
+      <form onSubmit={handleSubmit}>
+        <Tabs defaultValue="metadata" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="metadata">Metadata</TabsTrigger>
+            <TabsTrigger value="image">Product Image</TabsTrigger>
+          </TabsList>
 
-              <CustomTextarea
-                label="Description"
-                id="description"
-                name="description"
-                defaultValue={product?.description || ""}
-                disabled={readonly}
-                containerClassName="grid gap-2"
-              />
+          <Card>
+            <CardContent className="pt-6">
+              <TabsContent value="metadata" className="mt-0 space-y-8">
+                {/* General Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">General Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomInput
+                      label="SKU"
+                      id="sku"
+                      name="sku"
+                      value={formData.sku}
+                      onChange={(e) => handleInputChange("sku", e.target.value)}
+                      required
+                      disabled={readonly}
+                      containerClassName="grid gap-2"
+                    />
+                    <CustomInput
+                      label="Name"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
+                      required
+                      disabled={readonly}
+                      containerClassName="grid gap-2"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <CustomSelect
-                  label="Category"
-                  name="categoryId"
-                  defaultValue={product?.categoryId || undefined}
-                  disabled={readonly}
-                  placeholder="Select category"
-                  containerClassName="grid gap-2"
-                >
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
-                <div className="flex items-center space-x-2 pt-8">
-                  <Switch
-                    id="isActive"
-                    name="isActive"
-                    defaultChecked={product?.isActive ?? true}
-                    disabled={readonly}
-                  />
-                  <Label htmlFor="isActive">Active Status</Label>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="price">Selling Price</Label>
-                  <CurrencyInput
-                    id="price"
-                    name="price"
-                    value={price}
-                    onChange={(val) => setPrice(val)}
-                    placeholder="0.00"
-                    required
-                    disabled={readonly}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="cost">Cost Price</Label>
-                  <CurrencyInput
-                    id="cost"
-                    name="cost"
-                    value={cost}
-                    onChange={(val) => setCost(val)}
-                    placeholder="0.00"
-                    required
-                    disabled={readonly}
-                  />
-                </div>
-                <CustomInput
-                  label="Min Stock Level"
-                  id="minStock"
-                  name="minStock"
-                  type="number"
-                  min="0"
-                  defaultValue={product?.minStock}
-                  required
-                  disabled={readonly}
-                  containerClassName="grid gap-2"
-                />
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="mb-4 text-lg font-medium">Unit Configuration</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <CustomSelect
-                    label="Base Unit"
-                    name="baseUnitId"
-                    defaultValue={product?.baseUnitId || undefined}
-                    disabled={readonly}
-                    placeholder="Select base unit"
-                    containerClassName="grid gap-2"
-                  >
-                    {units.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} ({u.symbol})
-                      </SelectItem>
-                    ))}
-                  </CustomSelect>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <CustomSelect
-                    label="Purchase Unit"
-                    name="purchaseUnitId"
-                    defaultValue={product?.purchaseUnitId || undefined}
-                    disabled={readonly}
-                    placeholder="Same as Base Unit"
-                    containerClassName="grid gap-2"
-                  >
-                    {units.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} ({u.symbol})
-                      </SelectItem>
-                    ))}
-                  </CustomSelect>
-                  <CustomInput
-                    label={
-                      <>
-                        Purchase Conversion Factor
-                        <span className="text-xs text-muted-foreground ml-1">
-                          (1 Purchase Unit = X Base Units)
-                        </span>
-                      </>
-                    }
-                    id="purchaseConversionFactor"
-                    name="purchaseConversionFactor"
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    defaultValue={
-                      product?.purchaseConversionFactor?.toString() || "1"
+                  <CustomTextarea
+                    label="Description"
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      handleInputChange("description", e.target.value)
                     }
                     disabled={readonly}
                     containerClassName="grid gap-2"
                   />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomSelect
+                      label="Category"
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onValueChange={(val) =>
+                        handleInputChange("categoryId", val)
+                      }
+                      disabled={readonly}
+                      placeholder="Select category"
+                      containerClassName="grid gap-2"
+                    >
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </CustomSelect>
+                    <div className="flex items-center space-x-2 pt-8">
+                      <Switch
+                        id="isActive"
+                        name="isActive"
+                        checked={formData.isActive}
+                        onCheckedChange={(val) =>
+                          handleInputChange("isActive", val)
+                        }
+                        disabled={readonly}
+                      />
+                      <Label htmlFor="isActive">Active Status</Label>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <CustomSelect
-                    label="Sales Unit"
-                    name="salesUnitId"
-                    defaultValue={product?.salesUnitId || undefined}
-                    disabled={readonly}
-                    placeholder="Same as Base Unit"
-                    containerClassName="grid gap-2"
-                  >
-                    {units.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} ({u.symbol})
-                      </SelectItem>
-                    ))}
-                  </CustomSelect>
-                  <CustomInput
-                    label={
-                      <>
-                        Sales Conversion Factor
-                        <span className="text-xs text-muted-foreground ml-1">
-                          (1 Sales Unit = X Base Units)
-                        </span>
-                      </>
-                    }
-                    id="salesConversionFactor"
-                    name="salesConversionFactor"
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    defaultValue={
-                      product?.salesConversionFactor?.toString() || "1"
-                    }
-                    disabled={readonly}
-                    containerClassName="grid gap-2"
-                  />
+                <div className="border-t pt-8 space-y-4">
+                  <h3 className="text-lg font-medium">Pricing & Inventory</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="price">Selling Price</Label>
+                      <CurrencyInput
+                        id="price"
+                        name="price"
+                        value={formData.price}
+                        onChange={(val) => handleInputChange("price", val)}
+                        placeholder="0.00"
+                        required
+                        disabled={readonly}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="cost">Cost Price</Label>
+                      <CurrencyInput
+                        id="cost"
+                        name="cost"
+                        value={formData.cost}
+                        onChange={(val) => handleInputChange("cost", val)}
+                        placeholder="0.00"
+                        required
+                        disabled={readonly}
+                      />
+                    </div>
+                    <CustomInput
+                      label="Min Stock Level"
+                      id="minStock"
+                      name="minStock"
+                      type="number"
+                      min="0"
+                      value={formData.minStock}
+                      onChange={(e) =>
+                        handleInputChange("minStock", e.target.value)
+                      }
+                      required
+                      disabled={readonly}
+                      containerClassName="grid gap-2"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <div className="border-t pt-8 space-y-4">
+                  <h3 className="text-lg font-medium">Units</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomSelect
+                      label="Base Unit"
+                      name="baseUnitId"
+                      value={formData.baseUnitId}
+                      onValueChange={(val) =>
+                        handleInputChange("baseUnitId", val)
+                      }
+                      disabled={readonly}
+                      placeholder="Select base unit"
+                      containerClassName="grid gap-2"
+                    >
+                      {units?.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.symbol})
+                        </SelectItem>
+                      ))}
+                    </CustomSelect>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomSelect
+                      label="Purchase Unit"
+                      name="purchaseUnitId"
+                      value={formData.purchaseUnitId}
+                      onValueChange={(val) =>
+                        handleInputChange("purchaseUnitId", val)
+                      }
+                      disabled={readonly}
+                      placeholder="Same as Base Unit"
+                      containerClassName="grid gap-2"
+                    >
+                      {units?.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.symbol})
+                        </SelectItem>
+                      ))}
+                    </CustomSelect>
+                    <CustomInput
+                      label={
+                        <>
+                          Purchase Conversion Factor
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (1 Purchase Unit = X Base Units)
+                          </span>
+                        </>
+                      }
+                      id="purchaseConversionFactor"
+                      name="purchaseConversionFactor"
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      value={formData.purchaseConversionFactor}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "purchaseConversionFactor",
+                          e.target.value
+                        )
+                      }
+                      disabled={readonly}
+                      containerClassName="grid gap-2"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <CustomSelect
+                      label="Sales Unit"
+                      name="salesUnitId"
+                      value={formData.salesUnitId}
+                      onValueChange={(val) =>
+                        handleInputChange("salesUnitId", val)
+                      }
+                      disabled={readonly}
+                      placeholder="Same as Base Unit"
+                      containerClassName="grid gap-2"
+                    >
+                      {units?.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name} ({u.symbol})
+                        </SelectItem>
+                      ))}
+                    </CustomSelect>
+                    <CustomInput
+                      label={
+                        <>
+                          Sales Conversion Factor
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (1 Sales Unit = X Base Units)
+                          </span>
+                        </>
+                      }
+                      id="salesConversionFactor"
+                      name="salesConversionFactor"
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      value={formData.salesConversionFactor}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "salesConversionFactor",
+                          e.target.value
+                        )
+                      }
+                      disabled={readonly}
+                      containerClassName="grid gap-2"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="image" className="mt-0 space-y-4">
+                <div className="grid gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-40 w-40 overflow-hidden rounded-lg border bg-muted flex items-center justify-center">
+                      {formData.image ? (
+                        <Image
+                          src={formData.image}
+                          alt="Product image"
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="space-y-4 flex-1">
+                      <CustomInput
+                        label="Image URL"
+                        id="image"
+                        name="image"
+                        value={formData.image}
+                        onChange={(e) =>
+                          handleInputChange("image", e.target.value)
+                        }
+                        disabled={readonly}
+                        containerClassName="grid gap-2"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                      {!readonly && (
+                        <div>
+                          <Label htmlFor="file-upload" className="mb-2 block">
+                            Or Upload Image
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              id="file-upload"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              disabled={isUploading}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() =>
+                                document.getElementById("file-upload")?.click()
+                              }
+                              disabled={isUploading}
+                            >
+                              {isUploading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="mr-2 h-4 w-4" />
+                              )}
+                              {isUploading ? "Uploading..." : "Select File"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
             </CardContent>
-            <CardFooter className="flex justify-end space-x-2 mt-3">
+
+            <CardFooter className="flex justify-end space-x-2 border-t p-6">
               <Button
                 variant="outline"
                 type="button"
@@ -331,9 +491,9 @@ export function ProductForm({
                 </Button>
               )}
             </CardFooter>
-          </fieldset>
-        </form>
-      </Card>
+          </Card>
+        </Tabs>
+      </form>
 
       {isEditing && product?.priceHistory && (
         <div className="mt-6">
