@@ -1,0 +1,74 @@
+// ACCOUNTING MODULE
+model Account {
+  id                String             @id @default(cuid())
+  code              String             @unique
+  name              String
+  type              AccountType
+  normalBalance     NormalBalance      @default(debit)
+  isPosting         Boolean            @default(true)
+  level             Int                @default(0)
+  parentId          String?
+  parent            Account?           @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children          Account[]          @relation("AccountHierarchy")
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  journalEntryLines JournalEntryLine[]
+
+  @@index([code])
+  @@index([type])
+  @@index([parentId])
+}
+
+model JournalEntry {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
+  entryNumber     String             @unique
+  transactionDate DateTime
+  description     String?
+  status          EntryStatus        @default(draft)
+  postedAt        DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  lines           JournalEntryLine[]
+  attachments     File[]
+
+  @@index([transactionDate])
+  @@index([status])
+  @@index([userId])
+}
+
+model JournalEntryLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
+  accountId      String
+  account        Account      @relation(fields: [accountId], references: [id])
+  debitAmount    Decimal      @default(0)
+  creditAmount   Decimal      @default(0)
+  runningBalance Decimal?
+  description    String?
+  lineNumber     Int
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+enum AccountType {
+  asset
+  liability
+  equity
+  revenue
+  expense
+}
+
+enum NormalBalance {
+  debit
+  credit
+}
+
+enum EntryStatus {
+  draft
+  posted
+}
