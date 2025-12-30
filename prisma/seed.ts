@@ -637,6 +637,7 @@ async function main() {
     create: {
       entryNumber: "JE-001",
       transactionDate: new Date("2025-01-01"),
+      postedAt: new Date("2025-01-01"),
       description: "Initial Capital Investment",
       status: "posted",
       userId: user.id,
@@ -668,6 +669,7 @@ async function main() {
     create: {
       entryNumber: "JE-002",
       transactionDate: new Date("2025-01-15"),
+      postedAt: new Date("2025-01-15"),
       description: "Service Revenue - Consulting",
       status: "posted",
       userId: user.id,
@@ -701,6 +703,7 @@ async function main() {
     create: {
       entryNumber: "JE-003",
       transactionDate: new Date("2025-01-20"),
+      postedAt: new Date("2025-01-20"),
       description: "Monthly Rent Payment",
       status: "posted",
       userId: user.id,
@@ -792,6 +795,7 @@ async function main() {
       create: {
         entryNumber,
         transactionDate: date,
+        postedAt: date,
         description: `${description} #${i}`,
         status: "posted",
         userId: user.id,

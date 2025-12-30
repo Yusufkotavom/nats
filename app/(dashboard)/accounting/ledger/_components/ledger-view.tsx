@@ -41,6 +41,7 @@ type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
       select: {
         entryNumber: true;
         transactionDate: true;
+        postedAt: true;
         createdAt: true;
         description: true;
         status: true;
@@ -66,7 +67,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
   } | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [onlyDraft, setOnlyDraft] = useState(false);
+  const [showDraft, setShowDraft] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
@@ -84,7 +85,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
         pageSize,
         startDate,
         endDate,
-        onlyDraft
+        showDraft
       );
       if (res.success && res.data) {
         setEntries(res.data as unknown as LedgerEntry[]);
@@ -116,7 +117,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [selectedAccount?.id, startDate, endDate, onlyDraft, page, pageSize]);
+  }, [selectedAccount?.id, startDate, endDate, showDraft, page, pageSize]);
 
   const handleAccountChange = (value: string) => {
     const found = accounts?.find((item) => item.id == value);
@@ -238,14 +239,14 @@ export function LedgerView({ accounts }: LedgerViewProps) {
               />
               <div className="flex items-center space-x-2 pb-2">
                 <Checkbox
-                  id="onlyDraft"
-                  checked={onlyDraft}
+                  id="showDraft"
+                  checked={showDraft}
                   onCheckedChange={(checked) => {
-                    setOnlyDraft(checked as boolean);
+                    setShowDraft(checked as boolean);
                     setPage(1);
                   }}
                 />
-                <Label htmlFor="onlyDraft">Only Draft</Label>
+                <Label htmlFor="showDraft">Show Draft</Label>
               </div>
             </div>
           </CardDescription>
@@ -255,10 +256,8 @@ export function LedgerView({ accounts }: LedgerViewProps) {
             <Table>
               <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="rounded-tl-lg">Created At</TableHead>
-                  <TableHead className="rounded-tl-lg">
-                    Transaction Date
-                  </TableHead>
+                  <TableHead className="rounded-tl-lg">Posted At</TableHead>
+                  <TableHead className="rounded-tl-lg">Trans. Date</TableHead>
                   <TableHead>Entry #</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
@@ -311,7 +310,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                   entries.map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell>
-                        {formatDate(entry.journalEntry.createdAt)}
+                        {formatDate(entry.journalEntry.postedAt || "Draft")}
                       </TableCell>
                       <TableCell>
                         {formatDate(entry.journalEntry.transactionDate)}

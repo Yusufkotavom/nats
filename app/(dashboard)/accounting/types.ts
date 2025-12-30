@@ -38,3 +38,15 @@ export type TrialBalanceResult = {
   totalDebit: number;
   totalCredit: number;
 };
+
+export type CreateJournalEntryData = {
+  transactionDate: Date;
+  description?: string;
+  lines: {
+    accountId: string;
+    debitAmount: number;
+    creditAmount: number;
+    description?: string;
+  }[];
+  attachments?: { id: string; name: string; url: string }[];
+};

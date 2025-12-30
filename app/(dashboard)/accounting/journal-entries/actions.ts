@@ -6,6 +6,7 @@ import { EntryStatus } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
+import { CreateJournalEntryData } from "../types";
 
 /**
  * Fetch journal entries with pagination and filtering.
@@ -57,7 +58,7 @@ export const getJournalEntries = authorizedAction(
     const [entries, total] = await Promise.all([
       prisma.journalEntry.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: { postedAt: "desc" },
         include: {
           lines: {
             include: {
@@ -118,18 +119,6 @@ export const getJournalEntry = authorizedAction(
     return { success: true, data: serializePrisma(entry) };
   }
 );
-
-export type CreateJournalEntryData = {
-  transactionDate: Date;
-  description?: string;
-  lines: {
-    accountId: string;
-    debitAmount: number;
-    creditAmount: number;
-    description?: string;
-  }[];
-  attachments?: { id: string; name: string; url: string }[];
-};
 
 /**
  * Create a new journal entry.
@@ -345,61 +334,112 @@ export async function deleteJournalEntry(id: string) {
 }
 
 export async function postJournalEntry(id: string) {
-  const existingEntry = await prisma.journalEntry.findUnique({
-    where: { id },
-    include: { lines: true },
-  });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const existingEntry = await tx.journalEntry.findUnique({
+        where: { id },
+        include: {
+          lines: {
+            orderBy: { lineNumber: "asc" },
+            include: { account: true },
+          },
+        },
+      });
 
-  if (!existingEntry) {
-    return { success: false, error: "Journal entry not found" };
+      if (!existingEntry) {
+        return { success: false, error: "Journal entry not found" };
+      }
+
+      if (existingEntry.status === "posted") {
+        return { success: false, error: "Journal entry is already posted" };
+      }
+
+      // Double check journal entry balance
+      const totalDebit = existingEntry.lines.reduce(
+        (sum, line) => sum + line.debitAmount.toNumber(),
+        0
+      );
+      const totalCredit = existingEntry.lines.reduce(
+        (sum, line) => sum + line.creditAmount.toNumber(),
+        0
+      );
+
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        return {
+          success: false,
+          error: "Cannot post unbalanced journal entry",
+        };
+      }
+
+      // Update status
+      await tx.journalEntry.update({
+        where: { id },
+        data: {
+          status: "posted",
+          postedAt: new Date(),
+        },
+      });
+
+      // Update running balances
+      // Group lines by accountId
+      const linesByAccount: Record<string, typeof existingEntry.lines> = {};
+      for (const line of existingEntry.lines) {
+        if (!linesByAccount[line.accountId]) {
+          linesByAccount[line.accountId] = [];
+        }
+        linesByAccount[line.accountId].push(line);
+      }
+
+      for (const accountId of Object.keys(linesByAccount)) {
+        const lines = linesByAccount[accountId];
+        const normalBalance = lines[0].account.normalBalance;
+
+        // Fetch last running balance from PREVIOUS entries
+        const lastEntryLine = await tx.journalEntryLine.findFirst({
+          where: {
+            accountId,
+            journalEntry: {
+              status: "posted",
+            },
+            journalEntryId: { not: id },
+          },
+          orderBy: [
+            { journalEntry: { postedAt: "desc" } },
+            { journalEntry: { createdAt: "desc" } },
+          ],
+          select: { runningBalance: true },
+        });
+
+        let currentBalance = lastEntryLine?.runningBalance?.toNumber() || 0;
+
+        for (const line of lines) {
+          const debit = line.debitAmount.toNumber();
+          const credit = line.creditAmount.toNumber();
+
+          if (normalBalance === "credit") {
+            currentBalance = currentBalance - debit + credit;
+          } else {
+            currentBalance = currentBalance + debit - credit;
+          }
+
+          await tx.journalEntryLine.update({
+            where: { id: line.id },
+            data: { runningBalance: currentBalance },
+          });
+        }
+      }
+
+      return { success: true };
+    });
+
+    if (result.success) {
+      revalidatePath("/accounting/journal-entries");
+      revalidatePath(`/accounting/journal-entries/${id}`);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to post journal entry:", error);
+    return { success: false, error: "Failed to post journal entry" };
   }
-
-  if (existingEntry.status === "posted") {
-    return { success: false, error: "Journal entry is already posted" };
-  }
-
-  // Double check balance
-  const totalDebit = existingEntry.lines.reduce(
-    (sum, line) => sum + line.debitAmount.toNumber(),
-    0
-  );
-  const totalCredit = existingEntry.lines.reduce(
-    (sum, line) => sum + line.creditAmount.toNumber(),
-    0
-  );
-
-  if (Math.abs(totalDebit - totalCredit) > 0.01) {
-    return { success: false, error: "Cannot post unbalanced journal entry" };
-  }
-
-  await prisma.journalEntry.update({
-    where: { id },
-    data: {
-      status: "posted",
-      postedAt: new Date(),
-    },
-  });
-
-  // Recalculate running balances for affected accounts
-  // We need to do this AFTER status update so the query in recalculateAccountRunningBalances picks up this entry
-  const { recalculateAccountRunningBalances } = await import("../ledger/utils");
-
-  // Group lines by accountId to avoid duplicate calls if multiple lines affect same account (rare but possible)
-  const accountIds = Array.from(
-    new Set(existingEntry.lines.map((line) => line.accountId))
-  );
-
-  // We can run these in parallel
-  await Promise.all(
-    accountIds.map((accountId) =>
-      recalculateAccountRunningBalances(
-        accountId,
-        existingEntry.transactionDate
-      )
-    )
-  );
-
-  revalidatePath("/accounting/journal-entries");
-  revalidatePath(`/accounting/journal-entries/${id}`);
-  return { success: true };
 }
