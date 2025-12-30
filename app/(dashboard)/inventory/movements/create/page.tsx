@@ -1,9 +1,6 @@
 import { getProducts } from "../../products/actions";
 import { getWarehouses } from "../../warehouses/actions";
 import { BatchMovementForm } from "../_components/batch-movement-form";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
 export default async function CreateMovementPage() {
   const { products } = await getProducts();
@@ -27,7 +24,10 @@ export default async function CreateMovementPage() {
         </h2>
       </div>
 
-      <BatchMovementForm products={formattedProducts} warehouses={warehouses} />
+      <BatchMovementForm
+        products={formattedProducts}
+        warehouses={warehouses.warehouses}
+      />
     </div>
   );
 }

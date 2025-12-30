@@ -37,7 +37,6 @@ export function MovementTable({ movements }: MovementTableProps) {
             <TableHead>Product</TableHead>
             <TableHead>From</TableHead>
             <TableHead>To</TableHead>
-            <TableHead>Qty</TableHead>
             <TableHead>Reference</TableHead>
           </TableRow>
         </TableHeader>
@@ -77,11 +76,6 @@ export function MovementTable({ movements }: MovementTableProps) {
                 </TableCell>
                 <TableCell>{m.fromWarehouse?.name || "-"}</TableCell>
                 <TableCell>{m.toWarehouse?.name || "-"}</TableCell>
-                <TableCell
-                  className={m.quantity < 0 ? "text-red-500" : "text-green-500"}
-                >
-                  {m.quantity}
-                </TableCell>
                 <TableCell>{m.reference || "-"}</TableCell>
               </TableRow>
             ))

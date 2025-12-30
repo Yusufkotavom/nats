@@ -299,7 +299,7 @@ export function BatchMovementForm({
                 placeholder="Select source warehouse"
                 containerClassName="space-y-2"
               >
-                {warehouses.map((w) => (
+                {warehouses?.map((w) => (
                   <SelectItem key={w.id} value={w.id}>
                     {w.name}
                   </SelectItem>
@@ -317,7 +317,7 @@ export function BatchMovementForm({
                 placeholder="Select destination warehouse"
                 containerClassName="space-y-2"
               >
-                {warehouses.map((w) => (
+                {warehouses?.map((w) => (
                   <SelectItem key={w.id} value={w.id}>
                     {w.name}
                   </SelectItem>
