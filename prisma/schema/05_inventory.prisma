@@ -185,6 +185,11 @@ model InventoryMovement {
   product   Product? @relation(fields: [productId], references: [id])
   productId String?
 
+  approvedById    String?
+  approvedBy      User?     @relation("MovementApprover", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  rejectionReason String?
+
   @@index([type])
   @@index([transactionDate])
 }
@@ -219,6 +224,8 @@ enum MovementType {
 
 enum MovementStatus {
   PENDING
+  APPROVED
+  REJECTED
   COMPLETED
   CANCELLED
 }

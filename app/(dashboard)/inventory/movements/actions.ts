@@ -5,6 +5,8 @@ import { MovementType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
+import { getSession } from "@/lib/auth/auth";
+
 export async function getMovementBatches(page: number = 1, limit: number = 10) {
   const skip = (page - 1) * limit;
 
@@ -16,6 +18,12 @@ export async function getMovementBatches(page: number = 1, limit: number = 10) {
         details: {
           include: {
             product: true,
+          },
+        },
+        approvedBy: {
+          select: {
+            name: true,
+            email: true,
           },
         },
       },
@@ -41,6 +49,12 @@ export async function getMovements() {
         include: {
           fromWarehouse: true,
           toWarehouse: true,
+          approvedBy: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
         },
       },
     },
@@ -79,7 +93,7 @@ export const createBatchMovement = authorizedAction(
             type,
             reference,
             notes,
-            status: "COMPLETED", // Assuming immediate completion for now
+            status: "PENDING",
             fromWarehouseId: fromWarehouseId || null,
             toWarehouseId: toWarehouseId || null,
           },
@@ -100,6 +114,7 @@ export const createBatchMovement = authorizedAction(
             notes: item.notes || notes,
             batchNumber: item.batchNumber,
             inventoryMovementId: batch.id, // Link to the master
+            status: "PENDING",
           });
         }
       });
@@ -121,7 +136,319 @@ export const createBatchMovement = authorizedAction(
   }
 );
 
+export const approveMovement = authorizedAction(
+  "inventory_movements.create", // TODO: Add specific permission for approval?
+  async (movementId: string) => {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const movement = await tx.inventoryMovement.findUniqueOrThrow({
+          where: { id: movementId },
+          include: { details: true },
+        });
+
+        if (movement.status !== "PENDING") {
+          throw new Error("Movement is not pending");
+        }
+
+        // Execute inventory updates for each detail
+        for (const detail of movement.details) {
+          await executeInventoryUpdate(tx, {
+            type: movement.type,
+            productId: detail.productId,
+            fromWarehouseId: movement.fromWarehouseId,
+            toWarehouseId: movement.toWarehouseId,
+            quantity: detail.quantity,
+            unitCost: detail.unitCost.toNumber(),
+            batchNumber: detail.batchNumber || "-",
+            locationId: null, // TODO: Store locationId in detail?
+          });
+        }
+
+        // Update status
+        await tx.inventoryMovement.update({
+          where: { id: movementId },
+          data: {
+            status: "COMPLETED",
+            approvedById: session.userId,
+            approvedAt: new Date(),
+          },
+        });
+      });
+
+      revalidatePath("/inventory/movements");
+      revalidatePath("/inventory/warehouses");
+      revalidatePath("/inventory/products");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to approve movement:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to approve movement",
+      };
+    }
+  }
+);
+
+export const rejectMovement = authorizedAction(
+  "inventory_movements.create",
+  async (data: { movementId: string; reason: string }) => {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+
+    try {
+      await prisma.inventoryMovement.update({
+        where: { id: data.movementId },
+        data: {
+          status: "REJECTED",
+          rejectionReason: data.reason,
+          approvedById: session.userId, // Recorded as the one who rejected
+          approvedAt: new Date(),
+        },
+      });
+
+      revalidatePath("/inventory/movements");
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to reject movement:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to reject movement",
+      };
+    }
+  }
+);
+
 import { Prisma } from "@/prisma/generated/prisma/client";
+
+async function executeInventoryUpdate(
+  tx: Prisma.TransactionClient,
+  data: {
+    type: MovementType;
+    productId: string;
+    fromWarehouseId: string | null;
+    toWarehouseId: string | null;
+    quantity: number;
+    unitCost: number;
+    batchNumber: string;
+    locationId: string | null;
+  }
+) {
+  const {
+    type,
+    productId,
+    fromWarehouseId,
+    toWarehouseId,
+    quantity,
+    unitCost,
+    batchNumber,
+    locationId,
+  } = data;
+
+  // 1. Handle Valuation & Costing Updates (Moving Average)
+  if (type === "IN") {
+    const product = await tx.product.findUniqueOrThrow({
+      where: { id: productId },
+    });
+
+    const allInventory = await tx.inventory.aggregate({
+      where: { productId },
+      _sum: { quantity: true },
+    });
+
+    const totalExistingQty = allInventory._sum.quantity || 0;
+    const oldTotalValue = product.averageCost.toNumber() * totalExistingQty;
+    const newTotalValue = oldTotalValue + quantity * unitCost;
+    const newTotalQty = totalExistingQty + quantity;
+
+    if (newTotalQty > 0) {
+      const newAverageCost = newTotalValue / newTotalQty;
+      await tx.product.update({
+        where: { id: productId },
+        data: { averageCost: newAverageCost },
+      });
+    }
+  }
+
+  // 2. Update Inventory (With Location & Batch Logic)
+  if (type === "IN") {
+    if (!toWarehouseId)
+      throw new Error("Destination warehouse required for IN");
+
+    await tx.inventory.upsert({
+      where: {
+        productId_warehouseId_batchNumber: {
+          productId,
+          warehouseId: toWarehouseId,
+          batchNumber: batchNumber,
+        },
+      },
+      update: {
+        quantity: { increment: quantity },
+      },
+      create: {
+        productId,
+        warehouseId: toWarehouseId,
+        quantity: quantity,
+        batchNumber: batchNumber,
+        unitCost: unitCost,
+        locationId: locationId || null,
+      },
+    });
+  } else if (type === "OUT") {
+    if (!fromWarehouseId) throw new Error("Source warehouse required for OUT");
+
+    let targetBatch = batchNumber;
+
+    if (targetBatch === "-") {
+      const oldestStock = await tx.inventory.findFirst({
+        where: {
+          productId,
+          warehouseId: fromWarehouseId,
+          quantity: { gte: quantity },
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      if (!oldestStock) {
+        // Fetch product name for error message
+        const product = await tx.product.findUnique({
+          where: { id: productId },
+        });
+        throw new Error(
+          `Insufficient stock in warehouse ${fromWarehouseId} for product ${
+            product?.name || productId
+          }`
+        );
+      }
+      targetBatch = oldestStock.batchNumber || "-";
+    }
+
+    const inventory = await tx.inventory.findUnique({
+      where: {
+        productId_warehouseId_batchNumber: {
+          productId,
+          warehouseId: fromWarehouseId,
+          batchNumber: targetBatch,
+        },
+      },
+    });
+
+    if (!inventory || inventory.quantity < quantity) {
+      throw new Error(`Insufficient stock in warehouse ${fromWarehouseId}`);
+    }
+
+    await tx.inventory.update({
+      where: {
+        productId_warehouseId_batchNumber: {
+          productId,
+          warehouseId: fromWarehouseId,
+          batchNumber: targetBatch,
+        },
+      },
+      data: {
+        quantity: { decrement: quantity },
+      },
+    });
+  } else if (type === "TRANSFER") {
+    if (!fromWarehouseId || !toWarehouseId)
+      throw new Error("Both warehouses required");
+
+    // Check source stock
+    // TODO: This logic simplifies transfer by assuming picking from one batch or oldest.
+    // If batchNumber is provided, we use it. If not, we find oldest.
+    let sourceBatch = batchNumber;
+    let sourceUnitCost = 0;
+
+    if (sourceBatch === "-") {
+      const sourceStock = await tx.inventory.findFirst({
+        where: {
+          productId,
+          warehouseId: fromWarehouseId,
+          quantity: { gte: quantity },
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      if (!sourceStock) throw new Error("Insufficient source stock");
+      sourceBatch = sourceStock.batchNumber || "-";
+      sourceUnitCost = sourceStock.unitCost.toNumber();
+    } else {
+      const sourceStock = await tx.inventory.findUnique({
+        where: {
+          productId_warehouseId_batchNumber: {
+            productId,
+            warehouseId: fromWarehouseId,
+            batchNumber: sourceBatch,
+          },
+        },
+      });
+      if (!sourceStock || sourceStock.quantity < quantity)
+        throw new Error("Insufficient source stock");
+      sourceUnitCost = sourceStock.unitCost.toNumber();
+    }
+
+    await tx.inventory.update({
+      where: {
+        productId_warehouseId_batchNumber: {
+          productId,
+          warehouseId: fromWarehouseId,
+          batchNumber: sourceBatch,
+        },
+      },
+      data: { quantity: { decrement: quantity } },
+    });
+
+    await tx.inventory.upsert({
+      where: {
+        productId_warehouseId_batchNumber: {
+          productId,
+          warehouseId: toWarehouseId,
+          batchNumber: sourceBatch,
+        },
+      },
+      update: { quantity: { increment: quantity } },
+      create: {
+        productId,
+        warehouseId: toWarehouseId,
+        quantity: quantity,
+        batchNumber: sourceBatch,
+        unitCost: sourceUnitCost,
+        locationId: locationId || null,
+      },
+    });
+  } else if (type === "ADJUSTMENT") {
+    if (!toWarehouseId) throw new Error("Warehouse required");
+
+    const adjBatch =
+      batchNumber === "-" ? "ADJ-" + new Date().getTime() : batchNumber;
+
+    await tx.inventory.upsert({
+      where: {
+        productId_warehouseId_batchNumber: {
+          productId,
+          warehouseId: toWarehouseId,
+          batchNumber: adjBatch,
+        },
+      },
+      update: {
+        quantity: { increment: quantity },
+      },
+      create: {
+        productId,
+        warehouseId: toWarehouseId,
+        quantity: quantity,
+        batchNumber: adjBatch,
+        unitCost: unitCost,
+        locationId: locationId || null,
+      },
+    });
+  }
+}
 
 async function processMovement(
   tx: Prisma.TransactionClient,
@@ -138,6 +465,7 @@ async function processMovement(
     notes?: string;
     batchNumber?: string;
     inventoryMovementId?: string;
+    status?: "PENDING" | "COMPLETED";
   }
 ) {
   const {
@@ -148,6 +476,7 @@ async function processMovement(
     quantity,
     notes,
     inventoryMovementId,
+    status = "COMPLETED",
   } = data;
 
   // Explicit Batch or Auto-Generate
@@ -187,30 +516,7 @@ async function processMovement(
       product.averageCost?.toNumber() || product.cost?.toNumber() || 0;
   }
 
-  // 1. Handle Valuation & Costing Updates (Moving Average)
-  if (type === "IN" && data.unitCost !== undefined) {
-    const allInventory = await tx.inventory.aggregate({
-      where: { productId },
-      _sum: { quantity: true },
-    });
-
-    const totalExistingQty = allInventory._sum.quantity || 0;
-    const oldTotalValue = product.averageCost.toNumber() * totalExistingQty;
-    const newTotalValue = oldTotalValue + baseQuantity * movementUnitCost;
-    const newTotalQty = totalExistingQty + baseQuantity;
-
-    if (newTotalQty > 0) {
-      const newAverageCost = newTotalValue / newTotalQty;
-      await tx.product.update({
-        where: { id: productId },
-        data: { averageCost: newAverageCost },
-      });
-    }
-  } else if (type === "OUT") {
-    movementUnitCost = product.averageCost.toNumber();
-  }
-
-  // 2. Create Movement Detail Record
+  // 1. Create Movement Detail Record
   await tx.inventoryMovementDetail.create({
     data: {
       inventoryMovementId: inventoryMovementId!, // Must exist now for batch context
@@ -222,142 +528,17 @@ async function processMovement(
     },
   });
 
-  // 3. Update Inventory (With Location & Batch Logic)
-  if (type === "IN") {
-    if (!toWarehouseId)
-      throw new Error("Destination warehouse required for IN");
-
-    await tx.inventory.upsert({
-      where: {
-        productId_warehouseId_batchNumber: {
-          productId,
-          warehouseId: toWarehouseId,
-          batchNumber: batchNumber,
-        },
-      },
-      update: {
-        quantity: { increment: baseQuantity },
-      },
-      create: {
-        productId,
-        warehouseId: toWarehouseId,
-        quantity: baseQuantity,
-        batchNumber: batchNumber,
-        unitCost: movementUnitCost,
-        locationId: data.locationId || null,
-      },
-    });
-  } else if (type === "OUT") {
-    if (!fromWarehouseId) throw new Error("Source warehouse required for OUT");
-
-    let targetBatch = batchNumber;
-
-    if (targetBatch === "-") {
-      const oldestStock = await tx.inventory.findFirst({
-        where: {
-          productId,
-          warehouseId: fromWarehouseId,
-          quantity: { gte: baseQuantity },
-        },
-        orderBy: { createdAt: "asc" },
-      });
-
-      if (!oldestStock)
-        throw new Error(
-          `Insufficient stock in warehouse ${fromWarehouseId} for product ${product.name}`
-        );
-      targetBatch = oldestStock.batchNumber || "-";
-    }
-
-    const inventory = await tx.inventory.findUnique({
-      where: {
-        productId_warehouseId_batchNumber: {
-          productId,
-          warehouseId: fromWarehouseId,
-          batchNumber: targetBatch,
-        },
-      },
-    });
-
-    if (!inventory || inventory.quantity < baseQuantity) {
-      throw new Error(`Insufficient stock in warehouse ${fromWarehouseId}`);
-    }
-
-    await tx.inventory.update({
-      where: {
-        productId_warehouseId_batchNumber: {
-          productId,
-          warehouseId: fromWarehouseId,
-          batchNumber: targetBatch,
-        },
-      },
-      data: {
-        quantity: { decrement: baseQuantity },
-      },
-    });
-  } else if (type === "TRANSFER") {
-    if (!fromWarehouseId || !toWarehouseId)
-      throw new Error("Both warehouses required");
-
-    const sourceStock = await tx.inventory.findFirst({
-      where: {
-        productId,
-        warehouseId: fromWarehouseId,
-        quantity: { gte: baseQuantity },
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-    if (!sourceStock) throw new Error("Insufficient source stock");
-
-    await tx.inventory.update({
-      where: { id: sourceStock.id },
-      data: { quantity: { decrement: baseQuantity } },
-    });
-
-    await tx.inventory.upsert({
-      where: {
-        productId_warehouseId_batchNumber: {
-          productId,
-          warehouseId: toWarehouseId,
-          batchNumber: sourceStock.batchNumber || "-",
-        },
-      },
-      update: { quantity: { increment: baseQuantity } },
-      create: {
-        productId,
-        warehouseId: toWarehouseId,
-        quantity: baseQuantity,
-        batchNumber: sourceStock.batchNumber || "-",
-        unitCost: sourceStock.unitCost,
-        locationId: data.locationId || null,
-      },
-    });
-  } else if (type === "ADJUSTMENT") {
-    if (!toWarehouseId) throw new Error("Warehouse required");
-
-    const adjBatch =
-      batchNumber === "-" ? "ADJ-" + new Date().getTime() : batchNumber;
-
-    await tx.inventory.upsert({
-      where: {
-        productId_warehouseId_batchNumber: {
-          productId,
-          warehouseId: toWarehouseId,
-          batchNumber: adjBatch,
-        },
-      },
-      update: {
-        quantity: { increment: baseQuantity },
-      },
-      create: {
-        productId,
-        warehouseId: toWarehouseId,
-        quantity: baseQuantity,
-        batchNumber: adjBatch,
-        unitCost: movementUnitCost,
-        locationId: data.locationId || null,
-      },
+  // 2. Execute Inventory Update if not pending
+  if (status !== "PENDING") {
+    await executeInventoryUpdate(tx, {
+      type,
+      productId,
+      fromWarehouseId: fromWarehouseId || null,
+      toWarehouseId: toWarehouseId || null,
+      quantity: baseQuantity,
+      unitCost: movementUnitCost,
+      batchNumber,
+      locationId: data.locationId || null,
     });
   }
 }
@@ -379,7 +560,23 @@ export const createMovement = authorizedAction(
   }) => {
     try {
       await prisma.$transaction(async (tx) => {
-        await processMovement(tx, data);
+        // Create header
+        const movement = await tx.inventoryMovement.create({
+          data: {
+            type: data.type,
+            reference: data.reference,
+            notes: data.notes,
+            status: "PENDING",
+            fromWarehouseId: data.fromWarehouseId || null,
+            toWarehouseId: data.toWarehouseId || null,
+          },
+        });
+
+        await processMovement(tx, {
+          ...data,
+          inventoryMovementId: movement.id,
+          status: "PENDING",
+        });
       });
 
       revalidatePath("/inventory/movements");
