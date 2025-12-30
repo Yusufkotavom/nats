@@ -10,15 +10,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { createAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountType } from "@/prisma/generated/prisma/enums";
@@ -123,84 +116,69 @@ export function AccountDialog({
         </DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 items-center">
-            <div className="space-y-1">
-              <Label>Parent/Group</Label>
-              <Select
-                value={addForm.parentId || ""}
-                disabled={isPending}
-                onValueChange={(val) => {
-                  const p = accounts.find((a) => a.id === val);
-                  if (p) {
-                    setAddForm((f) => ({
-                      ...f,
-                      parentId: val,
-                      code: p.code,
-                      type: p.type,
-                    }));
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select parent" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortedAccounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.code} — {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="acc-code">Code</Label>
-              <Input
-                id="acc-code"
-                value={addForm.code}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, code: e.target.value }))
-                }
-                placeholder="e.g. 1-1-3"
-                disabled={isPending}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="acc-name">Name</Label>
-              <Input
-                id="acc-name"
-                value={addForm.name}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, name: e.target.value }))
-                }
-                placeholder="e.g. Cash"
-                disabled={isPending}
-              />
-            </div>
-
-            <div className="space-y-1 w-full">
-              <Label>Type</Label>
-              <Select
-                value={addForm.type || ""}
-                disabled
-                onValueChange={(val) =>
+            <CustomSelect
+              label="Parent/Group"
+              value={addForm.parentId || ""}
+              disabled={isPending}
+              onValueChange={(val) => {
+                const p = accounts.find((a) => a.id === val);
+                if (p) {
                   setAddForm((f) => ({
                     ...f,
-                    type: (val as AccountType) || "",
-                  }))
+                    parentId: val,
+                    code: p.code,
+                    type: p.type,
+                  }));
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asset">Asset</SelectItem>
-                  <SelectItem value="liability">Liability</SelectItem>
-                  <SelectItem value="equity">Equity</SelectItem>
-                  <SelectItem value="revenue">Revenue</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              }}
+              placeholder="Select parent"
+              triggerClassName="w-full"
+              options={sortedAccounts.map((a) => ({
+                value: a.id,
+                label: `${a.code} — ${a.name}`,
+              }))}
+            />
+            <CustomInput
+              label="Code"
+              id="acc-code"
+              value={addForm.code}
+              onChange={(e) =>
+                setAddForm((f) => ({ ...f, code: e.target.value }))
+              }
+              placeholder="e.g. 1-1-3"
+              disabled={isPending}
+            />
+            <CustomInput
+              label="Name"
+              id="acc-name"
+              value={addForm.name}
+              onChange={(e) =>
+                setAddForm((f) => ({ ...f, name: e.target.value }))
+              }
+              placeholder="e.g. Cash"
+              disabled={isPending}
+            />
+
+            <CustomSelect
+              label="Type"
+              value={addForm.type || ""}
+              disabled
+              onValueChange={(val) =>
+                setAddForm((f) => ({
+                  ...f,
+                  type: (val as AccountType) || "",
+                }))
+              }
+              placeholder="Select type"
+              containerClassName="w-full"
+              options={[
+                { value: "asset", label: "Asset" },
+                { value: "liability", label: "Liability" },
+                { value: "equity", label: "Equity" },
+                { value: "revenue", label: "Revenue" },
+                { value: "expense", label: "Expense" },
+              ]}
+            />
           </div>
           {error && <div className="text-destructive text-sm">{error}</div>}
         </div>
