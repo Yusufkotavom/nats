@@ -381,52 +381,48 @@ export async function postJournalEntry(id: string) {
       });
 
       // Update running balances
-      // Group lines by accountId
-      const linesByAccount: Record<string, typeof existingEntry.lines> = {};
+      const accountBalances: Record<string, number> = {};
+
       for (const line of existingEntry.lines) {
-        if (!linesByAccount[line.accountId]) {
-          linesByAccount[line.accountId] = [];
-        }
-        linesByAccount[line.accountId].push(line);
-      }
+        const { accountId, account } = line;
 
-      for (const accountId of Object.keys(linesByAccount)) {
-        const lines = linesByAccount[accountId];
-        const normalBalance = lines[0].account.normalBalance;
-
-        // Fetch last running balance from PREVIOUS entries
-        const lastEntryLine = await tx.journalEntryLine.findFirst({
-          where: {
-            accountId,
-            journalEntry: {
-              status: "posted",
+        // Initialize balance for this account if not already tracked in this transaction
+        if (accountBalances[accountId] === undefined) {
+          const lastEntryLine = await tx.journalEntryLine.findFirst({
+            where: {
+              accountId,
+              journalEntry: {
+                status: "posted",
+              },
+              journalEntryId: { not: id },
             },
-            journalEntryId: { not: id },
-          },
-          orderBy: [
-            { journalEntry: { postedAt: "desc" } },
-            { journalEntry: { createdAt: "desc" } },
-          ],
-          select: { runningBalance: true },
-        });
-
-        let currentBalance = lastEntryLine?.runningBalance?.toNumber() || 0;
-
-        for (const line of lines) {
-          const debit = line.debitAmount.toNumber();
-          const credit = line.creditAmount.toNumber();
-
-          if (normalBalance === "credit") {
-            currentBalance = currentBalance - debit + credit;
-          } else {
-            currentBalance = currentBalance + debit - credit;
-          }
-
-          await tx.journalEntryLine.update({
-            where: { id: line.id },
-            data: { runningBalance: currentBalance },
+            orderBy: [
+              { journalEntry: { postedAt: "desc" } },
+              { journalEntry: { createdAt: "desc" } },
+            ],
+            select: { runningBalance: true },
           });
+          accountBalances[accountId] =
+            lastEntryLine?.runningBalance?.toNumber() || 0;
         }
+
+        // Update balance based on normal balance type
+        const debit = line.debitAmount.toNumber();
+        const credit = line.creditAmount.toNumber();
+
+        if (account.normalBalance === "credit") {
+          accountBalances[accountId] =
+            accountBalances[accountId] - debit + credit;
+        } else {
+          accountBalances[accountId] =
+            accountBalances[accountId] + debit - credit;
+        }
+
+        // Update line with new running balance
+        await tx.journalEntryLine.update({
+          where: { id: line.id },
+          data: { runningBalance: accountBalances[accountId] },
+        });
       }
 
       return { success: true };
