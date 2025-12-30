@@ -18,11 +18,11 @@ import { Unit } from "@/prisma/generated/prisma/browser";
 
 interface UomDialogProps {
   unit?: Unit;
-  trigger?: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function UomDialog({ unit, trigger }: UomDialogProps) {
-  const [open, setOpen] = useState(false);
+export function UomDialog({ unit, open, onOpenChange }: UomDialogProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -44,7 +44,7 @@ export function UomDialog({ unit, trigger }: UomDialogProps) {
       }
 
       if (res.success) {
-        setOpen(false);
+        onOpenChange(false);
       } else {
         alert(res.error);
       }
@@ -57,15 +57,7 @@ export function UomDialog({ unit, trigger }: UomDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Unit
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{unit ? "Edit Unit" : "Add Unit"}</DialogTitle>

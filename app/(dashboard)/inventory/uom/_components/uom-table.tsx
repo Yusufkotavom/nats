@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -9,13 +10,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react";
 import { Unit } from "@/prisma/generated/prisma/browser";
 import { UomDialog } from "./uom-dialog";
 import { deleteUnit } from "../actions";
 import { format } from "date-fns";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useSearchParams } from "next/navigation";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Protect } from "@/components/ui/protect";
 
 interface UomTableProps {
   units: Unit[];
@@ -26,17 +37,45 @@ export function UomTable({ units, totalEntries }: UomTableProps) {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
 
-  async function handleDelete(id: string) {
-    if (confirm("Are you sure you want to delete this unit?")) {
-      const res = await deleteUnit(id);
-      if (!res.success) {
-        alert(res.error);
-      }
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<Unit | undefined>(undefined);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [unitToDelete, setUnitToDelete] = useState<Unit | undefined>(undefined);
+
+  const handleAddUnit = () => {
+    setSelectedUnit(undefined);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditUnit = (unit: Unit) => {
+    setSelectedUnit(unit);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteClick = (unit: Unit) => {
+    setUnitToDelete(unit);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (unitToDelete) {
+      await deleteUnit(unitToDelete.id);
+      setIsDeleteDialogOpen(false);
+      setUnitToDelete(undefined);
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center gap-4">
+        <h2 className="text-lg font-bold tracking-tight">Units of Measure</h2>
+        <Protect permission="inventory_products.create">
+          <Button onClick={handleAddUnit}>
+            <Plus className="mr-2 h-4 w-4" /> Add Unit
+          </Button>
+        </Protect>
+      </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -44,7 +83,7 @@ export function UomTable({ units, totalEntries }: UomTableProps) {
               <TableHead>Name</TableHead>
               <TableHead>Symbol</TableHead>
               <TableHead>Last Updated</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -62,22 +101,32 @@ export function UomTable({ units, totalEntries }: UomTableProps) {
                   <TableCell>
                     {format(new Date(unit.updatedAt), "PP")}
                   </TableCell>
-                  <TableCell className="flex gap-2">
-                    <UomDialog
-                      unit={unit}
-                      trigger={
-                        <Button variant="ghost" size="icon">
-                          <Pencil className="h-4 w-4" />
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                      }
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(unit.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <Protect permission="inventory_products.edit">
+                          <DropdownMenuItem onClick={() => handleEditUnit(unit)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                        </Protect>
+                        <DropdownMenuSeparator />
+                        <Protect permission="inventory_products.delete">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDeleteClick(unit)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </Protect>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -89,6 +138,22 @@ export function UomTable({ units, totalEntries }: UomTableProps) {
         totalEntries={totalEntries}
         pageSize={10}
         currentPage={currentPage}
+      />
+
+      <UomDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        unit={selectedUnit}
+      />
+
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Are you absolutely sure?"
+        description="This action cannot be undone. This will permanently delete the unit and remove it from our servers."
+        onConfirm={handleConfirmDelete}
+        confirmText="Delete"
+        variant="destructive"
       />
     </div>
   );
