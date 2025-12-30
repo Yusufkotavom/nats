@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 interface ProductTableProps {
   products: ProductFormData[];
@@ -49,6 +50,7 @@ export function ProductTable({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
+  const formatCurrency = useFormatCurrency();
 
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
@@ -136,7 +138,6 @@ export function ProductTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]"></TableHead>
               <TableHead>SKU</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
@@ -165,8 +166,8 @@ export function ProductTable({
                     <TableCell className="font-medium">{product.sku}</TableCell>
                     <TableCell>{product.name}</TableCell>
                     <TableCell>{product.category?.name || "-"}</TableCell>
-                    <TableCell>{Number(product.price).toFixed(2)}</TableCell>
-                    <TableCell>{Number(product.cost).toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(product.price)}</TableCell>
+                    <TableCell>{formatCurrency(product.cost)}</TableCell>
                     <TableCell>{product.minStock}</TableCell>
                     <TableCell>
                       {totalStock} {product.baseUnit?.symbol}

@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -9,11 +11,39 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Activity, AlertTriangle, Box, DollarSign } from "lucide-react";
+import { useEffect, useState } from "react";
 import { getInventoryDashboardMetrics } from "./actions";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
-export default async function InventoryDashboardPage() {
-  const { totalProducts, totalValue, lowStockItems, recentMovements } =
-    await getInventoryDashboardMetrics();
+type DashboardMetrics = Awaited<
+  ReturnType<typeof getInventoryDashboardMetrics>
+>;
+
+interface Movement {
+  id: string;
+  type: string;
+  createdAt: string | Date;
+  product?: { name: string };
+  quantity?: number;
+}
+
+export default function InventoryDashboardPage() {
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const formatCurrency = useFormatCurrency();
+
+  useEffect(() => {
+    getInventoryDashboardMetrics().then(setMetrics);
+  }, []);
+
+  if (!metrics) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Loading dashboard...
+      </div>
+    );
+  }
+
+  const { totalProducts, totalValue, lowStockItems, recentMovements } = metrics;
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -42,7 +72,9 @@ export default async function InventoryDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalValue)}
+            </div>
             <p className="text-xs text-muted-foreground">
               Based on average cost
             </p>
@@ -94,15 +126,15 @@ export default async function InventoryDashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentMovements.map((movement) => (
+                {(recentMovements as unknown as Movement[]).map((movement) => (
                   <TableRow key={movement.id}>
                     <TableCell className="font-medium">
-                      {movement.product.name}
+                      {movement.product?.name}
                     </TableCell>
                     <TableCell>{movement.type}</TableCell>
                     <TableCell
                       className={
-                        movement.quantity < 0
+                        (movement.quantity || 0) < 0
                           ? "text-red-500"
                           : "text-green-500"
                       }

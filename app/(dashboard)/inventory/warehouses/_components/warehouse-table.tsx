@@ -27,6 +27,7 @@ import {
 } from "@/prisma/generated/prisma/browser";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useSearchParams } from "next/navigation";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 type WarehouseWithInventory = Warehouse & {
   inventory: (Omit<Inventory, "unitCost"> & { unitCost: number } & {
@@ -59,6 +60,7 @@ export function WarehouseTable({
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const formatCurrency = useFormatCurrency();
 
   function toggleExpand(id: string) {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -123,7 +125,7 @@ export function WarehouseTable({
                     </TableCell>
                     <TableCell>{warehouse.location || "-"}</TableCell>
                     <TableCell>{uniqueProducts}</TableCell>
-                    <TableCell>${totalValue.toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(totalValue)}</TableCell>
                     <TableCell className="flex gap-2">
                       <Button
                         variant="ghost"
@@ -187,10 +189,9 @@ export function WarehouseTable({
                                     <TableCell>{inv.product.sku}</TableCell>
                                     <TableCell>{inv.quantity}</TableCell>
                                     <TableCell>
-                                      $
-                                      {(
+                                      {formatCurrency(
                                         inv.quantity * Number(inv.product.cost)
-                                      ).toFixed(2)}
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                 ))
