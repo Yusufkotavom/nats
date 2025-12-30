@@ -24,6 +24,7 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Eye,
 } from "lucide-react";
 import { deleteProduct } from "../actions";
 import { useState, useEffect } from "react";
@@ -166,6 +167,13 @@ export function ProductTable({
                       {totalStock} {product.baseUnit?.symbol}
                     </TableCell>
                     <TableCell className="flex gap-2">
+                      <Protect permission="products.view">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/inventory/products/${product.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </Protect>
                       <Protect permission="products.edit">
                         <Button variant="ghost" size="icon" asChild>
                           <Link href={`/inventory/products/${product.id}/edit`}>

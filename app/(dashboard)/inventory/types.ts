@@ -11,6 +11,7 @@ export type ProductFormData = Omit<
   }>,
   | "price"
   | "cost"
+  | "averageCost"
   | "createdAt"
   | "updatedAt"
   | "purchaseConversionFactor"
@@ -18,6 +19,7 @@ export type ProductFormData = Omit<
 > & {
   price: number;
   cost: number;
+  averageCost: number;
   purchaseConversionFactor: number;
   salesConversionFactor: number;
   inventory?: {

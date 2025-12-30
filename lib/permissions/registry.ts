@@ -93,6 +93,11 @@ export const register: PermissionType[] = [
     module: "products",
   },
   {
+    name: "products.view",
+    description: "Allows viewing product details",
+    module: "products",
+  },
+  {
     name: "products.edit",
     description: "Allows editing product details",
     module: "products",
