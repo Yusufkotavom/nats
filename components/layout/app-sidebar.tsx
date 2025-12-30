@@ -105,36 +105,51 @@ const data = {
       ],
     },
     {
-      title: "Sales",
-      url: "#",
-      icon: Rocket,
-      items: [
-        {
-          title: "POS",
-          url: "#",
-        },
-        {
-          title: "Return",
-          url: "#",
-        },
-      ],
-    },
-    {
       title: "Purchase",
       url: "#",
       icon: ShoppingCart,
       items: [
         {
-          title: "Order",
+          title: "Purchase Order",
           url: "#",
         },
         {
-          title: "Return",
+          title: "Purchase Invoice",
+          url: "#",
+        },
+        {
+          title: "Receive Items",
+          url: "#",
+        },
+        {
+          title: "Purchase Return",
           url: "#",
         },
       ],
     },
-
+    {
+      title: "Sales",
+      url: "#",
+      icon: Rocket,
+      items: [
+        {
+          title: "Sales Order",
+          url: "#",
+        },
+        {
+          title: "Sales Invoice",
+          url: "#",
+        },
+        {
+          title: "Point of Sale (POS)",
+          url: "#",
+        },
+        {
+          title: "Sales Return",
+          url: "#",
+        },
+      ],
+    },
     {
       title: "Assets",
       url: "#",
