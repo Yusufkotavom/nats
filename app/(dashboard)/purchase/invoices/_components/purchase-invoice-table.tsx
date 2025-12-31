@@ -30,6 +30,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 interface PurchaseInvoiceTableProps {
   invoices: PurchaseInvoiceWithDetails[];
@@ -51,6 +52,10 @@ export function PurchaseInvoiceTable({
     searchParams.get("search") || ""
   );
 
+  const [statusFilter, setStatusFilter] = useState(
+    searchParams.get("status") || "ALL"
+  );
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | undefined>(
     undefined
@@ -66,14 +71,24 @@ export function PurchaseInvoiceTable({
       } else {
         params.delete("search");
       }
+
+      if (statusFilter && statusFilter !== "ALL") {
+        params.set("status", statusFilter);
+      } else {
+        params.delete("status");
+      }
+
       params.set("page", "1");
 
-      if (params.get("search") !== (searchParams.get("search") || null)) {
+      const currentSearch = searchParams.get("search") || "";
+      const currentStatus = searchParams.get("status") || "ALL";
+
+      if (searchTerm !== currentSearch || statusFilter !== currentStatus) {
         replace(`${pathname}?${params.toString()}`);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, searchParams, pathname, replace]);
+  }, [searchTerm, statusFilter, searchParams, pathname, replace]);
 
   const handleDeleteClick = (id: string) => {
     setInvoiceToDelete(id);
@@ -118,6 +133,19 @@ export function PurchaseInvoiceTable({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <CustomSelect
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            options={[
+              { value: "ALL", label: "All Status" },
+              { value: "DRAFT", label: "Draft" },
+              { value: "POSTED", label: "Posted" },
+              { value: "PARTIALLY_PAID", label: "Partially Paid" },
+              { value: "PAID", label: "Paid" },
+              { value: "VOID", label: "Void" },
+            ]}
+            triggerClassName="w-[180px]"
+          />
         </div>
       </div>
 

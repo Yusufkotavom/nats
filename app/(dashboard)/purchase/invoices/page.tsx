@@ -16,6 +16,7 @@ interface PageProps {
   searchParams: Promise<{
     page?: string;
     search?: string;
+    status?: string;
   }>;
 }
 
@@ -23,11 +24,13 @@ export default async function PurchaseInvoicesPage(props: PageProps) {
   const searchParams = await props.searchParams;
   const page = Number(searchParams.page) || 1;
   const search = searchParams.search || "";
+  const status = searchParams.status || "ALL";
 
   const { invoices, totalPages, total } = await getPurchaseInvoices(
     page,
     10,
-    search
+    search,
+    status
   );
 
   return (

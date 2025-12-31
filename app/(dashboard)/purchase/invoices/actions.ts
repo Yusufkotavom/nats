@@ -2,7 +2,10 @@
 
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import {
+  Prisma,
+  PurchaseInvoiceStatus,
+} from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseInvoiceInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
@@ -12,19 +15,30 @@ export { getPurchaseOrder };
 export async function getPurchaseInvoices(
   page: number = 1,
   limit: number = 10,
-  search?: string
+  search?: string,
+  status?: string
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseInvoiceWhereInput = {
     AND: [],
   };
 
+  if (status && status !== "ALL") {
+    (where.AND as Prisma.PurchaseInvoiceWhereInput[]).push({
+      status: status as PurchaseInvoiceStatus,
+    });
+  }
+
   if (search) {
     (where.AND as Prisma.PurchaseInvoiceWhereInput[]).push({
       OR: [
         { invoiceNumber: { contains: search, mode: "insensitive" } },
         { vendor: { name: { contains: search, mode: "insensitive" } } },
-        { purchaseOrder: { orderNumber: { contains: search, mode: "insensitive" } } },
+        {
+          purchaseOrder: {
+            orderNumber: { contains: search, mode: "insensitive" },
+          },
+        },
       ],
     });
   }
@@ -99,8 +113,8 @@ export async function getPurchaseOrdersForSelect() {
       vendor: true,
       items: {
         include: {
-            product: true
-        }
+          product: true,
+        },
       },
     },
   });
@@ -122,7 +136,10 @@ export const createPurchaseInvoice = authorizedAction(
       });
 
       if (existing) {
-        return { success: false, error: "Invoice number already exists for this vendor" };
+        return {
+          success: false,
+          error: "Invoice number already exists for this vendor",
+        };
       }
 
       let totalAmount = 0;
@@ -174,7 +191,10 @@ export const updatePurchaseInvoice = authorizedAction(
 
       if (!currentInvoice) throw new Error("Invoice not found");
 
-      if (currentInvoice.status === "PAID" || currentInvoice.status === "VOID") {
+      if (
+        currentInvoice.status === "PAID" ||
+        currentInvoice.status === "VOID"
+      ) {
         return { success: false, error: "Cannot edit paid or void invoice" };
       }
 
@@ -192,7 +212,10 @@ export const updatePurchaseInvoice = authorizedAction(
           },
         });
         if (existing && existing.id !== id) {
-          return { success: false, error: "Invoice number already exists for this vendor" };
+          return {
+            success: false,
+            error: "Invoice number already exists for this vendor",
+          };
         }
       }
 
