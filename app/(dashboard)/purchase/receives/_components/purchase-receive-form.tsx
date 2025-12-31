@@ -278,7 +278,7 @@ export function PurchaseReceiveForm({
     <div className="flex-1 space-y-4 px-4">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-lg font-bold tracking-tight">
-          New Purchase Receive
+          {receive?.receiveNumber ?? "New Purchase Receive"}
         </h2>
         <div className="flex gap-2">
           {!readonly && (

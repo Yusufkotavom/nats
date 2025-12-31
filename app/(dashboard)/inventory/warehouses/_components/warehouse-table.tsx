@@ -127,7 +127,7 @@ export function WarehouseTable({
                               className="flex items-center"
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              Details
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem

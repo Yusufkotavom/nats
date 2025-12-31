@@ -179,7 +179,7 @@ export function PurchaseOrderTable({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
                           <Link href={`/purchase/orders/${order.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
+                            <Eye className="mr-2 h-4 w-4" /> Details
                           </Link>
                         </DropdownMenuItem>
                         <Protect permission="purchase.edit">
@@ -208,7 +208,7 @@ export function PurchaseOrderTable({
         </Table>
       </div>
 
-      <CustomPagination totalPages={totalPages} totalEntries={totalEntries} />
+      <CustomPagination currentPage={currentPage} totalEntries={totalEntries} />
 
       <ConfirmDialog
         open={isDeleteDialogOpen}

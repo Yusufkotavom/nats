@@ -152,7 +152,9 @@ export function PurchaseInvoiceTable({
                     {invoice.invoiceNumber}
                   </TableCell>
                   <TableCell>{invoice.vendor.name}</TableCell>
-                  <TableCell>{invoice.purchaseOrder?.orderNumber || "-"}</TableCell>
+                  <TableCell>
+                    {invoice.purchaseOrder?.orderNumber || "-"}
+                  </TableCell>
                   <TableCell>
                     {format(new Date(invoice.invoiceDate), "MMM d, yyyy")}
                   </TableCell>
@@ -179,14 +181,16 @@ export function PurchaseInvoiceTable({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
                           <Link href={`/purchase/invoices/${invoice.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
+                            <Eye className="mr-2 h-4 w-4" /> Details
                           </Link>
                         </DropdownMenuItem>
                         {invoice.status === "DRAFT" && (
                           <>
                             <Protect permission="purchase.edit">
                               <DropdownMenuItem asChild>
-                                <Link href={`/purchase/invoices/${invoice.id}/edit`}>
+                                <Link
+                                  href={`/purchase/invoices/${invoice.id}/edit`}
+                                >
                                   <Pencil className="mr-2 h-4 w-4" /> Edit
                                 </Link>
                               </DropdownMenuItem>

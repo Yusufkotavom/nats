@@ -150,8 +150,12 @@ export function PurchaseReturnTable({
                     {returnItem.returnNumber}
                   </TableCell>
                   <TableCell>{returnItem.vendor.name}</TableCell>
-                  <TableCell>{returnItem.purchaseOrder?.orderNumber || "-"}</TableCell>
-                  <TableCell>{returnItem.purchaseInvoice?.invoiceNumber || "-"}</TableCell>
+                  <TableCell>
+                    {returnItem.purchaseOrder?.orderNumber || "-"}
+                  </TableCell>
+                  <TableCell>
+                    {returnItem.purchaseInvoice?.invoiceNumber || "-"}
+                  </TableCell>
                   <TableCell>
                     {format(new Date(returnItem.returnDate), "MMM d, yyyy")}
                   </TableCell>
@@ -175,14 +179,16 @@ export function PurchaseReturnTable({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
                           <Link href={`/purchase/returns/${returnItem.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
+                            <Eye className="mr-2 h-4 w-4" /> Details
                           </Link>
                         </DropdownMenuItem>
                         {returnItem.status === "DRAFT" && (
                           <>
                             <Protect permission="purchase.edit">
                               <DropdownMenuItem asChild>
-                                <Link href={`/purchase/returns/${returnItem.id}/edit`}>
+                                <Link
+                                  href={`/purchase/returns/${returnItem.id}/edit`}
+                                >
                                   <Pencil className="mr-2 h-4 w-4" /> Edit
                                 </Link>
                               </DropdownMenuItem>

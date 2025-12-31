@@ -167,7 +167,7 @@ export function PurchaseReceiveTable({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
                           <Link href={`/purchase/receives/${receive.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
+                            <Eye className="mr-2 h-4 w-4" /> Details
                           </Link>
                         </DropdownMenuItem>
                         {receive.status !== "COMPLETED" && (

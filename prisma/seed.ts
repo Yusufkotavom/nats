@@ -1,5 +1,10 @@
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import {
+  PurchaseOrderStatus,
+  PurchaseReceiveStatus,
+  PurchaseInvoiceStatus,
+} from "@/prisma/generated/prisma/client";
 
 async function main() {
   console.log("Start seeding...");
@@ -583,6 +588,140 @@ async function main() {
             unitCost: product.cost,
           },
         });
+      }
+    }
+  }
+
+  // Seed Purchase Transactions
+  const allVendors = await prisma.vendor.findMany();
+  const allProducts = await prisma.product.findMany();
+  const warehouseForPurchase = await prisma.warehouse.findFirst({
+    where: { name: "Main Warehouse" },
+  });
+
+  if (allVendors.length > 0 && allProducts.length > 0 && warehouseForPurchase) {
+    console.log("Seeding Purchase Orders...");
+
+    // Create 20 Purchase Orders
+    for (let i = 1; i <= 20; i++) {
+      const vendor = allVendors[Math.floor(Math.random() * allVendors.length)];
+      const orderNumber = `PO-${new Date().getFullYear()}-${i
+        .toString()
+        .padStart(3, "0")}`;
+
+      // Determine Status
+      const statuses = Object.values(PurchaseOrderStatus);
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+      // Select random products (1-5 items)
+      const numItems = Math.floor(Math.random() * 5) + 1;
+      const orderItems = [];
+      let totalAmount = 0;
+
+      for (let j = 0; j < numItems; j++) {
+        const product =
+          allProducts[Math.floor(Math.random() * allProducts.length)];
+        const quantity = Math.floor(Math.random() * 50) + 1;
+        const unitCost = Number(product.cost); // Use product cost as base
+        const totalCost = quantity * unitCost;
+
+        orderItems.push({
+          productId: product.id,
+          quantity,
+          unitCost,
+          totalCost,
+          receivedQuantity:
+            status === PurchaseOrderStatus.CLOSED ||
+            status === PurchaseOrderStatus.PARTIALLY_RECEIVED
+              ? status === PurchaseOrderStatus.CLOSED
+                ? quantity
+                : Math.floor(quantity / 2)
+              : 0,
+        });
+
+        totalAmount += totalCost;
+      }
+
+      const po = await prisma.purchaseOrder.upsert({
+        where: { orderNumber },
+        update: {},
+        create: {
+          orderNumber,
+          vendorId: vendor.id,
+          status,
+          totalAmount,
+          orderDate: new Date(),
+          items: {
+            create: orderItems.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitCost: item.unitCost,
+              totalCost: item.totalCost,
+              receivedQuantity: item.receivedQuantity,
+            })),
+          },
+        },
+      });
+
+      // Create Receive for Closed/Partially Received
+      if (
+        status === PurchaseOrderStatus.CLOSED ||
+        status === PurchaseOrderStatus.PARTIALLY_RECEIVED
+      ) {
+        const receiveNumber = `PR-${po.orderNumber}`;
+        const receiveStatus =
+          status === PurchaseOrderStatus.CLOSED
+            ? PurchaseReceiveStatus.COMPLETED
+            : PurchaseReceiveStatus.DRAFT;
+
+        await prisma.purchaseReceive.upsert({
+          where: { receiveNumber },
+          update: {},
+          create: {
+            receiveNumber,
+            purchaseOrderId: po.id,
+            vendorId: vendor.id,
+            status: receiveStatus,
+            receiveDate: new Date(),
+            items: {
+              create: orderItems.map((item) => ({
+                productId: item.productId,
+                quantity: item.receivedQuantity,
+              })),
+            },
+          },
+        });
+
+        // Create Invoice for Closed POs
+        if (status === PurchaseOrderStatus.CLOSED) {
+          const invoiceNumber = `INV-${po.orderNumber}`;
+          await prisma.purchaseInvoice.upsert({
+            where: {
+              vendorId_invoiceNumber: {
+                vendorId: vendor.id,
+                invoiceNumber,
+              },
+            },
+            update: {},
+            create: {
+              invoiceNumber,
+              vendorId: vendor.id,
+              purchaseOrderId: po.id,
+              invoiceDate: new Date(),
+              dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+              status: PurchaseInvoiceStatus.POSTED,
+              totalAmount: po.totalAmount,
+              items: {
+                create: orderItems.map((item) => ({
+                  description: `Item from ${po.orderNumber}`,
+                  quantity: item.quantity,
+                  unitPrice: item.unitCost,
+                  totalPrice: item.totalCost,
+                })),
+              },
+            },
+          });
+        }
       }
     }
   }
