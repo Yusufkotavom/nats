@@ -616,16 +616,15 @@ export function PurchaseOrderForm({
                 )}
               </CardContent>
               <CardFooter className="justify-between border-t p-4">
-                {!isReadOnly && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddItem}
-                  >
-                    <Plus className="mr-2 h-4 w-4" /> Add Item
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isReadOnly}
+                  onClick={handleAddItem}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Item
+                </Button>
                 <div className="flex items-center gap-2 text-md">
                   <span>Total Amount:</span>
                   <span>{formatCurrency(totalAmount)}</span>
