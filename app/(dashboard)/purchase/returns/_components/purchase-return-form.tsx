@@ -35,6 +35,7 @@ import { createPurchaseReturn, updatePurchaseReturn } from "../actions";
 import { PurchaseReturnInput, PurchaseReturnWithDetails } from "../types";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/hooks/use-toast";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
 
 interface PurchaseReturnFormProps {
   returnItem?: PurchaseReturnWithDetails;
@@ -310,244 +311,261 @@ export function PurchaseReturnForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Return Number</Label>
-          <CustomInput
-            value={formData.returnNumber}
-            onChange={(e) =>
-              setFormData({ ...formData, returnNumber: e.target.value })
-            }
-            placeholder="RTN-00001"
-            disabled={readonly}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Vendor</Label>
-          <CustomSelect
-            value={formData.vendorId}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onValueChange={(val: any) => handleVendorChange(val)}
-            options={vendors.map((v) => ({ label: v.name, value: v.id }))}
-            disabled={readonly}
-            placeholder="Select vendor..."
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Purchase Order (Optional)</Label>
-          <CustomSelect
-            value={formData.purchaseOrderId || ""}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onValueChange={(val: any) => handlePurchaseOrderChange(val)}
-            options={filteredPurchaseOrders.map((po) => ({
-              label: po.orderNumber,
-              value: po.id,
-            }))}
-            disabled={readonly || !formData.vendorId}
-            placeholder="Select PO..."
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Purchase Invoice (Optional)</Label>
-          <CustomSelect
-            value={formData.purchaseInvoiceId || ""}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onValueChange={(val: any) =>
-              setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
-            }
-            options={filteredPurchaseInvoices.map((pi) => ({
-              label: pi.invoiceNumber,
-              value: pi.id,
-            }))}
-            disabled={readonly || !formData.vendorId}
-            placeholder="Select Invoice..."
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Return Date</Label>
-          <CustomInput
-            type="date"
-            value={formData.returnDate.toISOString().split("T")[0]}
-            onChange={(e) =>
-              setFormData({ ...formData, returnDate: new Date(e.target.value) })
-            }
-            disabled={readonly}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <CustomSelect
-            value={formData.status || "DRAFT"}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onValueChange={(val: any) =>
-              setFormData((prev) => ({ ...prev, status: val }))
-            }
-            options={[
-              { label: "Draft", value: "DRAFT" },
-              { label: "Approved", value: "APPROVED" },
-              { label: "Completed", value: "COMPLETED" },
-              { label: "Cancelled", value: "CANCELLED" },
-            ]}
-            disabled={
-              readonly ||
-              returnItem?.status === "COMPLETED" ||
-              returnItem?.status === "CANCELLED"
-            }
-          />
+    <div className="flex-1 space-y-4 px-4">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-xl font-bold tracking-tight">
+          New Purchase Return
+        </h2>
+        <div className="flex">
+          {!readonly && (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : returnItem ? "Update" : "Create"}
+              </Button>
+            </div>
+          )}
+          {readonly && (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+      <form onSubmit={handleSubmit} className="space-y-8 w-full">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Return Number</Label>
+            <CustomInput
+              value={formData.returnNumber}
+              onChange={(e) =>
+                setFormData({ ...formData, returnNumber: e.target.value })
+              }
+              placeholder="RTN-00001"
+              disabled={readonly}
+              required
+            />
+          </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Return Items</h3>
-        </div>
+          <div className="space-y-2">
+            <Label>Vendor</Label>
+            <CustomSelect
+              value={formData.vendorId}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onValueChange={(val: any) => handleVendorChange(val)}
+              options={vendors.map((v) => ({ label: v.name, value: v.id }))}
+              disabled={readonly}
+              placeholder="Select vendor..."
+            />
+          </div>
 
-        <div className="rounded-md border">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40px]"></TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="w-[150px]">Quantity</TableHead>
-                  <TableHead className="w-[80px]">Unit</TableHead>
-                  <TableHead className="w-[150px]">Unit Price</TableHead>
-                  <TableHead className="w-[150px] text-right">Total</TableHead>
-                  {!readonly && <TableHead className="w-[50px]"></TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <SortableContext
-                  items={formData.items.map((item) => item.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {formData.items.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center h-24 text-muted-foreground"
-                      >
-                        No items selected. Select a Purchase Order to populate
-                        items.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    formData.items.map((item, index) => (
-                      <SortableTableRow key={item.id} id={item.id}>
-                        <TableCell>{getProductName(item.productId)}</TableCell>
-                        <TableCell>
-                          <CustomInput
-                            type="number"
-                            min="0"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              handleItemChange(
-                                index,
-                                "quantity",
-                                Number(e.target.value)
-                              )
-                            }
-                            disabled={readonly}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <CustomInput
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.unitPrice}
-                            onChange={(e) =>
-                              handleItemChange(
-                                index,
-                                "unitPrice",
-                                Number(e.target.value)
-                              )
-                            }
-                            disabled={readonly}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {(item.quantity * item.unitPrice).toLocaleString()}
-                        </TableCell>
-                        {!readonly && (
-                          <TableCell>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveItem(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        )}
-                      </SortableTableRow>
-                    ))
-                  )}
-                </SortableContext>
-              </TableBody>
-            </Table>
-          </DndContext>
-        </div>
+          <div className="space-y-2">
+            <Label>Purchase Order (Optional)</Label>
+            <CustomSelect
+              value={formData.purchaseOrderId || ""}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onValueChange={(val: any) => handlePurchaseOrderChange(val)}
+              options={filteredPurchaseOrders.map((po) => ({
+                label: po.orderNumber,
+                value: po.id,
+              }))}
+              disabled={readonly || !formData.vendorId}
+              placeholder="Select PO..."
+            />
+          </div>
 
-        <div className="flex justify-end">
-          <div className="text-right">
-            <span className="font-medium mr-4">Total Amount:</span>
-            <span className="text-xl font-bold">
-              {calculateTotal().toLocaleString()}
-            </span>
+          <div className="space-y-2">
+            <Label>Purchase Invoice (Optional)</Label>
+            <CustomSelect
+              value={formData.purchaseInvoiceId || ""}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onValueChange={(val: any) =>
+                setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
+              }
+              options={filteredPurchaseInvoices.map((pi) => ({
+                label: pi.invoiceNumber,
+                value: pi.id,
+              }))}
+              disabled={readonly || !formData.vendorId}
+              placeholder="Select Invoice..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Return Date</Label>
+            <CustomInput
+              type="date"
+              value={formData.returnDate.toISOString().split("T")[0]}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  returnDate: new Date(e.target.value),
+                })
+              }
+              disabled={readonly}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <CustomSelect
+              value={formData.status || "DRAFT"}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onValueChange={(val: any) =>
+                setFormData((prev) => ({ ...prev, status: val }))
+              }
+              options={[
+                { label: "Draft", value: "DRAFT" },
+                { label: "Approved", value: "APPROVED" },
+                { label: "Completed", value: "COMPLETED" },
+                { label: "Cancelled", value: "CANCELLED" },
+              ]}
+              disabled={
+                readonly ||
+                returnItem?.status === "COMPLETED" ||
+                returnItem?.status === "CANCELLED"
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <CustomTextarea
+              value={formData.notes || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              placeholder="Additional notes..."
+              disabled={readonly}
+            />
           </div>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label>Notes</Label>
-        <CustomInput
-          value={formData.notes || ""}
-          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          placeholder="Additional notes..."
-          disabled={readonly}
-        />
-      </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">Return Items</h3>
+          </div>
 
-      {!readonly && (
-        <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading
-              ? "Saving..."
-              : returnItem
-              ? "Update Return"
-              : "Create Return"}
-          </Button>
+          <div className="rounded-md border">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead className="w-[150px]">Quantity</TableHead>
+                    <TableHead className="w-[80px]">Unit</TableHead>
+                    <TableHead className="w-[150px]">Unit Price</TableHead>
+                    <TableHead className="w-[150px] text-right">
+                      Total
+                    </TableHead>
+                    {!readonly && <TableHead className="w-[50px]"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <SortableContext
+                    items={formData.items.map((item) => item.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {formData.items.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={6}
+                          className="text-center h-24 text-muted-foreground"
+                        >
+                          No items selected. Select a Purchase Order to populate
+                          items.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      formData.items.map((item, index) => (
+                        <SortableTableRow key={item.id} id={item.id}>
+                          <TableCell>
+                            {getProductName(item.productId)}
+                          </TableCell>
+                          <TableCell>
+                            <CustomInput
+                              type="number"
+                              min="0"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  index,
+                                  "quantity",
+                                  Number(e.target.value)
+                                )
+                              }
+                              disabled={readonly}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <CustomInput
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unitPrice}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  index,
+                                  "unitPrice",
+                                  Number(e.target.value)
+                                )
+                              }
+                              disabled={readonly}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {(item.quantity * item.unitPrice).toLocaleString()}
+                          </TableCell>
+                          {!readonly && (
+                            <TableCell>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveItem(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </SortableTableRow>
+                      ))
+                    )}
+                  </SortableContext>
+                </TableBody>
+              </Table>
+            </DndContext>
+          </div>
+
+          <div className="flex justify-end">
+            <div className="text-right">
+              <span className="font-medium mr-4">Total Amount:</span>
+              <span className="text-xl font-bold">
+                {calculateTotal().toLocaleString()}
+              </span>
+            </div>
+          </div>
         </div>
-      )}
-      {readonly && (
-        <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-        </div>
-      )}
-    </form>
+      </form>
+    </div>
   );
 }

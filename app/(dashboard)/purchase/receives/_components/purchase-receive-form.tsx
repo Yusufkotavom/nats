@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
@@ -269,235 +275,239 @@ export function PurchaseReceiveForm({
     : purchaseOrders;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Receive Details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Vendor</Label>
-                <CustomSelect
-                  value={formData.vendorId}
-                  onValueChange={(val) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      vendorId: val,
-                      purchaseOrderId: undefined,
-                    }));
-                  }}
-                  placeholder="Select Vendor"
-                  disabled={readonly || !!formData.purchaseOrderId} // Disable if PO selected (unless we want to allow changing vendor which clears PO)
+    <div className="flex-1 space-y-4 px-4">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-lg font-bold tracking-tight">
+          New Purchase Receive
+        </h2>
+        <div className="flex gap-2">
+          {!readonly && (
+            <>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? "Update" : "Create"}
+              </Button>
+              {isEditing && status !== "COMPLETED" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => setStatus("COMPLETED")}
                 >
-                  {vendors.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name}
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Purchase Order (Optional)</Label>
-                <CustomSelect
-                  value={formData.purchaseOrderId || "none"}
-                  onValueChange={(val) =>
-                    handlePurchaseOrderChange(val === "none" ? "" : val)
-                  }
-                  placeholder="Select Purchase Order"
-                  disabled={readonly}
-                >
-                  <SelectItem value="none">None</SelectItem>
-                  {filteredPurchaseOrders.map((po) => (
-                    <SelectItem key={po.id} value={po.id}>
-                      {po.orderNumber} ({po.vendor.name})
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Receive Date</Label>
-                <CustomInput
-                  type="date"
-                  value={
-                    formData.receiveDate
-                      ? format(formData.receiveDate, "yyyy-MM-dd")
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      receiveDate: e.target.value
-                        ? new Date(e.target.value)
-                        : new Date(),
-                    }))
-                  }
-                  disabled={readonly}
-                />
-              </div>
-
-              {isEditing && (
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <CustomSelect
-                    value={status}
-                    onValueChange={(val) =>
-                      setStatus(val as "DRAFT" | "COMPLETED" | "CANCELLED")
-                    }
-                    disabled={readonly || receive.status === "COMPLETED"}
-                  >
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </CustomSelect>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Items</CardTitle>
-              {!readonly && (
-                <Button type="button" size="sm" onClick={handleAddItem}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Item
+                  Mark as Completed
                 </Button>
               )}
-            </CardHeader>
-            <CardContent className="p-0">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[40px]"></TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="w-[150px]">Quantity</TableHead>
-                      <TableHead className="w-[80px]">Unit</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <SortableContext
-                      items={formData.items}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {formData.items.map((item, index) => (
-                        <SortableTableRow key={item.id} id={item.id}>
-                          <TableCell>
-                            <CustomSelect
-                              value={item.productId}
-                              onValueChange={(val) =>
-                                handleItemChange(index, "productId", val)
-                              }
-                              disabled={readonly || !!item.purchaseOrderItemId}
-                            >
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name} ({p.sku})
-                                </SelectItem>
-                              ))}
-                            </CustomSelect>
-                          </TableCell>
-                          <TableCell>
-                            <CustomInput
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  index,
-                                  "quantity",
-                                  parseInt(e.target.value) || 0
-                                )
-                              }
-                              disabled={readonly}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {!readonly && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="mb-0.5"
-                                onClick={() => handleRemoveItem(index)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </SortableTableRow>
-                      ))}
-                    </SortableContext>
-                  </TableBody>
-                </Table>
-              </DndContext>
-              {formData.items.length === 0 && (
-                <div className="py-8 text-center text-muted-foreground">
-                  No items added.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <CustomTextarea
-              value={formData.notes || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, notes: e.target.value }))
-              }
-              placeholder="Add notes here..."
-              disabled={readonly}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!readonly && (
-                <>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    {isEditing ? "Update Receive" : "Create Receive"}
-                  </Button>
-                  {isEditing && status !== "COMPLETED" && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full mt-2"
-                      onClick={() => setStatus("COMPLETED")}
-                    >
-                      Mark as Completed
-                    </Button>
-                  )}
-                </>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => router.back()}
-              >
-                Cancel
-              </Button>
-            </CardContent>
-          </Card>
+            </>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => router.back()}
+          >
+            Cancel
+          </Button>
         </div>
       </div>
-    </form>
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-4">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Receive Details</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Vendor</Label>
+                  <CustomSelect
+                    value={formData.vendorId}
+                    onValueChange={(val) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        vendorId: val,
+                        purchaseOrderId: undefined,
+                      }));
+                    }}
+                    placeholder="Select Vendor"
+                    disabled={readonly || !!formData.purchaseOrderId} // Disable if PO selected (unless we want to allow changing vendor which clears PO)
+                  >
+                    {vendors.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Purchase Order (Optional)</Label>
+                  <CustomSelect
+                    value={formData.purchaseOrderId || "none"}
+                    onValueChange={(val) =>
+                      handlePurchaseOrderChange(val === "none" ? "" : val)
+                    }
+                    placeholder="Select Purchase Order"
+                    disabled={readonly}
+                  >
+                    <SelectItem value="none">None</SelectItem>
+                    {filteredPurchaseOrders.map((po) => (
+                      <SelectItem key={po.id} value={po.id}>
+                        {po.orderNumber} ({po.vendor.name})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Receive Date</Label>
+                  <CustomInput
+                    type="date"
+                    value={
+                      formData.receiveDate
+                        ? format(formData.receiveDate, "yyyy-MM-dd")
+                        : ""
+                    }
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        receiveDate: e.target.value
+                          ? new Date(e.target.value)
+                          : new Date(),
+                      }))
+                    }
+                    disabled={readonly}
+                  />
+                </div>
+
+                {isEditing && (
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <CustomSelect
+                      value={status}
+                      onValueChange={(val) =>
+                        setStatus(val as "DRAFT" | "COMPLETED" | "CANCELLED")
+                      }
+                      disabled={readonly || receive.status === "COMPLETED"}
+                    >
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    </CustomSelect>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <CustomTextarea
+                    value={formData.notes || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        notes: e.target.value,
+                      }))
+                    }
+                    placeholder="Add notes here..."
+                    disabled={readonly}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Received Items</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]"></TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="w-[150px]">Quantity</TableHead>
+                        <TableHead className="w-[80px]">Unit</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <SortableContext
+                        items={formData.items}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {formData.items.map((item, index) => (
+                          <SortableTableRow key={item.id} id={item.id}>
+                            <TableCell>
+                              <CustomSelect
+                                value={item.productId}
+                                onValueChange={(val) =>
+                                  handleItemChange(index, "productId", val)
+                                }
+                                disabled={
+                                  readonly || !!item.purchaseOrderItemId
+                                }
+                              >
+                                {products.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.name} ({p.sku})
+                                  </SelectItem>
+                                ))}
+                              </CustomSelect>
+                            </TableCell>
+                            <TableCell>
+                              <CustomInput
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "quantity",
+                                    parseInt(e.target.value) || 0
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {!readonly && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="mb-0.5"
+                                  onClick={() => handleRemoveItem(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </SortableTableRow>
+                        ))}
+                      </SortableContext>
+                    </TableBody>
+                  </Table>
+                </DndContext>
+                {formData.items.length === 0 && (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No items added.
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                {!readonly && (
+                  <Button type="button" size="sm" onClick={handleAddItem}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Item
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </form>
+    </div>
   );
 }
