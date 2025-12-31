@@ -57,7 +57,12 @@ export async function getPurchaseOrder(id: string) {
       vendor: true,
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              baseUnit: true,
+              purchaseUnit: true,
+            },
+          },
         },
       },
     },

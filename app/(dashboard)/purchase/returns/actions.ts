@@ -75,7 +75,12 @@ export async function getPurchaseReturn(id: string) {
       purchaseInvoice: true,
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              baseUnit: true,
+              purchaseUnit: true,
+            },
+          },
         },
       },
     },
@@ -99,7 +104,14 @@ export async function getPurchaseOrdersForReturn() {
     include: {
       vendor: true,
       items: {
-        include: { product: true },
+        include: {
+          product: {
+            include: {
+              baseUnit: true,
+              purchaseUnit: true,
+            },
+          },
+        },
       },
     },
   });

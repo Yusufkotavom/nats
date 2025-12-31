@@ -6,7 +6,12 @@ export type PurchaseReceiveWithDetails = Prisma.PurchaseReceiveGetPayload<{
     purchaseOrder: true;
     items: {
       include: {
-        product: true;
+        product: {
+          include: {
+            baseUnit: true;
+            purchaseUnit: true;
+          };
+        };
       };
     };
   };

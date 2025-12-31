@@ -48,7 +48,11 @@ interface PurchaseReturnFormProps {
       quantity: number;
       receivedQuantity: number;
       unitCost: number;
-      product: { name: string };
+      product: {
+        name: string;
+        baseUnit?: { symbol: string } | null;
+        purchaseUnit?: { symbol: string } | null;
+      };
     }[];
   }[];
   purchaseInvoices: { id: string; invoiceNumber: string; vendorId: string }[];
@@ -286,6 +290,25 @@ export function PurchaseReturnForm({
     return "Unknown Product";
   };
 
+  const getProductUnit = (productId: string) => {
+    const po = purchaseOrders.find((p) => p.id === formData.purchaseOrderId);
+    if (po) {
+      const item = po.items.find((i) => i.productId === productId);
+      if (item)
+        return (
+          item.product.purchaseUnit?.symbol || item.product.baseUnit?.symbol
+        );
+    }
+    if (returnItem) {
+      const item = returnItem.items.find((i) => i.productId === productId);
+      if (item)
+        return (
+          item.product.purchaseUnit?.symbol || item.product.baseUnit?.symbol
+        );
+    }
+    return "-";
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl">
       <div className="grid gap-4 md:grid-cols-2">
@@ -399,6 +422,7 @@ export function PurchaseReturnForm({
                   <TableHead className="w-[40px]"></TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead className="w-[150px]">Quantity</TableHead>
+                  <TableHead className="w-[80px]">Unit</TableHead>
                   <TableHead className="w-[150px]">Unit Price</TableHead>
                   <TableHead className="w-[150px] text-right">Total</TableHead>
                   {!readonly && <TableHead className="w-[50px]"></TableHead>}

@@ -379,6 +379,7 @@ export function PurchaseReceiveForm({
                       <TableHead className="w-[40px]"></TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead className="w-[150px]">Quantity</TableHead>
+                      <TableHead className="w-[80px]">Unit</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>

@@ -7,8 +7,13 @@ export type PurchaseReturnWithDetails = Prisma.PurchaseReturnGetPayload<{
     purchaseInvoice: true;
     items: {
       include: {
-        product: true;
-      };
+        product: {
+          include: {
+            baseUnit: true,
+            purchaseUnit: true,
+          },
+        },
+      },
     };
   };
 }>;

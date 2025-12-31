@@ -92,6 +92,11 @@ export async function getProducts() {
       id: true,
       name: true,
       sku: true,
+      baseUnit: {
+        select: {
+          symbol: true,
+        },
+      },
       purchaseUnit: {
         select: {
           symbol: true,
