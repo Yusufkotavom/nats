@@ -1,4 +1,33 @@
-import { Prisma } from "@/prisma/generated/prisma/client";
+import {
+  Prisma,
+  PurchaseInvoiceStatus,
+} from "@/prisma/generated/prisma/client";
+
+export interface PurchaseInvoiceItemInput {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  tax: number;
+  accountId?: string;
+}
+
+export interface PurchaseInvoiceInput {
+  invoiceNumber: string;
+  vendorId: string;
+  purchaseOrderId?: string;
+  invoiceDate: Date;
+  dueDate: Date;
+  notes?: string;
+  status?: PurchaseInvoiceStatus;
+
+  globalDiscount: number;
+  totalTax: number;
+  shippingCost: number;
+  handlingCost: number;
+
+  items: PurchaseInvoiceItemInput[];
+}
 
 export type PurchaseInvoiceWithDetails = Prisma.PurchaseInvoiceGetPayload<{
   include: {
@@ -11,21 +40,3 @@ export type PurchaseInvoiceWithDetails = Prisma.PurchaseInvoiceGetPayload<{
     };
   };
 }>;
-
-export interface PurchaseInvoiceItemInput {
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  accountId?: string;
-}
-
-export interface PurchaseInvoiceInput {
-  invoiceNumber: string;
-  vendorId: string;
-  purchaseOrderId?: string;
-  invoiceDate: Date;
-  dueDate: Date;
-  notes?: string;
-  status?: "DRAFT" | "POSTED" | "PAID" | "PARTIALLY_PAID" | "VOID";
-  items: PurchaseInvoiceItemInput[];
-}

@@ -1,4 +1,9 @@
-import { getPurchaseInvoice, getVendors, getAccounts, getPurchaseOrdersForSelect } from "../../actions";
+import {
+  getPurchaseInvoice,
+  getVendors,
+  getAccounts,
+  getPurchaseOrdersForSelect,
+} from "../../actions";
 import { PurchaseInvoiceForm } from "../../_components/purchase-invoice-form";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
@@ -27,12 +32,12 @@ export default async function EditPurchaseInvoicePage(props: PageProps) {
     notFound();
   }
 
-  if (invoice.status === "PAID" || invoice.status === "VOID") {
+  if (invoice.status === "PAID" || invoice.status === "CANCELED") {
     return (
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-center h-full">
           <p className="text-muted-foreground">
-            Cannot edit paid or void invoices.
+            Cannot edit paid or canceled invoices.
           </p>
         </div>
       </div>

@@ -107,13 +107,13 @@ export function PurchaseInvoiceTable({
     switch (status) {
       case "DRAFT":
         return "bg-gray-500";
-      case "POSTED":
+      case "BILLED":
         return "bg-blue-500";
       case "PARTIALLY_PAID":
         return "bg-yellow-500";
       case "PAID":
         return "bg-green-500";
-      case "VOID":
+      case "CANCELED":
         return "bg-red-500";
       default:
         return "bg-gray-500";
@@ -139,10 +139,10 @@ export function PurchaseInvoiceTable({
             options={[
               { value: "ALL", label: "All Status" },
               { value: "DRAFT", label: "Draft" },
-              { value: "POSTED", label: "Posted" },
+              { value: "BILLED", label: "Billed" },
               { value: "PARTIALLY_PAID", label: "Partially Paid" },
               { value: "PAID", label: "Paid" },
-              { value: "VOID", label: "Void" },
+              { value: "CANCELED", label: "Canceled" },
             ]}
             triggerClassName="w-[180px]"
           />

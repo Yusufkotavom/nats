@@ -142,10 +142,21 @@ export const createPurchaseInvoice = authorizedAction(
         };
       }
 
-      let totalAmount = 0;
+      let itemsSubtotal = 0;
       data.items.forEach((item) => {
-        totalAmount += item.quantity * item.unitPrice;
+        const itemTotal =
+          item.quantity * item.unitPrice -
+          (item.discount || 0) +
+          (item.tax || 0);
+        itemsSubtotal += itemTotal;
       });
+
+      const totalAmount =
+        itemsSubtotal -
+        (data.globalDiscount || 0) +
+        (data.totalTax || 0) +
+        (data.shippingCost || 0) +
+        (data.handlingCost || 0);
 
       const result = await prisma.purchaseInvoice.create({
         data: {
@@ -157,12 +168,21 @@ export const createPurchaseInvoice = authorizedAction(
           notes: data.notes,
           status: "DRAFT", // Default to DRAFT
           totalAmount,
+          globalDiscount: data.globalDiscount,
+          totalTax: data.totalTax,
+          shippingCost: data.shippingCost,
+          handlingCost: data.handlingCost,
           items: {
             create: data.items.map((item) => ({
               description: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
-              totalPrice: item.quantity * item.unitPrice,
+              totalPrice:
+                item.quantity * item.unitPrice -
+                (item.discount || 0) +
+                (item.tax || 0),
+              discount: item.discount,
+              tax: item.tax,
               accountId: item.accountId,
             })),
           },
@@ -193,9 +213,12 @@ export const updatePurchaseInvoice = authorizedAction(
 
       if (
         currentInvoice.status === "PAID" ||
-        currentInvoice.status === "VOID"
+        currentInvoice.status === "CANCELED"
       ) {
-        return { success: false, error: "Cannot edit paid or void invoice" };
+        return {
+          success: false,
+          error: "Cannot edit paid or canceled invoice",
+        };
       }
 
       // Check for duplicate if invoice number changed

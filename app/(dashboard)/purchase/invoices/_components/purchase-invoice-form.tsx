@@ -35,7 +35,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Loader2, Plus, Trash2, GripVertical } from "lucide-react";
+import { Loader2, Plus, Trash2, GripVertical, PlusIcon } from "lucide-react";
 import {
   createPurchaseInvoice,
   updatePurchaseInvoice,
@@ -133,12 +133,20 @@ export function PurchaseInvoiceForm({
     dueDate: invoice?.dueDate ? new Date(invoice.dueDate) : new Date(),
     notes: invoice?.notes || "",
     status: invoice?.status || "DRAFT",
+
+    globalDiscount: Number(invoice?.globalDiscount) || 0,
+    totalTax: Number(invoice?.totalTax) || 0,
+    shippingCost: Number(invoice?.shippingCost) || 0,
+    handlingCost: Number(invoice?.handlingCost) || 0,
+
     items:
       invoice?.items.map((item) => ({
         id: generateId(),
         description: item.description,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
+        discount: Number(item.discount) || 0,
+        tax: Number(item.tax) || 0,
         accountId: item.accountId || undefined,
       })) || [],
   });
@@ -185,6 +193,8 @@ export function PurchaseInvoiceForm({
             description: item.product?.name || "Item",
             quantity: item.quantity, // Use original qty or remaining? Usually Bill matches PO.
             unitPrice: Number(item.unitCost),
+            discount: 0,
+            tax: 0,
             accountId: undefined, // User needs to select account (e.g. Inventory Asset)
           }));
 
@@ -201,7 +211,14 @@ export function PurchaseInvoiceForm({
       ...prev,
       items: [
         ...prev.items,
-        { id: generateId(), description: "", quantity: 1, unitPrice: 0 },
+        {
+          id: generateId(),
+          description: "",
+          quantity: 1,
+          unitPrice: 0,
+          discount: 0,
+          tax: 0,
+        },
       ],
     }));
   };
@@ -223,10 +240,19 @@ export function PurchaseInvoiceForm({
     setFormData((prev) => ({ ...prev, items: newItems }));
   };
 
-  const totalAmount = formData.items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
+  const itemsSubtotal = formData.items.reduce(
+    (sum, item) =>
+      sum +
+      (item.quantity * item.unitPrice - (item.discount || 0) + (item.tax || 0)),
     0
   );
+
+  const totalAmount =
+    itemsSubtotal -
+    (formData.globalDiscount || 0) +
+    (formData.totalTax || 0) +
+    (formData.shippingCost || 0) +
+    (formData.handlingCost || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -424,13 +450,16 @@ export function PurchaseInvoiceForm({
                       disabled={
                         readonly ||
                         invoice.status === "PAID" ||
-                        invoice.status === "VOID"
+                        invoice.status === "CANCELED"
                       }
                     >
                       <SelectItem value="DRAFT">Draft</SelectItem>
-                      <SelectItem value="POSTED">Posted</SelectItem>
+                      <SelectItem value="BILLED">Billed</SelectItem>
                       <SelectItem value="PAID">Paid</SelectItem>
-                      <SelectItem value="VOID">Void</SelectItem>
+                      <SelectItem value="PARTIALLY_PAID">
+                        Partially Paid
+                      </SelectItem>
+                      <SelectItem value="CANCELED">Canceled</SelectItem>
                     </CustomSelect>
                   </div>
                 )}
@@ -469,6 +498,8 @@ export function PurchaseInvoiceForm({
                         <TableHead className="w-[200px]">Account</TableHead>
                         <TableHead className="w-[100px]">Qty</TableHead>
                         <TableHead className="w-[120px]">Unit Price</TableHead>
+                        <TableHead className="w-[120px]">Discount</TableHead>
+                        <TableHead className="w-[120px]">Tax</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
@@ -544,9 +575,33 @@ export function PurchaseInvoiceForm({
                               />
                             </TableCell>
                             <TableCell>
+                              <CurrencyInput
+                                value={item.discount}
+                                onChange={(val) =>
+                                  handleItemChange(
+                                    index,
+                                    "discount",
+                                    Number(val)
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <CurrencyInput
+                                value={item.tax}
+                                onChange={(val) =>
+                                  handleItemChange(index, "tax", Number(val))
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
                               <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
                                 {(
-                                  item.quantity * item.unitPrice
+                                  item.quantity * item.unitPrice -
+                                  (item.discount || 0) +
+                                  (item.tax || 0)
                                 ).toLocaleString()}
                               </div>
                             </TableCell>
@@ -574,14 +629,86 @@ export function PurchaseInvoiceForm({
                     No items added.
                   </div>
                 )}
-                <div className="flex justify-between items-center p-4 border-t">
+                <div className="flex justify-between items-start p-4 border-t">
                   {!readonly && (
-                    <Button type="button" size="sm" onClick={handleAddItem}>
-                      <Plus className="mr-2 h-4 w-4" /> Add Item
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddItem}
+                    >
+                      <PlusIcon /> Add Item
                     </Button>
                   )}
-                  <div className="text-md font-bold">
-                    Total: {totalAmount.toLocaleString()}
+                  <div className="w-1/3 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">Subtotal</span>
+                      <span>{itemsSubtotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium">
+                        Global Discount
+                      </span>
+                      <CurrencyInput
+                        value={formData.globalDiscount}
+                        onChange={(val) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            globalDiscount: Number(val),
+                          }))
+                        }
+                        disabled={readonly}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium">Invoice Tax</span>
+                      <CurrencyInput
+                        value={formData.totalTax}
+                        onChange={(val) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            totalTax: Number(val),
+                          }))
+                        }
+                        disabled={readonly}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium">Shipping</span>
+                      <CurrencyInput
+                        value={formData.shippingCost}
+                        onChange={(val) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            shippingCost: Number(val),
+                          }))
+                        }
+                        disabled={readonly}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium">Handling</span>
+                      <CurrencyInput
+                        value={formData.handlingCost}
+                        onChange={(val) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            handlingCost: Number(val),
+                          }))
+                        }
+                        disabled={readonly}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="font-bold">Total</span>
+                      <span className="font-bold">
+                        {totalAmount.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
