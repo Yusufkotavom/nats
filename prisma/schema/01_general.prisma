@@ -29,6 +29,13 @@ model User {
   journalEntries JournalEntry[]
   files          File[]
   approvedMovements InventoryMovement[] @relation("MovementApprover")
+  
+  // Purchase Order Relations
+  createdPurchaseOrders   PurchaseOrder[] @relation("POCreatedBy")
+  updatedPurchaseOrders   PurchaseOrder[] @relation("POUpdatedBy")
+  issuedPurchaseOrders    PurchaseOrder[] @relation("POIssuedBy")
+  closedPurchaseOrders    PurchaseOrder[] @relation("POClosedBy")
+  cancelledPurchaseOrders PurchaseOrder[] @relation("POCancelledBy")
 
   @@index([email])
   @@index([roleId])

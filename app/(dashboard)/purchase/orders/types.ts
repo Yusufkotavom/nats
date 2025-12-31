@@ -3,6 +3,11 @@ import { Prisma, PurchaseOrderStatus } from "@/prisma/generated/prisma/client";
 export type PurchaseOrderWithDetails = Prisma.PurchaseOrderGetPayload<{
   include: {
     vendor: true;
+    createdBy: { select: { name: true } };
+    updatedBy: { select: { name: true } };
+    issuedBy: { select: { name: true } };
+    closedBy: { select: { name: true } };
+    cancelledBy: { select: { name: true } };
     items: {
       include: {
         product: true;

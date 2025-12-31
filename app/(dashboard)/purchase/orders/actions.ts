@@ -4,6 +4,7 @@ import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma, PurchaseOrderStatus } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { getSession } from "@/lib/auth/auth";
 import { PurchaseOrderInput } from "./types";
 
 export async function getPurchaseOrders(
@@ -55,6 +56,11 @@ export async function getPurchaseOrder(id: string) {
     where: { id },
     include: {
       vendor: true,
+      createdBy: { select: { name: true } },
+      updatedBy: { select: { name: true } },
+      issuedBy: { select: { name: true } },
+      closedBy: { select: { name: true } },
+      cancelledBy: { select: { name: true } },
       items: {
         include: {
           product: {
@@ -123,6 +129,7 @@ export const createPurchaseOrder = authorizedAction(
   "purchase.create",
   async (data: PurchaseOrderInput) => {
     try {
+      const session = await getSession();
       // Generate temporary draft number
       const orderNumber = `DRAFT-${Date.now()}`;
 
@@ -141,6 +148,7 @@ export const createPurchaseOrder = authorizedAction(
           notes: data.notes,
           status: "DRAFT",
           totalAmount,
+          createdById: session?.userId,
           items: {
             create: data.items.map((item) => ({
               productId: item.productId,
@@ -168,6 +176,7 @@ export const updatePurchaseOrder = authorizedAction(
   "purchase.edit",
   async (id: string, data: PurchaseOrderInput) => {
     try {
+      const session = await getSession();
       const currentOrder = await prisma.purchaseOrder.findUnique({
         where: { id },
         include: { items: true },
@@ -206,6 +215,7 @@ export const updatePurchaseOrder = authorizedAction(
             notes: data.notes,
             status: "DRAFT", // Ensure it stays DRAFT during update
             totalAmount,
+            updatedById: session?.userId,
             items: {
               create: data.items.map((item) => ({
                 productId: item.productId,
@@ -297,6 +307,7 @@ export const closePurchaseOrder = authorizedAction(
   "purchase.edit",
   async (id: string) => {
     try {
+      const session = await getSession();
       const currentOrder = await prisma.purchaseOrder.findUnique({
         where: { id },
       });
@@ -316,6 +327,8 @@ export const closePurchaseOrder = authorizedAction(
         where: { id },
         data: {
           status: "CLOSED",
+          closedAt: new Date(),
+          closedById: session?.userId,
         },
       });
 
