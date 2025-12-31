@@ -110,10 +110,10 @@ model PurchaseReceiveItem {
 
 enum PurchaseInvoiceStatus {
   DRAFT
-  POSTED
-  PAID
+  BILLED
   PARTIALLY_PAID
-  VOID
+  PAID
+  CANCELED
 }
 
 model PurchaseInvoice {
