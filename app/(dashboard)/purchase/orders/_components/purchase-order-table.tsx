@@ -10,7 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, MoreHorizontal, Eye, Pencil, Trash2, X } from "lucide-react";
 import { deletePurchaseOrder } from "../actions";
 import { useState, useEffect } from "react";
 import { PurchaseOrderWithDetails } from "../types";
@@ -30,6 +37,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { PurchaseOrderStatus } from "@/prisma/generated/prisma/enums";
 
 interface PurchaseOrderTableProps {
   orders: PurchaseOrderWithDetails[];
@@ -39,7 +47,6 @@ interface PurchaseOrderTableProps {
 
 export function PurchaseOrderTable({
   orders,
-  totalPages,
   totalEntries,
 }: PurchaseOrderTableProps) {
   const searchParams = useSearchParams();
@@ -50,6 +57,13 @@ export function PurchaseOrderTable({
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
   );
+  const [statusFilter, setStatusFilter] = useState(
+    searchParams.get("status") || "ALL"
+  );
+  const [startDate, setStartDate] = useState(
+    searchParams.get("startDate") || ""
+  );
+  const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | undefined>(
@@ -66,14 +80,51 @@ export function PurchaseOrderTable({
       } else {
         params.delete("search");
       }
+
+      if (statusFilter && statusFilter !== "ALL") {
+        params.set("status", statusFilter);
+      } else {
+        params.delete("status");
+      }
+
+      if (startDate) {
+        params.set("startDate", startDate);
+      } else {
+        params.delete("startDate");
+      }
+
+      if (endDate) {
+        params.set("endDate", endDate);
+      } else {
+        params.delete("endDate");
+      }
+
       params.set("page", "1");
 
-      if (params.get("search") !== (searchParams.get("search") || null)) {
+      const currentSearch = searchParams.get("search") || "";
+      const currentStatus = searchParams.get("status") || "ALL";
+      const currentStartDate = searchParams.get("startDate") || "";
+      const currentEndDate = searchParams.get("endDate") || "";
+
+      if (
+        searchTerm !== currentSearch ||
+        statusFilter !== currentStatus ||
+        startDate !== currentStartDate ||
+        endDate !== currentEndDate
+      ) {
         replace(`${pathname}?${params.toString()}`);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchTerm, searchParams, pathname, replace]);
+  }, [
+    searchTerm,
+    statusFilter,
+    startDate,
+    endDate,
+    searchParams,
+    pathname,
+    replace,
+  ]);
 
   const handleDeleteClick = (id: string) => {
     setOrderToDelete(id);
@@ -105,10 +156,17 @@ export function PurchaseOrderTable({
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+    setStartDate("");
+    setEndDate("");
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 items-center space-x-2">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="relative flex-1 md:max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <CustomInput
@@ -117,6 +175,50 @@ export function PurchaseOrderTable({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                {Object.values(PurchaseOrderStatus).map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status.replace("_", " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-2">
+              <CustomInput
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-[150px]"
+                placeholder="Start Date"
+              />
+              <span className="text-muted-foreground">-</span>
+              <CustomInput
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-[150px]"
+                placeholder="End Date"
+              />
+            </div>
+
+            {(searchTerm || statusFilter !== "ALL" || startDate || endDate) && (
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+                className="h-8 px-2 lg:px-3"
+              >
+                Reset
+                <X className="ml-2 h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -208,7 +310,11 @@ export function PurchaseOrderTable({
         </Table>
       </div>
 
-      <CustomPagination currentPage={currentPage} totalEntries={totalEntries} />
+      <CustomPagination
+        currentPage={currentPage}
+        totalEntries={totalEntries}
+        pageSize={10}
+      />
 
       <ConfirmDialog
         open={isDeleteDialogOpen}

@@ -11,16 +11,25 @@ export default async function Page({
   searchParams: Promise<{
     page?: string;
     search?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
   }>;
 }) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const search = params.search || "";
+  const status = params.status || "ALL";
+  const startDate = params.startDate;
+  const endDate = params.endDate;
 
   const { orders, totalPages, total } = await getPurchaseOrders(
     page,
     10,
-    search
+    search,
+    status,
+    startDate,
+    endDate
   );
 
   return (

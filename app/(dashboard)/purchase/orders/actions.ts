@@ -2,7 +2,7 @@
 
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma, PurchaseOrderStatus } from "@/prisma/generated/prisma/client";
+import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { PurchaseOrderInput } from "./types";
@@ -10,7 +10,10 @@ import { PurchaseOrderInput } from "./types";
 export async function getPurchaseOrders(
   page: number = 1,
   limit: number = 10,
-  search?: string
+  search?: string,
+  status?: string,
+  startDate?: string,
+  endDate?: string
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseOrderWhereInput = {
@@ -26,11 +29,38 @@ export async function getPurchaseOrders(
     });
   }
 
+  if (status && status !== "ALL") {
+    (where.AND as Prisma.PurchaseOrderWhereInput[]).push({
+      status: status as Prisma.EnumPurchaseOrderStatusFilter,
+    });
+  }
+
+  if (startDate || endDate) {
+    const dateFilter: Prisma.DateTimeFilter = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      // Set end date to end of day
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+    (where.AND as Prisma.PurchaseOrderWhereInput[]).push({
+      orderDate: dateFilter,
+    });
+  }
+
   const [orders, total] = await Promise.all([
     prisma.purchaseOrder.findMany({
       where,
       include: {
         vendor: true,
+        createdBy: { select: { name: true } },
+        updatedBy: { select: { name: true } },
+        issuedBy: { select: { name: true } },
+        closedBy: { select: { name: true } },
+        cancelledBy: { select: { name: true } },
         items: {
           include: {
             product: true,
