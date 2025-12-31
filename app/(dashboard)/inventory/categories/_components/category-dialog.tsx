@@ -21,11 +21,22 @@ import { Category } from "@/prisma/generated/prisma/browser";
 interface CategoryDialogProps {
   category?: Category;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CategoryDialog({ category, trigger }: CategoryDialogProps) {
-  const [open, setOpen] = useState(false);
+export function CategoryDialog({
+  category,
+  trigger,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+}: CategoryDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? setControlledOpen! : setInternalOpen;
 
   const isEditing = !!category;
 
@@ -55,15 +66,17 @@ export function CategoryDialog({ category, trigger }: CategoryDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ? (
-          trigger
-        ) : (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Add Category
-          </Button>
-        )}
-      </DialogTrigger>
+      {(trigger || !isControlled) && (
+        <DialogTrigger asChild>
+          {trigger ? (
+            trigger
+          ) : (
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Add Category
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>

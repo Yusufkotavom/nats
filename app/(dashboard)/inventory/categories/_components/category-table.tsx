@@ -9,12 +9,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Pencil, Trash2, MoreHorizontal } from "lucide-react";
 import { deleteCategory } from "../actions";
 import { CategoryDialog } from "./category-dialog";
 import { Category } from "@/prisma/generated/prisma/browser";
 import { Protect } from "@/components/ui/protect";
 import { CustomPagination } from "@/components/ui/custom-pagination";
+import { useState } from "react";
 
 type CategoryWithCount = Category & {
   _count: { products: number };
@@ -25,7 +34,20 @@ interface CategoryTableProps {
   totalEntries: number;
 }
 
-export function CategoryTable({ categories, totalEntries }: CategoryTableProps) {
+export function CategoryTable({
+  categories,
+  totalEntries,
+}: CategoryTableProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<
+    CategoryWithCount | undefined
+  >(undefined);
+
+  const handleEdit = (category: CategoryWithCount) => {
+    setSelectedCategory(category);
+    setIsDialogOpen(true);
+  };
+
   async function handleDelete(id: string) {
     if (confirm("Are you sure you want to delete this category?")) {
       await deleteCategory(id);
@@ -57,38 +79,35 @@ export function CategoryTable({ categories, totalEntries }: CategoryTableProps) 
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell>{category.description || "-"}</TableCell>
                   <TableCell>{category._count.products}</TableCell>
-                  <TableCell className="flex gap-2">
-                    <Protect permission="categories.edit">
-                      <CategoryDialog
-                        category={category}
-                        trigger={
-                          <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
-                    </Protect>
-                    <Protect permission="categories.delete">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(category.id)}
-                        disabled={category._count.products > 0}
-                        title={
-                          category._count.products > 0
-                            ? "Cannot delete category with products"
-                            : "Delete category"
-                        }
-                      >
-                        <Trash2
-                          className={`h-4 w-4 ${
-                            category._count.products > 0
-                              ? "text-muted-foreground"
-                              : "text-red-500"
-                          }`}
-                        />
-                      </Button>
-                    </Protect>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <Protect permission="categories.edit">
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(category)}
+                          >
+                            <Pencil className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                        </Protect>
+                        <DropdownMenuSeparator />
+                        <Protect permission="categories.delete">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => handleDelete(category.id)}
+                            disabled={category._count.products > 0}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </Protect>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -97,6 +116,13 @@ export function CategoryTable({ categories, totalEntries }: CategoryTableProps) 
         </Table>
       </div>
       <CustomPagination totalEntries={totalEntries} pageSize={10} />
+
+      <CategoryDialog
+        key={selectedCategory?.id}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        category={selectedCategory}
+      />
     </div>
   );
 }
