@@ -1,0 +1,188 @@
+// PURCHASING MODULE
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  orderNumber  String              @unique
+  vendorId     String
+  vendor       Vendor              @relation(fields: [vendorId], references: [id])
+  orderDate    DateTime            @default(now())
+  expectedDate DateTime?
+  status       PurchaseOrderStatus @default(DRAFT)
+  totalAmount  Decimal             @default(0)
+  notes        String?
+
+  items    PurchaseOrderItem[]
+  receives PurchaseReceive[]
+  invoices PurchaseInvoice[]
+  returns  PurchaseReturn[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+
+  quantity         Int
+  receivedQuantity Int     @default(0)
+  unitCost         Decimal
+  totalCost        Decimal
+
+  receiveItems PurchaseReceiveItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PurchaseReceiveStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+model PurchaseReceive {
+  id              String         @id @default(cuid())
+  receiveNumber   String         @unique
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  vendorId        String
+  vendor          Vendor         @relation(fields: [vendorId], references: [id])
+
+  receiveDate DateTime              @default(now())
+  status      PurchaseReceiveStatus @default(DRAFT)
+  notes       String?
+
+  items PurchaseReceiveItem[]
+
+  inventoryMovementId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PurchaseReceiveItem {
+  id                String          @id @default(cuid())
+  purchaseReceiveId String
+  purchaseReceive   PurchaseReceive @relation(fields: [purchaseReceiveId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity Int
+
+  purchaseOrderItemId String?
+  purchaseOrderItem   PurchaseOrderItem? @relation(fields: [purchaseOrderItemId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PurchaseInvoiceStatus {
+  DRAFT
+  POSTED
+  PAID
+  PARTIALLY_PAID
+  VOID
+}
+
+model PurchaseInvoice {
+  id            String @id @default(cuid())
+  invoiceNumber String
+  vendorId      String
+  vendor        Vendor @relation(fields: [vendorId], references: [id])
+
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  invoiceDate DateTime
+  dueDate     DateTime
+  status      PurchaseInvoiceStatus @default(DRAFT)
+  totalAmount Decimal               @default(0)
+  notes       String?
+
+  items   PurchaseInvoiceItem[]
+  returns PurchaseReturn[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([vendorId, invoiceNumber])
+}
+
+model PurchaseInvoiceItem {
+  id                String          @id @default(cuid())
+  purchaseInvoiceId String
+  purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id])
+
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal
+  totalPrice  Decimal
+
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PurchaseReturnStatus {
+  DRAFT
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+model PurchaseReturn {
+  id           String @id @default(cuid())
+  returnNumber String @unique
+  vendorId     String
+  vendor       Vendor @relation(fields: [vendorId], references: [id])
+
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  purchaseInvoiceId String?
+  purchaseInvoice   PurchaseInvoice? @relation(fields: [purchaseInvoiceId], references: [id])
+
+  returnDate  DateTime             @default(now())
+  status      PurchaseReturnStatus @default(DRAFT)
+  reason      String?
+  notes       String?
+  totalAmount Decimal              @default(0)
+
+  items PurchaseReturnItem[]
+
+  inventoryMovementId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PurchaseReturnItem {
+  id               String         @id @default(cuid())
+  purchaseReturnId String
+  purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity   Int
+  unitPrice  Decimal
+  totalPrice Decimal
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

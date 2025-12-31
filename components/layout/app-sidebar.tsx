@@ -111,19 +111,19 @@ const data = {
       items: [
         {
           title: "Purchase Order",
-          url: "#",
+          url: "/purchase/orders",
         },
         {
           title: "Purchase Invoice",
-          url: "#",
+          url: "/purchase/invoices",
         },
         {
           title: "Receive Items",
-          url: "#",
+          url: "/purchase/receives",
         },
         {
           title: "Purchase Return",
-          url: "#",
+          url: "/purchase/returns",
         },
       ],
     },

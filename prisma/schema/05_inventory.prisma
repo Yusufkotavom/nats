@@ -56,6 +56,10 @@ model Product {
   discounts                Discount[]
   inventoryMovementDetails InventoryMovementDetail[]
 
+  purchaseOrderItems   PurchaseOrderItem[]
+  purchaseReceiveItems PurchaseReceiveItem[]
+  purchaseReturnItems  PurchaseReturnItem[]
+
   @@index([categoryId])
   @@index([sku])
 }

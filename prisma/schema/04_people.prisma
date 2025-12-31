@@ -19,4 +19,9 @@ model Vendor {
     isActive  Boolean  @default(true)
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    purchaseOrders   PurchaseOrder[]
+    purchaseReceives PurchaseReceive[]
+    purchaseInvoices PurchaseInvoice[]
+    purchaseReturns  PurchaseReturn[]
 }

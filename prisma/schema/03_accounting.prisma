@@ -1,19 +1,20 @@
 // ACCOUNTING MODULE
 model Account {
-  id                String             @id @default(cuid())
-  code              String             @unique
-  name              String
-  type              AccountType
-  normalBalance     NormalBalance      @default(debit)
-  isPosting         Boolean            @default(true)
-  level             Int                @default(0)
-  parentId          String?
-  parent            Account?           @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children          Account[]          @relation("AccountHierarchy")
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  journalEntryLines JournalEntryLine[]
+  id                   String                @id @default(cuid())
+  code                 String                @unique
+  name                 String
+  type                 AccountType
+  normalBalance        NormalBalance         @default(debit)
+  isPosting            Boolean               @default(true)
+  level                Int                   @default(0)
+  parentId             String?
+  parent               Account?              @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children             Account[]             @relation("AccountHierarchy")
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  journalEntryLines    JournalEntryLine[]
+  purchaseInvoiceItems PurchaseInvoiceItem[]
 
   @@index([code])
   @@index([type])
