@@ -19,19 +19,14 @@ export default async function Page({
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-0">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Purchase Order {order.orderNumber}</h2>
-      </div>
-      <PurchaseOrderForm
-        order={order}
-        vendors={vendors}
-        products={products.map(p => ({
-          ...p,
-          cost: Number(p.cost)
-        }))}
-        readonly
-      />
-    </div>
+    <PurchaseOrderForm
+      order={order}
+      vendors={vendors}
+      products={products.map((p) => ({
+        ...p,
+        cost: Number(p.cost),
+      }))}
+      readonly
+    />
   );
 }

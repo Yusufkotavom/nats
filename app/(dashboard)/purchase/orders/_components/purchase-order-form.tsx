@@ -42,13 +42,29 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Loader2, Plus, Trash2, GripVertical } from "lucide-react";
-import { createPurchaseOrder, updatePurchaseOrder } from "../actions";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  GripVertical,
+  CheckCheckIcon,
+  SaveIcon,
+  UndoDotIcon,
+  CheckCircle,
+  Trash2Icon,
+  ArrowLeftSquare,
+} from "lucide-react";
+import {
+  createPurchaseOrder,
+  updatePurchaseOrder,
+  issuePurchaseOrder,
+  cancelPurchaseOrder,
+  closePurchaseOrder,
+} from "../actions";
 import { PurchaseOrderWithDetails, PurchaseOrderInput } from "../types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { PurchaseOrderStatus } from "@/prisma/generated/prisma/enums";
 
 interface PurchaseOrderFormProps {
   order?: PurchaseOrderWithDetails;
@@ -119,6 +135,10 @@ export function PurchaseOrderForm({
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!order;
 
+  // Determine if form should be read-only based on status
+  const isDraft = order?.status === "DRAFT" || !order;
+  const isReadOnly = readonly || !isDraft;
+
   const [formData, setFormData] = useState<
     Omit<PurchaseOrderInput, "items"> & {
       items: (PurchaseOrderInput["items"][0] & { id: string })[];
@@ -146,6 +166,7 @@ export function PurchaseOrderForm({
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (isReadOnly) return;
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -158,6 +179,7 @@ export function PurchaseOrderForm({
   };
 
   const handleAddItem = () => {
+    if (isReadOnly) return;
     setFormData((prev) => ({
       ...prev,
       items: [
@@ -168,6 +190,7 @@ export function PurchaseOrderForm({
   };
 
   const handleRemoveItem = (index: number) => {
+    if (isReadOnly) return;
     setFormData((prev) => ({
       ...prev,
       items: prev.items.filter((_, i) => i !== index),
@@ -179,6 +202,7 @@ export function PurchaseOrderForm({
     field: keyof (typeof formData.items)[0],
     value: string | number
   ) => {
+    if (isReadOnly) return;
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
 
@@ -200,6 +224,8 @@ export function PurchaseOrderForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return;
+
     if (!formData.vendorId) {
       alert("Please select a vendor");
       return;
@@ -233,7 +259,12 @@ export function PurchaseOrderForm({
       }
 
       if (result.success) {
-        router.push("/purchase/orders");
+        if (!isEditing) {
+          router.push("/purchase/orders");
+        } else {
+          // Stay on page but show success? Or redirect?
+          // Revalidation happens in action, so UI updates.
+        }
       } else {
         alert(result.error);
       }
@@ -245,13 +276,58 @@ export function PurchaseOrderForm({
     }
   };
 
+  const handleIssue = async () => {
+    if (
+      !order ||
+      !confirm(
+        "Are you sure you want to issue this PO? This will make it immutable."
+      )
+    )
+      return;
+    setIsLoading(true);
+    try {
+      const result = await issuePurchaseOrder(order.id);
+      if (!result.success) alert(result.error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!order || !confirm("Are you sure you want to cancel this PO?")) return;
+    setIsLoading(true);
+    try {
+      const result = await cancelPurchaseOrder(order.id);
+      if (!result.success) alert(result.error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClose = async () => {
+    if (!order || !confirm("Are you sure you want to close this PO?")) return;
+    setIsLoading(true);
+    try {
+      const result = await closePurchaseOrder(order.id);
+      if (!result.success) alert(result.error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const displayOrderNumber = order?.orderNumber?.startsWith("DRAFT")
+    ? "Draft"
+    : order?.orderNumber;
+
   return (
     <div className="flex-1 space-y-4 px-4 pt-0">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-xl font-bold tracking-tight flex-1">
-          Create Purchase Order
-        </h2>
-        <div className="flex gap-4 text-sm">
+        <div className="flex gap-5">
+          <h2 className="text-xl font-bold tracking-tight flex-1">
+            {displayOrderNumber === "Draft"
+              ? "Draft Purchase Order"
+              : `Purchase Order ${displayOrderNumber || "New"}`}
+          </h2>
           <div className="flex items-center gap-2">
             <div
               className={cn(
@@ -271,12 +347,81 @@ export function PurchaseOrderForm({
               {formData.status?.replace("_", " ")}
             </span>
           </div>
-          {!readonly && (
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Update" : "Create"}
+        </div>
+        <div className="flex gap-2 text-sm">
+          {/* Action Buttons */}
+          {isDraft && !readonly && (
+            <>
+              <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {!isLoading && <SaveIcon />}
+                {isEditing ? "Save" : "Create"}
+              </Button>
+              {isEditing && (
+                <Button
+                  type="button"
+                  onClick={handleIssue}
+                  disabled={isLoading}
+                >
+                  <CheckCheckIcon />
+                  Issue
+                </Button>
+              )}
+            </>
+          )}
+
+          {formData.status === "ISSUED" && !readonly && (
+            <>
+              <Button type="button" onClick={handleClose} disabled={isLoading}>
+                <CheckCircle />
+                Finish
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleCancel}
+                disabled={isLoading}
+              >
+                <Trash2Icon />
+                Discard
+              </Button>
+            </>
+          )}
+
+          {formData.status === "PARTIALLY_RECEIVED" && !readonly && (
+            <Button
+              type="button"
+              onClick={handleClose}
+              disabled={isLoading}
+              className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+            >
+              <CheckCircle />
+              Finish
             </Button>
           )}
+
+          {/* Allow cancelling Drafts too */}
+          {isDraft && isEditing && !readonly && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={isLoading}
+            >
+              <Trash2Icon />
+              Discard
+            </Button>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => router.back()}
+          >
+            <ArrowLeftSquare />
+            Back
+          </Button>
         </div>
       </div>
       <form onSubmit={handleSubmit}>
@@ -286,99 +431,74 @@ export function PurchaseOrderForm({
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
-                    <div className="space-y-2">
-                      <Label>Vendor</Label>
-                      <CustomSelect
-                        value={formData.vendorId}
-                        onValueChange={(val) =>
-                          setFormData((prev) => ({ ...prev, vendorId: val }))
-                        }
-                        placeholder="Select Vendor"
-                        disabled={readonly}
-                      >
-                        {vendors.map((v) => (
-                          <SelectItem key={v.id} value={v.id}>
-                            {v.name}
-                          </SelectItem>
-                        ))}
-                      </CustomSelect>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <Label>Order Date</Label>
-                        <CustomInput
-                          type="date"
-                          value={
-                            formData.orderDate
-                              ? format(formData.orderDate, "yyyy-MM-dd")
-                              : ""
-                          }
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              orderDate: e.target.value
-                                ? new Date(e.target.value)
-                                : new Date(),
-                            }))
-                          }
-                          disabled={readonly}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Expected Date</Label>
-                        <CustomInput
-                          type="date"
-                          value={
-                            formData.expectedDate
-                              ? format(formData.expectedDate, "yyyy-MM-dd")
-                              : ""
-                          }
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              expectedDate: e.target.value
-                                ? new Date(e.target.value)
-                                : null,
-                            }))
-                          }
-                          disabled={readonly}
-                        />
-                      </div>
-                    </div>
-                    {isEditing && !readonly && (
-                      <div className="mt-4">
-                        <Label>Update Status</Label>
-                        <CustomSelect
-                          value={formData.status || "DRAFT"}
-                          onValueChange={(val) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              status: val as PurchaseOrderStatus,
-                            }))
-                          }
-                        >
-                          <SelectItem value="DRAFT">Draft</SelectItem>
-                          <SelectItem value="ISSUED">Issued</SelectItem>
-                          <SelectItem value="CLOSED">Closed</SelectItem>
-                          <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                        </CustomSelect>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2 flex flex-col">
-                    <Label>Notes</Label>
-                    <CustomTextarea
-                      value={formData.notes || ""}
-                      className="resize-none"
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          notes: e.target.value,
-                        }))
+                    <CustomSelect
+                      value={formData.vendorId}
+                      label="Vendor"
+                      onValueChange={(val) =>
+                        setFormData((prev) => ({ ...prev, vendorId: val }))
                       }
-                      disabled={readonly}
-                    />
+                      placeholder="Select Vendor"
+                      disabled={isReadOnly}
+                    >
+                      {vendors.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </CustomSelect>
+                    <div className="grid grid-cols-2 gap-2">
+                      <CustomInput
+                        type="date"
+                        label="Order Date"
+                        id="order_date"
+                        value={
+                          formData.orderDate
+                            ? format(formData.orderDate, "yyyy-MM-dd")
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            orderDate: e.target.value
+                              ? new Date(e.target.value)
+                              : new Date(),
+                          }))
+                        }
+                        disabled={isReadOnly}
+                      />
+                      <CustomInput
+                        type="date"
+                        label="Expected Date"
+                        id="expected_date"
+                        value={
+                          formData.expectedDate
+                            ? format(formData.expectedDate, "yyyy-MM-dd")
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            expectedDate: e.target.value
+                              ? new Date(e.target.value)
+                              : null,
+                          }))
+                        }
+                        disabled={isReadOnly}
+                      />
+                    </div>
                   </div>
+                  <CustomTextarea
+                    value={formData.notes || ""}
+                    label="Notes"
+                    className="resize-none"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        notes: e.target.value,
+                      }))
+                    }
+                    disabled={isReadOnly}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -419,7 +539,7 @@ export function PurchaseOrderForm({
                                   handleItemChange(index, "productId", val)
                                 }
                                 placeholder="Select Product"
-                                disabled={readonly}
+                                disabled={isReadOnly}
                               >
                                 {products.map((p) => (
                                   <SelectItem key={p.id} value={p.id}>
@@ -440,7 +560,7 @@ export function PurchaseOrderForm({
                                     Number(e.target.value)
                                   )
                                 }
-                                disabled={readonly}
+                                disabled={isReadOnly}
                               />
                             </TableCell>
                             <TableCell>
@@ -462,7 +582,7 @@ export function PurchaseOrderForm({
                                     Number(val)
                                   )
                                 }
-                                disabled={readonly}
+                                disabled={isReadOnly}
                               />
                             </TableCell>
                             <TableCell>
@@ -471,7 +591,7 @@ export function PurchaseOrderForm({
                               </div>
                             </TableCell>
                             <TableCell>
-                              {!readonly && (
+                              {!isReadOnly && (
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -496,7 +616,7 @@ export function PurchaseOrderForm({
                 )}
               </CardContent>
               <CardFooter className="justify-between border-t p-4">
-                {!readonly && (
+                {!isReadOnly && (
                   <Button
                     type="button"
                     variant="outline"

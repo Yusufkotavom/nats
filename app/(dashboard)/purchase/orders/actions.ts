@@ -105,7 +105,13 @@ export async function getProducts() {
 
 // Helper to generate PO Number
 async function generatePONumber() {
-  const count = await prisma.purchaseOrder.count();
+  const count = await prisma.purchaseOrder.count({
+    where: {
+      NOT: {
+        status: "DRAFT",
+      },
+    },
+  });
   const date = new Date();
   const year = date.getFullYear().toString().slice(-2);
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -117,7 +123,8 @@ export const createPurchaseOrder = authorizedAction(
   "purchase.create",
   async (data: PurchaseOrderInput) => {
     try {
-      const orderNumber = await generatePONumber();
+      // Generate temporary draft number
+      const orderNumber = `DRAFT-${Date.now()}`;
 
       // Calculate totals
       let totalAmount = 0;
@@ -132,7 +139,7 @@ export const createPurchaseOrder = authorizedAction(
           orderDate: data.orderDate,
           expectedDate: data.expectedDate,
           notes: data.notes,
-          status: "DRAFT", // Default to DRAFT
+          status: "DRAFT",
           totalAmount,
           items: {
             create: data.items.map((item) => ({
@@ -161,26 +168,27 @@ export const updatePurchaseOrder = authorizedAction(
   "purchase.edit",
   async (id: string, data: PurchaseOrderInput) => {
     try {
-      // Calculate totals
-      let totalAmount = 0;
-      data.items.forEach((item) => {
-        totalAmount += item.quantity * item.unitCost;
-      });
-
-      // We need to handle items update: delete missing, update existing, create new.
-      // Simplest strategy: delete all and recreate if status is DRAFT.
-      // If status is not DRAFT, we might need stricter rules, but for now assuming DRAFT editing.
-
       const currentOrder = await prisma.purchaseOrder.findUnique({
         where: { id },
         include: { items: true },
       });
 
       if (!currentOrder) throw new Error("Order not found");
-      if (currentOrder.status !== "DRAFT" && currentOrder.status !== "ISSUED") {
-        // Maybe allow updating expectedDate or notes?
-        // For now, allow full edit only in DRAFT/ISSUED.
+
+      // Strict check: Only allow updates if DRAFT
+      if (currentOrder.status !== "DRAFT") {
+        return {
+          success: false,
+          error:
+            "Only Draft orders can be modified. Please Cancel or create a new order.",
+        };
       }
+
+      // Calculate totals
+      let totalAmount = 0;
+      data.items.forEach((item) => {
+        totalAmount += item.quantity * item.unitCost;
+      });
 
       const result = await prisma.$transaction(async (tx) => {
         // Delete existing items
@@ -196,7 +204,7 @@ export const updatePurchaseOrder = authorizedAction(
             orderDate: data.orderDate,
             expectedDate: data.expectedDate,
             notes: data.notes,
-            status: data.status || currentOrder.status,
+            status: "DRAFT", // Ensure it stays DRAFT during update
             totalAmount,
             items: {
               create: data.items.map((item) => ({
@@ -216,6 +224,107 @@ export const updatePurchaseOrder = authorizedAction(
     } catch (error) {
       console.error("Failed to update PO:", error);
       return { success: false, error: "Failed to update Purchase Order" };
+    }
+  }
+);
+
+export const issuePurchaseOrder = authorizedAction(
+  "purchase.edit",
+  async (id: string) => {
+    try {
+      const currentOrder = await prisma.purchaseOrder.findUnique({
+        where: { id },
+      });
+
+      if (!currentOrder) throw new Error("Order not found");
+      if (currentOrder.status !== "DRAFT") {
+        return { success: false, error: "Only Draft orders can be issued" };
+      }
+
+      const orderNumber = await generatePONumber();
+
+      const result = await prisma.purchaseOrder.update({
+        where: { id },
+        data: {
+          status: "ISSUED",
+          orderNumber, // Assign real PO number
+        },
+      });
+
+      revalidatePath("/purchase/orders");
+      revalidatePath(`/purchase/orders/${id}`);
+      return { success: true, data: serializePrisma(result) };
+    } catch (error) {
+      console.error("Failed to issue PO:", error);
+      return { success: false, error: "Failed to issue Purchase Order" };
+    }
+  }
+);
+
+export const cancelPurchaseOrder = authorizedAction(
+  "purchase.edit",
+  async (id: string) => {
+    try {
+      const currentOrder = await prisma.purchaseOrder.findUnique({
+        where: { id },
+      });
+
+      if (!currentOrder) throw new Error("Order not found");
+
+      // Can cancel DRAFT or ISSUED
+      if (!["DRAFT", "ISSUED"].includes(currentOrder.status)) {
+        return { success: false, error: "Cannot cancel this order" };
+      }
+
+      const result = await prisma.purchaseOrder.update({
+        where: { id },
+        data: {
+          status: "CANCELLED",
+        },
+      });
+
+      revalidatePath("/purchase/orders");
+      revalidatePath(`/purchase/orders/${id}`);
+      return { success: true, data: serializePrisma(result) };
+    } catch (error) {
+      console.error("Failed to cancel PO:", error);
+      return { success: false, error: "Failed to cancel Purchase Order" };
+    }
+  }
+);
+
+export const closePurchaseOrder = authorizedAction(
+  "purchase.edit",
+  async (id: string) => {
+    try {
+      const currentOrder = await prisma.purchaseOrder.findUnique({
+        where: { id },
+      });
+
+      if (!currentOrder) throw new Error("Order not found");
+
+      // Can close ISSUED or PARTIALLY_RECEIVED
+      if (!["ISSUED", "PARTIALLY_RECEIVED"].includes(currentOrder.status)) {
+        return { success: false, error: "Cannot close this order" };
+      }
+
+      // TODO: Implement 3-way match validation here
+      // For now, we allow closing manually as per request logic "Closed only after..."
+      // implying it's an action user takes when conditions are met.
+
+      const result = await prisma.purchaseOrder.update({
+        where: { id },
+        data: {
+          status: "CLOSED",
+        },
+      });
+
+      revalidatePath("/purchase/orders");
+      revalidatePath(`/purchase/orders/${id}`);
+      return { success: true, data: serializePrisma(result) };
+    } catch (error) {
+      console.error("Failed to close PO:", error);
+      return { success: false, error: "Failed to close Purchase Order" };
     }
   }
 );

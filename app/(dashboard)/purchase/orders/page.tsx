@@ -31,7 +31,7 @@ export default async function Page({
           <Protect permission="purchase.create">
             <Button asChild>
               <Link href="/purchase/orders/new">
-                <Plus className="mr-2 h-4 w-4" /> New Receive
+                <Plus className="mr-2 h-4 w-4" /> New Order
               </Link>
             </Button>
           </Protect>
