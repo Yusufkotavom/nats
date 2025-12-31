@@ -48,6 +48,7 @@ import { PurchaseOrderWithDetails, PurchaseOrderInput } from "../types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { PurchaseOrderStatus } from "@/prisma/generated/prisma/enums";
 
 interface PurchaseOrderFormProps {
   order?: PurchaseOrderWithDetails;
@@ -57,6 +58,7 @@ interface PurchaseOrderFormProps {
     name: string;
     sku: string;
     cost: number;
+    baseUnit?: { symbol: string } | null;
     purchaseUnit?: { symbol: string } | null;
   }[];
   readonly?: boolean;
@@ -175,7 +177,7 @@ export function PurchaseOrderForm({
   const handleItemChange = (
     index: number,
     field: keyof (typeof formData.items)[0],
-    value: any
+    value: string | number
   ) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -244,256 +246,275 @@ export function PurchaseOrderForm({
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="grid gap-4">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Vendor</Label>
-                <CustomSelect
-                  value={formData.vendorId}
-                  onValueChange={(val) =>
-                    setFormData((prev) => ({ ...prev, vendorId: val }))
-                  }
-                  placeholder="Select Vendor"
-                  disabled={readonly}
-                >
-                  {vendors.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name}
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
-              </div>
-              <div className="space-y-2">
-                <Label>Order Date</Label>
-                <CustomInput
-                  type="date"
-                  value={
-                    formData.orderDate
-                      ? format(formData.orderDate, "yyyy-MM-dd")
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      orderDate: e.target.value
-                        ? new Date(e.target.value)
-                        : new Date(),
-                    }))
-                  }
-                  disabled={readonly}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Expected Date</Label>
-                <CustomInput
-                  type="date"
-                  value={
-                    formData.expectedDate
-                      ? format(formData.expectedDate, "yyyy-MM-dd")
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      expectedDate: e.target.value
-                        ? new Date(e.target.value)
-                        : null,
-                    }))
-                  }
-                  disabled={readonly}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <CustomTextarea
-                  value={formData.notes || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                  }
-                  disabled={readonly}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Items</CardTitle>
-              {!readonly && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddItem}
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Add Item
-                </Button>
+    <div className="flex-1 space-y-4 px-4 pt-0">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-xl font-bold tracking-tight flex-1">
+          Create Purchase Order
+        </h2>
+        <div className="flex gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div
+              className={cn(
+                "h-2.5 w-2.5 rounded-full",
+                formData.status === "DRAFT"
+                  ? "bg-gray-500"
+                  : formData.status === "ISSUED"
+                  ? "bg-blue-500"
+                  : formData.status === "PARTIALLY_RECEIVED"
+                  ? "bg-yellow-500"
+                  : formData.status === "CLOSED"
+                  ? "bg-green-500"
+                  : "bg-red-500"
               )}
-            </CardHeader>
-            <CardContent className="p-0">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[40px]"></TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="w-[120px]">Quantity</TableHead>
-                      <TableHead className="w-[150px]">Unit Cost</TableHead>
-                      <TableHead className="w-[150px]">Total</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <SortableContext
-                      items={formData.items}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {formData.items.map((item, index) => (
-                        <SortableTableRow key={item.id} id={item.id}>
-                          <TableCell>
-                            <CustomSelect
-                              value={item.productId}
-                              onValueChange={(val) =>
-                                handleItemChange(index, "productId", val)
-                              }
-                              placeholder="Select Product"
-                              disabled={readonly}
-                            >
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name} ({p.sku})
-                                </SelectItem>
-                              ))}
-                            </CustomSelect>
-                          </TableCell>
-                          <TableCell>
-                            <CustomInput
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleItemChange(
-                                  index,
-                                  "quantity",
-                                  Number(e.target.value)
-                                )
-                              }
-                              disabled={readonly}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <CurrencyInput
-                              value={item.unitCost}
-                              onChange={(val) =>
-                                handleItemChange(index, "unitCost", Number(val))
-                              }
-                              disabled={readonly}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
-                              {formatCurrency(item.quantity * item.unitCost)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {!readonly && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="text-red-500 hover:text-red-700"
-                                onClick={() => handleRemoveItem(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </SortableTableRow>
-                      ))}
-                    </SortableContext>
-                  </TableBody>
-                </Table>
-              </DndContext>
-              {formData.items.length === 0 && (
-                <div className="py-8 text-center text-muted-foreground">
-                  No items added.
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="justify-end border-t p-4">
-              <div className="flex items-center gap-2 text-lg font-bold">
-                <span>Total Amount:</span>
-                <span>{formatCurrency(totalAmount)}</span>
-              </div>
-            </CardFooter>
-          </Card>
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    "h-2.5 w-2.5 rounded-full",
-                    formData.status === "DRAFT"
-                      ? "bg-gray-500"
-                      : formData.status === "ISSUED"
-                      ? "bg-blue-500"
-                      : formData.status === "PARTIALLY_RECEIVED"
-                      ? "bg-yellow-500"
-                      : formData.status === "CLOSED"
-                      ? "bg-green-500"
-                      : "bg-red-500"
-                  )}
-                />
-                <span className="font-medium">
-                  {formData.status?.replace("_", " ")}
-                </span>
-              </div>
-              {isEditing && !readonly && (
-                <div className="mt-4">
-                  <Label>Update Status</Label>
-                  <CustomSelect
-                    value={formData.status || "DRAFT"}
-                    onValueChange={(val) =>
-                      setFormData((prev) => ({ ...prev, status: val as any }))
-                    }
-                  >
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                    <SelectItem value="ISSUED">Issued</SelectItem>
-                    <SelectItem value="CLOSED">Closed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </CustomSelect>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              {!readonly && (
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isEditing ? "Update Order" : "Create Order"}
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
+            />
+            <span className="font-medium">
+              {formData.status?.replace("_", " ")}
+            </span>
+          </div>
+          {!readonly && (
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditing ? "Update Order" : "Create Order"}
+            </Button>
+          )}
         </div>
       </div>
-    </form>
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-4">
+          <div className="space-y-4">
+            <Card>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-2">
+                    <div className="space-y-2">
+                      <Label>Vendor</Label>
+                      <CustomSelect
+                        value={formData.vendorId}
+                        onValueChange={(val) =>
+                          setFormData((prev) => ({ ...prev, vendorId: val }))
+                        }
+                        placeholder="Select Vendor"
+                        disabled={readonly}
+                      >
+                        {vendors.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}
+                          </SelectItem>
+                        ))}
+                      </CustomSelect>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <Label>Order Date</Label>
+                        <CustomInput
+                          type="date"
+                          value={
+                            formData.orderDate
+                              ? format(formData.orderDate, "yyyy-MM-dd")
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              orderDate: e.target.value
+                                ? new Date(e.target.value)
+                                : new Date(),
+                            }))
+                          }
+                          disabled={readonly}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Expected Date</Label>
+                        <CustomInput
+                          type="date"
+                          value={
+                            formData.expectedDate
+                              ? format(formData.expectedDate, "yyyy-MM-dd")
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              expectedDate: e.target.value
+                                ? new Date(e.target.value)
+                                : null,
+                            }))
+                          }
+                          disabled={readonly}
+                        />
+                      </div>
+                    </div>
+                    {isEditing && !readonly && (
+                      <div className="mt-4">
+                        <Label>Update Status</Label>
+                        <CustomSelect
+                          value={formData.status || "DRAFT"}
+                          onValueChange={(val) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              status: val as PurchaseOrderStatus,
+                            }))
+                          }
+                        >
+                          <SelectItem value="DRAFT">Draft</SelectItem>
+                          <SelectItem value="ISSUED">Issued</SelectItem>
+                          <SelectItem value="CLOSED">Closed</SelectItem>
+                          <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                        </CustomSelect>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2 flex flex-col">
+                    <Label>Notes</Label>
+                    <CustomTextarea
+                      value={formData.notes || ""}
+                      className="resize-none"
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          notes: e.target.value,
+                        }))
+                      }
+                      disabled={readonly}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Ordered Items</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]"></TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="w-[120px]">Order Qty</TableHead>
+                        <TableHead className="w-[80px]">Unit</TableHead>
+                        <TableHead className="w-[150px]">Price</TableHead>
+                        <TableHead className="w-[150px]">Total</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <SortableContext
+                        items={formData.items}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {formData.items.map((item, index) => (
+                          <SortableTableRow key={item.id} id={item.id}>
+                            <TableCell>
+                              <CustomSelect
+                                value={item.productId}
+                                onValueChange={(val) =>
+                                  handleItemChange(index, "productId", val)
+                                }
+                                placeholder="Select Product"
+                                disabled={readonly}
+                              >
+                                {products.map((p) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    {p.name} ({p.sku})
+                                  </SelectItem>
+                                ))}
+                              </CustomSelect>
+                            </TableCell>
+                            <TableCell>
+                              <CustomInput
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "quantity",
+                                    Number(e.target.value)
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex h-10 items-center text-sm text-muted-foreground">
+                                {products.find((p) => p.id === item.productId)
+                                  ?.purchaseUnit?.symbol ||
+                                  products.find((p) => p.id === item.productId)
+                                    ?.baseUnit?.symbol ||
+                                  "-"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <CurrencyInput
+                                value={item.unitCost}
+                                onChange={(val) =>
+                                  handleItemChange(
+                                    index,
+                                    "unitCost",
+                                    Number(val)
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
+                                {formatCurrency(item.quantity * item.unitCost)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {!readonly && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-red-500 hover:text-red-700"
+                                  onClick={() => handleRemoveItem(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </SortableTableRow>
+                        ))}
+                      </SortableContext>
+                    </TableBody>
+                  </Table>
+                </DndContext>
+                {formData.items.length === 0 && (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No items added.
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="justify-between border-t p-4">
+                {!readonly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddItem}
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Item
+                  </Button>
+                )}
+                <div className="flex items-center gap-2 text-md">
+                  <span>Total Amount:</span>
+                  <span>{formatCurrency(totalAmount)}</span>
+                </div>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </form>
+    </div>
   );
 }

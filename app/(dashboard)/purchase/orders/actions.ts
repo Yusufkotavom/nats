@@ -83,6 +83,11 @@ export async function getProducts() {
       name: true,
       sku: true,
       cost: true,
+      baseUnit: {
+        select: {
+          symbol: true,
+        },
+      },
       purchaseUnit: {
         select: {
           symbol: true,
