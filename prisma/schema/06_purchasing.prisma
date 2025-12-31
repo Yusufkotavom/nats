@@ -129,7 +129,14 @@ model PurchaseInvoice {
   dueDate     DateTime
   status      PurchaseInvoiceStatus @default(DRAFT)
   totalAmount Decimal               @default(0)
-  notes       String?
+
+  // Additional financials
+  globalDiscount Decimal @default(0)
+  totalTax       Decimal @default(0)
+  shippingCost   Decimal @default(0)
+  handlingCost   Decimal @default(0)
+
+  notes String?
 
   items   PurchaseInvoiceItem[]
   returns PurchaseReturn[]
@@ -149,6 +156,10 @@ model PurchaseInvoiceItem {
   quantity    Int     @default(1)
   unitPrice   Decimal
   totalPrice  Decimal
+
+  // Additional financials
+  discount Decimal @default(0)
+  tax      Decimal @default(0)
 
   accountId String?
   account   Account? @relation(fields: [accountId], references: [id])

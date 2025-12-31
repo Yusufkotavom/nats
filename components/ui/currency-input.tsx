@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface CurrencyInputProps
   extends Omit<React.ComponentProps<"input">, "onChange" | "value"> {
@@ -57,6 +58,7 @@ export const CurrencyInput = React.forwardRef<
       ref={ref}
       type="text"
       inputMode="decimal"
+      className={cn("text-right", props.className)}
       value={formatDisplayValue(value)}
       onChange={handleChange}
       onBlur={handleBlur}

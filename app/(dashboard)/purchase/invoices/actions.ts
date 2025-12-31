@@ -142,19 +142,33 @@ export const createPurchaseInvoice = authorizedAction(
         };
       }
 
-      let itemsSubtotal = 0;
-      data.items.forEach((item) => {
-        const itemTotal =
-          item.quantity * item.unitPrice -
-          (item.discount || 0) +
-          (item.tax || 0);
-        itemsSubtotal += itemTotal;
+      let itemsTotal = 0;
+      let totalTaxCalculated = 0;
+
+      const itemsToCreate = data.items.map((item) => {
+        const subtotal = item.quantity * item.unitPrice;
+        const discountAmount = subtotal * ((item.discount || 0) / 100);
+        const taxableAmount = subtotal - discountAmount;
+        const taxAmount = taxableAmount * ((item.tax || 0) / 100);
+        const total = taxableAmount + taxAmount;
+
+        itemsTotal += total;
+        totalTaxCalculated += taxAmount;
+
+        return {
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: total,
+          discount: item.discount,
+          tax: item.tax,
+          accountId: item.accountId,
+        };
       });
 
       const totalAmount =
-        itemsSubtotal -
+        itemsTotal -
         (data.globalDiscount || 0) +
-        (data.totalTax || 0) +
         (data.shippingCost || 0) +
         (data.handlingCost || 0);
 
@@ -169,22 +183,11 @@ export const createPurchaseInvoice = authorizedAction(
           status: "DRAFT", // Default to DRAFT
           totalAmount,
           globalDiscount: data.globalDiscount,
-          totalTax: data.totalTax,
+          totalTax: totalTaxCalculated,
           shippingCost: data.shippingCost,
           handlingCost: data.handlingCost,
           items: {
-            create: data.items.map((item) => ({
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice:
-                item.quantity * item.unitPrice -
-                (item.discount || 0) +
-                (item.tax || 0),
-              discount: item.discount,
-              tax: item.tax,
-              accountId: item.accountId,
-            })),
+            create: itemsToCreate,
           },
         },
         include: {
@@ -242,10 +245,35 @@ export const updatePurchaseInvoice = authorizedAction(
         }
       }
 
-      let totalAmount = 0;
-      data.items.forEach((item) => {
-        totalAmount += item.quantity * item.unitPrice;
+      let itemsTotal = 0;
+      let totalTaxCalculated = 0;
+
+      const itemsToCreate = data.items.map((item) => {
+        const subtotal = item.quantity * item.unitPrice;
+        const discountAmount = subtotal * ((item.discount || 0) / 100);
+        const taxableAmount = subtotal - discountAmount;
+        const taxAmount = taxableAmount * ((item.tax || 0) / 100);
+        const total = taxableAmount + taxAmount;
+
+        itemsTotal += total;
+        totalTaxCalculated += taxAmount;
+
+        return {
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: total,
+          discount: item.discount,
+          tax: item.tax,
+          accountId: item.accountId,
+        };
       });
+
+      const totalAmount =
+        itemsTotal -
+        (data.globalDiscount || 0) +
+        (data.shippingCost || 0) +
+        (data.handlingCost || 0);
 
       const result = await prisma.$transaction(async (tx) => {
         // Delete existing items
@@ -265,14 +293,12 @@ export const updatePurchaseInvoice = authorizedAction(
             notes: data.notes,
             status: data.status || currentInvoice.status,
             totalAmount,
+            globalDiscount: data.globalDiscount,
+            totalTax: totalTaxCalculated,
+            shippingCost: data.shippingCost,
+            handlingCost: data.handlingCost,
             items: {
-              create: data.items.map((item) => ({
-                description: item.description,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                totalPrice: item.quantity * item.unitPrice,
-                accountId: item.accountId,
-              })),
+              create: itemsToCreate,
             },
           },
           include: {

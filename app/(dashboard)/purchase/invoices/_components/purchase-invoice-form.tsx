@@ -240,17 +240,42 @@ export function PurchaseInvoiceForm({
     setFormData((prev) => ({ ...prev, items: newItems }));
   };
 
-  const itemsSubtotal = formData.items.reduce(
-    (sum, item) =>
-      sum +
-      (item.quantity * item.unitPrice - (item.discount || 0) + (item.tax || 0)),
+  const calculateItemValues = (item: (typeof formData.items)[0]) => {
+    const quantity = item.quantity || 0;
+    const unitPrice = item.unitPrice || 0;
+    const subtotal = quantity * unitPrice;
+    const discountAmount = subtotal * ((item.discount || 0) / 100);
+    const taxableAmount = subtotal - discountAmount;
+    const taxAmount = taxableAmount * ((item.tax || 0) / 100);
+    const total = taxableAmount + taxAmount;
+    return { subtotal, discountAmount, taxableAmount, taxAmount, total };
+  };
+
+  useEffect(() => {
+    const calculatedTotalTax = formData.items.reduce((sum, item) => {
+      const { taxAmount } = calculateItemValues(item);
+      return sum + taxAmount;
+    }, 0);
+
+    // Only update if different to avoid infinite loops (though strict equality check on float might be tricky, usually fine for setFormData)
+    if (Math.abs(calculatedTotalTax - formData.totalTax) > 0.001) {
+      setFormData((prev) => ({ ...prev, totalTax: calculatedTotalTax }));
+    }
+  }, [formData.items]);
+
+  const itemsTotal = formData.items.reduce(
+    (sum, item) => sum + calculateItemValues(item).total,
+    0
+  );
+
+  const itemsNetTotal = formData.items.reduce(
+    (sum, item) => sum + calculateItemValues(item).taxableAmount,
     0
   );
 
   const totalAmount =
-    itemsSubtotal -
+    itemsTotal -
     (formData.globalDiscount || 0) +
-    (formData.totalTax || 0) +
     (formData.shippingCost || 0) +
     (formData.handlingCost || 0);
 
@@ -319,18 +344,13 @@ export function PurchaseInvoiceForm({
         <div className="flex gap-2">
           {!readonly && (
             <>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? "Update" : "Create"}
               </Button>
             </>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => router.back()}
-          >
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
         </div>
@@ -498,8 +518,10 @@ export function PurchaseInvoiceForm({
                         <TableHead className="w-[200px]">Account</TableHead>
                         <TableHead className="w-[100px]">Qty</TableHead>
                         <TableHead className="w-[120px]">Unit Price</TableHead>
-                        <TableHead className="w-[120px]">Discount</TableHead>
-                        <TableHead className="w-[120px]">Tax</TableHead>
+                        <TableHead className="w-[120px]">
+                          Discount (%)
+                        </TableHead>
+                        <TableHead className="w-[120px]">Tax (%)</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
@@ -575,34 +597,42 @@ export function PurchaseInvoiceForm({
                               />
                             </TableCell>
                             <TableCell>
-                              <CurrencyInput
+                              <CustomInput
+                                type="number"
+                                min="0"
+                                max="100"
                                 value={item.discount}
-                                onChange={(val) =>
+                                onChange={(e) =>
                                   handleItemChange(
                                     index,
                                     "discount",
-                                    Number(val)
+                                    Number(e.target.value)
                                   )
                                 }
                                 disabled={readonly}
                               />
                             </TableCell>
                             <TableCell>
-                              <CurrencyInput
+                              <CustomInput
+                                type="number"
+                                min="0"
+                                max="100"
                                 value={item.tax}
-                                onChange={(val) =>
-                                  handleItemChange(index, "tax", Number(val))
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "tax",
+                                    Number(e.target.value)
+                                  )
                                 }
                                 disabled={readonly}
                               />
                             </TableCell>
                             <TableCell>
                               <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
-                                {(
-                                  item.quantity * item.unitPrice -
-                                  (item.discount || 0) +
-                                  (item.tax || 0)
-                                ).toLocaleString()}
+                                {calculateItemValues(
+                                  item
+                                ).total.toLocaleString()}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -642,8 +672,10 @@ export function PurchaseInvoiceForm({
                   )}
                   <div className="w-1/3 space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium">Subtotal</span>
-                      <span>{itemsSubtotal.toLocaleString()}</span>
+                      <span className="text-sm font-medium">
+                        Subtotal (Net)
+                      </span>
+                      <span>{itemsNetTotal.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
                       <span className="text-sm font-medium">
@@ -662,17 +694,12 @@ export function PurchaseInvoiceForm({
                       />
                     </div>
                     <div className="flex justify-between items-center gap-2">
-                      <span className="text-sm font-medium">Invoice Tax</span>
+                      <span className="text-sm font-medium">Total Tax</span>
                       <CurrencyInput
                         value={formData.totalTax}
-                        onChange={(val) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            totalTax: Number(val),
-                          }))
-                        }
-                        disabled={readonly}
-                        className="w-24 h-8"
+                        onChange={() => {}}
+                        disabled={true}
+                        className="w-24 h-8 bg-muted"
                       />
                     </div>
                     <div className="flex justify-between items-center gap-2">
