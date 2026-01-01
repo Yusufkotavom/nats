@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
-import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -22,11 +21,7 @@ import {
   Save,
   ArrowLeft,
   Paperclip,
-  X,
-  Loader2,
-  FileIcon,
 } from "lucide-react";
-import { CreateJournalEntryData } from "../actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import {
   DndContext,
@@ -42,11 +37,12 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Account } from "@/prisma/generated/prisma/browser";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
+import { CreateJournalEntryData } from "../../types";
+import { AttachmentDialog } from "@/components/ui/attachment-dialog";
+import { SortableTableRow } from "@/components/ui/sortable-row";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -57,47 +53,6 @@ interface JournalEntryFormProps {
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
-
-function SortableTableRow({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    position: "relative" as const,
-    zIndex: isDragging ? 1 : 0,
-  };
-
-  return (
-    <TableRow ref={setNodeRef} style={style} {...attributes}>
-      <TableCell className="w-[40px]">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="cursor-move"
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </Button>
-      </TableCell>
-      {children}
-    </TableRow>
-  );
-}
 
 export function JournalEntryForm({
   initialData,
@@ -153,7 +108,7 @@ export function JournalEntryForm({
   const [attachments, setAttachments] = useState<
     { id: string; name: string; url: string }[]
   >(initialData?.attachments || []);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -262,36 +217,6 @@ export function JournalEntryForm({
     setLines(newLines);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const result = await uploadFile(formData);
-      if (result.success && result.file) {
-        setAttachments([...attachments, result.file]);
-      } else {
-        alert(result.error || "Failed to upload file");
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert("Failed to upload file");
-    } finally {
-      setIsUploading(false);
-      e.target.value = "";
-    }
-  };
-
-  const removeAttachment = (index: number) => {
-    const newAttachments = [...attachments];
-    newAttachments.splice(index, 1);
-    setAttachments(newAttachments);
-  };
-
   // Initialize account search state is handled in useState initializer now
   useEffect(() => {
     if (initialData) {
@@ -300,207 +225,13 @@ export function JournalEntryForm({
   }, [initialData, accounts]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex gap-4">
-        <CustomInput
-          label="Transaction Date"
-          id="date"
-          type="date"
-          value={transactionDate}
-          onChange={(e) => setTransactionDate(e.target.value)}
-          required
-          containerClassName="space-y-2"
-        />
-        <CustomInput
-          label="Description"
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="General transaction description"
-          containerClassName="space-y-2 flex-1"
-        />
-      </div>
-
-      <div className="rounded-md border">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]"></TableHead>
-                <TableHead className="w-[300px]">Account</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="w-[150px] text-right">Debit</TableHead>
-                <TableHead className="w-[150px] text-right">Credit</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <SortableContext
-                items={lines}
-                strategy={verticalListSortingStrategy}
-              >
-                {lines.map((line, index) => (
-                  <SortableTableRow key={line.id} id={line.id}>
-                    <TableCell>
-                      <CustomSelect
-                        value={line.accountId}
-                        onValueChange={(val) =>
-                          updateLine(index, "accountId", val)
-                        }
-                        placeholder="Select account"
-                        triggerClassName="w-full"
-                        options={leafAccounts.map((account) => ({
-                          value: account.id,
-                          label: `${account.code} - ${account.name}`,
-                        }))}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <CustomInput
-                        value={line.description}
-                        onChange={(e) =>
-                          updateLine(index, "description", e.target.value)
-                        }
-                        placeholder="Detailed description"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <CurrencyInput
-                        className="text-right"
-                        value={line.debitAmount}
-                        onChange={(val) =>
-                          updateLine(index, "debitAmount", val)
-                        }
-                        onFocus={(e) => e.target.select()}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <CurrencyInput
-                        className="text-right"
-                        value={line.creditAmount}
-                        onChange={(val) =>
-                          updateLine(index, "creditAmount", val)
-                        }
-                        onFocus={(e) => e.target.select()}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeLine(index)}
-                        disabled={lines.length <= 2}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </SortableTableRow>
-                ))}
-              </SortableContext>
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={3} className="font-bold">
-                  Total
-                </TableCell>
-                <TableCell className="text-right font-bold">
-                  {formatNumber(totalDebit)}
-                </TableCell>
-                <TableCell className="text-right font-bold">
-                  {formatNumber(totalCredit)}
-                </TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-              {!isBalanced && (
-                <TableRow>
-                  <TableCell colSpan={3} className="font-bold text-red-600">
-                    Difference
-                  </TableCell>
-                  <TableCell
-                    colSpan={2}
-                    className="text-right font-bold text-red-600"
-                  >
-                    {formatNumber(totalDebit - totalCredit)}
-                  </TableCell>
-                  <TableCell></TableCell>
-                </TableRow>
-              )}
-            </TableFooter>
-          </Table>
-        </DndContext>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="file"
-              id="file-upload"
-              className="hidden"
-              onChange={handleFileUpload}
-              disabled={isUploading}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8"
-              onClick={() => document.getElementById("file-upload")?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-              ) : (
-                <Paperclip className="mr-2 h-3 w-3" />
-              )}
-              {isUploading ? "Uploading..." : "Attach File"}
-            </Button>
-          </div>
+    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">
+            {initialData?.id ? `Edit Journal Entry` : "New Journal Entry"}
+          </h2>
         </div>
-
-        {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {attachments.map((file, index) => (
-              <div
-                key={file.id}
-                className="flex items-center gap-2 rounded-md border bg-muted px-3 py-1 text-sm"
-              >
-                <a
-                  href={file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline flex gap-1 items-center"
-                >
-                  <FileIcon className="w-4 h-4" />
-                  {file.name}
-                </a>
-                <button
-                  type="button"
-                  onClick={() => removeAttachment(index)}
-                  className="cursor-pointer text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {error && <div className="text-red-600 text-sm">{error}</div>}
-
-      <div className="flex justify-between border-t pt-4">
-        <div className="flex items-start">
-          <Button type="button" variant="outline" onClick={addLine}>
-            <Plus className="mr-2 h-4 w-4" /> Add Line
-          </Button>
-        </div>
-
         <div className="flex justify-end gap-2">
           <Button
             type="button"
@@ -511,12 +242,191 @@ export function JournalEntryForm({
             <ArrowLeft />
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting || !isBalanced}>
+          <Button
+            type="submit"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !isBalanced}
+          >
             <Save />
-            {isSubmitting ? "Saving..." : "Save Journal Entry"}
+            {isSubmitting ? "Saving..." : "Create"}
           </Button>
         </div>
       </div>
-    </form>
+
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex gap-4">
+            <CustomInput
+              label="Transaction Date"
+              id="date"
+              type="date"
+              value={transactionDate}
+              onChange={(e) => setTransactionDate(e.target.value)}
+              required
+              containerClassName="space-y-2"
+            />
+            <CustomInput
+              label="Description"
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="General transaction description"
+              containerClassName="space-y-2 flex-1"
+            />
+          </div>
+
+          <div className="rounded-md border">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead className="w-[300px]">Account</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-[150px] text-right">
+                      Debit
+                    </TableHead>
+                    <TableHead className="w-[150px] text-right">
+                      Credit
+                    </TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <SortableContext
+                    items={lines}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {lines.map((line, index) => (
+                      <SortableTableRow key={line.id} id={line.id}>
+                        <TableCell>
+                          <CustomSelect
+                            value={line.accountId}
+                            onValueChange={(val) =>
+                              updateLine(index, "accountId", val)
+                            }
+                            placeholder="Select account"
+                            triggerClassName="w-full"
+                            options={leafAccounts.map((account) => ({
+                              value: account.id,
+                              label: `${account.code} - ${account.name}`,
+                            }))}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <CustomInput
+                            value={line.description}
+                            onChange={(e) =>
+                              updateLine(index, "description", e.target.value)
+                            }
+                            placeholder="Detailed description"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <CurrencyInput
+                            className="text-right"
+                            value={line.debitAmount}
+                            onChange={(val) =>
+                              updateLine(index, "debitAmount", val)
+                            }
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <CurrencyInput
+                            className="text-right"
+                            value={line.creditAmount}
+                            onChange={(val) =>
+                              updateLine(index, "creditAmount", val)
+                            }
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeLine(index)}
+                            disabled={lines.length <= 2}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </SortableTableRow>
+                    ))}
+                  </SortableContext>
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={3} className="font-bold">
+                      Total
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {formatNumber(totalDebit)}
+                    </TableCell>
+                    <TableCell className="text-right font-bold">
+                      {formatNumber(totalCredit)}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                  {!isBalanced && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="font-bold text-red-600">
+                        Difference
+                      </TableCell>
+                      <TableCell
+                        colSpan={2}
+                        className="text-right font-bold text-red-600"
+                      >
+                        {formatNumber(totalDebit - totalCredit)}
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  )}
+                </TableFooter>
+              </Table>
+            </DndContext>
+          </div>
+
+          {error && <div className="text-red-600 text-sm">{error}</div>}
+
+          <div className="flex justify-start border-t pt-4">
+            <div className="flex items-start gap-2">
+              <Button type="button" variant="outline" onClick={addLine}>
+                <Plus className="mr-2 h-4 w-4" /> Add Line
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setIsAttachmentDialogOpen(true)}
+                >
+                  <Paperclip className="mr-2 h-3 w-3" />
+                  {attachments.length > 0
+                    ? `${attachments.length} Attachments`
+                    : "Attach File"}
+                </Button>
+              </div>
+
+              <AttachmentDialog
+                open={isAttachmentDialogOpen}
+                onOpenChange={setIsAttachmentDialogOpen}
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                uploadAction={uploadFile}
+              />
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

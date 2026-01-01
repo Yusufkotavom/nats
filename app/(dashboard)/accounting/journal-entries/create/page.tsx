@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { JournalEntryForm } from "../_components/journal-entry-form";
-import { createJournalEntry, CreateJournalEntryData } from "../actions";
+import { createJournalEntry } from "../actions";
 import { getAccounts } from "../../accounts/actions";
 import { Account } from "@/prisma/generated/prisma/browser";
+import { CreateJournalEntryData } from "../../types";
 
 export default function CreateJournalEntryPage() {
   const [accounts, setAccounts] = useState<
@@ -33,23 +34,11 @@ export default function CreateJournalEntryPage() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="flex items-center gap-4">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight">
-            New Journal Entry
-          </h2>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-        <JournalEntryForm
-          accounts={accounts}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          onCancel={() => router.push("/accounting/journal-entries")}
-        />
-      </div>
-    </div>
+    <JournalEntryForm
+      accounts={accounts}
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      onCancel={() => router.push("/accounting/journal-entries")}
+    />
   );
 }

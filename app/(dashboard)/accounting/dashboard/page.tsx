@@ -71,7 +71,7 @@ export default async function AccountingDashboardPage() {
           <Button asChild>
             <Link href="/accounting/journal-entries/create">
               <PlusCircle className="mr-2 h-4 w-4" />
-              New Entry
+              New Journal Entry
             </Link>
           </Button>
           <Button variant="outline" asChild>

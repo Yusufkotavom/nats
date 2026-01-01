@@ -40,8 +40,10 @@ export type TrialBalanceResult = {
 };
 
 export type CreateJournalEntryData = {
+  id?: string;
   transactionDate: Date;
   description?: string;
+  entryNumber?: string;
   lines: {
     accountId: string;
     debitAmount: number;

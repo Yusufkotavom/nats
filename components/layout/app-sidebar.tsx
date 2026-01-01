@@ -194,7 +194,7 @@ const data = {
       ],
     },
     {
-      title: "Stakeholders",
+      title: "Contacts",
       url: "#",
       icon: UsersIcon,
       items: [

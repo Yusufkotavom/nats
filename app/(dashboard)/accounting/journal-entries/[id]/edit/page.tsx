@@ -3,13 +3,10 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { JournalEntryForm } from "../../_components/journal-entry-form";
-import {
-  getJournalEntry,
-  updateJournalEntry,
-  CreateJournalEntryData,
-} from "../../actions";
+import { getJournalEntry, updateJournalEntry } from "../../actions";
 import { getAccounts } from "../../../accounts/actions";
 import { Account } from "@/prisma/generated/prisma/browser";
+import { CreateJournalEntryData } from "../../../types";
 
 export default function EditJournalEntryPage({
   params,
@@ -17,7 +14,7 @@ export default function EditJournalEntryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [entry, setEntry] = useState<CreateJournalEntryData | null>(null);
+  const [entry, setEntry] = useState<any | null>(null);
   const [accounts, setAccounts] = useState<
     (Account & { children?: unknown[] })[]
   >([]);
@@ -40,22 +37,7 @@ export default function EditJournalEntryPage({
           return;
         }
 
-        setEntry({
-          transactionDate: entryRes.data.transactionDate,
-          description: entryRes.data.description || undefined,
-          lines: entryRes.data.lines.map((line) => ({
-            accountId: line.accountId,
-            debitAmount: Number(line.debitAmount),
-            creditAmount: Number(line.creditAmount),
-            description: line.description || undefined,
-          })),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          attachments: entryRes.data.attachments?.map((file: any) => ({
-            id: file.id,
-            name: file.name,
-            url: file.url,
-          })),
-        });
+        setEntry(entryRes.data);
       }
       if (Array.isArray(accountsData)) {
         setAccounts(accountsData);
@@ -87,25 +69,12 @@ export default function EditJournalEntryPage({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="flex items-center gap-4">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight">
-            Edit Journal Entry
-          </h2>
-          <p className="text-muted-foreground">Edit existing journal entry</p>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-        <JournalEntryForm
-          initialData={entry}
-          accounts={accounts}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          onCancel={() => router.push("/accounting/journal-entries")}
-        />
-      </div>
-    </div>
+    <JournalEntryForm
+      initialData={entry}
+      accounts={accounts}
+      onSubmit={handleSubmit}
+      isSubmitting={isSubmitting}
+      onCancel={() => router.push("/accounting/journal-entries")}
+    />
   );
 }
