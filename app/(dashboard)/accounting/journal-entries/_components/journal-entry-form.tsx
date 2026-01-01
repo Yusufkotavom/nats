@@ -14,14 +14,7 @@ import {
 } from "@/components/ui/table";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import {
-  Plus,
-  Trash2,
-  GripVertical,
-  Save,
-  ArrowLeft,
-  Paperclip,
-} from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Paperclip } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import {
   DndContext,
@@ -65,49 +58,42 @@ export function JournalEntryForm({
   const leafAccounts = accounts.filter(
     (a) => !a.children || a.children.length === 0
   );
-  const [transactionDate, setTransactionDate] = useState<string>(
-    initialData?.transactionDate
-      ? new Date(initialData.transactionDate).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0]
-  );
-  const [description, setDescription] = useState(
-    initialData?.description || ""
-  );
-  const [lines, setLines] = useState<
-    {
+  const [formData, setFormData] = useState<{
+    transactionDate: string;
+    entryNumber: string;
+    description: string;
+    lines: {
       id: string;
       accountId: string;
       debitAmount: string;
       creditAmount: string;
       description: string;
-    }[]
-  >(
-    initialData?.lines.map((l) => ({
-      id: generateId(),
-      accountId: l.accountId,
-      debitAmount: l.debitAmount.toString(),
-      creditAmount: l.creditAmount.toString(),
-      description: l.description || "",
-    })) || [
-      {
+    }[];
+    attachments: { id: string; name: string; url: string }[];
+  }>(() => ({
+    transactionDate: initialData?.transactionDate
+      ? new Date(initialData.transactionDate).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
+    description: initialData?.description || "",
+    entryNumber: initialData?.entryNumber || "",
+    lines:
+      initialData?.lines.map((l) => ({
+        id: generateId(),
+        accountId: l.accountId,
+        debitAmount: l.debitAmount.toString(),
+        creditAmount: l.creditAmount.toString(),
+        description: l.description || "",
+      })) ||
+      Array.from({ length: 2 }, (_, i) => ({
         id: generateId(),
         accountId: "",
         debitAmount: "0",
         creditAmount: "0",
         description: "",
-      },
-      {
-        id: generateId(),
-        accountId: "",
-        debitAmount: "0",
-        creditAmount: "0",
-        description: "",
-      },
-    ]
-  );
-  const [attachments, setAttachments] = useState<
-    { id: string; name: string; url: string }[]
-  >(initialData?.attachments || []);
+      })),
+    attachments: initialData?.attachments || [],
+  }));
+
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,10 +108,13 @@ export function JournalEntryForm({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setLines((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+      setFormData((prev) => {
+        const oldIndex = prev.lines.findIndex((item) => item.id === active.id);
+        const newIndex = prev.lines.findIndex((item) => item.id === over.id);
+        return {
+          ...prev,
+          lines: arrayMove(prev.lines, oldIndex, newIndex),
+        };
       });
     }
   };
@@ -134,11 +123,11 @@ export function JournalEntryForm({
     return formatCurrency(value);
   };
 
-  const totalDebit = lines.reduce(
+  const totalDebit = formData.lines.reduce(
     (sum, line) => sum + (parseFloat(line.debitAmount) || 0),
     0
   );
-  const totalCredit = lines.reduce(
+  const totalCredit = formData.lines.reduce(
     (sum, line) => sum + (parseFloat(line.creditAmount) || 0),
     0
   );
@@ -148,7 +137,7 @@ export function JournalEntryForm({
     e.preventDefault();
     setError(null);
 
-    if (!transactionDate) {
+    if (!formData.transactionDate) {
       setError("Transaction date is required");
       return;
     }
@@ -158,7 +147,7 @@ export function JournalEntryForm({
       return;
     }
 
-    const validLines = lines.filter(
+    const validLines = formData.lines.filter(
       (l) =>
         l.accountId &&
         (parseFloat(l.debitAmount) > 0 || parseFloat(l.creditAmount) > 0)
@@ -170,20 +159,20 @@ export function JournalEntryForm({
     }
 
     await onSubmit({
-      transactionDate: new Date(transactionDate),
-      description,
+      transactionDate: new Date(formData.transactionDate),
+      description: formData.description,
       lines: validLines.map((l) => ({
         accountId: l.accountId,
         debitAmount: parseFloat(l.debitAmount) || 0,
         creditAmount: parseFloat(l.creditAmount) || 0,
         description: l.description,
       })),
-      attachments,
+      attachments: formData.attachments,
     });
   };
 
   const updateLine = (index: number, field: string, value: string) => {
-    const newLines = [...lines];
+    const newLines = [...formData.lines];
     newLines[index] = { ...newLines[index], [field]: value };
 
     // Auto-clear other side if one side is entered
@@ -194,27 +183,30 @@ export function JournalEntryForm({
       newLines[index].debitAmount = "0";
     }
 
-    setLines(newLines);
+    setFormData({ ...formData, lines: newLines });
   };
 
   const addLine = () => {
-    setLines([
-      ...lines,
-      {
-        id: generateId(),
-        accountId: "",
-        debitAmount: "0",
-        creditAmount: "0",
-        description: "",
-      },
-    ]);
+    setFormData({
+      ...formData,
+      lines: [
+        ...formData.lines,
+        {
+          id: generateId(),
+          accountId: "",
+          debitAmount: "0",
+          creditAmount: "0",
+          description: "",
+        },
+      ],
+    });
   };
 
   const removeLine = (index: number) => {
-    if (lines.length <= 2) return;
-    const newLines = [...lines];
+    if (formData.lines.length <= 2) return;
+    const newLines = [...formData.lines];
     newLines.splice(index, 1);
-    setLines(newLines);
+    setFormData({ ...formData, lines: newLines });
   };
 
   // Initialize account search state is handled in useState initializer now
@@ -248,7 +240,7 @@ export function JournalEntryForm({
             disabled={isSubmitting || !isBalanced}
           >
             <Save />
-            {isSubmitting ? "Saving..." : "Create"}
+            {isSubmitting ? "Saving..." : "Save"}
           </Button>
         </div>
       </div>
@@ -257,19 +249,31 @@ export function JournalEntryForm({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex gap-4">
             <CustomInput
+              label="Entry No"
+              id="date"
+              type="date"
+              value={formData.entryNumber}
+              readOnly
+              containerClassName="space-y-2"
+            />
+            <CustomInput
               label="Transaction Date"
               id="date"
               type="date"
-              value={transactionDate}
-              onChange={(e) => setTransactionDate(e.target.value)}
+              value={formData.transactionDate}
+              onChange={(e) =>
+                setFormData({ ...formData, transactionDate: e.target.value })
+              }
               required
               containerClassName="space-y-2"
             />
             <CustomInput
               label="Description"
               id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               placeholder="General transaction description"
               containerClassName="space-y-2 flex-1"
             />
@@ -282,7 +286,7 @@ export function JournalEntryForm({
               onDragEnd={handleDragEnd}
             >
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted">
                   <TableRow>
                     <TableHead className="w-[40px]"></TableHead>
                     <TableHead className="w-[300px]">Account</TableHead>
@@ -298,10 +302,10 @@ export function JournalEntryForm({
                 </TableHeader>
                 <TableBody>
                   <SortableContext
-                    items={lines}
+                    items={formData.lines}
                     strategy={verticalListSortingStrategy}
                   >
-                    {lines.map((line, index) => (
+                    {formData.lines.map((line, index) => (
                       <SortableTableRow key={line.id} id={line.id}>
                         <TableCell>
                           <CustomSelect
@@ -310,7 +314,7 @@ export function JournalEntryForm({
                               updateLine(index, "accountId", val)
                             }
                             placeholder="Select account"
-                            triggerClassName="w-full"
+                            triggerClassName="w-full border-0"
                             options={leafAccounts.map((account) => ({
                               value: account.id,
                               label: `${account.code} - ${account.name}`,
@@ -323,12 +327,13 @@ export function JournalEntryForm({
                             onChange={(e) =>
                               updateLine(index, "description", e.target.value)
                             }
+                            className="border-0"
                             placeholder="Detailed description"
                           />
                         </TableCell>
                         <TableCell>
                           <CurrencyInput
-                            className="text-right"
+                            className="text-right border-0"
                             value={line.debitAmount}
                             onChange={(val) =>
                               updateLine(index, "debitAmount", val)
@@ -338,7 +343,7 @@ export function JournalEntryForm({
                         </TableCell>
                         <TableCell>
                           <CurrencyInput
-                            className="text-right"
+                            className="text-right border-0"
                             value={line.creditAmount}
                             onChange={(val) =>
                               updateLine(index, "creditAmount", val)
@@ -352,7 +357,7 @@ export function JournalEntryForm({
                             variant="ghost"
                             size="icon"
                             onClick={() => removeLine(index)}
-                            disabled={lines.length <= 2}
+                            disabled={formData.lines.length <= 2}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -410,8 +415,8 @@ export function JournalEntryForm({
                   onClick={() => setIsAttachmentDialogOpen(true)}
                 >
                   <Paperclip className="mr-2 h-3 w-3" />
-                  {attachments.length > 0
-                    ? `${attachments.length} Attachments`
+                  {formData.attachments.length > 0
+                    ? `${formData.attachments.length} Attachments`
                     : "Attach File"}
                 </Button>
               </div>
@@ -419,8 +424,13 @@ export function JournalEntryForm({
               <AttachmentDialog
                 open={isAttachmentDialogOpen}
                 onOpenChange={setIsAttachmentDialogOpen}
-                attachments={attachments}
-                onAttachmentsChange={setAttachments}
+                attachments={formData.attachments}
+                onAttachmentsChange={(newAttachments) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    attachments: newAttachments,
+                  }));
+                }}
                 uploadAction={uploadFile}
               />
             </div>

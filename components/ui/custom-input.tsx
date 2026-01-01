@@ -19,7 +19,7 @@ const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
     return (
       <div className={cn("space-y-1", containerClassName)}>
         {label && <Label htmlFor={inputId}>{label}</Label>}
-        <Input id={inputId} className={className} ref={ref} {...props} />
+        <Input id={inputId} className={cn(className)} ref={ref} {...props} />
       </div>
     );
   }

@@ -9,8 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, X, FileIcon, Trash2, Paperclip } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2, Upload, FileIcon, Trash2, Paperclip } from "lucide-react";
 
 export interface Attachment {
   id: string;
