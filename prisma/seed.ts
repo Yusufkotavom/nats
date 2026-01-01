@@ -709,7 +709,7 @@ async function main() {
               purchaseOrderId: po.id,
               invoiceDate: new Date(),
               dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
-              status: PurchaseInvoiceStatus.POSTED,
+              status: PurchaseInvoiceStatus.BILLED,
               totalAmount: po.totalAmount,
               items: {
                 create: orderItems.map((item) => ({
