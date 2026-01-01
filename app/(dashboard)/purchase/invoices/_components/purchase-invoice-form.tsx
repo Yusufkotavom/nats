@@ -360,143 +360,129 @@ export function PurchaseInvoiceForm({
           <div className="space-y-4">
             <Card>
               <CardContent className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Vendor</Label>
-                  <CustomSelect
-                    value={formData.vendorId}
-                    onValueChange={(val) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        vendorId: val,
-                        purchaseOrderId: undefined,
-                      }));
-                    }}
-                    placeholder="Select Vendor"
-                    disabled={readonly || !!formData.purchaseOrderId}
-                  >
-                    {vendors.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </CustomSelect>
-                </div>
+                <CustomSelect
+                  label="Purchase Order (Optional)"
+                  value={formData.purchaseOrderId || "none"}
+                  onValueChange={(val) =>
+                    handlePurchaseOrderChange(val === "none" ? "" : val)
+                  }
+                  placeholder="Select Purchase Order"
+                  disabled={readonly}
+                >
+                  <SelectItem value="none">None</SelectItem>
+                  {filteredPurchaseOrders.map((po) => (
+                    <SelectItem key={po.id} value={po.id}>
+                      {po.orderNumber} ({po.vendor.name})
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
 
-                <div className="space-y-2">
-                  <Label>Invoice Number</Label>
-                  <CustomInput
-                    value={formData.invoiceNumber}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        invoiceNumber: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g. INV-001"
-                    disabled={readonly}
-                  />
-                </div>
+                <CustomInput
+                  label="Invoice Number"
+                  value={formData.invoiceNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      invoiceNumber: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g. INV-001"
+                  disabled={readonly}
+                />
 
-                <div className="space-y-2">
-                  <Label>Purchase Order (Optional)</Label>
-                  <CustomSelect
-                    value={formData.purchaseOrderId || "none"}
-                    onValueChange={(val) =>
-                      handlePurchaseOrderChange(val === "none" ? "" : val)
-                    }
-                    placeholder="Select Purchase Order"
-                    disabled={readonly}
-                  >
-                    <SelectItem value="none">None</SelectItem>
-                    {filteredPurchaseOrders.map((po) => (
-                      <SelectItem key={po.id} value={po.id}>
-                        {po.orderNumber} ({po.vendor.name})
-                      </SelectItem>
-                    ))}
-                  </CustomSelect>
-                </div>
+                <CustomSelect
+                  value={formData.vendorId}
+                  label="Vendor"
+                  onValueChange={(val) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      vendorId: val,
+                      purchaseOrderId: undefined,
+                    }));
+                  }}
+                  placeholder="Select Vendor"
+                  disabled={readonly || !!formData.purchaseOrderId}
+                >
+                  {vendors.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
 
-                <div className="space-y-2">
-                  <Label>Invoice Date</Label>
-                  <CustomInput
-                    type="date"
-                    value={
-                      formData.invoiceDate
-                        ? format(formData.invoiceDate, "yyyy-MM-dd")
-                        : ""
-                    }
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        invoiceDate: e.target.value
-                          ? new Date(e.target.value)
-                          : new Date(),
-                      }))
-                    }
-                    disabled={readonly}
-                  />
-                </div>
+                <CustomInput
+                  label="Invoice Date"
+                  type="date"
+                  value={
+                    formData.invoiceDate
+                      ? format(formData.invoiceDate, "yyyy-MM-dd")
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      invoiceDate: e.target.value
+                        ? new Date(e.target.value)
+                        : new Date(),
+                    }))
+                  }
+                  disabled={readonly}
+                />
 
-                <div className="space-y-2">
-                  <Label>Due Date</Label>
-                  <CustomInput
-                    type="date"
-                    value={
-                      formData.dueDate
-                        ? format(formData.dueDate, "yyyy-MM-dd")
-                        : ""
-                    }
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        dueDate: e.target.value
-                          ? new Date(e.target.value)
-                          : new Date(),
-                      }))
-                    }
-                    disabled={readonly}
-                  />
-                </div>
+                <CustomInput
+                  label="Due Date"
+                  type="date"
+                  value={
+                    formData.dueDate
+                      ? format(formData.dueDate, "yyyy-MM-dd")
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      dueDate: e.target.value
+                        ? new Date(e.target.value)
+                        : new Date(),
+                    }))
+                  }
+                  disabled={readonly}
+                />
 
                 {isEditing && (
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <CustomSelect
-                      value={formData.status}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onValueChange={(val: any) =>
-                        setFormData((prev) => ({ ...prev, status: val }))
-                      }
-                      disabled={
-                        readonly ||
-                        invoice.status === "PAID" ||
-                        invoice.status === "CANCELED"
-                      }
-                    >
-                      <SelectItem value="DRAFT">Draft</SelectItem>
-                      <SelectItem value="BILLED">Billed</SelectItem>
-                      <SelectItem value="PAID">Paid</SelectItem>
-                      <SelectItem value="PARTIALLY_PAID">
-                        Partially Paid
-                      </SelectItem>
-                      <SelectItem value="CANCELED">Canceled</SelectItem>
-                    </CustomSelect>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label>Notes</Label>
-                  <CustomTextarea
-                    value={formData.notes || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        notes: e.target.value,
-                      }))
+                  <CustomSelect
+                    value={formData.status}
+                    label="Status"
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    onValueChange={(val: any) =>
+                      setFormData((prev) => ({ ...prev, status: val }))
                     }
-                    placeholder="Add notes here..."
-                    disabled={readonly}
-                  />
-                </div>
+                    disabled={
+                      readonly ||
+                      invoice.status === "PAID" ||
+                      invoice.status === "CANCELED"
+                    }
+                  >
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="BILLED">Billed</SelectItem>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="PARTIALLY_PAID">
+                      Partially Paid
+                    </SelectItem>
+                    <SelectItem value="CANCELED">Canceled</SelectItem>
+                  </CustomSelect>
+                )}
+                <CustomTextarea
+                  label="Notes"
+                  value={formData.notes || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
+                  placeholder="Add notes here..."
+                  disabled={readonly}
+                />
               </CardContent>
             </Card>
 
