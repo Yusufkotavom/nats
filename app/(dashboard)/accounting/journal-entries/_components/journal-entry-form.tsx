@@ -14,7 +14,15 @@ import {
 } from "@/components/ui/table";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Plus, Trash2, Save, ArrowLeft, Paperclip, X } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Save,
+  ArrowLeft,
+  Paperclip,
+  X,
+  StickyNote,
+} from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,6 +44,7 @@ import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { CreateJournalEntryData } from "../../types";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
+import { NoteDialog } from "@/components/ui/note-dialog";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 
 interface MentionsListProps {
@@ -118,6 +127,7 @@ export function JournalEntryForm({
       contactId?: string;
     }[];
     attachments: { id: string; name: string; url: string }[];
+    notes: string;
   }>(() => ({
     transactionDate: initialData?.transactionDate
       ? new Date(initialData.transactionDate).toISOString().split("T")[0]
@@ -142,6 +152,7 @@ export function JournalEntryForm({
         contactId: undefined,
       })),
     attachments: initialData?.attachments || [],
+    notes: initialData?.notes || "",
   }));
 
   const [activeMention, setActiveMention] = useState<{
@@ -254,6 +265,7 @@ export function JournalEntryForm({
   };
 
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -328,6 +340,7 @@ export function JournalEntryForm({
         contactId: l.contactId,
       })),
       attachments: formData.attachments,
+      notes: formData.notes,
     });
   };
 
@@ -410,10 +423,11 @@ export function JournalEntryForm({
           <div className="flex gap-4">
             <CustomInput
               label="Entry No"
-              id="date"
-              type="date"
+              id="entry_no"
+              type="text"
               value={formData.entryNumber}
               readOnly
+              disabled
               containerClassName="space-y-2"
             />
             <CustomInput
@@ -622,6 +636,16 @@ export function JournalEntryForm({
                     ? `${formData.attachments.length} Attachments`
                     : "Attach File"}
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setIsNoteDialogOpen(true)}
+                >
+                  <StickyNote className="mr-2 h-3 w-3" />
+                  {formData.notes ? "Edit Note" : "Add Note"}
+                </Button>
               </div>
 
               <AttachmentDialog
@@ -635,6 +659,13 @@ export function JournalEntryForm({
                   }));
                 }}
                 uploadAction={uploadFile}
+              />
+
+              <NoteDialog
+                open={isNoteDialogOpen}
+                onOpenChange={setIsNoteDialogOpen}
+                value={formData.notes}
+                onChange={(val) => setFormData({ ...formData, notes: val })}
               />
             </div>
           </div>

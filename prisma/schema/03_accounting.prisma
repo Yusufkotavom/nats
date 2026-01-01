@@ -34,6 +34,7 @@ model JournalEntry {
   updatedAt       DateTime           @updatedAt
   lines           JournalEntryLine[]
   attachments     File[]
+  notes           String?
 
   @@index([transactionDate])
   @@index([status])
@@ -52,8 +53,8 @@ model JournalEntryLine {
   description    String?
   lineNumber     Int
 
-  contactId      String?
-  contact        Contact?     @relation(fields: [contactId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
 
   @@index([journalEntryId])
   @@index([accountId])

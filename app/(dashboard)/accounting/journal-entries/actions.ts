@@ -180,6 +180,7 @@ export const createJournalEntry = authorizedAction(
           entryNumber,
           transactionDate: data.transactionDate,
           description: data.description,
+          notes: data.notes,
           status: "draft",
           lines: {
             create: data.lines.map((line, index) => ({

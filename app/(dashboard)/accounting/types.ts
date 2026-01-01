@@ -52,4 +52,5 @@ export type CreateJournalEntryData = {
     contactId?: string;
   }[];
   attachments?: { id: string; name: string; url: string }[];
+  notes?: string;
 };

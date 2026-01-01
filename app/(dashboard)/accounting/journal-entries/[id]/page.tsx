@@ -130,6 +130,17 @@ export default async function JournalEntryDetailsPage({
           </div>
         </div>
 
+        {entry.notes && (
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">
+              Notes
+            </h3>
+            <div className="rounded-md border p-4 bg-muted/30">
+              <p className="whitespace-pre-wrap text-sm">{entry.notes}</p>
+            </div>
+          </div>
+        )}
+
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-4">
             Attachments
