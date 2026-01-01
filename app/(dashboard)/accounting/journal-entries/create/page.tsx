@@ -5,20 +5,27 @@ import { useRouter } from "next/navigation";
 import { JournalEntryForm } from "../_components/journal-entry-form";
 import { createJournalEntry } from "../actions";
 import { getAccounts } from "../../accounts/actions";
-import { Account } from "@/prisma/generated/prisma/browser";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../types";
 
 export default function CreateJournalEntryPage() {
   const [accounts, setAccounts] = useState<
     (Account & { children?: unknown[] })[]
   >([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    getAccounts().then((data) => {
-      setAccounts(Array.isArray(data) ? data : data.data || []);
-    });
+    Promise.all([getAccounts(), getContacts({ pageSize: 1000 })]).then(
+      ([accountsData, contactsRes]) => {
+        setAccounts(
+          Array.isArray(accountsData) ? accountsData : accountsData.data || []
+        );
+        setContacts(contactsRes.data || []);
+      }
+    );
   }, []);
 
   const handleSubmit = async (data: CreateJournalEntryData) => {
@@ -36,6 +43,7 @@ export default function CreateJournalEntryPage() {
   return (
     <JournalEntryForm
       accounts={accounts}
+      contacts={contacts}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       onCancel={() => router.push("/accounting/journal-entries")}

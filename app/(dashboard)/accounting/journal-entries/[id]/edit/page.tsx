@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { JournalEntryForm } from "../../_components/journal-entry-form";
 import { getJournalEntry, updateJournalEntry } from "../../actions";
 import { getAccounts } from "../../../accounts/actions";
-import { Account } from "@/prisma/generated/prisma/browser";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../../types";
 
 export default function EditJournalEntryPage({
@@ -18,6 +19,7 @@ export default function EditJournalEntryPage({
   const [accounts, setAccounts] = useState<
     (Account & { children?: unknown[] })[]
   >([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -25,9 +27,10 @@ export default function EditJournalEntryPage({
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const [entryRes, accountsData] = await Promise.all([
+      const [entryRes, accountsData, contactsRes] = await Promise.all([
         getJournalEntry(id),
         getAccounts(),
+        getContacts({ pageSize: 1000 }),
       ]);
 
       if (entryRes.success && entryRes.data) {
@@ -42,6 +45,7 @@ export default function EditJournalEntryPage({
       if (Array.isArray(accountsData)) {
         setAccounts(accountsData);
       }
+      setContacts(contactsRes.data || []);
       setLoading(false);
     };
 
@@ -72,6 +76,7 @@ export default function EditJournalEntryPage({
     <JournalEntryForm
       initialData={entry}
       accounts={accounts}
+      contacts={contacts}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       onCancel={() => router.push("/accounting/journal-entries")}

@@ -52,8 +52,12 @@ model JournalEntryLine {
   description    String?
   lineNumber     Int
 
+  contactId      String?
+  contact        Contact?     @relation(fields: [contactId], references: [id])
+
   @@index([journalEntryId])
   @@index([accountId])
+  @@index([contactId])
 }
 
 enum AccountType {

@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/table";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Plus, Trash2, Save, ArrowLeft, Paperclip } from "lucide-react";
+import { Plus, Trash2, Save, ArrowLeft, Paperclip, X } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { Badge } from "@/components/ui/badge";
 import {
   DndContext,
   closestCenter,
@@ -31,15 +32,60 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Account } from "@/prisma/generated/prisma/browser";
+import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { CreateJournalEntryData } from "../../types";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 
+interface MentionsListProps {
+  contacts: Contact[];
+  onSelect: (contact: Contact) => void;
+  position: { top: number; left: number };
+  selectedIndex: number;
+}
+
+function MentionsList({
+  contacts,
+  onSelect,
+  position,
+  selectedIndex,
+}: MentionsListProps) {
+  if (contacts.length === 0) return null;
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: position.top,
+        left: position.left,
+        zIndex: 1000,
+      }}
+      className="bg-popover text-popover-foreground border rounded-md shadow-md max-h-[200px] overflow-auto w-[200px]"
+    >
+      {contacts.map((c, index) => (
+        <div
+          key={c.id}
+          className={`p-2 text-sm cursor-pointer ${
+            index === selectedIndex ? "bg-muted" : "hover:bg-muted"
+          }`}
+          onClick={() => onSelect(c)}
+          ref={(el) => {
+            if (index === selectedIndex && el) {
+              el.scrollIntoView({ block: "nearest" });
+            }
+          }}
+        >
+          {c.name}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
   accounts: (Account & { children?: unknown[] })[];
+  contacts: Contact[];
   onSubmit: (data: CreateJournalEntryData) => Promise<void>;
   isSubmitting: boolean;
   onCancel: () => void;
@@ -50,6 +96,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 export function JournalEntryForm({
   initialData,
   accounts,
+  contacts,
   onSubmit,
   isSubmitting,
   onCancel,
@@ -68,6 +115,7 @@ export function JournalEntryForm({
       debitAmount: string;
       creditAmount: string;
       description: string;
+      contactId?: string;
     }[];
     attachments: { id: string; name: string; url: string }[];
   }>(() => ({
@@ -83,6 +131,7 @@ export function JournalEntryForm({
         debitAmount: l.debitAmount.toString(),
         creditAmount: l.creditAmount.toString(),
         description: l.description || "",
+        contactId: l.contactId,
       })) ||
       Array.from({ length: 2 }, (_, i) => ({
         id: generateId(),
@@ -90,9 +139,119 @@ export function JournalEntryForm({
         debitAmount: "0",
         creditAmount: "0",
         description: "",
+        contactId: undefined,
       })),
     attachments: initialData?.attachments || [],
   }));
+
+  const [activeMention, setActiveMention] = useState<{
+    lineIndex: number;
+    query: string;
+    rect: DOMRect;
+    selectedIndex: number;
+  } | null>(null);
+
+  const handleDescriptionChange = (
+    index: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    updateLine(index, "description", value);
+
+    const cursorPos = e.target.selectionStart || 0;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const lastAt = textBeforeCursor.lastIndexOf("@");
+
+    if (lastAt !== -1) {
+      const query = textBeforeCursor.slice(lastAt + 1);
+      const charBeforeAt = lastAt > 0 ? textBeforeCursor[lastAt - 1] : " ";
+      if (charBeforeAt === " " || lastAt === 0) {
+        const rect = e.target.getBoundingClientRect();
+        setActiveMention({ lineIndex: index, query, rect, selectedIndex: 0 });
+        return;
+      }
+    }
+    setActiveMention(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!activeMention) return;
+
+    const filtered = contacts.filter((c) =>
+      c.name.toLowerCase().includes(activeMention.query.toLowerCase())
+    );
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveMention((prev) => {
+        if (!prev) return null;
+        const nextIndex =
+          prev.selectedIndex + 1 >= filtered.length
+            ? 0
+            : prev.selectedIndex + 1;
+        return { ...prev, selectedIndex: nextIndex };
+      });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveMention((prev) => {
+        if (!prev) return null;
+        const nextIndex =
+          prev.selectedIndex - 1 < 0
+            ? filtered.length - 1
+            : prev.selectedIndex - 1;
+        return { ...prev, selectedIndex: nextIndex };
+      });
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      if (filtered.length > 0) {
+        e.preventDefault();
+        handleSelectContact(filtered[activeMention.selectedIndex]);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setActiveMention(null);
+    }
+  };
+
+  const handleSelectContact = (contact: Contact) => {
+    if (!activeMention) return;
+    const { lineIndex, query } = activeMention;
+    const line = formData.lines[lineIndex];
+    const text = line.description;
+
+    // Find the @query position again to be safe
+    // Note: this is a simple replacement, might be buggy if multiple same queries exist
+    // But since we track from cursor, it should be fine if we assume the one before cursor.
+    // However, we don't have cursor pos here easily.
+    // Let's assume the last occurrence of @query
+
+    // Better: use the text we had when detecting?
+    // Let's just replace the last occurrence of @query
+    const lastAt = text.lastIndexOf("@" + query);
+
+    if (lastAt !== -1) {
+      // Remove the @query part entirely to show chip instead
+      const newText =
+        text.slice(0, lastAt) + text.slice(lastAt + 1 + query.length);
+
+      const newLines = [...formData.lines];
+      newLines[lineIndex] = {
+        ...newLines[lineIndex],
+        description: newText,
+        contactId: contact.id,
+      };
+      setFormData({ ...formData, lines: newLines });
+    }
+    setActiveMention(null);
+  };
+
+  const removeContact = (index: number) => {
+    const newLines = [...formData.lines];
+    newLines[index] = {
+      ...newLines[index],
+      contactId: undefined,
+    };
+    setFormData({ ...formData, lines: newLines });
+  };
 
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +325,7 @@ export function JournalEntryForm({
         debitAmount: parseFloat(l.debitAmount) || 0,
         creditAmount: parseFloat(l.creditAmount) || 0,
         description: l.description,
+        contactId: l.contactId,
       })),
       attachments: formData.attachments,
     });
@@ -322,14 +482,42 @@ export function JournalEntryForm({
                           />
                         </TableCell>
                         <TableCell>
-                          <CustomInput
-                            value={line.description}
-                            onChange={(e) =>
-                              updateLine(index, "description", e.target.value)
-                            }
-                            className="border-0"
-                            placeholder="Detailed description"
-                          />
+                          <div className="relative">
+                            <CustomInput
+                              value={line.description}
+                              onChange={(e) =>
+                                handleDescriptionChange(index, e)
+                              }
+                              onKeyDown={handleKeyDown}
+                              className={`border-0 ${
+                                line.contactId ? "pr-32" : ""
+                              }`}
+                              placeholder="Detailed description (@ to mention)"
+                            />
+                            {line.contactId && (
+                              <Badge
+                                variant="secondary"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 pr-1 max-w-[120px] justify-between"
+                              >
+                                <span className="truncate">
+                                  {
+                                    contacts.find(
+                                      (c) => c.id === line.contactId
+                                    )?.name
+                                  }
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 ml-1 hover:bg-transparent text-muted-foreground hover:text-foreground p-0"
+                                  onClick={() => removeContact(index)}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <CurrencyInput
@@ -437,6 +625,19 @@ export function JournalEntryForm({
           </div>
         </form>
       </div>
+      {activeMention && activeMention.rect && (
+        <MentionsList
+          contacts={contacts.filter((c) =>
+            c.name.toLowerCase().includes(activeMention.query.toLowerCase())
+          )}
+          selectedIndex={activeMention.selectedIndex}
+          onSelect={handleSelectContact}
+          position={{
+            top: activeMention.rect.bottom + 5,
+            left: activeMention.rect.left,
+          }}
+        />
+      )}
     </div>
   );
 }

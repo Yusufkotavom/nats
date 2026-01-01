@@ -49,6 +49,7 @@ export type CreateJournalEntryData = {
     debitAmount: number;
     creditAmount: number;
     description?: string;
+    contactId?: string;
   }[];
   attachments?: { id: string; name: string; url: string }[];
 };

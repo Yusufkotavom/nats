@@ -63,7 +63,9 @@ export const getJournalEntries = authorizedAction(
           lines: {
             include: {
               account: true,
+              contact: true,
             },
+            orderBy: { lineNumber: "asc" },
           },
           user: {
             select: { name: true, email: true },
@@ -105,6 +107,7 @@ export const getJournalEntry = authorizedAction(
         lines: {
           include: {
             account: true,
+            contact: true,
           },
           orderBy: { lineNumber: "asc" },
         },
@@ -184,6 +187,7 @@ export const createJournalEntry = authorizedAction(
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
               description: line.description,
+              contactId: line.contactId,
               lineNumber: index + 1,
             })),
           },
@@ -277,6 +281,7 @@ export async function updateJournalEntry(
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
               description: line.description,
+              contactId: line.contactId,
               lineNumber: index + 1,
             })),
           },
