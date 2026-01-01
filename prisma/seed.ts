@@ -4,6 +4,7 @@ import {
   PurchaseOrderStatus,
   PurchaseReceiveStatus,
   PurchaseInvoiceStatus,
+  ContactType,
 } from "@/prisma/generated/prisma/client";
 
 async function main() {
@@ -341,33 +342,36 @@ async function main() {
       email: "contact@acme.com",
       phone: "555-0100",
       address: "123 Business Rd, Tech City",
+      type: ContactType.CUSTOMER,
     },
     {
       name: "Global Industries",
       email: "info@globalind.com",
       phone: "555-0101",
       address: "456 Enterprise Blvd, Commerce City",
+      type: ContactType.CUSTOMER,
     },
     {
       name: "Local Shop",
       email: "support@localshop.com",
       phone: "555-0102",
       address: "789 Market St, Smalltown",
+      type: ContactType.CUSTOMER,
     },
   ];
 
   for (const customer of customers) {
-    const existing = await prisma.customer.findFirst({
-      where: { name: customer.name },
+    const existing = await prisma.contact.findFirst({
+      where: { name: customer.name, type: ContactType.CUSTOMER },
     });
 
     if (existing) {
-      await prisma.customer.update({
+      await prisma.contact.update({
         where: { id: existing.id },
         data: customer,
       });
     } else {
-      await prisma.customer.create({
+      await prisma.contact.create({
         data: customer,
       });
     }
@@ -380,33 +384,36 @@ async function main() {
       email: "sales@officesupplies.com",
       phone: "555-0200",
       address: "101 Paper Ln, Print City",
+      type: ContactType.VENDOR,
     },
     {
       name: "Tech Wholesalers",
       email: "orders@techwhole.com",
       phone: "555-0201",
       address: "202 Silicon Dr, Valley Town",
+      type: ContactType.VENDOR,
     },
     {
       name: "Maintenance Services Inc",
       email: "service@maintserv.com",
       phone: "555-0202",
       address: "303 Fix It Ave, Repair City",
+      type: ContactType.VENDOR,
     },
   ];
 
   for (const vendor of vendors) {
-    const existing = await prisma.vendor.findFirst({
-      where: { name: vendor.name },
+    const existing = await prisma.contact.findFirst({
+      where: { name: vendor.name, type: ContactType.VENDOR },
     });
 
     if (existing) {
-      await prisma.vendor.update({
+      await prisma.contact.update({
         where: { id: existing.id },
         data: vendor,
       });
     } else {
-      await prisma.vendor.create({
+      await prisma.contact.create({
         data: vendor,
       });
     }
@@ -593,7 +600,9 @@ async function main() {
   }
 
   // Seed Purchase Transactions
-  const allVendors = await prisma.vendor.findMany();
+  const allVendors = await prisma.contact.findMany({
+    where: { type: ContactType.VENDOR },
+  });
   const allProducts = await prisma.product.findMany();
   const warehouseForPurchase = await prisma.warehouse.findFirst({
     where: { name: "Main Warehouse" },
@@ -647,7 +656,7 @@ async function main() {
         update: {},
         create: {
           orderNumber,
-          vendorId: vendor.id,
+          contactId: vendor.id,
           status,
           totalAmount,
           orderDate: new Date(),
@@ -680,7 +689,7 @@ async function main() {
           create: {
             receiveNumber,
             purchaseOrderId: po.id,
-            vendorId: vendor.id,
+            contactId: vendor.id,
             status: receiveStatus,
             receiveDate: new Date(),
             items: {
@@ -697,15 +706,15 @@ async function main() {
           const invoiceNumber = `INV-${po.orderNumber}`;
           await prisma.purchaseInvoice.upsert({
             where: {
-              vendorId_invoiceNumber: {
-                vendorId: vendor.id,
+              contactId_invoiceNumber: {
+                contactId: vendor.id,
                 invoiceNumber,
               },
             },
             update: {},
             create: {
               invoiceNumber,
-              vendorId: vendor.id,
+              contactId: vendor.id,
               purchaseOrderId: po.id,
               invoiceDate: new Date(),
               dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),

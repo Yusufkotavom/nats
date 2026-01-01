@@ -146,7 +146,7 @@ export function PurchaseReceiveTable({
                   <TableCell>
                     {receive.purchaseOrder?.orderNumber || "-"}
                   </TableCell>
-                  <TableCell>{receive.vendor.name}</TableCell>
+                  <TableCell>{receive.contact.name}</TableCell>
                   <TableCell>
                     {format(new Date(receive.receiveDate), "MMM d, yyyy")}
                   </TableCell>

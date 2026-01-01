@@ -11,8 +11,8 @@ enum PurchaseOrderStatus {
 model PurchaseOrder {
   id           String              @id @default(cuid())
   orderNumber  String              @unique
-  vendorId     String
-  vendor       Vendor              @relation(fields: [vendorId], references: [id])
+  contactId    String
+  contact      Contact             @relation(fields: [contactId], references: [id])
   orderDate    DateTime            @default(now())
   expectedDate DateTime?
   status       PurchaseOrderStatus @default(DRAFT)
@@ -76,8 +76,8 @@ model PurchaseReceive {
   receiveNumber   String         @unique
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
-  vendorId        String
-  vendor          Vendor         @relation(fields: [vendorId], references: [id])
+  contactId       String
+  contact         Contact        @relation(fields: [contactId], references: [id])
 
   receiveDate DateTime              @default(now())
   status      PurchaseReceiveStatus @default(DRAFT)
@@ -117,10 +117,10 @@ enum PurchaseInvoiceStatus {
 }
 
 model PurchaseInvoice {
-  id            String @id @default(cuid())
+  id            String  @id @default(cuid())
   invoiceNumber String
-  vendorId      String
-  vendor        Vendor @relation(fields: [vendorId], references: [id])
+  contactId     String
+  contact       Contact @relation(fields: [contactId], references: [id])
 
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
@@ -144,7 +144,7 @@ model PurchaseInvoice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([vendorId, invoiceNumber])
+  @@unique([contactId, invoiceNumber])
 }
 
 model PurchaseInvoiceItem {
@@ -176,10 +176,10 @@ enum PurchaseReturnStatus {
 }
 
 model PurchaseReturn {
-  id           String @id @default(cuid())
-  returnNumber String @unique
-  vendorId     String
-  vendor       Vendor @relation(fields: [vendorId], references: [id])
+  id           String  @id @default(cuid())
+  returnNumber String  @unique
+  contactId    String
+  contact      Contact @relation(fields: [contactId], references: [id])
 
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])

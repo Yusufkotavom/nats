@@ -2,7 +2,7 @@
 
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { PurchaseOrderInput } from "./types";
@@ -24,7 +24,7 @@ export async function getPurchaseOrders(
     (where.AND as Prisma.PurchaseOrderWhereInput[]).push({
       OR: [
         { orderNumber: { contains: search, mode: "insensitive" } },
-        { vendor: { name: { contains: search, mode: "insensitive" } } },
+        { contact: { name: { contains: search, mode: "insensitive" } } },
       ],
     });
   }
@@ -55,7 +55,7 @@ export async function getPurchaseOrders(
     prisma.purchaseOrder.findMany({
       where,
       include: {
-        vendor: true,
+        contact: true,
         createdBy: { select: { name: true } },
         updatedBy: { select: { name: true } },
         issuedBy: { select: { name: true } },
@@ -85,7 +85,7 @@ export async function getPurchaseOrder(id: string) {
   const order = await prisma.purchaseOrder.findUnique({
     where: { id },
     include: {
-      vendor: true,
+      contact: true,
       createdBy: { select: { name: true } },
       updatedBy: { select: { name: true } },
       issuedBy: { select: { name: true } },
@@ -108,8 +108,8 @@ export async function getPurchaseOrder(id: string) {
 }
 
 export async function getVendors() {
-  const vendors = await prisma.vendor.findMany({
-    where: { isActive: true },
+  const vendors = await prisma.contact.findMany({
+    where: { isActive: true, type: ContactType.VENDOR },
     orderBy: { name: "asc" },
   });
   return serializePrisma(vendors);
@@ -172,7 +172,7 @@ export const createPurchaseOrder = authorizedAction(
       const result = await prisma.purchaseOrder.create({
         data: {
           orderNumber,
-          vendorId: data.vendorId,
+          contactId: data.contactId,
           orderDate: data.orderDate,
           expectedDate: data.expectedDate,
           notes: data.notes,
@@ -239,7 +239,7 @@ export const updatePurchaseOrder = authorizedAction(
         return await tx.purchaseOrder.update({
           where: { id },
           data: {
-            vendorId: data.vendorId,
+            contactId: data.contactId,
             orderDate: data.orderDate,
             expectedDate: data.expectedDate,
             notes: data.notes,

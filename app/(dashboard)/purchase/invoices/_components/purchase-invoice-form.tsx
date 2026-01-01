@@ -53,8 +53,8 @@ interface PurchaseInvoiceFormProps {
   purchaseOrders: {
     id: string;
     orderNumber: string;
-    vendorId: string;
-    vendor: { name: string };
+    contactId: string;
+    contact: { name: string };
     items?: {
       quantity: number;
       unitCost: number; // or Decimal? Prisma Decimal comes as string or Decimal object usually, but serialized as number or string.
@@ -84,7 +84,7 @@ export function PurchaseInvoiceForm({
     }
   >({
     invoiceNumber: invoice?.invoiceNumber || "",
-    vendorId: invoice?.vendorId || "",
+    contactId: invoice?.contactId || "",
     purchaseOrderId: invoice?.purchaseOrderId || undefined,
     invoiceDate: invoice?.invoiceDate
       ? new Date(invoice.invoiceDate)
@@ -143,7 +143,7 @@ export function PurchaseInvoiceForm({
 
         if (fullPo) {
           // Auto-select vendor
-          setFormData((prev) => ({ ...prev, vendorId: fullPo.vendorId }));
+          setFormData((prev) => ({ ...prev, contactId: fullPo.contactId }));
 
           // Populate items from PO
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,7 +244,7 @@ export function PurchaseInvoiceForm({
       alert("Please enter invoice number");
       return;
     }
-    if (!formData.vendorId) {
+    if (!formData.contactId) {
       alert("Please select a vendor");
       return;
     }
@@ -290,8 +290,8 @@ export function PurchaseInvoiceForm({
   };
 
   // Filter purchase orders based on selected vendor
-  const filteredPurchaseOrders = formData.vendorId
-    ? purchaseOrders.filter((po) => po.vendorId === formData.vendorId)
+  const filteredPurchaseOrders = formData.contactId
+    ? purchaseOrders.filter((po) => po.contactId === formData.contactId)
     : purchaseOrders;
 
   return (
@@ -331,7 +331,12 @@ export function PurchaseInvoiceForm({
                   <SelectItem value="none">None</SelectItem>
                   {filteredPurchaseOrders.map((po) => (
                     <SelectItem key={po.id} value={po.id}>
-                      {po.orderNumber} ({po.vendor.name})
+                      <div className="flex items-center">
+                        <span>{po.orderNumber}</span>
+                        <span className="text-muted-foreground ml-2">
+                          ({po.contact.name})
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </CustomSelect>
@@ -350,12 +355,12 @@ export function PurchaseInvoiceForm({
                 />
 
                 <CustomSelect
-                  value={formData.vendorId}
+                  value={formData.contactId}
                   label="Vendor"
                   onValueChange={(val) => {
                     setFormData((prev) => ({
                       ...prev,
-                      vendorId: val,
+                      contactId: val,
                       purchaseOrderId: undefined,
                     }));
                   }}

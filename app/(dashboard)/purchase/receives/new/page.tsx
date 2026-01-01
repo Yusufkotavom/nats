@@ -22,8 +22,8 @@ export default async function Page() {
       purchaseOrders={purchaseOrders.map((po) => ({
         id: po.id,
         orderNumber: po.orderNumber,
-        vendorId: po.vendorId,
-        vendor: po.vendor,
+        contactId: po.contactId,
+        contact: po.contact,
         items: po.items, // Need items for filtering
       }))}
     />

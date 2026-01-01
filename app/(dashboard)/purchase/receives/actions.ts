@@ -2,7 +2,7 @@
 
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReceiveInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
@@ -23,7 +23,7 @@ export async function getPurchaseReceives(
     (where.AND as Prisma.PurchaseReceiveWhereInput[]).push({
       OR: [
         { receiveNumber: { contains: search, mode: "insensitive" } },
-        { vendor: { name: { contains: search, mode: "insensitive" } } },
+        { contact: { name: { contains: search, mode: "insensitive" } } },
         {
           purchaseOrder: {
             orderNumber: { contains: search, mode: "insensitive" },
@@ -37,7 +37,7 @@ export async function getPurchaseReceives(
     prisma.purchaseReceive.findMany({
       where,
       include: {
-        vendor: true,
+        contact: true,
         purchaseOrder: true,
         items: {
           include: {
@@ -63,7 +63,7 @@ export async function getPurchaseReceive(id: string) {
   const receive = await prisma.purchaseReceive.findUnique({
     where: { id },
     include: {
-      vendor: true,
+      contact: true,
       purchaseOrder: true,
       items: {
         include: {
@@ -77,8 +77,8 @@ export async function getPurchaseReceive(id: string) {
 }
 
 export async function getVendors() {
-  const vendors = await prisma.vendor.findMany({
-    where: { isActive: true },
+  const vendors = await prisma.contact.findMany({
+    where: { isActive: true, type: ContactType.VENDOR },
     orderBy: { name: "asc" },
   });
   return serializePrisma(vendors);
@@ -114,7 +114,7 @@ export async function getPurchaseOrdersForSelect() {
     },
     orderBy: { createdAt: "desc" },
     include: {
-      vendor: true,
+      contact: true,
       items: true,
     },
   });
@@ -142,7 +142,7 @@ export const createPurchaseReceive = authorizedAction(
         const receive = await tx.purchaseReceive.create({
           data: {
             receiveNumber,
-            vendorId: data.vendorId,
+            contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId,
             receiveDate: data.receiveDate,
             notes: data.notes,
@@ -205,7 +205,7 @@ export const updatePurchaseReceive = authorizedAction(
         const updatedReceive = await tx.purchaseReceive.update({
           where: { id },
           data: {
-            vendorId: data.vendorId,
+            contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId,
             receiveDate: data.receiveDate,
             notes: data.notes,

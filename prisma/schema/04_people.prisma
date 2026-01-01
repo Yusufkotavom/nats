@@ -1,25 +1,23 @@
-// VENDOR AND CUSTOMER MODULE
-model Customer {
-    id        String   @id @default(cuid())
-    name      String
-    email     String?
-    phone     String?
-    address   String?
-    isActive  Boolean  @default(true)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+// PEOPLE/CONTACTS MODULE
+
+enum ContactType {
+    CUSTOMER
+    VENDOR
+    EMPLOYEE
 }
 
-model Vendor {
-    id        String   @id @default(cuid())
+model Contact {
+    id        String      @id @default(cuid())
+    type      ContactType
     name      String
     email     String?
     phone     String?
     address   String?
-    isActive  Boolean  @default(true)
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    isActive  Boolean     @default(true)
+    createdAt DateTime    @default(now())
+    updatedAt DateTime    @updatedAt
 
+    // Vendor relations
     purchaseOrders   PurchaseOrder[]
     purchaseReceives PurchaseReceive[]
     purchaseInvoices PurchaseInvoice[]

@@ -2,7 +2,7 @@ import { Prisma } from "@/prisma/generated/prisma/client";
 
 export type PurchaseReceiveWithDetails = Prisma.PurchaseReceiveGetPayload<{
   include: {
-    vendor: true;
+    contact: true;
     purchaseOrder: true;
     items: {
       include: {
@@ -24,7 +24,7 @@ export interface PurchaseReceiveItemInput {
 }
 
 export interface PurchaseReceiveInput {
-  vendorId: string;
+  contactId: string;
   purchaseOrderId?: string;
   receiveDate: Date;
   notes?: string;

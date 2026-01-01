@@ -14,7 +14,7 @@ export interface PurchaseInvoiceItemInput {
 
 export interface PurchaseInvoiceInput {
   invoiceNumber: string;
-  vendorId: string;
+  contactId: string;
   purchaseOrderId?: string;
   invoiceDate: Date;
   dueDate: Date;
@@ -31,7 +31,7 @@ export interface PurchaseInvoiceInput {
 
 export type PurchaseInvoiceWithDetails = Prisma.PurchaseInvoiceGetPayload<{
   include: {
-    vendor: true;
+    contact: true;
     purchaseOrder: true;
     items: {
       include: {

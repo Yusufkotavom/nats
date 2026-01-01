@@ -1,10 +1,11 @@
 import {
-  Customer as PrismaCustomer,
-  Vendor as PrismaVendor,
+  Contact,
+  ContactType,
 } from "@/prisma/generated/prisma/client";
 
-export type Customer = PrismaCustomer;
-export type Vendor = PrismaVendor;
+export type { Contact, ContactType };
+export type Customer = Contact;
+export type Vendor = Contact;
 
 export type PaginatedResult<T> = {
   data: T[];
@@ -15,10 +16,10 @@ export type PaginatedResult<T> = {
 };
 
 export type CreateCustomerInput = Omit<
-  Customer,
+  Contact,
   "id" | "createdAt" | "updatedAt"
 >;
 export type UpdateCustomerInput = Partial<CreateCustomerInput>;
 
-export type CreateVendorInput = Omit<Vendor, "id" | "createdAt" | "updatedAt">;
+export type CreateVendorInput = Omit<Contact, "id" | "createdAt" | "updatedAt">;
 export type UpdateVendorInput = Partial<CreateVendorInput>;

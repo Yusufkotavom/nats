@@ -179,7 +179,7 @@ export function PurchaseInvoiceTable({
                   <TableCell className="font-medium">
                     {invoice.invoiceNumber}
                   </TableCell>
-                  <TableCell>{invoice.vendor.name}</TableCell>
+                  <TableCell>{invoice.contact.name}</TableCell>
                   <TableCell>
                     {invoice.purchaseOrder?.orderNumber || "-"}
                   </TableCell>

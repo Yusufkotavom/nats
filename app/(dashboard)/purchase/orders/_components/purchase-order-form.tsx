@@ -113,7 +113,7 @@ export function PurchaseOrderForm({
       items: (PurchaseOrderInput["items"][0] & { id: string })[];
     }
   >({
-    vendorId: order?.vendorId || "",
+    contactId: order?.contactId || "",
     orderDate: order?.orderDate ? new Date(order.orderDate) : new Date(),
     expectedDate: order?.expectedDate ? new Date(order.expectedDate) : null,
     notes: order?.notes || "",
@@ -195,7 +195,7 @@ export function PurchaseOrderForm({
     e.preventDefault();
     if (isReadOnly) return;
 
-    if (!formData.vendorId) {
+    if (!formData.contactId) {
       alert("Please select a vendor");
       return;
     }
@@ -484,10 +484,10 @@ export function PurchaseOrderForm({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
                     <CustomSelect
-                      value={formData.vendorId}
+                      value={formData.contactId}
                       label="Vendor"
                       onValueChange={(val) =>
-                        setFormData((prev) => ({ ...prev, vendorId: val }))
+                        setFormData((prev) => ({ ...prev, contactId: val }))
                       }
                       placeholder="Select Vendor"
                       disabled={isReadOnly}

@@ -64,8 +64,8 @@ interface PurchaseReceiveFormProps {
   purchaseOrders: {
     id: string;
     orderNumber: string;
-    vendorId: string;
-    vendor: { name: string };
+    contactId: string;
+    contact: { name: string };
   }[];
   readonly?: boolean;
 }
@@ -88,7 +88,7 @@ export function PurchaseReceiveForm({
       items: (PurchaseReceiveInput["items"][0] & { id: string })[];
     }
   >({
-    vendorId: receive?.vendorId || "",
+    contactId: receive?.contactId || "",
     purchaseOrderId: receive?.purchaseOrderId || undefined,
     receiveDate: receive?.receiveDate
       ? new Date(receive.receiveDate)
@@ -135,7 +135,7 @@ export function PurchaseReceiveForm({
         const po = await getPurchaseOrder(poId);
         if (po) {
           // Auto-select vendor
-          setFormData((prev) => ({ ...prev, vendorId: po.vendorId }));
+          setFormData((prev) => ({ ...prev, contactId: po.contactId }));
 
           // Populate items with remaining quantity
           const newItems = po.items
@@ -181,7 +181,7 @@ export function PurchaseReceiveForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.vendorId) {
+    if (!formData.contactId) {
       alert("Please select a vendor");
       return;
     }
@@ -229,8 +229,8 @@ export function PurchaseReceiveForm({
   };
 
   // Filter purchase orders based on selected vendor
-  const filteredPurchaseOrders = formData.vendorId
-    ? purchaseOrders.filter((po) => po.vendorId === formData.vendorId)
+  const filteredPurchaseOrders = formData.contactId
+    ? purchaseOrders.filter((po) => po.contactId === formData.contactId)
     : purchaseOrders;
 
   return (
@@ -279,11 +279,11 @@ export function PurchaseReceiveForm({
                 <div className="space-y-2">
                   <Label>Vendor</Label>
                   <CustomSelect
-                    value={formData.vendorId}
+                    value={formData.contactId}
                     onValueChange={(val) => {
                       setFormData((prev) => ({
                         ...prev,
-                        vendorId: val,
+                        contactId: val,
                         purchaseOrderId: undefined,
                       }));
                     }}
@@ -311,7 +311,7 @@ export function PurchaseReceiveForm({
                     <SelectItem value="none">None</SelectItem>
                     {filteredPurchaseOrders.map((po) => (
                       <SelectItem key={po.id} value={po.id}>
-                        {po.orderNumber} ({po.vendor.name})
+                        {po.orderNumber} ({po.contact.name})
                       </SelectItem>
                     ))}
                   </CustomSelect>

@@ -252,7 +252,7 @@ export function PurchaseOrderTable({
                   <TableCell className="font-medium">
                     {order.orderNumber}
                   </TableCell>
-                  <TableCell>{order.vendor.name}</TableCell>
+                  <TableCell>{order.contact.name}</TableCell>
                   <TableCell>
                     {format(new Date(order.orderDate), "MMM d, yyyy")}
                   </TableCell>

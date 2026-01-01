@@ -8,7 +8,7 @@ import {
   PaginatedResult,
   Customer,
 } from "../types";
-import { Prisma } from "@prisma/client";
+import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
 /**
@@ -30,24 +30,27 @@ export async function getCustomers({
 } = {}): Promise<PaginatedResult<Customer>> {
   const skip = (page - 1) * pageSize;
 
-  const where: Prisma.CustomerWhereInput = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-          { phone: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where: Prisma.ContactWhereInput = {
+    type: ContactType.CUSTOMER,
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { email: { contains: search, mode: "insensitive" } },
+            { phone: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
 
   const [data, total] = await Promise.all([
-    prisma.customer.findMany({
+    prisma.contact.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip,
       take: pageSize,
     }),
-    prisma.customer.count({ where }),
+    prisma.contact.count({ where }),
   ]);
 
   return {
@@ -70,8 +73,11 @@ export const createCustomer = authorizedAction(
   "customers.create",
   async (data: CreateCustomerInput) => {
     try {
-      const customer = await prisma.customer.create({
-        data,
+      const customer = await prisma.contact.create({
+        data: {
+          ...data,
+          type: ContactType.CUSTOMER,
+        },
       });
       revalidatePath("/general/customers");
       return { success: true, customer };
@@ -94,7 +100,7 @@ export const updateCustomer = authorizedAction(
   "customers.edit",
   async (id: string, data: UpdateCustomerInput) => {
     try {
-      const customer = await prisma.customer.update({
+      const customer = await prisma.contact.update({
         where: { id },
         data,
       });
@@ -118,7 +124,7 @@ export const deleteCustomer = authorizedAction(
   "customers.delete",
   async (id: string) => {
     try {
-      await prisma.customer.delete({
+      await prisma.contact.delete({
         where: { id },
       });
       revalidatePath("/general/customers");

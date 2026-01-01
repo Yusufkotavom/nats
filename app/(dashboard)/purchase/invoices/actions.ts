@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   Prisma,
   PurchaseInvoiceStatus,
+  ContactType,
 } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseInvoiceInput } from "./types";
@@ -33,7 +34,7 @@ export async function getPurchaseInvoices(
     (where.AND as Prisma.PurchaseInvoiceWhereInput[]).push({
       OR: [
         { invoiceNumber: { contains: search, mode: "insensitive" } },
-        { vendor: { name: { contains: search, mode: "insensitive" } } },
+        { contact: { name: { contains: search, mode: "insensitive" } } },
         {
           purchaseOrder: {
             orderNumber: { contains: search, mode: "insensitive" },
@@ -47,7 +48,7 @@ export async function getPurchaseInvoices(
     prisma.purchaseInvoice.findMany({
       where,
       include: {
-        vendor: true,
+        contact: true,
         purchaseOrder: true,
         items: {
           include: {
@@ -73,7 +74,7 @@ export async function getPurchaseInvoice(id: string) {
   const invoice = await prisma.purchaseInvoice.findUnique({
     where: { id },
     include: {
-      vendor: true,
+      contact: true,
       purchaseOrder: true,
       items: {
         include: {
@@ -87,8 +88,8 @@ export async function getPurchaseInvoice(id: string) {
 }
 
 export async function getVendors() {
-  const vendors = await prisma.vendor.findMany({
-    where: { isActive: true },
+  const vendors = await prisma.contact.findMany({
+    where: { isActive: true, type: ContactType.VENDOR },
     orderBy: { name: "asc" },
   });
   return serializePrisma(vendors);
@@ -110,7 +111,7 @@ export async function getPurchaseOrdersForSelect() {
     },
     orderBy: { createdAt: "desc" },
     include: {
-      vendor: true,
+      contact: true,
       items: {
         include: {
           product: true,
@@ -128,8 +129,8 @@ export const createPurchaseInvoice = authorizedAction(
       // Check for duplicate invoice number for vendor
       const existing = await prisma.purchaseInvoice.findUnique({
         where: {
-          vendorId_invoiceNumber: {
-            vendorId: data.vendorId,
+          contactId_invoiceNumber: {
+            contactId: data.contactId,
             invoiceNumber: data.invoiceNumber,
           },
         },
@@ -175,7 +176,7 @@ export const createPurchaseInvoice = authorizedAction(
       const result = await prisma.purchaseInvoice.create({
         data: {
           invoiceNumber: data.invoiceNumber,
-          vendorId: data.vendorId,
+          contactId: data.contactId,
           purchaseOrderId: data.purchaseOrderId,
           invoiceDate: data.invoiceDate,
           dueDate: data.dueDate,
@@ -227,12 +228,12 @@ export const updatePurchaseInvoice = authorizedAction(
       // Check for duplicate if invoice number changed
       if (
         data.invoiceNumber !== currentInvoice.invoiceNumber ||
-        data.vendorId !== currentInvoice.vendorId
+        data.contactId !== currentInvoice.contactId
       ) {
         const existing = await prisma.purchaseInvoice.findUnique({
           where: {
-            vendorId_invoiceNumber: {
-              vendorId: data.vendorId,
+            contactId_invoiceNumber: {
+              contactId: data.contactId,
               invoiceNumber: data.invoiceNumber,
             },
           },
@@ -286,7 +287,7 @@ export const updatePurchaseInvoice = authorizedAction(
           where: { id },
           data: {
             invoiceNumber: data.invoiceNumber,
-            vendorId: data.vendorId,
+            contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId,
             invoiceDate: data.invoiceDate,
             dueDate: data.dueDate,

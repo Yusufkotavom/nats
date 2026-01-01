@@ -44,7 +44,7 @@ interface PurchaseReturnFormProps {
   purchaseOrders: {
     id: string;
     orderNumber: string;
-    vendorId: string;
+    contactId: string;
     items: {
       productId: string;
       quantity: number;
@@ -57,7 +57,7 @@ interface PurchaseReturnFormProps {
       };
     }[];
   }[];
-  purchaseInvoices: { id: string; invoiceNumber: string; vendorId: string }[];
+  purchaseInvoices: { id: string; invoiceNumber: string; contactId: string }[];
   readonly?: boolean;
 }
 
@@ -87,7 +87,7 @@ export function PurchaseReturnForm({
     }
   >({
     returnNumber: returnItem?.returnNumber || "",
-    vendorId: returnItem?.vendorId || "",
+    contactId: returnItem?.contactId || "",
     purchaseOrderId: returnItem?.purchaseOrderId || undefined,
     purchaseInvoiceId: returnItem?.purchaseInvoiceId || undefined,
     returnDate: returnItem?.returnDate
@@ -110,18 +110,18 @@ export function PurchaseReturnForm({
     useState(purchaseInvoices);
 
   useEffect(() => {
-    if (formData.vendorId) {
+    if (formData.contactId) {
       setFilteredPurchaseOrders(
-        purchaseOrders.filter((po) => po.vendorId === formData.vendorId)
+        purchaseOrders.filter((po) => po.contactId === formData.contactId)
       );
       setFilteredPurchaseInvoices(
-        purchaseInvoices.filter((pi) => pi.vendorId === formData.vendorId)
+        purchaseInvoices.filter((pi) => pi.contactId === formData.contactId)
       );
     } else {
       setFilteredPurchaseOrders([]);
       setFilteredPurchaseInvoices([]);
     }
-  }, [formData.vendorId, purchaseOrders, purchaseInvoices]);
+  }, [formData.contactId, purchaseOrders, purchaseInvoices]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -138,10 +138,10 @@ export function PurchaseReturnForm({
     }
   };
 
-  const handleVendorChange = (vendorId: string) => {
+  const handleContactChange = (contactId: string) => {
     setFormData((prev) => ({
       ...prev,
-      vendorId,
+      contactId,
       purchaseOrderId: undefined,
       purchaseInvoiceId: undefined,
       items: [], // Clear items on vendor change? Maybe safest.
@@ -322,9 +322,9 @@ export function PurchaseReturnForm({
           <div className="space-y-2">
             <Label>Vendor</Label>
             <CustomSelect
-              value={formData.vendorId}
+              value={formData.contactId}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onValueChange={(val: any) => handleVendorChange(val)}
+              onValueChange={(val: any) => handleContactChange(val)}
               options={vendors.map((v) => ({ label: v.name, value: v.id }))}
               disabled={readonly}
               placeholder="Select vendor..."
@@ -341,7 +341,7 @@ export function PurchaseReturnForm({
                 label: po.orderNumber,
                 value: po.id,
               }))}
-              disabled={readonly || !formData.vendorId}
+              disabled={readonly || !formData.contactId}
               placeholder="Select PO..."
             />
           </div>
@@ -358,7 +358,7 @@ export function PurchaseReturnForm({
                 label: pi.invoiceNumber,
                 value: pi.id,
               }))}
-              disabled={readonly || !formData.vendorId}
+              disabled={readonly || !formData.contactId}
               placeholder="Select Invoice..."
             />
           </div>

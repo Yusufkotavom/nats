@@ -2,18 +2,18 @@ import { Prisma } from "@/prisma/generated/prisma/client";
 
 export type PurchaseReturnWithDetails = Prisma.PurchaseReturnGetPayload<{
   include: {
-    vendor: true;
+    contact: true;
     purchaseOrder: true;
     purchaseInvoice: true;
     items: {
       include: {
         product: {
           include: {
-            baseUnit: true,
-            purchaseUnit: true,
-          },
-        },
-      },
+            baseUnit: true;
+            purchaseUnit: true;
+          };
+        };
+      };
     };
   };
 }>;
@@ -26,7 +26,7 @@ export interface PurchaseReturnItemInput {
 
 export interface PurchaseReturnInput {
   returnNumber: string;
-  vendorId: string;
+  contactId: string;
   purchaseOrderId?: string;
   purchaseInvoiceId?: string;
   returnDate: Date;

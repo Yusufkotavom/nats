@@ -2,7 +2,7 @@
 
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReturnInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
@@ -24,7 +24,7 @@ export async function getPurchaseReturns(
     (where.AND as Prisma.PurchaseReturnWhereInput[]).push({
       OR: [
         { returnNumber: { contains: search, mode: "insensitive" } },
-        { vendor: { name: { contains: search, mode: "insensitive" } } },
+        { contact: { name: { contains: search, mode: "insensitive" } } },
         {
           purchaseOrder: {
             orderNumber: { contains: search, mode: "insensitive" },
@@ -43,7 +43,7 @@ export async function getPurchaseReturns(
     prisma.purchaseReturn.findMany({
       where,
       include: {
-        vendor: true,
+        contact: true,
         purchaseOrder: true,
         purchaseInvoice: true,
         items: {
@@ -70,7 +70,7 @@ export async function getPurchaseReturn(id: string) {
   const purchaseReturn = await prisma.purchaseReturn.findUnique({
     where: { id },
     include: {
-      vendor: true,
+      contact: true,
       purchaseOrder: true,
       purchaseInvoice: true,
       items: {
@@ -90,8 +90,8 @@ export async function getPurchaseReturn(id: string) {
 }
 
 export async function getVendors() {
-  const vendors = await prisma.vendor.findMany({
-    where: { isActive: true },
+  const vendors = await prisma.contact.findMany({
+    where: { isActive: true, type: ContactType.VENDOR },
     orderBy: { name: "asc" },
   });
   return serializePrisma(vendors);
@@ -102,7 +102,7 @@ export async function getPurchaseOrdersForReturn() {
     where: { status: { in: ["ISSUED", "PARTIALLY_RECEIVED", "CLOSED"] } },
     orderBy: { createdAt: "desc" },
     include: {
-      vendor: true,
+      contact: true,
       items: {
         include: {
           product: {
@@ -120,10 +120,10 @@ export async function getPurchaseOrdersForReturn() {
 
 export async function getPurchaseInvoicesForReturn() {
   const invoices = await prisma.purchaseInvoice.findMany({
-    where: { status: { in: ["POSTED", "PAID", "PARTIALLY_PAID"] } },
+    where: { status: { in: ["BILLED", "PAID", "PARTIALLY_PAID"] } },
     orderBy: { createdAt: "desc" },
     include: {
-      vendor: true,
+      contact: true,
       items: {
         // Invoice items don't have direct product link in schema?
         // Wait, PurchaseInvoiceItem has `description` but no `productId`.
@@ -168,7 +168,7 @@ export const createPurchaseReturn = authorizedAction(
       const result = await prisma.purchaseReturn.create({
         data: {
           returnNumber: data.returnNumber,
-          vendorId: data.vendorId,
+          contactId: data.contactId,
           purchaseOrderId: data.purchaseOrderId || undefined,
           purchaseInvoiceId: data.purchaseInvoiceId || undefined,
           returnDate: data.returnDate,
@@ -241,7 +241,7 @@ export const updatePurchaseReturn = authorizedAction(
           where: { id },
           data: {
             returnNumber: data.returnNumber,
-            vendorId: data.vendorId,
+            contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId || undefined,
             purchaseInvoiceId: data.purchaseInvoiceId || undefined,
             returnDate: data.returnDate,

@@ -149,7 +149,7 @@ export function PurchaseReturnTable({
                   <TableCell className="font-medium">
                     {returnItem.returnNumber}
                   </TableCell>
-                  <TableCell>{returnItem.vendor.name}</TableCell>
+                  <TableCell>{returnItem.contact.name}</TableCell>
                   <TableCell>
                     {returnItem.purchaseOrder?.orderNumber || "-"}
                   </TableCell>

@@ -8,7 +8,7 @@ import {
   PaginatedResult,
   Vendor,
 } from "../types";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
 /**
@@ -30,24 +30,27 @@ export async function getVendors({
 } = {}): Promise<PaginatedResult<Vendor>> {
   const skip = (page - 1) * pageSize;
 
-  const where: Prisma.VendorWhereInput = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-          { phone: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where: Prisma.ContactWhereInput = {
+    type: ContactType.VENDOR,
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { email: { contains: search, mode: "insensitive" } },
+            { phone: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
 
   const [data, total] = await Promise.all([
-    prisma.vendor.findMany({
+    prisma.contact.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip,
       take: pageSize,
     }),
-    prisma.vendor.count({ where }),
+    prisma.contact.count({ where }),
   ]);
 
   return {
@@ -63,8 +66,11 @@ export const createVendor = authorizedAction(
   "vendors.create",
   async (data: CreateVendorInput) => {
     try {
-      const vendor = await prisma.vendor.create({
-        data,
+      const vendor = await prisma.contact.create({
+        data: {
+          ...data,
+          type: ContactType.VENDOR,
+        },
       });
       revalidatePath("/general/vendors");
       return { success: true, vendor };
@@ -79,7 +85,7 @@ export const updateVendor = authorizedAction(
   "vendors.edit",
   async (id: string, data: UpdateVendorInput) => {
     try {
-      const vendor = await prisma.vendor.update({
+      const vendor = await prisma.contact.update({
         where: { id },
         data,
       });
@@ -103,7 +109,7 @@ export const deleteVendor = authorizedAction(
   "vendors.delete",
   async (id: string) => {
     try {
-      await prisma.vendor.delete({
+      await prisma.contact.delete({
         where: { id },
       });
       revalidatePath("/general/vendors");

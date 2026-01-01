@@ -2,7 +2,7 @@ import { Prisma, PurchaseOrderStatus } from "@/prisma/generated/prisma/client";
 
 export type PurchaseOrderWithDetails = Prisma.PurchaseOrderGetPayload<{
   include: {
-    vendor: true;
+    contact: true;
     createdBy: { select: { name: true } };
     updatedBy: { select: { name: true } };
     issuedBy: { select: { name: true } };
@@ -23,7 +23,7 @@ export type PurchaseOrderItemInput = {
 };
 
 export type PurchaseOrderInput = {
-  vendorId: string;
+  contactId: string;
   orderDate: Date;
   expectedDate?: Date | null;
   notes?: string | null;

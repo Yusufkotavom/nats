@@ -32,8 +32,8 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       purchaseOrders={purchaseOrders.map((po: any) => ({
         id: po.id,
         orderNumber: po.orderNumber,
-        vendorId: po.vendorId,
-        vendor: po.vendor,
+        contactId: po.contactId,
+        contact: po.contact,
       }))}
       readonly
     />
