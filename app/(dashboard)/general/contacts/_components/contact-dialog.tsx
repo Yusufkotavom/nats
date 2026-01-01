@@ -12,25 +12,27 @@ import {
 } from "@/components/ui/dialog";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { createCustomer, updateCustomer } from "../actions";
+import { createContact, updateContact } from "../actions";
 import { Loader2 } from "lucide-react";
-import { Customer } from "../../types";
+import { Contact } from "../../types";
+import { ContactType } from "@/prisma/generated/prisma/browser";
 
-interface CustomerDialogProps {
-  customer?: Customer;
+interface ContactDialogProps {
+  contact?: Contact;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CustomerDialog({
-  customer,
+export function ContactDialog({
+  contact,
   open,
   onOpenChange,
-}: CustomerDialogProps) {
+}: ContactDialogProps) {
   const [loading, setLoading] = useState(false);
-  const isEditing = !!customer;
+  const isEditing = !!contact;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,23 +42,26 @@ export function CustomerDialog({
     const email = formData.get("email") as string;
     const phone = formData.get("phone") as string;
     const address = formData.get("address") as string;
+    const type = formData.get("type") as ContactType;
     const isActive = formData.get("isActive") === "on";
 
     try {
       if (isEditing) {
-        await updateCustomer(customer.id, {
+        await updateContact(contact.id, {
           name,
           email: email || "",
           phone: phone || "",
           address: address || "",
+          type,
           isActive,
         });
       } else {
-        await createCustomer({
+        await createContact({
           name,
           email: email || "",
           phone: phone || "",
           address: address || "",
+          type,
           isActive,
         });
       }
@@ -72,22 +77,31 @@ export function CustomerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Edit Customer" : "Add Customer"}
-          </DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Contact" : "Add Contact"}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Make changes to the customer profile here."
-              : "Add a new customer to the system."}
+              ? "Make changes to the contact profile here."
+              : "Add a new contact to the system."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            <CustomSelect
+                name="type"
+                label="Type"
+                placeholder="Select Type"
+                defaultValue={contact?.type || ContactType.CUSTOMER}
+                options={[
+                    { label: "Customer", value: ContactType.CUSTOMER },
+                    { label: "Vendor", value: ContactType.VENDOR },
+                    { label: "Employee", value: ContactType.EMPLOYEE },
+                ]}
+            />
             <CustomInput
               label="Name"
               id="name"
               name="name"
-              defaultValue={customer?.name}
+              defaultValue={contact?.name}
               required
             />
             <CustomInput
@@ -95,35 +109,33 @@ export function CustomerDialog({
               id="email"
               name="email"
               type="email"
-              defaultValue={customer?.email || ""}
+              defaultValue={contact?.email || ""}
             />
             <CustomInput
               label="Phone"
               id="phone"
               name="phone"
-              defaultValue={customer?.phone || ""}
+              defaultValue={contact?.phone || ""}
             />
             <CustomTextarea
               label="Address"
               id="address"
               name="address"
-              defaultValue={customer?.address || ""}
+              defaultValue={contact?.address || ""}
             />
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="isActive" className="text-right">
-                Active
-              </Label>
+            <div className="flex items-center space-x-2">
               <Switch
                 id="isActive"
                 name="isActive"
-                defaultChecked={customer?.isActive ?? true}
+                defaultChecked={contact?.isActive ?? true}
               />
+              <Label htmlFor="isActive">Active Status</Label>
             </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save changes" : "Create Customer"}
+              Save changes
             </Button>
           </DialogFooter>
         </form>

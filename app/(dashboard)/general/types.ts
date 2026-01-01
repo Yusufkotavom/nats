@@ -1,9 +1,8 @@
-import {
-  Contact,
-  ContactType,
-} from "@/prisma/generated/prisma/client";
+import type { Contact } from "@/prisma/generated/prisma/client";
+import { ContactType } from "@/prisma/generated/prisma/browser";
 
-export type { Contact, ContactType };
+export type { Contact };
+export { ContactType };
 export type Customer = Contact;
 export type Vendor = Contact;
 
@@ -15,11 +14,14 @@ export type PaginatedResult<T> = {
   totalPages: number;
 };
 
-export type CreateCustomerInput = Omit<
+export type CreateContactInput = Omit<
   Contact,
   "id" | "createdAt" | "updatedAt"
 >;
-export type UpdateCustomerInput = Partial<CreateCustomerInput>;
+export type UpdateContactInput = Partial<CreateContactInput>;
 
-export type CreateVendorInput = Omit<Contact, "id" | "createdAt" | "updatedAt">;
-export type UpdateVendorInput = Partial<CreateVendorInput>;
+export type CreateCustomerInput = CreateContactInput;
+export type UpdateCustomerInput = UpdateContactInput;
+
+export type CreateVendorInput = CreateContactInput;
+export type UpdateVendorInput = UpdateContactInput;

@@ -3,35 +3,38 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
-  CreateVendorInput,
-  UpdateVendorInput,
+  CreateContactInput,
+  UpdateContactInput,
   PaginatedResult,
-  Vendor,
+  Contact,
 } from "../types";
 import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
 /**
- * Fetch vendors with pagination and search.
+ * Fetch contacts with pagination and search.
  *
  * @param page     - Page number (default: 1)
  * @param pageSize - Items per page (default: 10)
  * @param search   - Search term for name, email, or phone
- * @returns        - Object containing vendors list and pagination metadata
+ * @param type     - Optional filter by contact type
+ * @returns        - Object containing contacts list and pagination metadata
  */
-export async function getVendors({
+export async function getContacts({
   page = 1,
   pageSize = 10,
   search = "",
+  type,
 }: {
   page?: number;
   pageSize?: number;
   search?: string;
-} = {}): Promise<PaginatedResult<Vendor>> {
+  type?: ContactType;
+} = {}): Promise<PaginatedResult<Contact>> {
   const skip = (page - 1) * pageSize;
 
   const where: Prisma.ContactWhereInput = {
-    type: ContactType.VENDOR,
+    ...(type ? { type } : {}),
     ...(search
       ? {
           OR: [
@@ -62,61 +65,51 @@ export async function getVendors({
   };
 }
 
-export const createVendor = authorizedAction(
-  "vendors.create",
-  async (data: CreateVendorInput) => {
+export const createContact = authorizedAction(
+  "contacts.create",
+  async (data: CreateContactInput) => {
     try {
-      const vendor = await prisma.contact.create({
-        data: {
-          ...data,
-          type: ContactType.VENDOR,
-        },
+      const contact = await prisma.contact.create({
+        data,
       });
-      revalidatePath("/general/vendors");
-      return { success: true, vendor };
+      revalidatePath("/general/contacts");
+      return { success: true, contact };
     } catch (error) {
-      console.error("Failed to create vendor:", error);
-      return { success: false, error: "Failed to create vendor" };
+      console.error("Failed to create contact:", error);
+      return { success: false, error: "Failed to create contact" };
     }
   }
 );
 
-export const updateVendor = authorizedAction(
-  "vendors.edit",
-  async (id: string, data: UpdateVendorInput) => {
+export const updateContact = authorizedAction(
+  "contacts.edit",
+  async (id: string, data: UpdateContactInput) => {
     try {
-      const vendor = await prisma.contact.update({
+      const contact = await prisma.contact.update({
         where: { id },
         data,
       });
-      revalidatePath("/general/vendors");
-      return { success: true, vendor };
+      revalidatePath("/general/contacts");
+      return { success: true, contact };
     } catch (error) {
-      console.error("Failed to update vendor:", error);
-      return { success: false, error: "Failed to update vendor" };
+      console.error("Failed to update contact:", error);
+      return { success: false, error: "Failed to update contact" };
     }
   }
 );
 
-/**
- * Delete a vendor.
- * Permission: "vendors.delete"
- *
- * @param id - The ID of the vendor to delete
- * @returns  - Success flag or error
- */
-export const deleteVendor = authorizedAction(
-  "vendors.delete",
+export const deleteContact = authorizedAction(
+  "contacts.delete",
   async (id: string) => {
     try {
       await prisma.contact.delete({
         where: { id },
       });
-      revalidatePath("/general/vendors");
+      revalidatePath("/general/contacts");
       return { success: true };
     } catch (error) {
-      console.error("Failed to delete vendor:", error);
-      return { success: false, error: "Failed to delete vendor" };
+      console.error("Failed to delete contact:", error);
+      return { success: false, error: "Failed to delete contact" };
     }
   }
 );

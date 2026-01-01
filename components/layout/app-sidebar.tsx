@@ -194,21 +194,6 @@ const data = {
       ],
     },
     {
-      title: "Contacts",
-      url: "#",
-      icon: UsersIcon,
-      items: [
-        {
-          title: "Customers",
-          url: "/general/customers",
-        },
-        {
-          title: "Vendors",
-          url: "/general/vendors",
-        },
-      ],
-    },
-    {
       title: "General",
       url: "#",
       icon: Settings,
@@ -220,6 +205,10 @@ const data = {
         {
           title: "Role Definitions",
           url: "/admin/roles",
+        },
+        {
+          title: "Contacts",
+          url: "/general/contacts",
         },
         {
           title: "File Manager",
