@@ -482,41 +482,56 @@ export function JournalEntryForm({
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="relative">
-                            <CustomInput
+                          <div className="flex items-center gap-2 w-full">
+                            <input
                               value={line.description}
                               onChange={(e) =>
                                 handleDescriptionChange(index, e)
                               }
                               onKeyDown={handleKeyDown}
-                              className={`border-0 ${
-                                line.contactId ? "pr-32" : ""
-                              }`}
+                              className="flex-1 bg-transparent border-0 outline-none text-sm h-8 w-full placeholder:text-muted-foreground"
                               placeholder="Detailed description (@ to mention)"
                             />
-                            {line.contactId && (
-                              <Badge
-                                variant="secondary"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 pr-1 max-w-[120px] justify-between"
-                              >
-                                <span className="truncate">
-                                  {
-                                    contacts.find(
-                                      (c) => c.id === line.contactId
-                                    )?.name
-                                  }
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-4 w-4 ml-1 hover:bg-transparent text-muted-foreground hover:text-foreground p-0"
-                                  onClick={() => removeContact(index)}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </Badge>
-                            )}
+                            {line.contactId &&
+                              (() => {
+                                const contact = contacts.find(
+                                  (c) => c.id === line.contactId
+                                );
+                                if (!contact) return null;
+
+                                let badgeClass =
+                                  "bg-gray-100 text-gray-800 hover:bg-gray-200";
+                                if (contact.type === "CUSTOMER") {
+                                  badgeClass =
+                                    "bg-blue-100 text-blue-800 hover:bg-blue-200";
+                                } else if (contact.type === "VENDOR") {
+                                  badgeClass =
+                                    "bg-orange-100 text-orange-800 hover:bg-orange-200";
+                                } else if (contact.type === "EMPLOYEE") {
+                                  badgeClass =
+                                    "bg-green-100 text-green-800 hover:bg-green-200";
+                                }
+
+                                return (
+                                  <Badge
+                                    variant="secondary"
+                                    className={`shrink-0 h-6 pr-1 gap-1 cursor-default ${badgeClass}`}
+                                  >
+                                    <span className="truncate max-w-[120px]">
+                                      {contact.name}
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 hover:bg-black/10 text-current p-0 rounded-full"
+                                      onClick={() => removeContact(index)}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </Badge>
+                                );
+                              })()}
                           </div>
                         </TableCell>
                         <TableCell>
