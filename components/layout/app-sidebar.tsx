@@ -10,6 +10,7 @@ import {
   Rocket,
   UsersIcon,
   Settings,
+  Landmark,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/nav-main";
@@ -66,6 +67,25 @@ const data = {
         {
           title: "Reports",
           url: "/accounting/reports",
+        },
+      ],
+    },
+    {
+      title: "Cash & Bank",
+      url: "#",
+      icon: Landmark,
+      items: [
+        {
+          title: "Bank Accounts",
+          url: "/cash-bank/accounts",
+        },
+        {
+          title: "Transactions",
+          url: "/cash-bank/transactions",
+        },
+        {
+          title: "Transfers",
+          url: "/cash-bank/transfers",
         },
       ],
     },
