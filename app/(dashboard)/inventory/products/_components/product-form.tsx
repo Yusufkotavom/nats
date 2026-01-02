@@ -170,17 +170,18 @@ export function ProductForm({
 
       <form onSubmit={handleSubmit}>
         <Tabs defaultValue="metadata" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="metadata">Metadata</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="pricing">Pricing & Inventory</TabsTrigger>
+            <TabsTrigger value="account">Accounts</TabsTrigger>
             <TabsTrigger value="image">Product Image</TabsTrigger>
           </TabsList>
 
           <Card>
             <CardContent className="pt-6">
-              <TabsContent value="metadata" className="mt-0 space-y-8">
+              <TabsContent value="general" className="mt-0 space-y-8">
                 {/* General Section */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium">General Information</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <CustomInput
                       label="SKU"
@@ -250,9 +251,10 @@ export function ProductForm({
                     </div>
                   </div>
                 </div>
+              </TabsContent>
 
-                <div className="border-t pt-8 space-y-4">
-                  <h3 className="text-lg font-medium">Pricing & Inventory</h3>
+              <TabsContent value="pricing" className="mt-0 space-y-8">
+                <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="price">Selling Price</Label>
@@ -295,115 +297,109 @@ export function ProductForm({
                   </div>
                 </div>
 
-                <div className="border-t pt-8 space-y-4">
-                  <h3 className="text-lg font-medium">Units</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <CustomSelect
-                      label="Base Unit"
-                      name="baseUnitId"
-                      value={formData.baseUnitId}
-                      onValueChange={(val) =>
-                        handleInputChange("baseUnitId", val)
-                      }
-                      disabled={readonly}
-                      placeholder="Select base unit"
-                      containerClassName="grid gap-2"
-                    >
-                      {units?.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name} ({u.symbol})
-                        </SelectItem>
-                      ))}
-                    </CustomSelect>
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <CustomSelect
+                    label="Base Unit"
+                    name="baseUnitId"
+                    value={formData.baseUnitId}
+                    onValueChange={(val) =>
+                      handleInputChange("baseUnitId", val)
+                    }
+                    disabled={readonly}
+                    placeholder="Select base unit"
+                    containerClassName="grid gap-2"
+                  >
+                    {units?.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <CustomSelect
-                      label="Purchase Unit"
-                      name="purchaseUnitId"
-                      value={formData.purchaseUnitId}
-                      onValueChange={(val) =>
-                        handleInputChange("purchaseUnitId", val)
-                      }
-                      disabled={readonly}
-                      placeholder="Same as Base Unit"
-                      containerClassName="grid gap-2"
-                    >
-                      {units?.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name} ({u.symbol})
-                        </SelectItem>
-                      ))}
-                    </CustomSelect>
-                    <CustomInput
-                      label={
-                        <>
-                          Purchase Conversion Factor
-                          <span className="text-xs text-muted-foreground ml-1">
-                            (1 Purchase Unit = X Base Units)
-                          </span>
-                        </>
-                      }
-                      id="purchaseConversionFactor"
-                      name="purchaseConversionFactor"
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      value={formData.purchaseConversionFactor}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "purchaseConversionFactor",
-                          e.target.value
-                        )
-                      }
-                      disabled={readonly}
-                      containerClassName="grid gap-2"
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <CustomSelect
+                    label="Purchase Unit"
+                    name="purchaseUnitId"
+                    value={formData.purchaseUnitId}
+                    onValueChange={(val) =>
+                      handleInputChange("purchaseUnitId", val)
+                    }
+                    disabled={readonly}
+                    placeholder="Same as Base Unit"
+                    containerClassName="grid gap-2"
+                  >
+                    {units?.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                  <CustomInput
+                    label={
+                      <>
+                        Purchase Conversion Factor
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (1 Purchase Unit = X Base Units)
+                        </span>
+                      </>
+                    }
+                    id="purchaseConversionFactor"
+                    name="purchaseConversionFactor"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={formData.purchaseConversionFactor}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "purchaseConversionFactor",
+                        e.target.value
+                      )
+                    }
+                    disabled={readonly}
+                    containerClassName="grid gap-2"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <CustomSelect
-                      label="Sales Unit"
-                      name="salesUnitId"
-                      value={formData.salesUnitId}
-                      onValueChange={(val) =>
-                        handleInputChange("salesUnitId", val)
-                      }
-                      disabled={readonly}
-                      placeholder="Same as Base Unit"
-                      containerClassName="grid gap-2"
-                    >
-                      {units?.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name} ({u.symbol})
-                        </SelectItem>
-                      ))}
-                    </CustomSelect>
-                    <CustomInput
-                      label={
-                        <>
-                          Sales Conversion Factor
-                          <span className="text-xs text-muted-foreground ml-1">
-                            (1 Sales Unit = X Base Units)
-                          </span>
-                        </>
-                      }
-                      id="salesConversionFactor"
-                      name="salesConversionFactor"
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      value={formData.salesConversionFactor}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "salesConversionFactor",
-                          e.target.value
-                        )
-                      }
-                      disabled={readonly}
-                      containerClassName="grid gap-2"
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <CustomSelect
+                    label="Sales Unit"
+                    name="salesUnitId"
+                    value={formData.salesUnitId}
+                    onValueChange={(val) =>
+                      handleInputChange("salesUnitId", val)
+                    }
+                    disabled={readonly}
+                    placeholder="Same as Base Unit"
+                    containerClassName="grid gap-2"
+                  >
+                    {units?.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name} ({u.symbol})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                  <CustomInput
+                    label={
+                      <>
+                        Sales Conversion Factor
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (1 Sales Unit = X Base Units)
+                        </span>
+                      </>
+                    }
+                    id="salesConversionFactor"
+                    name="salesConversionFactor"
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={formData.salesConversionFactor}
+                    onChange={(e) =>
+                      handleInputChange("salesConversionFactor", e.target.value)
+                    }
+                    disabled={readonly}
+                    containerClassName="grid gap-2"
+                  />
                 </div>
               </TabsContent>
 
