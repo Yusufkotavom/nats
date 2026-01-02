@@ -72,20 +72,12 @@ const data = {
     },
     {
       title: "Cash & Bank",
-      url: "#",
+      url: "/accounting/cash-bank",
       icon: Landmark,
       items: [
         {
-          title: "Bank Accounts",
-          url: "/cash-bank/accounts",
-        },
-        {
-          title: "Transactions",
-          url: "/cash-bank/transactions",
-        },
-        {
-          title: "Transfers",
-          url: "/cash-bank/transfers",
+          title: "Accounts",
+          url: "/accounting/cash-bank",
         },
       ],
     },

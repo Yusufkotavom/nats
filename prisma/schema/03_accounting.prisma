@@ -23,6 +23,9 @@ model Account {
   productPayableAccounts    Product[] @relation("ProductPayableAccount")
   productReceivableAccounts Product[] @relation("ProductReceivableAccount")
 
+  // Cash & Bank Relations
+  cashAccount CashAccount?
+
   @@index([code])
   @@index([type])
   @@index([parentId])
@@ -42,6 +45,9 @@ model JournalEntry {
   lines           JournalEntryLine[]
   attachments     File[]
   notes           String?
+
+  // Cash & Bank Relations
+  cashTransfer CashTransfer?
 
   @@index([transactionDate])
   @@index([status])

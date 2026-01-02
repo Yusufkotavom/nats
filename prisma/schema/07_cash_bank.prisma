@@ -1,0 +1,52 @@
+// CASH & BANK MODULE
+
+model CashAccount {
+  id            String          @id @default(cuid())
+  name          String
+  type          CashAccountType
+  accountNumber String?
+  bankName      String?
+  description   String?
+
+  // Relation to GL Account
+  glAccountId String  @unique
+  glAccount   Account @relation(fields: [glAccountId], references: [id])
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Transfers
+  transfersFrom CashTransfer[] @relation("TransferFrom")
+  transfersTo   CashTransfer[] @relation("TransferTo")
+}
+
+enum CashAccountType {
+  CASH
+  BANK
+  PETTY_CASH
+  EWALLET
+}
+
+model CashTransfer {
+  id String @id @default(cuid())
+  
+  fromAccountId String
+  fromAccount   CashAccount @relation("TransferFrom", fields: [fromAccountId], references: [id])
+  
+  toAccountId String
+  toAccount   CashAccount @relation("TransferTo", fields: [toAccountId], references: [id])
+  
+  amount      Decimal
+  date        DateTime
+  reference   String?
+  description String?
+  
+  // Link to Journal Entry
+  journalEntryId String? @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

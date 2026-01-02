@@ -5,6 +5,7 @@ import {
   PurchaseReceiveStatus,
   PurchaseInvoiceStatus,
   ContactType,
+  CashAccountType,
 } from "@/prisma/generated/prisma/client";
 
 async function main() {
@@ -43,6 +44,24 @@ async function main() {
     {
       code: "11110",
       name: "Bank - Main",
+      type: "asset",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "11000",
+    },
+    {
+      code: "11120",
+      name: "Petty Cash",
+      type: "asset",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "11000",
+    },
+    {
+      code: "11130",
+      name: "E-Wallet",
       type: "asset",
       normalBalance: "debit",
       isPosting: true,
@@ -306,6 +325,67 @@ async function main() {
         parentId,
       },
     });
+  }
+
+  // Seed Cash Accounts
+  console.log("Seeding Cash Accounts...");
+
+  const cashAccountsData = [
+    {
+      name: "Main Cash Drawer",
+      type: CashAccountType.CASH,
+      glAccountCode: "11100", // Cash and Cash Equivalents
+      description: "Main office cash drawer",
+    },
+    {
+      name: "Main Bank Account",
+      type: CashAccountType.BANK,
+      glAccountCode: "11110", // Bank - Main
+      accountNumber: "123-456-7890",
+      bankName: "First National Bank",
+      description: "Primary operating account",
+    },
+    {
+      name: "Office Petty Cash",
+      type: CashAccountType.PETTY_CASH,
+      glAccountCode: "11120", // Petty Cash
+      description: "Small expenses",
+    },
+    {
+      name: "Digital Wallet",
+      type: CashAccountType.EWALLET,
+      glAccountCode: "11130", // E-Wallet
+      bankName: "PayPal",
+      accountNumber: "company@example.com",
+      description: "Online payments",
+    },
+  ];
+
+  for (const acc of cashAccountsData) {
+    const glAccount = await prisma.account.findUnique({
+      where: { code: acc.glAccountCode },
+    });
+
+    if (glAccount) {
+      await prisma.cashAccount.upsert({
+        where: { glAccountId: glAccount.id },
+        update: {
+          name: acc.name,
+          type: acc.type,
+          accountNumber: acc.accountNumber,
+          bankName: acc.bankName,
+          description: acc.description,
+        },
+        create: {
+          name: acc.name,
+          type: acc.type,
+          accountNumber: acc.accountNumber,
+          bankName: acc.bankName,
+          description: acc.description,
+          glAccountId: glAccount.id,
+        },
+      });
+    }
   }
 
   // Seed User
