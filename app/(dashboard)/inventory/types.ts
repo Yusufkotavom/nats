@@ -50,4 +50,6 @@ export type ProductInput = {
   inventoryAccountId?: string | null;
   cogsAccountId?: string | null;
   salesAccountId?: string | null;
+  payableAccountId?: string | null;
+  receivableAccountId?: string | null;
 };

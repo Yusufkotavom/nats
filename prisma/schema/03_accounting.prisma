@@ -17,9 +17,11 @@ model Account {
   purchaseInvoiceItems PurchaseInvoiceItem[]
 
   // Product Accounting Relations
-  productInventoryAccounts Product[] @relation("ProductInventoryAccount")
-  productCOGSAccounts      Product[] @relation("ProductCOGSAccount")
-  productSalesAccounts     Product[] @relation("ProductSalesAccount")
+  productInventoryAccounts  Product[] @relation("ProductInventoryAccount")
+  productCOGSAccounts       Product[] @relation("ProductCOGSAccount")
+  productSalesAccounts      Product[] @relation("ProductSalesAccount")
+  productPayableAccounts    Product[] @relation("ProductPayableAccount")
+  productReceivableAccounts Product[] @relation("ProductReceivableAccount")
 
   @@index([code])
   @@index([type])

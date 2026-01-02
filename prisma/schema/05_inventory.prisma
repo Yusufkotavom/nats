@@ -70,6 +70,12 @@ model Product {
   salesAccountId String?
   salesAccount   Account? @relation("ProductSalesAccount", fields: [salesAccountId], references: [id])
 
+  payableAccountId String?
+  payableAccount   Account? @relation("ProductPayableAccount", fields: [payableAccountId], references: [id])
+
+  receivableAccountId String?
+  receivableAccount   Account? @relation("ProductReceivableAccount", fields: [receivableAccountId], references: [id])
+
   @@index([categoryId])
   @@index([sku])
 }

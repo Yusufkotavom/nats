@@ -59,6 +59,8 @@ export function ProductForm({
     inventoryAccountId: product?.inventoryAccountId || "",
     cogsAccountId: product?.cogsAccountId || "",
     salesAccountId: product?.salesAccountId || "",
+    payableAccountId: product?.payableAccountId || "",
+    receivableAccountId: product?.receivableAccountId || "",
   });
 
   const handleInputChange = (
@@ -140,6 +142,8 @@ export function ProductForm({
       inventoryAccountId: formData.inventoryAccountId || null,
       cogsAccountId: formData.cogsAccountId || null,
       salesAccountId: formData.salesAccountId || null,
+      payableAccountId: formData.payableAccountId || null,
+      receivableAccountId: formData.receivableAccountId || null,
     };
 
     try {
@@ -487,6 +491,57 @@ export function ProductForm({
                     </CustomSelect>
                     <p className="text-xs text-muted-foreground">
                       Revenue account used when this product is sold.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <CustomSelect
+                      label="Payable Account"
+                      name="payableAccountId"
+                      value={formData.payableAccountId}
+                      onValueChange={(val) =>
+                        handleInputChange("payableAccountId", val)
+                      }
+                      disabled={readonly}
+                      placeholder="Select payable account"
+                      containerClassName="grid gap-2"
+                    >
+                      {accounts
+                        .filter((a) => a.type === "liability")
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.code} - {a.name}
+                          </SelectItem>
+                        ))}
+                    </CustomSelect>
+                    <p className="text-xs text-muted-foreground">
+                      Liability account for purchases (overrides vendor
+                      default).
+                    </p>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <CustomSelect
+                      label="Receivable Account"
+                      name="receivableAccountId"
+                      value={formData.receivableAccountId}
+                      onValueChange={(val) =>
+                        handleInputChange("receivableAccountId", val)
+                      }
+                      disabled={readonly}
+                      placeholder="Select receivable account"
+                      containerClassName="grid gap-2"
+                    >
+                      {accounts
+                        .filter((a) => a.type === "asset")
+                        .map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.code} - {a.name}
+                          </SelectItem>
+                        ))}
+                    </CustomSelect>
+                    <p className="text-xs text-muted-foreground">
+                      Asset account for sales (overrides customer default).
                     </p>
                   </div>
                 </div>

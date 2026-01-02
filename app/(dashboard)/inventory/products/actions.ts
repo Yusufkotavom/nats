@@ -149,6 +149,8 @@ export const createProduct = authorizedAction(
             inventoryAccountId: data.inventoryAccountId,
             cogsAccountId: data.cogsAccountId,
             salesAccountId: data.salesAccountId,
+            payableAccountId: data.payableAccountId,
+            receivableAccountId: data.receivableAccountId,
           },
         });
 
@@ -221,6 +223,8 @@ export const updateProduct = authorizedAction(
             inventoryAccountId: data.inventoryAccountId,
             cogsAccountId: data.cogsAccountId,
             salesAccountId: data.salesAccountId,
+            payableAccountId: data.payableAccountId,
+            receivableAccountId: data.receivableAccountId,
           },
         });
 
