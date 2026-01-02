@@ -40,7 +40,7 @@ const data = {
   ],
   navMain: [
     {
-      title: "Accounting",
+      title: "General Ledger",
       url: "#",
       icon: Scale,
       items: [
@@ -57,7 +57,7 @@ const data = {
           url: "/accounting/journal-entries",
         },
         {
-          title: "Ledger",
+          title: "Account History",
           url: "/accounting/ledger",
         },
         {
