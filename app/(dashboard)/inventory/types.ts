@@ -47,4 +47,7 @@ export type ProductInput = {
   purchaseConversionFactor?: number;
   salesUnitId?: string | null;
   salesConversionFactor?: number;
+  inventoryAccountId?: string | null;
+  cogsAccountId?: string | null;
+  salesAccountId?: string | null;
 };

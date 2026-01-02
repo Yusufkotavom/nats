@@ -1,5 +1,6 @@
 import { getCategories, getProduct } from "../actions";
 import { getUnits } from "../../uom/actions";
+import { getAccounts } from "@/app/(dashboard)/accounting/accounts/actions";
 import { ProductForm } from "../_components/product-form";
 import { notFound } from "next/navigation";
 import { ProductFormData } from "../../types";
@@ -10,10 +11,11 @@ export default async function ProductViewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [product, categories, units] = await Promise.all([
+  const [product, categories, units, accounts] = await Promise.all([
     getProduct(id),
     getCategories(),
     getUnits(),
+    getAccounts(),
   ]);
 
   if (!product) {
@@ -35,6 +37,7 @@ export default async function ProductViewPage({
         product={productFormData}
         categories={categories}
         units={units.data}
+        accounts={accounts as any}
         readonly={true}
       />
     </div>

@@ -16,6 +16,11 @@ model Account {
   journalEntryLines    JournalEntryLine[]
   purchaseInvoiceItems PurchaseInvoiceItem[]
 
+  // Product Accounting Relations
+  productInventoryAccounts Product[] @relation("ProductInventoryAccount")
+  productCOGSAccounts      Product[] @relation("ProductCOGSAccount")
+  productSalesAccounts     Product[] @relation("ProductSalesAccount")
+
   @@index([code])
   @@index([type])
   @@index([parentId])
