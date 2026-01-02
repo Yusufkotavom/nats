@@ -79,6 +79,10 @@ const data = {
           title: "Accounts",
           url: "/accounting/cash-bank",
         },
+        {
+          title: "Transfers",
+          url: "/accounting/transfer",
+        },
       ],
     },
     {

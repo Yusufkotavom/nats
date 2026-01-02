@@ -4,9 +4,8 @@ import { useState } from "react";
 import { CashAccount } from "../types";
 import { Account } from "@/prisma/generated/prisma/client";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowRightLeft, Edit, Trash2, History } from "lucide-react";
+import { Plus, Edit, Trash2, History } from "lucide-react";
 import { CashAccountDialog } from "./account-dialog";
-import { CashTransferDialog } from "./transfer-dialog";
 import {
   Card,
   CardContent,
@@ -31,7 +30,6 @@ export function CashAccountList({
   glAccounts,
 }: CashAccountListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<CashAccount | undefined>(
     undefined
   );
@@ -63,10 +61,6 @@ export function CashAccountList({
           <h2 className="text-xl font-bold tracking-tight">Cash & Bank</h2>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsTransferOpen(true)}>
-            <ArrowRightLeft className="mr-2 h-4 w-4" />
-            Transfer
-          </Button>
           <Button onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Account
@@ -150,13 +144,6 @@ export function CashAccountList({
         }}
         account={editingAccount}
         glAccounts={glAccounts}
-        onSuccess={() => {}}
-      />
-
-      <CashTransferDialog
-        open={isTransferOpen}
-        onOpenChange={setIsTransferOpen}
-        cashAccounts={accounts}
         onSuccess={() => {}}
       />
 

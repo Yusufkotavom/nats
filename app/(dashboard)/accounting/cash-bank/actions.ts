@@ -156,7 +156,22 @@ export async function createCashTransfer(data: CashTransferFormData) {
   });
 
   revalidatePath("/accounting/cash-bank");
+  revalidatePath("/accounting/transfer");
   return result;
+}
+
+export async function getTransfers() {
+  const transfers = await prisma.cashTransfer.findMany({
+    include: {
+      fromAccount: true,
+      toAccount: true,
+      journalEntry: true,
+    },
+    orderBy: {
+      date: "desc",
+    },
+  });
+  return transfers;
 }
 
 export async function getCashTransfers(accountId?: string) {
