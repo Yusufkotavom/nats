@@ -14,15 +14,13 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { uploadFile } from "../actions";
 import { Loader2, Upload } from "lucide-react";
 
-interface FileUploadDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
 export function FileUploadDialog({
   open,
   onOpenChange,
-}: FileUploadDialogProps) {
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

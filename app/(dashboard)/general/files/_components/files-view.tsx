@@ -5,24 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { FileTable } from "./file-table";
 import { FileUploadDialog } from "./file-upload-dialog";
+import { getFiles } from "../actions";
 
-interface FileWithUser {
-  id: string;
-  name: string;
-  url: string;
-  mimeType: string;
-  size: number;
-  uploadedBy: {
-    name: string;
-  } | null;
-  createdAt: Date;
-}
-
-interface FilesViewProps {
-  files: FileWithUser[];
-}
-
-export function FilesView({ files }: FilesViewProps) {
+export function FilesView({
+  files,
+}: {
+  files: Awaited<ReturnType<typeof getFiles>>;
+}) {
   const [open, setOpen] = useState(false);
 
   return (

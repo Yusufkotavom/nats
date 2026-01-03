@@ -10,26 +10,14 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2, Download } from "lucide-react";
-import { deleteFile } from "../actions";
+import { deleteFile, getFiles } from "../actions";
 import { useState } from "react";
 
-interface FileWithUser {
-  id: string;
-  name: string;
-  url: string;
-  mimeType: string;
-  size: number;
-  uploadedBy: {
-    name: string;
-  } | null;
-  createdAt: Date;
-}
-
-interface FileTableProps {
-  files: FileWithUser[];
-}
-
-export function FileTable({ files }: FileTableProps) {
+export function FileTable({
+  files,
+}: {
+  files: Awaited<ReturnType<typeof getFiles>>;
+}) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
