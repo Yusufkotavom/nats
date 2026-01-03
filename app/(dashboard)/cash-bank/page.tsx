@@ -1,18 +1,23 @@
 import { Suspense } from "react";
-import { getCashAccounts, getAvailableGLAccounts } from "./actions";
-import { CashAccountList } from "./_components/account-list";
+import { getDashboardStats, getAvailableGLAccounts } from "./actions";
+import { DashboardView } from "./_components/dashboard-view";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default async function CashBankPage() {
-  const [accounts, glAccounts] = await Promise.all([
-    getCashAccounts(),
+  const [stats, glAccounts] = await Promise.all([
+    getDashboardStats(),
     getAvailableGLAccounts(),
   ]);
 
   return (
     <div className="container mx-auto px-4">
       <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>
-        <CashAccountList accounts={accounts} glAccounts={glAccounts} />
+        <DashboardView
+          accounts={stats.accounts}
+          summary={stats.summary}
+          recentTransactions={stats.recentTransactions}
+          glAccounts={glAccounts}
+        />
       </Suspense>
     </div>
   );

@@ -7,6 +7,10 @@ export type CashAccount = Prisma.CashAccountGetPayload<{
   };
 }>;
 
+export type CashAccountWithBalance = CashAccount & {
+  balance: number;
+};
+
 export type CashAccountFormData = {
   name: string;
   type: CashAccountType;

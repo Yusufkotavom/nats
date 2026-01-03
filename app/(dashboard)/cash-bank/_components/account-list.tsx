@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CashAccount } from "../types";
+import { CashAccountWithBalance } from "../types";
 import { Account } from "@/prisma/generated/prisma/client";
+import { CashAccountType } from "@/prisma/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, History } from "lucide-react";
+import { Plus, Edit, Trash2, History, Wallet, Building2 } from "lucide-react";
 import { CashAccountDialog } from "./account-dialog";
 import {
   Card,
@@ -19,23 +20,27 @@ import { deleteCashAccount } from "../actions";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useRouter } from "next/navigation";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 interface CashAccountListProps {
-  accounts: CashAccount[];
+  accounts: CashAccountWithBalance[];
   glAccounts: Account[];
+  title?: string;
 }
 
 export function CashAccountList({
   accounts,
   glAccounts,
+  title = "Cash & Bank",
 }: CashAccountListProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<CashAccount | undefined>(
-    undefined
-  );
+  const [editingAccount, setEditingAccount] = useState<
+    CashAccountWithBalance | undefined
+  >(undefined);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const formatCurrency = useFormatCurrency();
 
   const handleDelete = async () => {
     if (!deletingId) return;
@@ -58,7 +63,7 @@ export function CashAccountList({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Cash & Bank</h2>
+          <h2 className="text-xl font-bold tracking-tight">{title}</h2>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setIsCreateOpen(true)}>
@@ -68,22 +73,34 @@ export function CashAccountList({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
         {accounts.map((account) => (
-          <Card key={account.id} className="relative group">
+          <Card key={account.id} className="relative group space-y-0">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-medium">
-                  {account.name}
-                </CardTitle>
-                <Badge variant="secondary" className="capitalize">
-                  {account.type.replace(/_/g, " ")}
-                </Badge>
+                <div className="space-y-1">
+                  <CardTitle className="text-lg font-medium flex items-center gap-2">
+                    {account.type === CashAccountType.CASH ? (
+                      <Wallet className="h-5 w-5 text-primary" />
+                    ) : (
+                      <Building2 className="h-5 w-5 text-primary" />
+                    )}
+                    {account.name}
+                  </CardTitle>
+                  <CardDescription>
+                    {account.bankName ? `${account.bankName} - ` : ""}
+                    {account.accountNumber || "No Account #"}
+                  </CardDescription>
+                </div>
+                <div className="text-right">
+                  <div className="text-xl font-bold">
+                    {formatCurrency(account.balance)}
+                  </div>
+                  <Badge variant="secondary" className="capitalize mt-1">
+                    {account.type.replace(/_/g, " ")}
+                  </Badge>
+                </div>
               </div>
-              <CardDescription>
-                {account.bankName ? `${account.bankName} - ` : ""}
-                {account.accountNumber || "No Account #"}
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-sm text-muted-foreground mb-4">

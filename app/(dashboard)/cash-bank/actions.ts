@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, serializePrisma } from "@/lib/prisma";
 import { CashAccountFormData, CashTransferFormData } from "./types";
 import { revalidatePath } from "next/cache";
 import { CashAccountType, EntryStatus } from "@/prisma/generated/prisma/enums";
@@ -43,6 +43,73 @@ export async function uploadTransferAttachment(formData: FormData) {
 }
 
 // --- Cash Account Actions ---
+
+export async function getDashboardStats() {
+  const accounts = await prisma.cashAccount.findMany({
+    include: { glAccount: true },
+  });
+
+  const glAccountIds = accounts.map((a) => a.glAccountId);
+
+  const balances = await prisma.journalEntryLine.groupBy({
+    by: ["accountId"],
+    where: {
+      accountId: { in: glAccountIds },
+      journalEntry: { status: EntryStatus.posted },
+    },
+    _sum: {
+      debitAmount: true,
+      creditAmount: true,
+    },
+  });
+
+  const balanceMap = new Map();
+  balances.forEach((b) => {
+    // Assuming Asset: Balance = Debit - Credit
+    const balance =
+      (Number(b._sum.debitAmount) || 0) - (Number(b._sum.creditAmount) || 0);
+    balanceMap.set(b.accountId, balance);
+  });
+
+  const accountsWithBalance = accounts.map((a) => ({
+    ...a,
+    balance: balanceMap.get(a.glAccountId) || 0,
+  }));
+
+  const totalCash = accountsWithBalance
+    .filter((a) => a.type === CashAccountType.CASH)
+    .reduce((sum, a) => sum + a.balance, 0);
+
+  const totalBank = accountsWithBalance
+    .filter((a) => a.type === CashAccountType.BANK)
+    .reduce((sum, a) => sum + a.balance, 0);
+
+  // Recent Transactions (Limit 10)
+  const recentTransactions = await prisma.journalEntryLine.findMany({
+    where: {
+      accountId: { in: glAccountIds },
+      journalEntry: { status: EntryStatus.posted },
+    },
+    include: {
+      journalEntry: true,
+      account: true,
+    },
+    orderBy: {
+      journalEntry: { transactionDate: "desc" },
+    },
+    take: 10,
+  });
+
+  return {
+    accounts: accountsWithBalance,
+    summary: {
+      totalBalance: totalCash + totalBank,
+      totalCash,
+      totalBank,
+    },
+    recentTransactions: serializePrisma(recentTransactions),
+  };
+}
 
 export async function getCashAccounts() {
   const accounts = await prisma.cashAccount.findMany({
