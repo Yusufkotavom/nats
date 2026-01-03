@@ -9,7 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
+import {
+  ScaleIcon,
+  TrendingDownIcon,
+  TrendingUpIcon,
+  Paperclip,
+  FileIcon,
+} from "lucide-react";
 import { getCashAccountDetails } from "../actions";
 import {
   Card,
@@ -25,6 +31,14 @@ import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface AccountDetailsViewProps {
   accountId: string;
@@ -267,6 +281,51 @@ export function AccountDetailsView({ accountId }: AccountDetailsViewProps) {
                               entry.journalEntry.description ||
                               "-"}
                           </span>
+                          {entry.journalEntry.attachments &&
+                            entry.journalEntry.attachments.length > 0 && (
+                              <div className="mt-1">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Paperclip className="h-3 w-3" />
+                                      {
+                                        entry.journalEntry.attachments.length
+                                      }{" "}
+                                      Attachment
+                                      {entry.journalEntry.attachments.length > 1
+                                        ? "s"
+                                        : ""}
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start">
+                                    <DropdownMenuLabel>
+                                      Attachments
+                                    </DropdownMenuLabel>
+                                    {entry.journalEntry.attachments.map(
+                                      (file: any) => (
+                                        <DropdownMenuItem key={file.id} asChild>
+                                          <a
+                                            href={file.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex cursor-pointer items-center gap-2"
+                                          >
+                                            <FileIcon className="h-4 w-4" />
+                                            <span className="max-w-[200px] truncate">
+                                              {file.name}
+                                            </span>
+                                          </a>
+                                        </DropdownMenuItem>
+                                      )
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">

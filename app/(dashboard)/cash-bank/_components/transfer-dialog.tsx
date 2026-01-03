@@ -14,12 +14,16 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { createCashTransfer } from "../actions";
+import { createCashTransfer, uploadTransferAttachment } from "../actions";
 import { CashAccount, CashTransferFormData } from "../types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
+import {
+  AttachmentDialog,
+  Attachment,
+} from "@/components/ui/attachment-dialog";
 
 interface CashTransferDialogProps {
   open: boolean;
@@ -42,7 +46,10 @@ export function CashTransferDialog({
     date: new Date(),
     reference: "",
     description: "",
+    attachmentIds: [],
   });
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = () => {
@@ -70,7 +77,10 @@ export function CashTransferDialog({
 
     startTransition(async () => {
       try {
-        await createCashTransfer(formData);
+        await createCashTransfer({
+          ...formData,
+          attachmentIds: attachments.map((a) => a.id),
+        });
         toast({
           title: "Success",
           description: "Transfer recorded successfully",
@@ -84,7 +94,9 @@ export function CashTransferDialog({
           date: new Date(),
           reference: "",
           description: "",
+          attachmentIds: [],
         });
+        setAttachments([]);
       } catch (error) {
         toast({
           title: "Error",
@@ -168,6 +180,22 @@ export function CashTransferDialog({
               setFormData({ ...formData, description: e.target.value })
             }
           />
+
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAttachmentOpen(true)}
+            >
+              <Paperclip className="mr-2 h-4 w-4" />
+              {attachments.length > 0
+                ? `${attachments.length} Attachment${
+                    attachments.length > 1 ? "s" : ""
+                  }`
+                : "Add Attachments"}
+            </Button>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -179,6 +207,14 @@ export function CashTransferDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AttachmentDialog
+        open={isAttachmentOpen}
+        onOpenChange={setIsAttachmentOpen}
+        attachments={attachments}
+        onAttachmentsChange={setAttachments}
+        uploadAction={uploadTransferAttachment}
+      />
     </Dialog>
   );
 }

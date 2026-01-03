@@ -31,4 +31,5 @@ export type CashTransferFormData = {
   date: Date;
   reference?: string;
   description?: string;
+  attachmentIds?: string[];
 };

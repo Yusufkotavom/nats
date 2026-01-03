@@ -77,11 +77,11 @@ const data = {
       items: [
         {
           title: "Accounts",
-          url: "/accounting/cash-bank",
+          url: "/cash-bank",
         },
         {
           title: "Transfers",
-          url: "/accounting/transfer",
+          url: "/cash-bank/transfer",
         },
       ],
     },

@@ -9,6 +9,38 @@ import {
   JournalEntry,
   Prisma,
 } from "@/prisma/generated/prisma/client";
+import { saveFile } from "@/lib/file-service";
+
+export async function uploadTransferAttachment(formData: FormData) {
+  const session = await verifySession();
+  const file = formData.get("file") as File;
+
+  if (!file) {
+    throw new Error("No file provided");
+  }
+
+  const { url, filename } = await saveFile(file);
+
+  const dbFile = await prisma.file.create({
+    data: {
+      id: crypto.randomUUID(),
+      name: file.name,
+      url: url,
+      mimeType: file.type,
+      size: file.size,
+      uploadedById: session.userId,
+    },
+  });
+
+  return {
+    success: true,
+    file: {
+      id: dbFile.id,
+      name: dbFile.name,
+      url: dbFile.url,
+    },
+  };
+}
 
 // --- Cash Account Actions ---
 
@@ -141,6 +173,12 @@ export async function createCashTransfer(data: CashTransferFormData) {
             },
           ],
         },
+        attachments:
+          data.attachmentIds && data.attachmentIds.length > 0
+            ? {
+                connect: data.attachmentIds.map((id) => ({ id })),
+              }
+            : undefined,
       },
     });
 
@@ -170,7 +208,11 @@ export async function getTransfers() {
     include: {
       fromAccount: true,
       toAccount: true,
-      journalEntry: true,
+      journalEntry: {
+        include: {
+          attachments: true,
+        },
+      },
     },
     orderBy: {
       date: "desc",
@@ -191,7 +233,11 @@ export async function getCashTransfers(accountId?: string) {
     include: {
       fromAccount: true,
       toAccount: true,
-      journalEntry: true,
+      journalEntry: {
+        include: {
+          attachments: true,
+        },
+      },
     },
     orderBy: {
       date: "desc",
@@ -239,7 +285,11 @@ export async function getCashAccountDetails(
   const lines = await prisma.journalEntryLine.findMany({
     where,
     include: {
-      journalEntry: true,
+      journalEntry: {
+        include: {
+          attachments: true,
+        },
+      },
     },
     orderBy: [
       {
