@@ -24,7 +24,11 @@ export type CashTransfer = Prisma.CashTransferGetPayload<{
   include: {
     fromAccount: true;
     toAccount: true;
-    journalEntry: true;
+    journalEntry: {
+      include: {
+        attachments: true;
+      };
+    };
   };
 }>;
 

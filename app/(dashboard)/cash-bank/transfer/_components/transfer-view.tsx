@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Paperclip, FileIcon } from "lucide-react";
+import {
+  Plus,
+  Paperclip,
+  FileIcon,
+  MoreHorizontal,
+  Check,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { CashTransferDialog } from "../../_components/transfer-dialog";
-import { CashAccount } from "../../types";
+import { CashAccount, CashTransfer } from "../../types";
 import {
   Table,
   TableBody,
@@ -20,15 +28,77 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { TransferStatus } from "@/prisma/generated/prisma/enums";
+import { approveCashTransfer, deleteCashTransfer } from "../../actions";
+import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface TransferViewProps {
-  transfers: any[]; // Using any for now to avoid deep type imports, or better import from Prisma generated
+  transfers: CashTransfer[];
   accounts: CashAccount[];
 }
 
 export function TransferView({ transfers, accounts }: TransferViewProps) {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [editingTransfer, setEditingTransfer] = useState<
+    CashTransfer | undefined
+  >(undefined);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  const handleEdit = (transfer: CashTransfer) => {
+    setEditingTransfer(transfer);
+    setIsTransferOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    startTransition(async () => {
+      try {
+        await deleteCashTransfer(deletingId);
+        toast({
+          title: "Success",
+          description: "Transfer deleted successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description:
+            error instanceof Error ? error.message : "Failed to delete",
+          variant: "destructive",
+        });
+      } finally {
+        setDeletingId(null);
+      }
+    });
+  };
+
+  const handleApprove = async () => {
+    if (!approvingId) return;
+    startTransition(async () => {
+      try {
+        await approveCashTransfer(approvingId);
+        toast({
+          title: "Success",
+          description: "Transfer approved successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description:
+            error instanceof Error ? error.message : "Failed to approve",
+          variant: "destructive",
+        });
+      } finally {
+        setApprovingId(null);
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -39,7 +109,12 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
             Manage fund transfers between accounts
           </p>
         </div>
-        <Button onClick={() => setIsTransferOpen(true)}>
+        <Button
+          onClick={() => {
+            setEditingTransfer(undefined);
+            setIsTransferOpen(true);
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           New Transfer
         </Button>
@@ -55,13 +130,15 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
               <TableHead>To</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transfers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={8}
                   className="text-center py-8 text-muted-foreground"
                 >
                   No transfers found.
@@ -80,7 +157,7 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
                     {new Intl.NumberFormat("en-US", {
                       style: "currency",
                       currency: "USD",
-                    }).format(transfer.amount)}
+                    }).format(Number(transfer.amount))}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
@@ -132,6 +209,62 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
                         )}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        transfer.status === TransferStatus.APPROVED
+                          ? "default"
+                          : transfer.status === TransferStatus.REJECTED
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {transfer.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          {transfer.status === TransferStatus.PENDING && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => setApprovingId(transfer.id)}
+                              >
+                                <Check className="mr-2 h-4 w-4" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEdit(transfer)}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDeletingId(transfer.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {transfer.status === TransferStatus.APPROVED && (
+                            <DropdownMenuItem disabled>
+                              Approved (Read Only)
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -141,11 +274,31 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
 
       <CashTransferDialog
         open={isTransferOpen}
-        onOpenChange={setIsTransferOpen}
+        onOpenChange={(open) => {
+          setIsTransferOpen(open);
+          if (!open) setEditingTransfer(undefined);
+        }}
         cashAccounts={accounts}
         onSuccess={() => {
           setIsTransferOpen(false);
         }}
+        transfer={editingTransfer}
+      />
+
+      <ConfirmDialog
+        open={!!deletingId}
+        onOpenChange={(open) => !open && setDeletingId(null)}
+        onConfirm={handleDelete}
+        title="Delete Transfer"
+        description="Are you sure you want to delete this transfer? This action cannot be undone."
+      />
+
+      <ConfirmDialog
+        open={!!approvingId}
+        onOpenChange={(open) => !open && setApprovingId(null)}
+        onConfirm={handleApprove}
+        title="Approve Transfer"
+        description="This will create a journal entry and post it to the General Ledger. This action cannot be undone."
       />
     </div>
   );

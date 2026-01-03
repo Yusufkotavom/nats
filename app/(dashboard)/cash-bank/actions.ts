@@ -3,13 +3,18 @@
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { CashAccountFormData, CashTransferFormData } from "./types";
 import { revalidatePath } from "next/cache";
-import { CashAccountType, EntryStatus } from "@/prisma/generated/prisma/enums";
+import {
+  CashAccountType,
+  EntryStatus,
+  TransferStatus,
+} from "@/prisma/generated/prisma/enums";
 import {
   JournalEntryLine,
   JournalEntry,
   Prisma,
 } from "@/prisma/generated/prisma/client";
 import { saveFile } from "@/lib/file-service";
+import { verifySession } from "@/lib/auth/auth";
 
 export async function uploadTransferAttachment(formData: FormData) {
   const session = await verifySession();
@@ -182,8 +187,6 @@ export async function deleteCashAccount(id: string) {
   revalidatePath("/accounting/cash-bank");
 }
 
-import { verifySession } from "@/lib/auth/auth";
-
 // --- Transfer Actions ---
 
 export async function createCashTransfer(data: CashTransferFormData) {
@@ -208,66 +211,154 @@ export async function createCashTransfer(data: CashTransferFormData) {
     throw new Error("Cannot transfer to the same account.");
   }
 
-  // 2. Create Transfer and Journal Entry in a transaction
+  // 2. Create Transfer (Pending Approval)
+  const transfer = await prisma.cashTransfer.create({
+    data: {
+      fromAccountId: data.fromAccountId,
+      toAccountId: data.toAccountId,
+      amount: data.amount,
+      date: data.date,
+      reference: data.reference,
+      description: data.description,
+      // No Journal Entry yet
+    },
+  });
+
+  revalidatePath("/accounting/cash-bank");
+  revalidatePath("/accounting/transfer");
+  return transfer;
+}
+
+export async function updateCashTransfer(
+  id: string,
+  data: CashTransferFormData
+) {
+  const transfer = await prisma.cashTransfer.findUnique({
+    where: { id },
+  });
+
+  if (!transfer) {
+    throw new Error("Transfer not found");
+  }
+
+  if (transfer.status === TransferStatus.APPROVED) {
+    throw new Error("Cannot edit approved transfer");
+  }
+
+  // Validate accounts
+  if (data.fromAccountId === data.toAccountId) {
+    throw new Error("Cannot transfer to the same account.");
+  }
+
+  const updatedTransfer = await prisma.cashTransfer.update({
+    where: { id },
+    data: {
+      fromAccountId: data.fromAccountId,
+      toAccountId: data.toAccountId,
+      amount: data.amount,
+      date: data.date,
+      reference: data.reference,
+      description: data.description,
+    },
+  });
+
+  revalidatePath("/accounting/cash-bank");
+  revalidatePath("/accounting/transfer");
+  return updatedTransfer;
+}
+
+export async function approveCashTransfer(id: string) {
+  const session = await verifySession();
+  const userId = session.userId;
+
+  const transfer = await prisma.cashTransfer.findUnique({
+    where: { id },
+    include: {
+      fromAccount: { include: { glAccount: true } },
+      toAccount: { include: { glAccount: true } },
+    },
+  });
+
+  if (!transfer) {
+    throw new Error("Transfer not found");
+  }
+
+  if (transfer.status === TransferStatus.APPROVED) {
+    throw new Error("Transfer already approved");
+  }
+
+  // Create Journal Entry and Update Transfer
   const result = await prisma.$transaction(async (tx) => {
     // Create Journal Entry
     // Credit From Account (Asset decrease), Debit To Account (Asset increase)
     const journalEntry = await tx.journalEntry.create({
       data: {
         userId,
-        entryNumber: `TRF-${Date.now()}`, // Simple generation, maybe improve later
-        transactionDate: data.date,
+        entryNumber: `TRF-${Date.now()}`,
+        transactionDate: transfer.date,
         description:
-          data.description ||
-          `Transfer from ${fromAccount.name} to ${toAccount.name}`,
-        status: "posted", // Transfers are immediate
+          transfer.description ||
+          `Transfer from ${transfer.fromAccount.name} to ${transfer.toAccount.name}`,
+        status: EntryStatus.posted,
         postedAt: new Date(),
         lines: {
           create: [
             {
-              accountId: toAccount.glAccountId,
-              debitAmount: data.amount,
+              accountId: transfer.toAccount.glAccountId,
+              debitAmount: transfer.amount,
               creditAmount: 0,
-              description: `Transfer from ${fromAccount.name}`,
+              description: `Transfer from ${transfer.fromAccount.name}`,
               lineNumber: 1,
             },
             {
-              accountId: fromAccount.glAccountId,
+              accountId: transfer.fromAccount.glAccountId,
               debitAmount: 0,
-              creditAmount: data.amount,
-              description: `Transfer to ${toAccount.name}`,
+              creditAmount: transfer.amount,
+              description: `Transfer to ${transfer.toAccount.name}`,
               lineNumber: 2,
             },
           ],
         },
-        attachments:
-          data.attachmentIds && data.attachmentIds.length > 0
-            ? {
-                connect: data.attachmentIds.map((id) => ({ id })),
-              }
-            : undefined,
       },
     });
 
-    // Create Cash Transfer record
-    const transfer = await tx.cashTransfer.create({
+    const approvedTransfer = await tx.cashTransfer.update({
+      where: { id },
       data: {
-        fromAccountId: data.fromAccountId,
-        toAccountId: data.toAccountId,
-        amount: data.amount,
-        date: data.date,
-        reference: data.reference,
-        description: data.description,
+        status: TransferStatus.APPROVED,
         journalEntryId: journalEntry.id,
+        approvedById: userId,
+        approvedAt: new Date(),
       },
     });
 
-    return transfer;
+    return approvedTransfer;
   });
 
   revalidatePath("/accounting/cash-bank");
   revalidatePath("/accounting/transfer");
   return result;
+}
+
+export async function deleteCashTransfer(id: string) {
+  const transfer = await prisma.cashTransfer.findUnique({
+    where: { id },
+  });
+
+  if (!transfer) {
+    throw new Error("Transfer not found");
+  }
+
+  if (transfer.status === TransferStatus.APPROVED) {
+    throw new Error("Cannot delete approved transfer");
+  }
+
+  await prisma.cashTransfer.delete({
+    where: { id },
+  });
+
+  revalidatePath("/accounting/cash-bank");
+  revalidatePath("/accounting/transfer");
 }
 
 export async function getTransfers() {
@@ -285,7 +376,7 @@ export async function getTransfers() {
       date: "desc",
     },
   });
-  return transfers;
+  return serializePrisma(transfers);
 }
 
 export async function getCashTransfers(accountId?: string) {
@@ -372,10 +463,6 @@ export async function getCashAccountDetails(
     skip,
   });
 
-  // Calculate balances
-  // We need the balance *before* the oldest item on this page (which is the last item in the 'lines' array)
-  // Balance = Sum(Debit - Credit) of all items older than the last item
-
   let linesWithBalance: (Omit<JournalEntryLine, "runningBalance"> & {
     journalEntry: JournalEntry;
     runningBalance: number;
@@ -402,9 +489,9 @@ export async function getCashAccountDetails(
         {
           journalEntry: {
             transactionDate: lastLine.journalEntry.transactionDate,
-          },
-          id: {
-            lt: lastLine.id,
+            id: {
+              lt: lastLine.id,
+            },
           },
         },
       ],
@@ -421,13 +508,6 @@ export async function getCashAccountDetails(
     let currentRunningBalance =
       Number(aggregations._sum?.debitAmount ?? 0) -
       Number(aggregations._sum?.creditAmount ?? 0);
-
-    // If account is Credit normal (Liability/Equity), flip the sign?
-    // Usually Cash is Asset (Debit Normal).
-    // If it's a Bank Account (Asset), Balance = Debit - Credit.
-    // If it's a Credit Card (Liability), Balance = Credit - Debit.
-    // For now, assuming Cash/Bank are Assets:
-    // Balance = Sum(Debit) - Sum(Credit).
 
     // Now iterate lines in reverse (oldest to newest) to calculate running balance
     linesWithBalance = lines.reverse().map((line) => {

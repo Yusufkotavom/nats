@@ -14,8 +14,12 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { createCashTransfer, uploadTransferAttachment } from "../actions";
-import { CashAccount, CashTransferFormData } from "../types";
+import {
+  createCashTransfer,
+  updateCashTransfer,
+  uploadTransferAttachment,
+} from "../actions";
+import { CashAccount, CashTransfer, CashTransferFormData } from "../types";
 import { Loader2, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -24,12 +28,14 @@ import {
   AttachmentDialog,
   Attachment,
 } from "@/components/ui/attachment-dialog";
+import { useEffect } from "react";
 
 interface CashTransferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cashAccounts: CashAccount[];
   onSuccess: () => void;
+  transfer?: CashTransfer;
 }
 
 export function CashTransferDialog({
@@ -37,6 +43,7 @@ export function CashTransferDialog({
   onOpenChange,
   cashAccounts,
   onSuccess,
+  transfer,
 }: CashTransferDialogProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<CashTransferFormData>({
@@ -51,6 +58,37 @@ export function CashTransferDialog({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (transfer && open) {
+      // Defer state update to the next tick to avoid cascading renders
+      queueMicrotask(() => {
+        setFormData({
+          fromAccountId: transfer.fromAccountId,
+          toAccountId: transfer.toAccountId,
+          amount: Number(transfer.amount),
+          date: new Date(transfer.date),
+          reference: transfer.reference || "",
+          description: transfer.description || "",
+          attachmentIds: [], // Attachments handling might need more work if we want to show existing ones
+        });
+        // TODO: Handle existing attachments if needed
+      });
+    } else if (!transfer && open) {
+      queueMicrotask(() => {
+        setFormData({
+          fromAccountId: "",
+          toAccountId: "",
+          amount: 0,
+          date: new Date(),
+          reference: "",
+          description: "",
+          attachmentIds: [],
+        });
+        setAttachments([]);
+      });
+    }
+  }, [transfer, open]);
 
   const handleSubmit = () => {
     if (
@@ -77,26 +115,39 @@ export function CashTransferDialog({
 
     startTransition(async () => {
       try {
-        await createCashTransfer({
-          ...formData,
-          attachmentIds: attachments.map((a) => a.id),
-        });
-        toast({
-          title: "Success",
-          description: "Transfer recorded successfully",
-        });
+        if (transfer) {
+          await updateCashTransfer(transfer.id, {
+            ...formData,
+            attachmentIds: attachments.map((a) => a.id),
+          });
+          toast({
+            title: "Success",
+            description: "Transfer updated successfully",
+          });
+        } else {
+          await createCashTransfer({
+            ...formData,
+            attachmentIds: attachments.map((a) => a.id),
+          });
+          toast({
+            title: "Success",
+            description: "Transfer recorded successfully",
+          });
+        }
         onSuccess();
         onOpenChange(false);
-        setFormData({
-          fromAccountId: "",
-          toAccountId: "",
-          amount: 0,
-          date: new Date(),
-          reference: "",
-          description: "",
-          attachmentIds: [],
-        });
-        setAttachments([]);
+        if (!transfer) {
+          setFormData({
+            fromAccountId: "",
+            toAccountId: "",
+            amount: 0,
+            date: new Date(),
+            reference: "",
+            description: "",
+            attachmentIds: [],
+          });
+          setAttachments([]);
+        }
       } catch (error) {
         toast({
           title: "Error",
