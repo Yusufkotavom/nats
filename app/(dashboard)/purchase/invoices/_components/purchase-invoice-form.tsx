@@ -473,7 +473,9 @@ export function PurchaseInvoiceForm({
                         </TableHead>
                         <TableHead className="w-[120px]">Tax (%)</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
+                        {!readonly && (
+                          <TableHead className="w-[50px]"></TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -585,8 +587,8 @@ export function PurchaseInvoiceForm({
                                 ).total.toLocaleString()}
                               </div>
                             </TableCell>
-                            <TableCell>
-                              {!readonly && (
+                            {!readonly && (
+                              <TableCell>
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -596,8 +598,8 @@ export function PurchaseInvoiceForm({
                                 >
                                   <Trash2 className="h-4 w-4 text-red-500" />
                                 </Button>
-                              )}
-                            </TableCell>
+                              </TableCell>
+                            )}
                           </SortableTableRow>
                         ))}
                       </SortableContext>
@@ -610,16 +612,15 @@ export function PurchaseInvoiceForm({
                   </div>
                 )}
                 <div className="flex justify-between items-start p-4 border-t">
-                  {!readonly && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddItem}
-                    >
-                      <PlusIcon /> Add Item
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={readonly}
+                    size="sm"
+                    onClick={handleAddItem}
+                  >
+                    <PlusIcon /> Add Item
+                  </Button>
                   <div className="w-1/3 space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium">

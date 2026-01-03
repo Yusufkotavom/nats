@@ -22,7 +22,6 @@ export default async function NewPurchaseInvoicePage() {
     <PurchaseInvoiceForm
       vendors={vendors}
       accounts={accounts}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       purchaseOrders={purchaseOrders as any}
     />
   );
