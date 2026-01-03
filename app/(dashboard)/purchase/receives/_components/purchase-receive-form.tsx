@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
 } from "@/components/ui/table";
 import {
   DndContext,
@@ -38,35 +37,26 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Loader2, Plus, Trash2, GripVertical } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import {
   createPurchaseReceive,
   updatePurchaseReceive,
   getPurchaseOrder,
+  getPurchaseReceive,
+  getProducts,
+  getPurchaseOrdersForSelect,
 } from "../actions";
-import { PurchaseReceiveWithDetails, PurchaseReceiveInput } from "../types";
+import { PurchaseReceiveInput } from "../types";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { SortableTableRow } from "@/components/ui/sortable-row";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 
 interface PurchaseReceiveFormProps {
-  receive?: PurchaseReceiveWithDetails;
-  vendors: { id: string; name: string }[];
-  products: {
-    id: string;
-    name: string;
-    sku: string;
-    purchaseUnit?: { symbol: string } | null;
-  }[];
-  purchaseOrders: {
-    id: string;
-    orderNumber: string;
-    contactId: string;
-    contact: { name: string };
-  }[];
+  receive?: Awaited<ReturnType<typeof getPurchaseReceive>>;
+  vendors: Awaited<ReturnType<typeof getContacts>>["data"];
+  products: Awaited<ReturnType<typeof getProducts>>;
+  purchaseOrders: Awaited<ReturnType<typeof getPurchaseOrdersForSelect>>;
   readonly?: boolean;
 }
 

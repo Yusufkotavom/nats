@@ -2,7 +2,7 @@
 
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
+import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { PurchaseOrderInput } from "./types";
@@ -105,38 +105,6 @@ export async function getPurchaseOrder(id: string) {
   });
 
   return serializePrisma(order);
-}
-
-export async function getVendors() {
-  const vendors = await prisma.contact.findMany({
-    where: { isActive: true, type: ContactType.VENDOR },
-    orderBy: { name: "asc" },
-  });
-  return serializePrisma(vendors);
-}
-
-export async function getProducts() {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      cost: true,
-      baseUnit: {
-        select: {
-          symbol: true,
-        },
-      },
-      purchaseUnit: {
-        select: {
-          symbol: true,
-        },
-      },
-    },
-  });
-  return serializePrisma(products);
 }
 
 // Helper to generate PO Number

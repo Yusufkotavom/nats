@@ -50,11 +50,7 @@ export async function getPurchaseInvoices(
       include: {
         contact: true,
         purchaseOrder: true,
-        items: {
-          include: {
-            account: true,
-          },
-        },
+        items: true,
       },
       orderBy: { createdAt: "desc" },
       skip,
@@ -76,31 +72,11 @@ export async function getPurchaseInvoice(id: string) {
     include: {
       contact: true,
       purchaseOrder: true,
-      items: {
-        include: {
-          account: true,
-        },
-      },
+      items: true,
     },
   });
 
   return serializePrisma(invoice);
-}
-
-export async function getVendors() {
-  const vendors = await prisma.contact.findMany({
-    where: { isActive: true, type: ContactType.VENDOR },
-    orderBy: { name: "asc" },
-  });
-  return serializePrisma(vendors);
-}
-
-export async function getAccounts() {
-  const accounts = await prisma.account.findMany({
-    where: { isActive: true, isPosting: true },
-    orderBy: { code: "asc" },
-  });
-  return serializePrisma(accounts);
 }
 
 export async function getPurchaseOrdersForSelect() {
@@ -163,7 +139,6 @@ export const createPurchaseInvoice = authorizedAction(
           totalPrice: total,
           discount: item.discount,
           tax: item.tax,
-          accountId: item.accountId,
         };
       });
 

@@ -1,12 +1,9 @@
-import {
-  getPurchaseInvoice,
-  getVendors,
-  getAccounts,
-  getPurchaseOrdersForSelect,
-} from "../../actions";
+import { getPurchaseInvoice, getPurchaseOrdersForSelect } from "../../actions";
 import { PurchaseInvoiceForm } from "../../_components/purchase-invoice-form";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { ContactType } from "@/prisma/generated/prisma/enums";
 
 export const metadata: Metadata = {
   title: "Edit Purchase Invoice | Pasak",
@@ -21,10 +18,9 @@ interface PageProps {
 
 export default async function EditPurchaseInvoicePage(props: PageProps) {
   const params = await props.params;
-  const [invoice, vendors, accounts, purchaseOrders] = await Promise.all([
+  const [invoice, vendors, purchaseOrders] = await Promise.all([
     getPurchaseInvoice(params.id),
-    getVendors(),
-    getAccounts(),
+    getContacts({ type: ContactType.VENDOR }),
     getPurchaseOrdersForSelect(),
   ]);
 
@@ -47,8 +43,7 @@ export default async function EditPurchaseInvoicePage(props: PageProps) {
   return (
     <PurchaseInvoiceForm
       invoice={invoice}
-      vendors={vendors}
-      accounts={accounts}
+      vendors={vendors.data}
       purchaseOrders={purchaseOrders as any}
     />
   );

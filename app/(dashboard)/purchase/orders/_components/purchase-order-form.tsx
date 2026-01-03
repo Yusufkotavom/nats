@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,9 +37,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import {
   Dialog,
   DialogContent,
@@ -51,10 +49,8 @@ import {
   Loader2,
   Plus,
   Trash2,
-  GripVertical,
   CheckCheckIcon,
   SaveIcon,
-  UndoDotIcon,
   CheckCircle,
   Trash2Icon,
   ArrowLeftSquare,
@@ -66,25 +62,21 @@ import {
   issuePurchaseOrder,
   cancelPurchaseOrder,
   closePurchaseOrder,
+  getPurchaseOrder,
 } from "../actions";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { PurchaseOrderWithDetails, PurchaseOrderInput } from "../types";
+import { PurchaseOrderInput } from "../types";
 import { format } from "date-fns";
 import { cn, formatDate } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { SortableTableRow } from "@/components/ui/sortable-row";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { getProducts } from "@/app/(dashboard)/inventory/products/actions";
 
 interface PurchaseOrderFormProps {
-  order?: PurchaseOrderWithDetails;
-  vendors: { id: string; name: string }[];
-  products: {
-    id: string;
-    name: string;
-    sku: string;
-    cost: number;
-    baseUnit?: { symbol: string } | null;
-    purchaseUnit?: { symbol: string } | null;
-  }[];
+  order?: Awaited<ReturnType<typeof getPurchaseOrder>>;
+  vendors: Awaited<ReturnType<typeof getContacts>>["data"];
+  products: Awaited<ReturnType<typeof getProducts>>["products"];
   readonly?: boolean;
 }
 

@@ -1,4 +1,10 @@
-import { getPurchaseReturn, getVendors, getPurchaseOrdersForReturn, getPurchaseInvoicesForReturn } from "../../actions";
+import {
+  getPurchaseReturn,
+  getPurchaseOrdersForReturn,
+  getPurchaseInvoicesForReturn,
+} from "../../actions";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { ContactType } from "@/prisma/generated/prisma/enums";
 import { PurchaseReturnForm } from "../../_components/purchase-return-form";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
@@ -16,12 +22,13 @@ interface PageProps {
 
 export default async function EditPurchaseReturnPage(props: PageProps) {
   const params = await props.params;
-  const [returnItem, vendors, purchaseOrders, purchaseInvoices] = await Promise.all([
-    getPurchaseReturn(params.id),
-    getVendors(),
-    getPurchaseOrdersForReturn(),
-    getPurchaseInvoicesForReturn(),
-  ]);
+  const [returnItem, vendors, purchaseOrders, purchaseInvoices] =
+    await Promise.all([
+      getPurchaseReturn(params.id),
+      getContacts({ type: ContactType.VENDOR }),
+      getPurchaseOrdersForReturn(),
+      getPurchaseInvoicesForReturn(),
+    ]);
 
   if (!returnItem) {
     notFound();
@@ -48,7 +55,7 @@ export default async function EditPurchaseReturnPage(props: PageProps) {
       </div>
       <PurchaseReturnForm
         returnItem={returnItem}
-        vendors={vendors}
+        vendors={vendors.data}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         purchaseOrders={purchaseOrders as any}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

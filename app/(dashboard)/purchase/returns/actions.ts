@@ -89,13 +89,7 @@ export async function getPurchaseReturn(id: string) {
   return serializePrisma(purchaseReturn);
 }
 
-export async function getVendors() {
-  const vendors = await prisma.contact.findMany({
-    where: { isActive: true, type: ContactType.VENDOR },
-    orderBy: { name: "asc" },
-  });
-  return serializePrisma(vendors);
-}
+
 
 export async function getPurchaseOrdersForReturn() {
   const orders = await prisma.purchaseOrder.findMany({

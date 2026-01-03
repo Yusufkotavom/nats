@@ -1,6 +1,9 @@
-import { getPurchaseOrder, getVendors, getProducts } from "../actions";
+import { getPurchaseOrder } from "../actions";
 import { PurchaseOrderForm } from "../_components/purchase-order-form";
 import { notFound } from "next/navigation";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { ContactType } from "@/prisma/generated/prisma/enums";
+import { getProducts } from "@/app/(dashboard)/inventory/products/actions";
 
 export default async function Page({
   params,
@@ -10,7 +13,7 @@ export default async function Page({
   const { id } = await params;
   const [order, vendors, products] = await Promise.all([
     getPurchaseOrder(id),
-    getVendors(),
+    getContacts({ type: ContactType.VENDOR }),
     getProducts(),
   ]);
 
@@ -21,11 +24,8 @@ export default async function Page({
   return (
     <PurchaseOrderForm
       order={order}
-      vendors={vendors}
-      products={products.map((p) => ({
-        ...p,
-        cost: Number(p.cost),
-      }))}
+      vendors={vendors.data}
+      products={products.products}
       readonly
     />
   );

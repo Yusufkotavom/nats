@@ -76,14 +76,6 @@ export async function getPurchaseReceive(id: string) {
   return serializePrisma(receive);
 }
 
-export async function getVendors() {
-  const vendors = await prisma.contact.findMany({
-    where: { isActive: true, type: ContactType.VENDOR },
-    orderBy: { name: "asc" },
-  });
-  return serializePrisma(vendors);
-}
-
 export async function getProducts() {
   const products = await prisma.product.findMany({
     where: { isActive: true },

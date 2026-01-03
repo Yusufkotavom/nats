@@ -33,10 +33,6 @@ export type PurchaseInvoiceWithDetails = Prisma.PurchaseInvoiceGetPayload<{
   include: {
     contact: true;
     purchaseOrder: true;
-    items: {
-      include: {
-        account: true;
-      };
-    };
+    items: true;
   };
 }>;

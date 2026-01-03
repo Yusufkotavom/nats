@@ -1,12 +1,10 @@
 import { getPurchaseInvoice } from "../actions";
 import { PurchaseInvoiceForm } from "../_components/purchase-invoice-form";
-import {
-  getVendors,
-  getAccounts,
-  getPurchaseOrdersForSelect,
-} from "../actions";
+import { getPurchaseOrdersForSelect } from "../actions";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { ContactType } from "@/prisma/generated/prisma/enums";
 
 export const metadata: Metadata = {
   title: "View Purchase Invoice | Pasak",
@@ -21,10 +19,9 @@ interface PageProps {
 
 export default async function ViewPurchaseInvoicePage(props: PageProps) {
   const params = await props.params;
-  const [invoice, vendors, accounts, purchaseOrders] = await Promise.all([
+  const [invoice, vendors, purchaseOrders] = await Promise.all([
     getPurchaseInvoice(params.id),
-    getVendors(),
-    getAccounts(),
+    getContacts({ type: ContactType.VENDOR }),
     getPurchaseOrdersForSelect(),
   ]);
 
@@ -35,9 +32,7 @@ export default async function ViewPurchaseInvoicePage(props: PageProps) {
   return (
     <PurchaseInvoiceForm
       invoice={invoice}
-      vendors={vendors}
-      accounts={accounts}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vendors={vendors.data}
       purchaseOrders={purchaseOrders as any}
       readonly
     />

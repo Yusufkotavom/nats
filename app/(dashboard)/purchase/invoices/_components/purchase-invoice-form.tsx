@@ -49,7 +49,6 @@ import { SortableTableRow } from "@/components/ui/sortable-row";
 interface PurchaseInvoiceFormProps {
   invoice?: PurchaseInvoiceWithDetails;
   vendors: { id: string; name: string }[];
-  accounts: { id: string; code: string; name: string }[];
   purchaseOrders: {
     id: string;
     orderNumber: string;
@@ -70,7 +69,6 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 export function PurchaseInvoiceForm({
   invoice,
   vendors,
-  accounts,
   purchaseOrders,
   readonly = false,
 }: PurchaseInvoiceFormProps) {
@@ -106,7 +104,6 @@ export function PurchaseInvoiceForm({
         unitPrice: Number(item.unitPrice),
         discount: Number(item.discount) || 0,
         tax: Number(item.tax) || 0,
-        accountId: item.accountId || undefined,
       })) || [],
   });
 
@@ -154,7 +151,6 @@ export function PurchaseInvoiceForm({
             unitPrice: Number(item.unitCost),
             discount: 0,
             tax: 0,
-            accountId: undefined, // User needs to select account (e.g. Inventory Asset)
           }));
 
           setFormData((prev) => ({ ...prev, items: newItems }));
@@ -497,28 +493,6 @@ export function PurchaseInvoiceForm({
                                 }
                                 disabled={readonly}
                               />
-                            </TableCell>
-                            <TableCell>
-                              <CustomSelect
-                                value={item.accountId || "none"}
-                                onValueChange={(val) =>
-                                  handleItemChange(
-                                    index,
-                                    "accountId",
-                                    val === "none" ? undefined : val
-                                  )
-                                }
-                                disabled={readonly}
-                              >
-                                <SelectItem value="none">
-                                  Select Account
-                                </SelectItem>
-                                {accounts.map((acc) => (
-                                  <SelectItem key={acc.id} value={acc.id}>
-                                    {acc.code} - {acc.name}
-                                  </SelectItem>
-                                ))}
-                              </CustomSelect>
                             </TableCell>
                             <TableCell>
                               <CustomInput
