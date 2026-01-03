@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { ContactDialog } from "./contact-dialog";
 import { deleteContact } from "../actions";
-
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -38,11 +37,11 @@ import { Contact, PaginatedResult } from "../../types";
 import { Protect } from "@/components/ui/protect";
 import { ContactType } from "@/prisma/generated/prisma/browser";
 
-interface ContactTableProps {
+export function ContactTable({
+  initialData,
+}: {
   initialData: PaginatedResult<Contact>;
-}
-
-export function ContactTable({ initialData }: ContactTableProps) {
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isDialogOpen, setIsDialogOpen] = useState(false);

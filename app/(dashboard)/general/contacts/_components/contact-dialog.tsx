@@ -20,17 +20,15 @@ import { Loader2 } from "lucide-react";
 import { Contact } from "../../types";
 import { ContactType } from "@/prisma/generated/prisma/browser";
 
-interface ContactDialogProps {
-  contact?: Contact;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
 export function ContactDialog({
   contact,
   open,
   onOpenChange,
-}: ContactDialogProps) {
+}: {
+  contact?: Contact;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!contact;
 
@@ -77,7 +75,9 @@ export function ContactDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Contact" : "Add Contact"}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Contact" : "Add Contact"}
+          </DialogTitle>
           <DialogDescription>
             {isEditing
               ? "Make changes to the contact profile here."
@@ -87,15 +87,15 @@ export function ContactDialog({
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <CustomSelect
-                name="type"
-                label="Type"
-                placeholder="Select Type"
-                defaultValue={contact?.type || ContactType.CUSTOMER}
-                options={[
-                    { label: "Customer", value: ContactType.CUSTOMER },
-                    { label: "Vendor", value: ContactType.VENDOR },
-                    { label: "Employee", value: ContactType.EMPLOYEE },
-                ]}
+              name="type"
+              label="Type"
+              placeholder="Select Type"
+              defaultValue={contact?.type || ContactType.CUSTOMER}
+              options={[
+                { label: "Customer", value: ContactType.CUSTOMER },
+                { label: "Vendor", value: ContactType.VENDOR },
+                { label: "Employee", value: ContactType.EMPLOYEE },
+              ]}
             />
             <CustomInput
               label="Name"
