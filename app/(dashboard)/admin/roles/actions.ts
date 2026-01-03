@@ -11,6 +11,11 @@ interface RoleData {
   isActive?: boolean;
 }
 
+export const getRoles = async () => {
+  return prisma.role.findMany({
+    orderBy: { name: "asc" },
+  });
+};
 /**
  * Create a new user role.
  * Permission: "roles:create"

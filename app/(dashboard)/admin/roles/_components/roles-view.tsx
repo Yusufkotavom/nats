@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Power, Ban, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Power, Ban, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -13,26 +13,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RoleDialog } from "./role-dialog";
-import { deleteRole, toggleRoleStatus } from "../actions";
+import { deleteRole, getRoles, toggleRoleStatus } from "../actions";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Role } from "@/prisma/generated/prisma/browser";
 
-// Define Role interface manually to avoid importing from prisma client in client component if needed,
-// but usually passing data from server component is fine.
-interface Role {
-  id: string;
-  name: string;
-  description: string | null;
-  permissions: string[];
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface RolesViewProps {
-  roles: Role[];
-}
-
-export function RolesView({ roles }: RolesViewProps) {
+export function RolesView({
+  roles,
+}: {
+  roles: Awaited<ReturnType<typeof getRoles>>;
+}) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined);

@@ -11,9 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { updateRolePermissions } from "../actions";
-import { Loader2, Save, ArrowLeft, Check, Shield } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { register } from "@/lib/permissions/registry";
 import { useRouter } from "next/navigation";
 import {

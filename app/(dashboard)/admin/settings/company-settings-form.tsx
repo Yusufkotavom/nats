@@ -2,8 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { CustomInput } from "@/components/ui/custom-input";
-import { CustomSelect } from "@/components/ui/custom-select";
 import {
   Card,
   CardContent,
@@ -13,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SelectItem } from "@/components/ui/select";
-import { updateCompanyProfile } from "./actions";
+import { getCompanyProfile, updateCompanyProfile } from "./actions";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -25,29 +23,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface CompanySettingsFormProps {
-  initialData: {
-    name: string;
-    address: string | null;
-    phone: string | null;
-    email: string | null;
-    website: string | null;
-    taxId: string | null;
-    currency: string;
-    currencySymbol: string;
-    dateFormat: string;
-    currencyFormat: string;
-    locale: string;
-    timezone: string;
-  };
-}
-
-export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
+export function CompanySettingsForm({
+  initialData,
+}: {
+  initialData: Awaited<ReturnType<typeof getCompanyProfile>>;
+}) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [currencySymbol, setCurrencySymbol] = useState(
-    initialData.currencySymbol
+    initialData?.currencySymbol || ""
   );
 
   const handleCurrencyChange = (value: string) => {
@@ -109,7 +94,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
               <Input
                 id="name"
                 name="name"
-                defaultValue={initialData.name}
+                defaultValue={initialData?.name}
                 required
               />
             </div>
@@ -118,7 +103,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
               <Input
                 id="taxId"
                 name="taxId"
-                defaultValue={initialData.taxId || ""}
+                defaultValue={initialData?.taxId || ""}
               />
             </div>
             <div className="space-y-2">
@@ -127,7 +112,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                 id="email"
                 name="email"
                 type="email"
-                defaultValue={initialData.email || ""}
+                defaultValue={initialData?.email || ""}
               />
             </div>
             <div className="space-y-2">
@@ -135,7 +120,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
               <Input
                 id="phone"
                 name="phone"
-                defaultValue={initialData.phone || ""}
+                defaultValue={initialData?.phone || ""}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -143,7 +128,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
               <Input
                 id="address"
                 name="address"
-                defaultValue={initialData.address || ""}
+                defaultValue={initialData?.address || ""}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
@@ -152,7 +137,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                 id="website"
                 name="website"
                 type="url"
-                defaultValue={initialData.website || ""}
+                defaultValue={initialData?.website || ""}
               />
             </div>
           </div>
@@ -164,7 +149,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                 <Label htmlFor="currency">Currency</Label>
                 <Select
                   name="currency"
-                  defaultValue={initialData.currency}
+                  defaultValue={initialData?.currency}
                   onValueChange={handleCurrencyChange}
                 >
                   <SelectTrigger className="w-full">
@@ -192,7 +177,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                 <Label htmlFor="currencyFormat">Currency Format</Label>
                 <Select
                   name="currencyFormat"
-                  defaultValue={initialData.currencyFormat || "standard"}
+                  defaultValue={initialData?.currencyFormat || "standard"}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select currency format" />
@@ -212,7 +197,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
                 <Label htmlFor="dateFormat">Date Format</Label>
                 <Select
                   name="dateFormat"
-                  defaultValue={initialData.dateFormat || "MM/dd/yyyy"}
+                  defaultValue={initialData?.dateFormat || "MM/dd/yyyy"}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select date format" />
@@ -235,7 +220,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="locale">Locale</Label>
-                <Select name="locale" defaultValue={initialData.locale}>
+                <Select name="locale" defaultValue={initialData?.locale}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select locale" />
                   </SelectTrigger>
@@ -248,7 +233,7 @@ export function CompanySettingsForm({ initialData }: CompanySettingsFormProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
-                <Select name="timezone" defaultValue={initialData.timezone}>
+                <Select name="timezone" defaultValue={initialData?.timezone}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
