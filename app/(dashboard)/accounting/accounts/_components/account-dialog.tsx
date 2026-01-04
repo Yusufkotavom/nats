@@ -17,19 +17,17 @@ import { Account } from "../../types";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { Loader2 } from "lucide-react";
 
-interface AccountDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  accounts: Account[];
-  onSuccess: () => void;
-}
-
 export function AccountDialog({
   open,
   onOpenChange,
   accounts,
   onSuccess,
-}: AccountDialogProps) {
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  accounts: Account[];
+  onSuccess: () => void;
+}) {
   const [addForm, setAddForm] = useState<{
     name: string;
     code: string;

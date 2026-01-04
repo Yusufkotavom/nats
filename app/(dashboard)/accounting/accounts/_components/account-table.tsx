@@ -19,11 +19,11 @@ import { Account } from "../../types";
 import { AccountDialog } from "./account-dialog";
 import { Protect } from "@/components/ui/protect";
 
-interface AccountTableProps {
+export function AccountTable({
+  initialAccounts,
+}: {
   initialAccounts: Account[];
-}
-
-export function AccountTable({ initialAccounts }: AccountTableProps) {
+}) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState<string>("");
