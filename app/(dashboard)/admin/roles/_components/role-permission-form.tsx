@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { updateRolePermissions } from "../actions";
+import { getRole, updateRolePermissions } from "../actions";
 import { Loader2, Save } from "lucide-react";
 import { register } from "@/lib/permissions/registry";
 import { useRouter } from "next/navigation";
@@ -24,19 +24,15 @@ import {
 } from "@/components/ui/card";
 import React from "react";
 
-interface RolePermissionFormProps {
-  role: {
-    id: string;
-    name: string;
-    permissions: string[];
-  };
-}
-
-export function RolePermissionForm({ role }: RolePermissionFormProps) {
+export function RolePermissionForm({
+  role,
+}: {
+  role: Awaited<ReturnType<typeof getRole>>;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
-    role.permissions
+    role?.permissions || []
   );
 
   const handleToggle = (permName: string) => {
@@ -67,7 +63,9 @@ export function RolePermissionForm({ role }: RolePermissionFormProps) {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await updateRolePermissions(role.id, selectedPermissions);
+      if (role?.id) {
+        await updateRolePermissions(role.id, selectedPermissions);
+      }
       router.push("/admin/roles");
       router.refresh();
     } catch (error) {

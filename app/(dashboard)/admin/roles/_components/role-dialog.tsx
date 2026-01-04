@@ -16,15 +16,10 @@ import { useState, useEffect } from "react";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { createRole, updateRole } from "../actions";
+import { Role } from "@/prisma/generated/prisma/browser";
 
 interface RoleDialogProps {
-  role?: {
-    id: string;
-    name: string;
-    description: string | null;
-    permissions: string[];
-    isActive: boolean;
-  };
+  role?: Role;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }

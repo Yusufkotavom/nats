@@ -16,6 +16,13 @@ export const getRoles = async () => {
     orderBy: { name: "asc" },
   });
 };
+
+export const getRole = async (id: string) => {
+  const role = await prisma.role.findUnique({
+    where: { id },
+  });
+  return role;
+};
 /**
  * Create a new user role.
  * Permission: "roles:create"

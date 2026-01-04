@@ -1,17 +1,33 @@
-import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { notFound, useParams } from "next/navigation";
 import { RolePermissionForm } from "../_components/role-permission-form";
+import { getRole } from "../actions";
 
-interface RolePageProps {
-  params: {
-    id: string;
-  };
-}
+export default function RolePage() {
+  const params = useParams<{ id: string }>();
+  const [role, setRole] = useState<Awaited<ReturnType<typeof getRole>>>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function RolePage({ params }: RolePageProps) {
-  const role = await prisma.role.findUnique({
-    where: { id: (await params).id },
-  });
+  useEffect(() => {
+    async function fetchRole() {
+      if (!params.id) return;
+      try {
+        const data = await getRole(params.id);
+        setRole(data);
+      } catch (error) {
+        console.error("Failed to fetch role", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRole();
+  }, [params.id]);
+
+  if (loading) {
+    return <div className="p-4">Loading...</div>;
+  }
 
   if (!role) {
     notFound();
