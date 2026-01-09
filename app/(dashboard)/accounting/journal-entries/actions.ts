@@ -106,8 +106,8 @@ export const getJournalEntry = authorizedAction(
       include: {
         lines: {
           include: {
-            account: true,
-            contact: true,
+            account: { select: { name: true } },
+            contact: { select: { name: true } },
           },
           orderBy: { lineNumber: "asc" },
         },
@@ -142,11 +142,11 @@ export const createJournalEntry = authorizedAction(
 
       // Validate debit = credit
       const totalDebit = data.lines.reduce(
-        (sum, line) => sum + line.debitAmount,
+        (sum, line) => sum + line.debitAmount.toNumber(),
         0
       );
       const totalCredit = data.lines.reduce(
-        (sum, line) => sum + line.creditAmount,
+        (sum, line) => sum + line.creditAmount.toNumber(),
         0
       );
 
@@ -251,11 +251,11 @@ export async function updateJournalEntry(
 
     // Validate debit = credit
     const totalDebit = data.lines.reduce(
-      (sum, line) => sum + line.debitAmount,
+      (sum, line) => sum + line.debitAmount.toNumber(),
       0
     );
     const totalCredit = data.lines.reduce(
-      (sum, line) => sum + line.creditAmount,
+      (sum, line) => sum + line.creditAmount.toNumber(),
       0
     );
 

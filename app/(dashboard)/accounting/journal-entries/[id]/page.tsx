@@ -1,29 +1,47 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { notFound, useParams } from "next/navigation";
 import { getJournalEntry } from "../actions";
-import { prisma } from "@/lib/prisma";
 import { JournalEntryDetails } from "../_components/journal-entry-details";
 
-export default async function JournalEntryDetailsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const companyProfile = await prisma.companyProfile.findFirst();
-  const currencyOptions = {
-    currency: companyProfile?.currency,
-    currencySymbol: companyProfile?.currencySymbol || undefined,
-    currencyFormat: companyProfile?.currencyFormat || undefined,
-    locale: companyProfile?.locale,
-  };
+export default function JournalEntryDetailsPage() {
+  const params = useParams<{ id: string }>();
+  const [entry, setEntry] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
 
-  const res = await getJournalEntry(id);
+  useEffect(() => {
+    async function fetchEntry() {
+      if (!params?.id) return;
+      try {
+        const res = await getJournalEntry(params.id);
+        if (!res.success || !res.data) {
+          setIsNotFound(true);
+        } else {
+          setEntry(res.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch journal entry", error);
+        setIsNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchEntry();
+  }, [params?.id]);
 
-  if (!res.success || !res.data) {
+  if (isNotFound) {
     notFound();
   }
 
-  return (
-    <JournalEntryDetails entry={res.data} currencyOptions={currencyOptions} />
-  );
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Loading entry details...
+      </div>
+    );
+  }
+
+  return <JournalEntryDetails entry={entry} />;
 }

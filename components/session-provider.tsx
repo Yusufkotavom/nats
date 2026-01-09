@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 
-type SessionData = {
+export type SessionData = {
   role: string;
   permissions: string[];
   companyProfile: {

@@ -1,4 +1,5 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
+import { getJournalEntry } from "./journal-entries/actions";
 
 // Use Prisma's generated type for Account, including relations we commonly fetch
 export type Account = Prisma.AccountGetPayload<{
@@ -39,18 +40,6 @@ export type TrialBalanceResult = {
   totalCredit: number;
 };
 
-export type CreateJournalEntryData = {
-  id?: string;
-  transactionDate: Date;
-  description?: string;
-  entryNumber?: string;
-  lines: {
-    accountId: string;
-    debitAmount: number;
-    creditAmount: number;
-    description?: string;
-    contactId?: string;
-  }[];
-  attachments?: { id: string; name: string; url: string }[];
-  notes?: string;
-};
+export type CreateJournalEntryData = NonNullable<
+  Awaited<ReturnType<typeof getJournalEntry>>["data"]
+>;
