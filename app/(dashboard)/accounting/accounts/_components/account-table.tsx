@@ -18,12 +18,14 @@ import { updateAccount, deleteAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountDialog } from "./account-dialog";
 import { Protect } from "@/components/ui/protect";
+import { useToast } from "@/hooks/use-toast";
 
 export function AccountTable({
   initialAccounts,
 }: {
   initialAccounts: Account[];
 }) {
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState<string>("");
@@ -68,6 +70,10 @@ export function AccountTable({
     if (!editingId) return;
     setError(null);
     await updateAccount(a.id, { name: draftName });
+    toast({
+      title: "Success",
+      description: "Account updated successfully",
+    });
     // Data refresh is handled by Next.js Server Actions revalidation
     setEditingId(null);
     setDraftName("");
@@ -82,11 +88,25 @@ export function AccountTable({
       const res = await deleteAccount(accountToDelete.id);
       if (!res?.success) {
         setError(res?.error || "Delete failed");
+        toast({
+          title: "Error",
+          description: res?.error || "Delete failed",
+          variant: "destructive",
+        });
       } else {
         setAccountToDelete(null);
+        toast({
+          title: "Success",
+          description: "Account deleted successfully",
+        });
       }
     } catch (err) {
       setError("An unexpected error occurred");
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
       console.error(err);
     } finally {
       setIsDeleting(false);
@@ -236,7 +256,10 @@ export function AccountTable({
         onOpenChange={setIsAdding}
         accounts={initialAccounts}
         onSuccess={() => {
-          // Success action (maybe toast?)
+          toast({
+            title: "Success",
+            description: "Account created successfully",
+          });
         }}
       />
 
