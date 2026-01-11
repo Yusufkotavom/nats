@@ -141,14 +141,16 @@ export const createJournalEntry = authorizedAction(
       }
 
       // Validate debit = credit
-      const totalDebit = data.lines.reduce(
-        (sum, line) => sum + line.debitAmount.toNumber(),
-        0
-      );
-      const totalCredit = data.lines.reduce(
-        (sum, line) => sum + line.creditAmount.toNumber(),
-        0
-      );
+      const totalDebit =
+        data?.lines.reduce(
+          (sum, line) => sum + line.debitAmount.toNumber(),
+          0
+        ) || 0;
+      const totalCredit =
+        data?.lines.reduce(
+          (sum, line) => sum + line.creditAmount.toNumber(),
+          0
+        ) || 0;
 
       if (Math.abs(totalDebit - totalCredit) > 0.01) {
         // Floating point tolerance
@@ -159,7 +161,7 @@ export const createJournalEntry = authorizedAction(
       // For now, let's use a timestamp-based random string or similar,
       // or we can query the last one.
       // Let's stick to a simple format: JE-YYYYMMDD-XXXX
-      const dateStr = data.transactionDate
+      const dateStr = data?.transactionDate
         .toISOString()
         .slice(0, 10)
         .replace(/-/g, "");
@@ -178,12 +180,12 @@ export const createJournalEntry = authorizedAction(
         data: {
           userId: user?.userId,
           entryNumber,
-          transactionDate: data.transactionDate,
-          description: data.description,
-          notes: data.notes,
+          transactionDate: data?.transactionDate || new Date(),
+          description: data?.description,
+          notes: data?.notes,
           status: "draft",
           lines: {
-            create: data.lines.map((line, index) => ({
+            create: data?.lines.map((line, index) => ({
               accountId: line.accountId,
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
@@ -192,7 +194,7 @@ export const createJournalEntry = authorizedAction(
               lineNumber: index + 1,
             })),
           },
-          attachments: data.attachments?.length
+          attachments: data?.attachments?.length
             ? {
                 connect: data.attachments.map((a) => ({ id: a.id })),
               }
@@ -250,14 +252,14 @@ export async function updateJournalEntry(
     }
 
     // Validate debit = credit
-    const totalDebit = data.lines.reduce(
-      (sum, line) => sum + line.debitAmount.toNumber(),
-      0
-    );
-    const totalCredit = data.lines.reduce(
-      (sum, line) => sum + line.creditAmount.toNumber(),
-      0
-    );
+    const totalDebit =
+      data?.lines.reduce((sum, line) => sum + line.debitAmount.toNumber(), 0) ||
+      0;
+    const totalCredit =
+      data?.lines.reduce(
+        (sum, line) => sum + line.creditAmount.toNumber(),
+        0
+      ) || 0;
 
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       return { success: false, error: "Debits must equal credits" };
@@ -274,10 +276,10 @@ export async function updateJournalEntry(
       await tx.journalEntry.update({
         where: { id },
         data: {
-          transactionDate: data.transactionDate,
-          description: data.description,
+          transactionDate: data?.transactionDate,
+          description: data?.description,
           lines: {
-            create: data.lines.map((line, index) => ({
+            create: data?.lines.map((line, index) => ({
               accountId: line.accountId,
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
@@ -287,7 +289,7 @@ export async function updateJournalEntry(
             })),
           },
           attachments: {
-            set: data.attachments?.map((a) => ({ id: a.id })) || [],
+            set: data?.attachments?.map((a) => ({ id: a.id })) || [],
           },
         },
       });

@@ -51,6 +51,7 @@ import { PurchaseReceiveInput } from "../types";
 import { format } from "date-fns";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { generateId } from "@/lib/utils";
 
 interface PurchaseReceiveFormProps {
   receive?: Awaited<ReturnType<typeof getPurchaseReceive>>;
@@ -59,8 +60,6 @@ interface PurchaseReceiveFormProps {
   purchaseOrders: Awaited<ReturnType<typeof getPurchaseOrdersForSelect>>;
   readonly?: boolean;
 }
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export function PurchaseReceiveForm({
   receive,

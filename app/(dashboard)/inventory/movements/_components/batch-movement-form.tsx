@@ -48,6 +48,7 @@ import { createBatchMovement } from "../actions";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { SortableTableRow } from "@/components/ui/sortable-row";
+import { generateId } from "@/lib/utils";
 
 interface BatchMovementFormProps {
   products: (Omit<
@@ -66,8 +67,6 @@ interface BatchMovementFormProps {
   })[];
   warehouses: Warehouse[];
 }
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export function BatchMovementForm({
   products,

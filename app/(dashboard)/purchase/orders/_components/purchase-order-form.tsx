@@ -67,7 +67,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PurchaseOrderInput } from "../types";
 import { format } from "date-fns";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, generateId } from "@/lib/utils";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
@@ -79,8 +79,6 @@ interface PurchaseOrderFormProps {
   products: Awaited<ReturnType<typeof getProducts>>["products"];
   readonly?: boolean;
 }
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export function PurchaseOrderForm({
   order,

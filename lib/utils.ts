@@ -2,6 +2,13 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format } from "date-fns";
 
+/**
+ * Combines multiple class names into a single string, merging Tailwind CSS classes intelligently.
+ * Uses `clsx` for conditional classes and `tailwind-merge` to handle conflicts.
+ *
+ * @param inputs - A list of class values (strings, objects, arrays, etc.)
+ * @returns A merged class string
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -11,6 +18,15 @@ export interface FormatDateOptions {
   includeTime?: boolean;
 }
 
+/**
+ * Formats a date value into a localized string representation.
+ *
+ * @param date - The date to format (Date object, string, or timestamp)
+ * @param options - Formatting options
+ * @param options.dateFormat - The pattern to format the date (default: "MMM dd, yyyy")
+ * @param options.includeTime - Whether to include the time in the output (default: false)
+ * @returns The formatted date string, or an empty string if the date is invalid
+ */
 export const formatDate = (
   date: Date | string | number,
   options?: FormatDateOptions
@@ -33,6 +49,17 @@ export interface FormatCurrencyOptions {
   locale?: string;
 }
 
+/**
+ * Formats a number as a currency string.
+ *
+ * @param amount - The numeric amount to format
+ * @param options - Formatting options
+ * @param options.currency - The currency code (e.g., "USD", "EUR")
+ * @param options.currencySymbol - Optional symbol to override the default currency symbol
+ * @param options.currencyFormat - Format style: "standard", "european", or "indian"
+ * @param options.locale - Optional locale override (not currently used directly in logic logic overrides)
+ * @returns The formatted currency string
+ */
 export const formatCurrency = (
   amount: number,
   options?: FormatCurrencyOptions
@@ -69,6 +96,13 @@ export const formatCurrency = (
   }).format(amount);
 };
 
+/**
+ * Generates an array of page numbers and separators for pagination controls.
+ *
+ * @param currentPage - The current active page number
+ * @param totalPages - The total number of pages
+ * @returns An array containing page numbers and "..." separators
+ */
 export const generatePagination = (currentPage: number, totalPages: number) => {
   // If total pages is 7 or less, show all pages
   if (totalPages <= 7) {
@@ -96,3 +130,10 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
     totalPages,
   ];
 };
+
+/**
+ * Generates a random alphanumeric ID string.
+ *
+ * @returns A random string ID (e.g., "3x8f1a")
+ */
+export const generateId = () => Math.random().toString(36).substring(2, 9);

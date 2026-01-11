@@ -45,6 +45,7 @@ import { PurchaseInvoiceWithDetails, PurchaseInvoiceInput } from "../types";
 import { format } from "date-fns";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SortableTableRow } from "@/components/ui/sortable-row";
+import { generateId } from "@/lib/utils";
 
 interface PurchaseInvoiceFormProps {
   invoice?: PurchaseInvoiceWithDetails;
@@ -63,8 +64,6 @@ interface PurchaseInvoiceFormProps {
   }[];
   readonly?: boolean;
 }
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export function PurchaseInvoiceForm({
   invoice,

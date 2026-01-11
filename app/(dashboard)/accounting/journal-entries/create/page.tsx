@@ -6,8 +6,14 @@ import { JournalEntryForm } from "../_components/journal-entry-form";
 import { createJournalEntry } from "../actions";
 import { getAccounts } from "../../accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
-import { Account, Contact } from "@/prisma/generated/prisma/browser";
+import {
+  Account,
+  Contact,
+  EntryStatus,
+} from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../types";
+import { generateId } from "@/lib/utils";
+import { Decimal } from "@/prisma/generated/prisma/internal/prismaNamespaceBrowser";
 
 export default function CreateJournalEntryPage() {
   const [accounts, setAccounts] = useState<
@@ -16,6 +22,34 @@ export default function CreateJournalEntryPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  const newEntry: CreateJournalEntryData = {
+    id: generateId(),
+    userId: "",
+    entryNumber: "",
+    transactionDate: new Date(),
+    description: "",
+    status: EntryStatus.draft,
+    postedAt: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    notes: "",
+    user: { name: "", email: "" },
+    lines: Array.from({ length: 2 }, (_, i) => ({
+      id: generateId(),
+      journalEntryId: "",
+      accountId: "",
+      account: { name: "" },
+      lineNumber: i,
+      debitAmount: new Decimal(0),
+      creditAmount: new Decimal(0),
+      runningBalance: new Decimal(0),
+      description: "",
+      contactId: null,
+      contact: null,
+    })),
+    attachments: [],
+  };
 
   useEffect(() => {
     Promise.all([getAccounts(), getContacts({ pageSize: 1000 })]).then(
@@ -44,6 +78,7 @@ export default function CreateJournalEntryPage() {
     <JournalEntryForm
       accounts={accounts}
       contacts={contacts}
+      initialData={newEntry}
       onSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       onCancel={() => router.push("/accounting/journal-entries")}

@@ -37,6 +37,7 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/hooks/use-toast";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SortableTableRow } from "@/components/ui/sortable-row";
+import { generateId } from "@/lib/utils";
 
 interface PurchaseReturnFormProps {
   returnItem?: PurchaseReturnWithDetails;
@@ -60,8 +61,6 @@ interface PurchaseReturnFormProps {
   purchaseInvoices: { id: string; invoiceNumber: string; contactId: string }[];
   readonly?: boolean;
 }
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export function PurchaseReturnForm({
   returnItem,

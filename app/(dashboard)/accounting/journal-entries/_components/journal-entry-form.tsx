@@ -48,6 +48,7 @@ import { NoteDialog } from "@/components/ui/note-dialog";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { MentionsList } from "./mentions-list";
 import { Decimal } from "@/prisma/generated/prisma/internal/prismaNamespaceBrowser";
+import { generateId } from "@/lib/utils";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -57,8 +58,6 @@ interface JournalEntryFormProps {
   isSubmitting: boolean;
   onCancel: () => void;
 }
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export function JournalEntryForm({
   initialData,
@@ -206,11 +205,11 @@ export function JournalEntryForm({
     }
   };
 
-  const totalDebit = formData.lines.reduce(
+  const totalDebit = formData?.lines?.reduce(
     (sum, line) => sum + (line.debitAmount.toNumber() || 0),
     0
   );
-  const totalCredit = formData.lines.reduce(
+  const totalCredit = formData?.lines?.reduce(
     (sum, line) => sum + (line.creditAmount.toNumber() || 0),
     0
   );
