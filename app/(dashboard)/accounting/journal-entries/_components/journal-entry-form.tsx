@@ -302,7 +302,9 @@ export function JournalEntryForm({
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold tracking-tight">
-              {initialData?.id ? `Edit Journal Entry` : "New Journal Entry"}
+              {initialData?.entryNumber
+                ? `Edit Journal Entry`
+                : "New Journal Entry"}
             </h2>
           </div>
           <div className="flex justify-end gap-2">
