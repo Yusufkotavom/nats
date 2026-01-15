@@ -40,15 +40,15 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Account, Contact } from "@/prisma/generated/prisma/browser";
+import { Account, Contact, Prisma } from "@/prisma/generated/prisma/browser";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { CreateJournalEntryData } from "../../types";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { NoteDialog } from "@/components/ui/note-dialog";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { MentionsList } from "./mentions-list";
-import { Decimal } from "@/prisma/generated/prisma/internal/prismaNamespaceBrowser";
 import { generateId } from "@/lib/utils";
+import { Decimal } from "@/prisma/generated/prisma/internal/prismaNamespace";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -206,14 +206,14 @@ export function JournalEntryForm({
   };
 
   const totalDebit = formData?.lines?.reduce(
-    (sum, line) => sum + (line.debitAmount.toNumber() || 0),
-    0
+    (sum, line) => line?.debitAmount?.add(sum),
+    new Prisma.Decimal(0)
   );
   const totalCredit = formData?.lines?.reduce(
-    (sum, line) => sum + (line.creditAmount.toNumber() || 0),
-    0
+    (sum, line) => line?.creditAmount?.add(sum),
+    new Prisma.Decimal(0)
   );
-  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+  const isBalanced = totalCredit.equals(totalDebit);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,19 +243,14 @@ export function JournalEntryForm({
     await onSubmit(formData);
   };
 
-  const updateLine = (index: number, field: string, value: string) => {
+  const updateLine = (
+    index: number,
+    field: string,
+    value: string | Decimal
+  ) => {
     if (!formData) return;
     const newLines = [...formData.lines];
     newLines[index] = { ...newLines[index], [field]: value };
-
-    // Auto-clear other side if one side is entered
-    if (field === "debitAmount" && parseFloat(value) > 0) {
-      newLines[index].creditAmount = new Decimal(0);
-    }
-    if (field === "creditAmount" && parseFloat(value) > 0) {
-      newLines[index].debitAmount = new Decimal(0);
-    }
-
     setFormData({ ...formData, lines: newLines });
   };
 
@@ -268,14 +263,14 @@ export function JournalEntryForm({
         {
           id: generateId(),
           accountId: "",
-          account: { name: "" },
+          account: { name: "", code: "" },
           contact: null,
           journalEntryId: formData.id,
           runningBalance: null,
           contactId: null,
           lineNumber: formData.lines.length,
-          debitAmount: new Decimal(0),
-          creditAmount: new Decimal(0),
+          debitAmount: new Prisma.Decimal(0),
+          creditAmount: new Prisma.Decimal(0),
           description: "",
         },
       ],
@@ -464,9 +459,13 @@ export function JournalEntryForm({
                           <TableCell>
                             <CurrencyInput
                               className="text-right border-0"
-                              value={line.debitAmount.toNumber()}
+                              value={line?.debitAmount?.toNumber() || 0}
                               onChange={(val) =>
-                                updateLine(index, "debitAmount", val)
+                                updateLine(
+                                  index,
+                                  "debitAmount",
+                                  new Prisma.Decimal(val)
+                                )
                               }
                               onFocus={(e) => e.target.select()}
                             />
@@ -476,7 +475,11 @@ export function JournalEntryForm({
                               className="text-right border-0"
                               value={line.creditAmount.toNumber()}
                               onChange={(val) =>
-                                updateLine(index, "creditAmount", val)
+                                updateLine(
+                                  index,
+                                  "creditAmount",
+                                  new Prisma.Decimal(val)
+                                )
                               }
                               onFocus={(e) => e.target.select()}
                             />
@@ -502,10 +505,10 @@ export function JournalEntryForm({
                         Total
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        {formatCurrency(totalDebit)}
+                        {formatCurrency(totalDebit.toNumber())}
                       </TableCell>
                       <TableCell className="text-right font-bold">
-                        {formatCurrency(totalCredit)}
+                        {formatCurrency(totalCredit.toNumber())}
                       </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
@@ -521,7 +524,9 @@ export function JournalEntryForm({
                           colSpan={2}
                           className="text-right font-bold text-red-600"
                         >
-                          {formatCurrency(totalDebit - totalCredit)}
+                          {formatCurrency(
+                            totalDebit.sub(totalCredit).toNumber()
+                          )}
                         </TableCell>
                         <TableCell></TableCell>
                       </TableRow>

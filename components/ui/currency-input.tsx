@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 interface CurrencyInputProps
   extends Omit<React.ComponentProps<"input">, "onChange" | "value"> {
   value: string | number;
-  onChange: (value: string) => void;
+  onChange: (value: number) => void;
 }
 
 export const CurrencyInput = React.forwardRef<
@@ -36,7 +36,7 @@ export const CurrencyInput = React.forwardRef<
 
     // Allow digits and one dot.
     if (rawValue === "" || /^\d*\.?\d*$/.test(rawValue)) {
-      onChange(rawValue);
+      onChange(parseFloat(rawValue));
     }
   };
 
@@ -47,7 +47,7 @@ export const CurrencyInput = React.forwardRef<
     if (value !== "" && value !== undefined && value !== null) {
       const numberVal = parseFloat(value.toString());
       if (!isNaN(numberVal)) {
-        onChange(numberVal.toFixed(2));
+        onChange(numberVal);
       }
     }
   };

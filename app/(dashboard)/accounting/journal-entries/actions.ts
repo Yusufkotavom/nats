@@ -106,7 +106,7 @@ export const getJournalEntry = authorizedAction(
       include: {
         lines: {
           include: {
-            account: { select: { name: true } },
+            account: { select: { name: true, code: true } },
             contact: { select: { name: true } },
           },
           orderBy: { lineNumber: "asc" },
@@ -143,12 +143,12 @@ export const createJournalEntry = authorizedAction(
       // Validate debit = credit
       const totalDebit =
         data?.lines.reduce(
-          (sum, line) => sum + line.debitAmount.toNumber(),
+          (sum, line) => sum + (line?.debitAmount?.toNumber() || 0),
           0
         ) || 0;
       const totalCredit =
         data?.lines.reduce(
-          (sum, line) => sum + line.creditAmount.toNumber(),
+          (sum, line) => sum + (line?.creditAmount?.toNumber() || 0),
           0
         ) || 0;
 
@@ -253,11 +253,13 @@ export async function updateJournalEntry(
 
     // Validate debit = credit
     const totalDebit =
-      data?.lines.reduce((sum, line) => sum + line.debitAmount.toNumber(), 0) ||
-      0;
+      data?.lines.reduce(
+        (sum, line) => sum + (line?.debitAmount?.toNumber() || 0),
+        0
+      ) || 0;
     const totalCredit =
       data?.lines.reduce(
-        (sum, line) => sum + line.creditAmount.toNumber(),
+        (sum, line) => sum + (line?.creditAmount?.toNumber() || 0),
         0
       ) || 0;
 
@@ -364,11 +366,11 @@ export async function postJournalEntry(id: string) {
 
       // Double check journal entry balance
       const totalDebit = existingEntry.lines.reduce(
-        (sum, line) => sum + line.debitAmount.toNumber(),
+        (sum, line) => sum + (line?.debitAmount?.toNumber() || 0),
         0
       );
       const totalCredit = existingEntry.lines.reduce(
-        (sum, line) => sum + line.creditAmount.toNumber(),
+        (sum, line) => sum + (line?.creditAmount?.toNumber() || 0),
         0
       );
 

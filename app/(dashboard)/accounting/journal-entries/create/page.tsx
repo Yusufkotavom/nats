@@ -10,10 +10,10 @@ import {
   Account,
   Contact,
   EntryStatus,
+  Prisma,
 } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../types";
 import { generateId } from "@/lib/utils";
-import { Decimal } from "@/prisma/generated/prisma/internal/prismaNamespaceBrowser";
 
 export default function CreateJournalEntryPage() {
   const [accounts, setAccounts] = useState<
@@ -39,11 +39,11 @@ export default function CreateJournalEntryPage() {
       id: generateId(),
       journalEntryId: "",
       accountId: "",
-      account: { name: "" },
+      account: { name: "", code: "" },
       lineNumber: i,
-      debitAmount: new Decimal(0),
-      creditAmount: new Decimal(0),
-      runningBalance: new Decimal(0),
+      debitAmount: new Prisma.Decimal(0),
+      creditAmount: new Prisma.Decimal(0),
+      runningBalance: new Prisma.Decimal(0),
       description: "",
       contactId: null,
       contact: null,
