@@ -12,7 +12,7 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomCombobox } from "@/components/ui/custom-combobox";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Plus,
@@ -390,10 +390,10 @@ export function JournalEntryForm({
                       {formData.lines.map((line, index) => (
                         <SortableTableRow key={line.id} id={line.id}>
                           <TableCell>
-                            <CustomSelect
+                            <CustomCombobox
                               value={line.accountId}
                               onValueChange={(val) =>
-                                updateLine(index, "accountId", val)
+                                updateLine(index, "accountId", val || "")
                               }
                               placeholder="Select account"
                               triggerClassName="w-full border-0"
