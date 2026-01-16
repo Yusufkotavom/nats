@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, serializePrisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
@@ -11,7 +11,7 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
  *
  * @returns - Object containing list of posting accounts
  */
-export const getPostingAccounts = authorizedAction("ledger.view", async () => {
+export const getLedgerAccounts = authorizedAction("ledger.view", async () => {
   try {
     const accounts = await prisma.account.findMany({
       where: {
@@ -49,16 +49,23 @@ export const getPostingAccounts = authorizedAction("ledger.view", async () => {
  *
  * @returns - Object containing ledger lines, pagination metadata, totals, and account info
  */
-export const getLedgerEntries = authorizedAction(
+export const getAccountHistory = authorizedAction(
   "ledger.view",
-  async (
-    accountId: string,
-    page: number = 1,
-    pageSize: number = 20,
-    startDate?: string,
-    endDate?: string,
-    showDraft: boolean = false
-  ) => {
+  async ({
+    accountId,
+    page = 1,
+    pageSize = 20,
+    startDate,
+    endDate,
+    showDraft = false,
+  }: {
+    accountId: string;
+    page?: number;
+    pageSize?: number;
+    startDate?: string;
+    endDate?: string;
+    showDraft?: boolean;
+  }) => {
     try {
       const skip = (page - 1) * pageSize;
 
@@ -128,30 +135,24 @@ export const getLedgerEntries = authorizedAction(
         }),
       ]);
 
-      const finalLines = lines.map((line) => {
-        const runningBalance = line.runningBalance?.toNumber() || 0;
-        return {
-          ...line,
-          debitAmount: line.debitAmount.toNumber(),
-          creditAmount: line.creditAmount.toNumber(),
-          runningBalance: runningBalance,
-        };
-      });
+      const finalLines = serializePrisma(lines);
 
       return {
         success: true,
-        data: finalLines,
-        pagination: {
-          total,
-          totalPages: Math.ceil(total / pageSize),
-          currentPage: page,
-          pageSize,
+        data: {
+          items: finalLines,
+          pagination: {
+            total,
+            totalPages: Math.ceil(total / pageSize),
+            currentPage: page,
+            pageSize,
+          },
+          totals: {
+            debit: aggregates._sum.debitAmount?.toNumber() || 0,
+            credit: aggregates._sum.creditAmount?.toNumber() || 0,
+          },
+          account,
         },
-        totals: {
-          debit: aggregates._sum.debitAmount?.toNumber() || 0,
-          credit: aggregates._sum.creditAmount?.toNumber() || 0,
-        },
-        account,
       };
     } catch (error) {
       console.error("Error fetching ledger entries:", error);

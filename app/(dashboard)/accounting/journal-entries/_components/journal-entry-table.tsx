@@ -28,7 +28,6 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { CustomPagination } from "../../../../../components/ui/custom-pagination";
 import {
   getJournalEntries,
   deleteJournalEntry,
@@ -39,6 +38,7 @@ import { Protect } from "@/components/ui/protect";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CustomPagination } from "@/components/ui/custom-pagination";
 
 // Define type based on the return of getJournalEntries
 type JournalEntryWithDetails = NonNullable<
@@ -53,7 +53,6 @@ export function JournalEntryTable() {
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
@@ -63,14 +62,13 @@ export function JournalEntryTable() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchEntries = useCallback(async () => {
-    const res = await getJournalEntries(
+    const res = await getJournalEntries({
       page,
-      pageSize,
       startDate,
       endDate,
       status,
-      search
-    );
+      search,
+    });
     if (res.success && res.data) {
       setEntries(res.data);
       const responseWithPagination = res as typeof res & {
@@ -81,7 +79,7 @@ export function JournalEntryTable() {
       }
     }
     setLoading(false);
-  }, [startDate, endDate, status, search, page, pageSize]);
+  }, [startDate, endDate, status, search, page]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -280,9 +278,17 @@ export function JournalEntryTable() {
                     </TableCell>
                     <TableCell>{formatDate(entry.transactionDate)}</TableCell>
                     <TableCell className="font-medium">
-                      {entry.entryNumber}
+                      <a
+                        href={`/accounting/journal-entries/${entry.id}`}
+                        target="_blank"
+                        className="text-primary hover:underline font-medium"
+                      >
+                        {entry.entryNumber}
+                      </a>
                     </TableCell>
-                    <TableCell>{entry.description || "-"}</TableCell>
+                    <TableCell className="text-xs truncate">
+                      {entry.description || "-"}
+                    </TableCell>
                     <TableCell>{entry.user.name}</TableCell>
                     <TableCell>
                       <StatusBadge status={entry.status} />
@@ -347,7 +353,6 @@ export function JournalEntryTable() {
 
       <CustomPagination
         totalEntries={total}
-        pageSize={pageSize}
         currentPage={page}
         onPageChange={setPage}
       />

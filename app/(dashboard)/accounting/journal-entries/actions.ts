@@ -23,14 +23,21 @@ import { CreateJournalEntryData } from "../types";
  */
 export const getJournalEntries = authorizedAction(
   "journal_entries.view",
-  async (
-    page: number = 1,
-    pageSize: number = 20,
-    startDate?: string,
-    endDate?: string,
-    status?: string,
-    search?: string
-  ) => {
+  async ({
+    page = 1,
+    pageSize = 20,
+    startDate,
+    endDate,
+    status,
+    search,
+  }: {
+    page?: number;
+    pageSize?: number;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    search?: string;
+  }) => {
     const where: Prisma.JournalEntryWhereInput = {};
     if (status && status !== "all") {
       where.status = status as EntryStatus;

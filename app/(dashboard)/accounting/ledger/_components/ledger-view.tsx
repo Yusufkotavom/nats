@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import {
   Table,
@@ -9,9 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CustomCombobox } from "@/components/ui/custom-combobox";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
-import { getLedgerEntries } from "../actions";
+import { getAccountHistory, getLedgerAccounts } from "../actions";
 import {
   Card,
   CardContent,
@@ -20,48 +19,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-
 import { CustomInput } from "@/components/ui/custom-input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Account } from "../../types";
-import { CustomPagination } from "../../../../../components/ui/custom-pagination";
-import {
-  AccountType,
-  NormalBalance,
-  Prisma,
-} from "@/prisma/generated/prisma/browser";
+import { AccountType, NormalBalance } from "@/prisma/generated/prisma/browser";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
+import { CustomPagination } from "@/components/ui/custom-pagination";
 
-type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
-  include: {
-    journalEntry: {
-      select: {
-        entryNumber: true;
-        transactionDate: true;
-        postedAt: true;
-        createdAt: true;
-        description: true;
-        status: true;
-      };
-    };
-  };
-}> & { runningBalance: number };
+type AccountHistory = NonNullable<
+  Awaited<ReturnType<typeof getAccountHistory>>
+>["data"];
 
-interface LedgerViewProps {
-  accounts: Account[];
-}
-
-export function LedgerView({ accounts }: LedgerViewProps) {
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+export function LedgerView({
+  accounts,
+}: {
+  accounts: Awaited<ReturnType<typeof getLedgerAccounts>>["data"];
+}) {
+  const [selectedAccount, setSelectedAccount] = useState<
+    | NonNullable<Awaited<ReturnType<typeof getLedgerAccounts>>["data"]>[number]
+    | undefined
+  >();
+  const [entries, setEntries] = useState<AccountHistory>();
   const [loading, setLoading] = useState(false);
-  const [totals, setTotals] = useState<{ debit: number; credit: number }>({
-    debit: 0,
-    credit: 0,
-  });
   const [accountDetails, setAccountDetails] = useState<{
     normalBalance: NormalBalance;
   } | null>(null);
@@ -69,45 +50,27 @@ export function LedgerView({ accounts }: LedgerViewProps) {
   const [endDate, setEndDate] = useState("");
   const [showDraft, setShowDraft] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
+  const pageSize = 20;
 
   useEffect(() => {
     if (!selectedAccount?.id) return;
 
     const fetchEntries = async () => {
       setLoading(true);
-      const res = await getLedgerEntries(
-        selectedAccount.id,
+      const responseWithPagination = await getAccountHistory({
+        accountId: selectedAccount.id,
         page,
         pageSize,
         startDate,
         endDate,
-        showDraft
-      );
-      if (res.success && res.data) {
-        setEntries(res.data as unknown as LedgerEntry[]);
-        const responseWithExtras = res as typeof res & {
-          totals?: { debit: number | string; credit: number | string };
-          account?: { normalBalance: NormalBalance };
-          pagination?: { total: number };
-        };
+        showDraft,
+      });
 
-        if (responseWithExtras.pagination) {
-          setTotal(responseWithExtras.pagination.total);
-        }
-
-        if (responseWithExtras.totals) {
-          setTotals({
-            debit: Number(responseWithExtras.totals.debit),
-            credit: Number(responseWithExtras.totals.credit),
-          });
-        }
-        if (responseWithExtras.account) {
-          setAccountDetails(responseWithExtras.account);
-        }
+      if (responseWithPagination.success && responseWithPagination.data) {
+        setEntries(responseWithPagination.data);
+        setAccountDetails(responseWithPagination.data.account);
       }
       setLoading(false);
     };
@@ -129,8 +92,8 @@ export function LedgerView({ accounts }: LedgerViewProps) {
 
   const balance =
     accountDetails?.normalBalance === "debit"
-      ? totals.debit - totals.credit
-      : totals.credit - totals.debit;
+      ? (entries?.totals?.debit ?? 0) - (entries?.totals?.credit ?? 0)
+      : (entries?.totals?.credit ?? 0) - (entries?.totals?.debit ?? 0);
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -156,7 +119,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                 <Skeleton className="h-8 w-32" />
               ) : (
                 <div className="text-2xl font-bold">
-                  {formatCurrency(totals.debit)}
+                  {formatCurrency(entries?.totals?.debit ?? 0)}
                 </div>
               )}
             </CardContent>
@@ -177,7 +140,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                 <Skeleton className="h-8 w-32" />
               ) : (
                 <div className="text-2xl font-bold">
-                  {formatCurrency(totals.credit)}
+                  {formatCurrency(entries?.totals?.credit ?? 0)}
                 </div>
               )}
             </CardContent>
@@ -209,17 +172,21 @@ export function LedgerView({ accounts }: LedgerViewProps) {
         <CardHeader>
           <CardDescription>
             <div className="flex items-end gap-4 flex-wrap">
-              <CustomCombobox
-                label="Account"
-                placeholder="Select Account"
-                value={selectedAccount?.id}
-                onValueChange={(val) => handleAccountChange(val || "")}
-                options={accounts.map((account) => ({
-                  value: account.id,
-                  label: `${account.code} - ${account.name}`,
-                }))}
-                className="min-w-[250px]"
-              />
+              {accounts && (
+                <div className="space-y-1">
+                  <Label>Account</Label>
+                  <SearchableSelect
+                    placeholder="Select Account"
+                    value={selectedAccount?.id}
+                    onValueChange={(val) => handleAccountChange(val || "")}
+                    options={accounts.map((account) => ({
+                      value: account.id,
+                      label: `${account.code} - ${account.name}`,
+                    }))}
+                    className="min-w-[250px]"
+                  />
+                </div>
+              )}
               <CustomInput
                 label="Start Date"
                 type="date"
@@ -299,7 +266,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                       </TableCell>
                     </TableRow>
                   ))
-                ) : entries.length === 0 ? (
+                ) : entries?.items?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
                       {selectedAccount?.id
@@ -308,7 +275,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  entries.map((entry) => (
+                  entries?.items?.map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell>
                         {formatDate(entry.journalEntry.postedAt || "Draft")}
@@ -316,7 +283,15 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                       <TableCell>
                         {formatDate(entry.journalEntry.transactionDate)}
                       </TableCell>
-                      <TableCell>{entry.journalEntry.entryNumber}</TableCell>
+                      <TableCell>
+                        <a
+                          href={`/accounting/journal-entries/${entry.journalEntryId}`}
+                          target="_blank"
+                          className="text-primary hover:underline font-medium"
+                        >
+                          {entry.journalEntry.entryNumber}
+                        </a>
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="text-xs text-muted-foreground">
@@ -328,17 +303,17 @@ export function LedgerView({ accounts }: LedgerViewProps) {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {Number(entry.debitAmount) > 0
+                        {entry.debitAmount
                           ? formatCurrency(Number(entry.debitAmount))
                           : "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {Number(entry.creditAmount) > 0
+                        {entry.creditAmount
                           ? formatCurrency(Number(entry.creditAmount))
                           : "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(entry.runningBalance)}
+                        {formatCurrency(Number(entry.runningBalance))}
                       </TableCell>
                       <TableCell className="text-center">
                         <StatusBadge status={entry.journalEntry.status} />
@@ -350,7 +325,7 @@ export function LedgerView({ accounts }: LedgerViewProps) {
             </Table>
           </div>
           <CustomPagination
-            totalEntries={total}
+            totalEntries={entries?.pagination?.total || 0}
             pageSize={pageSize}
             currentPage={page}
             onPageChange={setPage}
