@@ -73,7 +73,7 @@ export function CustomPagination({
 
   return (
     <div
-      className={`flex flex-row items-center justify-between py-2 w-full ${
+      className={`flex flex-row items-center justify-between p-2 w-full ${
         className || ""
       }`}
     >

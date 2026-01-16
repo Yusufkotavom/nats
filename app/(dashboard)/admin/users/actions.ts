@@ -29,7 +29,7 @@ interface UserUpdateData {
 export async function getUsers(page: number, limit: number) {
   const skip = (page - 1) * limit;
 
-  const [users, total] = await Promise.all([
+  const [data, total] = await Promise.all([
     prisma.user.findMany({
       skip,
       take: limit,
@@ -50,7 +50,7 @@ export async function getUsers(page: number, limit: number) {
     prisma.user.count(),
   ]);
 
-  return { users, total, totalPages: Math.ceil(total / limit) };
+  return { data, total, totalPages: Math.ceil(total / limit) };
 }
 
 /**
