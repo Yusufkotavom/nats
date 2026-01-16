@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import { getPaginationMetadata } from "@/lib/pagination";
 
 /**
  * Fetch accounts for list or tree display.
@@ -61,12 +62,7 @@ export async function getAccounts(page?: number, pageSize?: number) {
 
   return {
     data,
-    pagination: {
-      total,
-      totalPages: Math.ceil(total / pageSize),
-      currentPage: page,
-      pageSize,
-    },
+    pagination: getPaginationMetadata(total, page, pageSize),
   };
 }
 

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+
 import {
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
-import { getAccountHistory, getLedgerAccounts } from "../actions";
+import { getLedgerAccounts } from "../actions";
 import {
   Card,
   CardContent,
@@ -23,77 +23,37 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AccountType, NormalBalance } from "@/prisma/generated/prisma/browser";
+import { AccountType } from "@/prisma/generated/prisma/browser";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 import { CustomPagination } from "@/components/ui/custom-pagination";
-
-type AccountHistory = NonNullable<
-  Awaited<ReturnType<typeof getAccountHistory>>
->["data"];
+import { useLedger } from "./use-ledger";
 
 export function LedgerView({
   accounts,
 }: {
   accounts: Awaited<ReturnType<typeof getLedgerAccounts>>["data"];
 }) {
-  const [selectedAccount, setSelectedAccount] = useState<
-    | NonNullable<Awaited<ReturnType<typeof getLedgerAccounts>>["data"]>[number]
-    | undefined
-  >();
-  const [entries, setEntries] = useState<AccountHistory>();
-  const [loading, setLoading] = useState(false);
-  const [accountDetails, setAccountDetails] = useState<{
-    normalBalance: NormalBalance;
-  } | null>(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [showDraft, setShowDraft] = useState(false);
-  const [page, setPage] = useState(1);
+  const {
+    selectedAccount,
+    entries,
+    loading,
+    accountDetails,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    showDraft,
+    setShowDraft,
+    page,
+    setPage,
+    handleAccountChange,
+    balance,
+    pageSize,
+  } = useLedger();
+
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
-  const pageSize = 20;
-
-  useEffect(() => {
-    if (!selectedAccount?.id) return;
-
-    const fetchEntries = async () => {
-      setLoading(true);
-      const responseWithPagination = await getAccountHistory({
-        accountId: selectedAccount.id,
-        page,
-        pageSize,
-        startDate,
-        endDate,
-        showDraft,
-      });
-
-      if (responseWithPagination.success && responseWithPagination.data) {
-        setEntries(responseWithPagination.data);
-        setAccountDetails(responseWithPagination.data.account);
-      }
-      setLoading(false);
-    };
-
-    const timer = setTimeout(() => {
-      fetchEntries();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [selectedAccount?.id, startDate, endDate, showDraft, page, pageSize]);
-
-  const handleAccountChange = (value: string) => {
-    const found = accounts?.find((item) => item.id == value);
-    if (found) {
-      setSelectedAccount(found);
-      setPage(1);
-    }
-  };
-
-  const balance =
-    accountDetails?.normalBalance === "debit"
-      ? (entries?.totals?.debit ?? 0) - (entries?.totals?.credit ?? 0)
-      : (entries?.totals?.credit ?? 0) - (entries?.totals?.debit ?? 0);
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -178,7 +138,9 @@ export function LedgerView({
                   <SearchableSelect
                     placeholder="Select Account"
                     value={selectedAccount?.id}
-                    onValueChange={(val) => handleAccountChange(val || "")}
+                    onValueChange={(val) =>
+                      handleAccountChange(val || "", accounts)
+                    }
                     options={accounts.map((account) => ({
                       value: account.id,
                       label: `${account.code} - ${account.name}`,

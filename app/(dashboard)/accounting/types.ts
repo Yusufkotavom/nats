@@ -1,5 +1,6 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { getJournalEntry } from "./journal-entries/actions";
+import { PaginatedResult } from "@/lib/pagination";
 
 // Use Prisma's generated type for Account, including relations we commonly fetch
 export type Account = Prisma.AccountGetPayload<{
@@ -11,6 +12,8 @@ export type Account = Prisma.AccountGetPayload<{
     };
   };
 }>;
+
+export type AccountsResult = PaginatedResult<Account> | Account[];
 
 export type CalculatedAccount = Account & {
   ownDebit: number;

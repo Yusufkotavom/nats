@@ -43,7 +43,7 @@ import { CustomPagination } from "@/components/ui/custom-pagination";
 // Define type based on the return of getJournalEntries
 type JournalEntryWithDetails = NonNullable<
   Awaited<ReturnType<typeof getJournalEntries>>["data"]
->[number];
+>["items"][number];
 
 export function JournalEntryTable() {
   const [entries, setEntries] = useState<JournalEntryWithDetails[]>([]);
@@ -70,13 +70,8 @@ export function JournalEntryTable() {
       search,
     });
     if (res.success && res.data) {
-      setEntries(res.data);
-      const responseWithPagination = res as typeof res & {
-        pagination?: { total: number };
-      };
-      if (responseWithPagination.pagination) {
-        setTotal(responseWithPagination.pagination.total);
-      }
+      setEntries(res.data.items);
+      setTotal(res.data.pagination.total);
     }
     setLoading(false);
   }, [startDate, endDate, status, search, page]);

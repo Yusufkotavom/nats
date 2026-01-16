@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { CreateJournalEntryData } from "../types";
+import { getPaginationMetadata } from "@/lib/pagination";
 
 /**
  * Fetch journal entries with pagination and filtering.
@@ -87,12 +88,9 @@ export const getJournalEntries = authorizedAction(
 
     return {
       success: true,
-      data: serializePrisma(entries),
-      pagination: {
-        total,
-        totalPages: Math.ceil(total / pageSize),
-        currentPage: page,
-        pageSize,
+      data: {
+        items: serializePrisma(entries),
+        pagination: getPaginationMetadata(total, page, pageSize),
       },
     };
   }

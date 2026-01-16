@@ -3,6 +3,7 @@
 import { prisma, serializePrisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { getPaginationMetadata } from "@/lib/pagination";
 
 /**
  * Fetch all accounts that can be posted to (isPosting = true).
@@ -141,12 +142,7 @@ export const getAccountHistory = authorizedAction(
         success: true,
         data: {
           items: finalLines,
-          pagination: {
-            total,
-            totalPages: Math.ceil(total / pageSize),
-            currentPage: page,
-            pageSize,
-          },
+          pagination: getPaginationMetadata(total, page, pageSize),
           totals: {
             debit: aggregates._sum.debitAmount?.toNumber() || 0,
             credit: aggregates._sum.creditAmount?.toNumber() || 0,
