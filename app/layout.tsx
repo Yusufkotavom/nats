@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/layout/others/theme-provider";
 import { ThemeColorProvider } from "@/components/layout/others/theme-color-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { DialogProvider } from "@/components/providers/dialog-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -39,8 +40,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ThemeColorProvider>
-            {children}
-            <Toaster />
+            <DialogProvider>
+              {children}
+              <Toaster />
+            </DialogProvider>
           </ThemeColorProvider>
         </ThemeProvider>
       </body>
