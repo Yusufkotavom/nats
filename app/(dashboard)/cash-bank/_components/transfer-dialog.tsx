@@ -29,6 +29,7 @@ import {
   Attachment,
 } from "@/components/ui/attachment-dialog";
 import { useEffect } from "react";
+import { Prisma } from "@/prisma/generated/prisma/browser";
 
 interface CashTransferDialogProps {
   open: boolean;
@@ -49,7 +50,7 @@ export function CashTransferDialog({
   const [formData, setFormData] = useState<CashTransferFormData>({
     fromAccountId: "",
     toAccountId: "",
-    amount: 0,
+    amount: new Prisma.Decimal(0),
     date: new Date(),
     reference: "",
     description: "",
@@ -66,7 +67,7 @@ export function CashTransferDialog({
         setFormData({
           fromAccountId: transfer.fromAccountId,
           toAccountId: transfer.toAccountId,
-          amount: Number(transfer.amount),
+          amount: new Prisma.Decimal(transfer.amount),
           date: new Date(transfer.date),
           reference: transfer.reference || "",
           description: transfer.description || "",
@@ -79,7 +80,7 @@ export function CashTransferDialog({
         setFormData({
           fromAccountId: "",
           toAccountId: "",
-          amount: 0,
+          amount: new Prisma.Decimal(0),
           date: new Date(),
           reference: "",
           description: "",
@@ -94,7 +95,7 @@ export function CashTransferDialog({
     if (
       !formData.fromAccountId ||
       !formData.toAccountId ||
-      formData.amount <= 0
+      formData.amount.lessThan(0)
     ) {
       toast({
         title: "Error",
@@ -140,7 +141,7 @@ export function CashTransferDialog({
           setFormData({
             fromAccountId: "",
             toAccountId: "",
-            amount: 0,
+            amount: new Prisma.Decimal(0),
             date: new Date(),
             reference: "",
             description: "",
@@ -198,9 +199,12 @@ export function CashTransferDialog({
           <div className="space-y-1">
             <Label>Amount</Label>
             <CurrencyInput
-              value={formData.amount}
+              value={formData.amount.toNumber()}
               onChange={(val) =>
-                setFormData({ ...formData, amount: parseFloat(val) || 0 })
+                setFormData({
+                  ...formData,
+                  amount: new Prisma.Decimal(val || 0),
+                })
               }
               placeholder="0.00"
             />

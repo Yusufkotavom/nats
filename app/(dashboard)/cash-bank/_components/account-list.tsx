@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { CashAccountWithBalance } from "../types";
-import { Account } from "@/prisma/generated/prisma/client";
 import { CashAccountType } from "@/prisma/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, History, Wallet, Building2 } from "lucide-react";
@@ -16,15 +15,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { deleteCashAccount } from "../actions";
+import {
+  deleteCashAccount,
+  getAvailableGLAccounts,
+  getDashboardStats,
+} from "../actions";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useRouter } from "next/navigation";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 interface CashAccountListProps {
-  accounts: CashAccountWithBalance[];
-  glAccounts: Account[];
+  accounts: Awaited<ReturnType<typeof getDashboardStats>>["accounts"];
+  glAccounts: Awaited<ReturnType<typeof getAvailableGLAccounts>>;
   title?: string;
 }
 

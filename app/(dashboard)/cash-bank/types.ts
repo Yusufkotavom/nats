@@ -35,7 +35,7 @@ export type CashTransfer = Prisma.CashTransferGetPayload<{
 export type CashTransferFormData = {
   fromAccountId: string;
   toAccountId: string;
-  amount: number;
+  amount: Prisma.Decimal;
   date: Date;
   reference?: string;
   description?: string;

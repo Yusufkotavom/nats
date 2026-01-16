@@ -1,12 +1,6 @@
 "use client";
 
 import { CashAccountList } from "./account-list";
-import { CashAccountWithBalance } from "../types";
-import {
-  Account,
-  JournalEntryLine,
-  JournalEntry,
-} from "@/prisma/generated/prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Wallet,
@@ -25,24 +19,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { getAvailableGLAccounts, getDashboardStats } from "../actions";
 
 interface DashboardViewProps {
-  accounts: CashAccountWithBalance[];
-  summary: {
-    totalBalance: number;
-    totalCash: number;
-    totalBank: number;
-  };
-  recentTransactions: (JournalEntryLine & {
-    journalEntry: JournalEntry;
-    account: Account;
-  })[];
-  glAccounts: Account[];
+  accounts: Awaited<ReturnType<typeof getDashboardStats>>["accounts"];
+  summary: Awaited<ReturnType<typeof getDashboardStats>>["summary"];
+  recentTransactions: Awaited<
+    ReturnType<typeof getDashboardStats>
+  >["recentTransactions"];
+  glAccounts: Awaited<ReturnType<typeof getAvailableGLAccounts>>;
 }
 
 export function DashboardView({
@@ -75,7 +64,7 @@ export function DashboardView({
         <TabsContent value="overview" className="space-y-8">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <Card className="bg-linear-to-br from-primary/10 to-primary/5 border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Wallet className="h-4 w-4" /> Total Balance

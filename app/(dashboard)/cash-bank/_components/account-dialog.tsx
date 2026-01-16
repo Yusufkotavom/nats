@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,10 +13,13 @@ import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
-import { createCashAccount, updateCashAccount } from "../actions";
+import {
+  createCashAccount,
+  getAvailableGLAccounts,
+  updateCashAccount,
+} from "../actions";
 import { CashAccount, CashAccountFormData } from "../types";
 import { CashAccountType } from "@/prisma/generated/prisma/enums";
-import { Account } from "@/prisma/generated/prisma/client";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,7 +27,7 @@ interface CashAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   account?: CashAccount; // If provided, we are editing
-  glAccounts: Account[];
+  glAccounts: Awaited<ReturnType<typeof getAvailableGLAccounts>>;
   onSuccess: () => void;
 }
 
