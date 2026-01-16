@@ -64,7 +64,6 @@ export default function JournalEntryPage() {
   const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
-  const [isPending, startTransition] = useTransition();
   const [entryToDelete, setEntryToDelete] =
     useState<JournalEntryWithDetails | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -96,16 +95,14 @@ export default function JournalEntryPage() {
     if (!entryToDelete) return;
     setIsDeleting(true);
 
-    startTransition(async () => {
-      const res = await deleteJournalEntry(entryToDelete.id);
-      if (res.success) {
-        fetchEntries();
-        setEntryToDelete(null);
-      } else {
-        alert(res.error);
-      }
-      setIsDeleting(false);
-    });
+    const res = await deleteJournalEntry(entryToDelete.id);
+    if (res.success) {
+      fetchEntries();
+      setEntryToDelete(null);
+    } else {
+      alert(res.error);
+    }
+    setIsDeleting(false);
   };
 
   const handleDelete = (entry: JournalEntryWithDetails) => {
@@ -114,20 +111,17 @@ export default function JournalEntryPage() {
 
   const handlePost = async (id: string) => {
     if (
-      !confirm(
+      confirm(
         "Are you sure you want to post this journal entry? This action cannot be undone."
       )
-    )
-      return;
-
-    startTransition(async () => {
+    ) {
       const res = await postJournalEntry(id);
       if (res.success) {
         fetchEntries();
       } else {
         alert(res.error);
       }
-    });
+    }
   };
 
   return (
