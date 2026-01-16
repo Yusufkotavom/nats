@@ -137,3 +137,17 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
  * @returns A random string ID (e.g., "3x8f1a")
  */
 export const generateId = () => Math.random().toString(36).substring(2, 9);
+
+/**
+ * Converts a string to title case, capitalizing the first letter of each word
+ * while preserving the case of the remaining letters.
+ *
+ * @param str - The string to convert to title case
+ * @returns The title-cased string
+ */
+export const toTitleCase = (str: string): string => {
+  return str
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};

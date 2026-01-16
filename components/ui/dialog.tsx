@@ -58,6 +58,7 @@ function DialogContent({
   return (
     <DialogPortal>
       <DialogOverlay />
+      <DialogTitle>{props.title}</DialogTitle>
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(

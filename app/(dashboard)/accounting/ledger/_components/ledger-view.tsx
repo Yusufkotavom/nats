@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomCombobox } from "@/components/ui/custom-combobox";
 import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import { getLedgerEntries } from "../actions";
 import {
@@ -209,15 +209,16 @@ export function LedgerView({ accounts }: LedgerViewProps) {
         <CardHeader>
           <CardDescription>
             <div className="flex items-end gap-4 flex-wrap">
-              <CustomSelect
+              <CustomCombobox
                 label="Account"
                 placeholder="Select Account"
                 value={selectedAccount?.id}
-                onValueChange={handleAccountChange}
+                onValueChange={(val) => handleAccountChange(val || "")}
                 options={accounts.map((account) => ({
                   value: account.id,
                   label: `${account.code} - ${account.name}`,
                 }))}
+                className="min-w-[250px]"
               />
               <CustomInput
                 label="Start Date"

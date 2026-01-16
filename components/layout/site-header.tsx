@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import { ModeToggle } from "@/components/layout/mode-toggle";
 import { ThemeCustomizer } from "@/components/layout/theme-customizer";
+import { toTitleCase } from "@/lib/utils";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -27,9 +28,13 @@ export function SiteHeader() {
       <React.Fragment key={href}>
         <BreadcrumbItem>
           {isLast ? (
-            <BreadcrumbPage>{title}</BreadcrumbPage>
+            <BreadcrumbPage>
+              {toTitleCase(title.replace("-", " "))}
+            </BreadcrumbPage>
           ) : (
-            <BreadcrumbLink href={href}>{title}</BreadcrumbLink>
+            <BreadcrumbLink href={href}>
+              {toTitleCase(title.replace("-", " "))}
+            </BreadcrumbLink>
           )}
         </BreadcrumbItem>
         {!isLast && <BreadcrumbSeparator />}

@@ -12,7 +12,7 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table";
-import { CustomCombobox } from "@/components/ui/custom-combobox";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Plus,
@@ -390,13 +390,13 @@ export function JournalEntryForm({
                       {formData.lines.map((line, index) => (
                         <SortableTableRow key={line.id} id={line.id}>
                           <TableCell>
-                            <CustomCombobox
+                            <SearchableSelect
                               value={line.accountId}
                               onValueChange={(val) =>
                                 updateLine(index, "accountId", val || "")
                               }
-                              placeholder="Select account"
-                              triggerClassName="w-full border-0"
+                              placeholder="Search Account"
+                              className="w-full border-0"
                               options={leafAccounts.map((account) => ({
                                 value: account.id,
                                 label: `${account.code} - ${account.name}`,
