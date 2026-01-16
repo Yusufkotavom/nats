@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAccountHistory, getLedgerAccounts } from "../actions";
+import { getAccountHistory, getLedgerAccounts } from "./actions";
 import { NormalBalance } from "@/prisma/generated/prisma/browser";
 
 type AccountHistory = NonNullable<
@@ -16,7 +16,7 @@ export function useLedger() {
   const [accountDetails, setAccountDetails] = useState<{
     normalBalance: NormalBalance;
   } | null>(null);
-  
+
   // Filters
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
