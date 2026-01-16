@@ -65,9 +65,6 @@ export function CashAccountList({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">{title}</h2>
-        </div>
         <div className="flex gap-2">
           <Button onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -76,7 +73,7 @@ export function CashAccountList({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {accounts.map((account) => (
           <Card key={account.id} className="relative group space-y-0">
             <CardHeader className="pb-2">
@@ -113,7 +110,7 @@ export function CashAccountList({
                 {account.description || "No description"}
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between border-t p-4 bg-muted/20">
+            <CardFooter className="flex justify-between border-t bg-muted/20 p-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -126,16 +123,6 @@ export function CashAccountList({
                 History
               </Button>
               <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setEditingAccount(account);
-                    setIsCreateOpen(true);
-                  }}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

@@ -63,7 +63,7 @@ export function DashboardView({
 
         <TabsContent value="overview" className="space-y-8">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
             <Card className="bg-linear-to-br from-primary/10 to-primary/5 border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -114,10 +114,10 @@ export function DashboardView({
                 </Link>
               </Button>
             </div>
-            <Card>
-              <CardContent>
+            <Card className="p-0">
+              <CardContent className="p-0">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Entry #</TableHead>

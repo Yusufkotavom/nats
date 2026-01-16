@@ -122,7 +122,7 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
 
       <div className="rounded-md border">
         <Table>
-          <TableHeader>
+          <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Reference</TableHead>
