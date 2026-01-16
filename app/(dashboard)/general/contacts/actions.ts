@@ -22,7 +22,7 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
  */
 export async function getContacts({
   page = 1,
-  pageSize = 10,
+  pageSize = 20,
   search = "",
   type,
 }: {

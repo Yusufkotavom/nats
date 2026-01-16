@@ -82,7 +82,7 @@ export default function UsersPage() {
     }
 
     fetchData();
-  }, []);
+  }, [page]);
 
   return (
     <PageListLayout>
