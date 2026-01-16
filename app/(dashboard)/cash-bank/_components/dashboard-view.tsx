@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface DashboardViewProps {
   accounts: CashAccountWithBalance[];
@@ -125,66 +126,69 @@ export function DashboardView({
               </Button>
             </div>
             <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Entry #</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Credit</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentTransactions.length === 0 ? (
+              <CardContent>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No recent transactions found.
-                      </TableCell>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Entry #</TableHead>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Debit</TableHead>
+                      <TableHead className="text-right">Credit</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ) : (
-                    recentTransactions.map((line) => (
-                      <TableRow key={line.id}>
-                        <TableCell>
-                          {formatDate(line.journalEntry.transactionDate)}
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/accounting/journal/${line.journalEntry.id}`}
-                            className="text-primary hover:underline font-medium"
-                          >
-                            {line.journalEntry.entryNumber}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{line.account.name}</TableCell>
-                        <TableCell>
-                          {line.description || line.journalEntry.description}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {Number(line.debitAmount) > 0
-                            ? formatCurrency(Number(line.debitAmount))
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {Number(line.creditAmount) > 0
-                            ? formatCurrency(Number(line.creditAmount))
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {line.journalEntry.status}
-                          </Badge>
+                  </TableHeader>
+                  <TableBody>
+                    {recentTransactions.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          No recent transactions found.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      recentTransactions.map((line) => (
+                        <TableRow key={line.id}>
+                          <TableCell>
+                            {formatDate(line.journalEntry.transactionDate)}
+                          </TableCell>
+                          <TableCell>
+                            <Link
+                              href={`/accounting/journal-entries/${line.journalEntry.id}`}
+                              className="text-primary hover:underline font-medium"
+                              target="_blank"
+                            >
+                              {line.journalEntry.entryNumber}
+                            </Link>
+                          </TableCell>
+                          <TableCell>
+                            {line.account.code} - {line.account.name}
+                          </TableCell>
+                          <TableCell className="text-xs truncate">
+                            {line.description || line.journalEntry.description}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {Number(line.debitAmount) > 0
+                              ? formatCurrency(Number(line.debitAmount))
+                              : "-"}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {Number(line.creditAmount) > 0
+                              ? formatCurrency(Number(line.creditAmount))
+                              : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={line.journalEntry.status} />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
             </Card>
           </div>
         </TabsContent>

@@ -24,7 +24,7 @@ export async function uploadTransferAttachment(formData: FormData) {
     throw new Error("No file provided");
   }
 
-  const { url, filename } = await saveFile(file);
+  const { url } = await saveFile(file);
 
   const dbFile = await prisma.file.create({
     data: {

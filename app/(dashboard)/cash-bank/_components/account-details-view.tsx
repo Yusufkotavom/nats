@@ -40,11 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
-interface AccountDetailsViewProps {
-  accountId: string;
-}
-
-export function AccountDetailsView({ accountId }: AccountDetailsViewProps) {
+export function AccountDetailsView({ accountId }: { accountId: string }) {
   const [entries, setEntries] = useState<any[]>([]);
   const [account, setAccount] = useState<any>(null);
   const [loading, setLoading] = useState(true);
