@@ -24,7 +24,8 @@ model Account {
   productReceivableAccounts Product[] @relation("ProductReceivableAccount")
 
   // Cash & Bank Relations
-  cashAccount CashAccount?
+  cashAccount                CashAccount?
+  cashTransactionAllocations CashTransactionAllocation[]
 
   @@index([code])
   @@index([type])
@@ -47,7 +48,8 @@ model JournalEntry {
   notes           String?
 
   // Cash & Bank Relations
-  cashTransfer CashTransfer?
+  cashTransfer    CashTransfer?
+  cashTransaction CashTransaction?
 
   @@index([transactionDate])
   @@index([status])

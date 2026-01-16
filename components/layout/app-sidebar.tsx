@@ -80,6 +80,10 @@ const data = {
           url: "/cash-bank",
         },
         {
+          title: "Revenue & Expense",
+          url: "/cash-bank/transaction",
+        },
+        {
           title: "Transfers",
           url: "/cash-bank/transfer",
         },
