@@ -13,7 +13,7 @@ import {
   Landmark,
 } from "lucide-react";
 
-import { NavMain } from "@/components/layout/nav-main";
+import { NavMain } from "@/components/layout/sidebar/nav-main";
 import {
   Sidebar,
   SidebarContent,
@@ -21,8 +21,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { TeamSwitcher } from "@/components/layout/team-switcher";
-import { NavUser } from "@/components/layout/nav-user";
+import { TeamSwitcher } from "@/components/layout/others/team-switcher";
+import { NavUser } from "@/components/layout/sidebar/nav-user";
 
 // This is sample data.
 const data = {

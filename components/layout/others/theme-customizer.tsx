@@ -15,7 +15,7 @@ import {
 import {
   useThemeColor,
   ThemeColor,
-} from "@/components/layout/theme-color-provider";
+} from "@/components/layout/others/theme-color-provider";
 import { cn } from "@/lib/utils";
 
 export function ThemeCustomizer() {

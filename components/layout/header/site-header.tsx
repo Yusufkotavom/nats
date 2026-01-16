@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { usePathname } from "next/navigation";
 import React from "react";
-import { ModeToggle } from "@/components/layout/mode-toggle";
-import { ThemeCustomizer } from "@/components/layout/theme-customizer";
+import { ModeToggle } from "@/components/layout/others/mode-toggle";
+import { ThemeCustomizer } from "@/components/layout/others/theme-customizer";
 import { toTitleCase } from "@/lib/utils";
 
 export function SiteHeader() {
