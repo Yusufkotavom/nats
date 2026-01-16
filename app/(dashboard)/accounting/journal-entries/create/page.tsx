@@ -14,6 +14,7 @@ import {
 } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../types";
 import { generateId } from "@/lib/utils";
+import { useAlert } from "@/hooks/use-alert";
 
 export default function CreateJournalEntryPage() {
   const [accounts, setAccounts] = useState<
@@ -22,6 +23,7 @@ export default function CreateJournalEntryPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const alert = useAlert();
 
   const newEntry: CreateJournalEntryData = {
     id: generateId(),
@@ -70,7 +72,10 @@ export default function CreateJournalEntryPage() {
     if (res.success) {
       router.push("/accounting/journal-entries");
     } else {
-      alert(res.error);
+      await alert({
+        title: "Error",
+        description: res.error,
+      });
     }
   };
 

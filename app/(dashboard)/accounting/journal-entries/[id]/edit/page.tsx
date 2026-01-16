@@ -8,6 +8,7 @@ import { getAccounts } from "../../../accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../../types";
+import { useAlert } from "@/hooks/use-alert";
 
 export default function EditJournalEntryPage({
   params,
@@ -23,6 +24,7 @@ export default function EditJournalEntryPage({
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const alert = useAlert();
 
   useEffect(() => {
     const loadData = async () => {
@@ -35,7 +37,10 @@ export default function EditJournalEntryPage({
 
       if (entryRes.success && entryRes.data) {
         if (entryRes.data.status === "posted") {
-          alert("Cannot edit posted journal entries");
+          await alert({
+            title: "Cannot edit",
+            description: "Cannot edit posted journal entries",
+          });
           router.push(`/accounting/journal-entries/${id}`);
           return;
         }
@@ -60,7 +65,10 @@ export default function EditJournalEntryPage({
     if (res.success) {
       router.push("/accounting/journal-entries");
     } else {
-      alert(res.error);
+      await alert({
+        title: "Error",
+        description: res.error,
+      });
     }
   };
 

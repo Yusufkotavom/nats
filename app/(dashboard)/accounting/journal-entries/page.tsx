@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,9 +65,8 @@ export default function JournalEntryPage() {
   const [total, setTotal] = useState(0);
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
-  const [entryToDelete, setEntryToDelete] =
-    useState<JournalEntryWithDetails | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const confirm = useConfirm();
+  const alert = useAlert();
 
   const fetchEntries = useCallback(async () => {
     const res = await getJournalEntries({
@@ -91,35 +91,53 @@ export default function JournalEntryPage() {
     return () => clearTimeout(timer);
   }, [fetchEntries]);
 
-  const confirmDelete = async () => {
-    if (!entryToDelete) return;
-    setIsDeleting(true);
-
-    const res = await deleteJournalEntry(entryToDelete.id);
-    if (res.success) {
-      fetchEntries();
-      setEntryToDelete(null);
-    } else {
-      alert(res.error);
+  const handleDelete = async (entry: JournalEntryWithDetails) => {
+    if (
+      await confirm({
+        title: "Are you sure?",
+        description: (
+          <>
+            This action cannot be undone. This will permanently delete the
+            journal entry
+            <span className="font-medium text-foreground">
+              {" "}
+              #{entry.entryNumber}
+            </span>
+            .
+          </>
+        ),
+        confirmText: "Delete",
+        variant: "destructive",
+      })
+    ) {
+      const res = await deleteJournalEntry(entry.id);
+      if (res.success) {
+        fetchEntries();
+      } else {
+        await alert({
+          title: "Error",
+          description: res.error,
+        });
+      }
     }
-    setIsDeleting(false);
-  };
-
-  const handleDelete = (entry: JournalEntryWithDetails) => {
-    setEntryToDelete(entry);
   };
 
   const handlePost = async (id: string) => {
     if (
-      confirm(
-        "Are you sure you want to post this journal entry? This action cannot be undone."
-      )
+      await confirm({
+        title: "Post Journal Entry",
+        description:
+          "Are you sure you want to post this journal entry? This action cannot be undone.",
+      })
     ) {
       const res = await postJournalEntry(id);
       if (res.success) {
         fetchEntries();
       } else {
-        alert(res.error);
+        await alert({
+          title: "Error",
+          description: res.error,
+        });
       }
     }
   };
@@ -346,27 +364,6 @@ export default function JournalEntryPage() {
           onPageChange={setPage}
         />
       </PageListContent>
-
-      <ConfirmDialog
-        open={!!entryToDelete}
-        onOpenChange={(open) => !open && !isDeleting && setEntryToDelete(null)}
-        title="Are you sure?"
-        description={
-          <>
-            This action cannot be undone. This will permanently delete the
-            journal entry
-            <span className="font-medium text-foreground">
-              {" "}
-              #{entryToDelete?.entryNumber}
-            </span>
-            .
-          </>
-        }
-        onConfirm={confirmDelete}
-        confirmText="Delete"
-        variant="destructive"
-        isLoading={isDeleting}
-      />
     </PageListLayout>
   );
 }

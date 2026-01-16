@@ -21,7 +21,7 @@ import {
   getDashboardStats,
 } from "../actions";
 import { useToast } from "@/hooks/use-toast";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter } from "next/navigation";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 
@@ -40,25 +40,33 @@ export function CashAccountList({
   const [editingAccount, setEditingAccount] = useState<
     CashAccountWithBalance | undefined
   >(undefined);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const confirm = useConfirm();
   const { toast } = useToast();
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
 
-  const handleDelete = async () => {
-    if (!deletingId) return;
-    try {
-      await deleteCashAccount(deletingId);
-      toast({ title: "Success", description: "Account deleted successfully" });
-    } catch (error) {
-      toast({
-        title: "Error",
+  const handleDelete = async (id: string) => {
+    if (
+      await confirm({
+        title: "Delete Account",
         description:
-          error instanceof Error ? error.message : "Failed to delete",
-        variant: "destructive",
-      });
-    } finally {
-      setDeletingId(null);
+          "Are you sure you want to delete this account? This action cannot be undone.",
+      })
+    ) {
+      try {
+        await deleteCashAccount(id);
+        toast({
+          title: "Success",
+          description: "Account deleted successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description:
+            error instanceof Error ? error.message : "Failed to delete",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -127,7 +135,7 @@ export function CashAccountList({
                   variant="ghost"
                   size="icon"
                   className="text-destructive hover:text-destructive"
-                  onClick={() => setDeletingId(account.id)}
+                  onClick={() => handleDelete(account.id)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -152,14 +160,6 @@ export function CashAccountList({
         account={editingAccount}
         glAccounts={glAccounts}
         onSuccess={() => {}}
-      />
-
-      <ConfirmDialog
-        open={!!deletingId}
-        onOpenChange={(open) => !open && setDeletingId(null)}
-        onConfirm={handleDelete}
-        title="Delete Account"
-        description="Are you sure you want to delete this account? This action cannot be undone."
       />
     </div>
   );

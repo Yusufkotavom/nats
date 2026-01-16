@@ -34,7 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { TransferStatus } from "@/prisma/generated/prisma/enums";
 import { approveCashTransfer, deleteCashTransfer } from "../../actions";
 import { useToast } from "@/hooks/use-toast";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface TransferViewProps {
   transfers: CashTransfer[];
@@ -46,9 +46,8 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
   const [editingTransfer, setEditingTransfer] = useState<
     CashTransfer | undefined
   >(undefined);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [approvingId, setApprovingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
 
   const handleEdit = (transfer: CashTransfer) => {
@@ -56,48 +55,58 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
     setIsTransferOpen(true);
   };
 
-  const handleDelete = async () => {
-    if (!deletingId) return;
-    startTransition(async () => {
-      try {
-        await deleteCashTransfer(deletingId);
-        toast({
-          title: "Success",
-          description: "Transfer deleted successfully",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description:
-            error instanceof Error ? error.message : "Failed to delete",
-          variant: "destructive",
-        });
-      } finally {
-        setDeletingId(null);
-      }
-    });
+  const handleDelete = async (id: string) => {
+    if (
+      await confirm({
+        title: "Delete Transfer",
+        description:
+          "Are you sure you want to delete this transfer? This action cannot be undone.",
+      })
+    ) {
+      startTransition(async () => {
+        try {
+          await deleteCashTransfer(id);
+          toast({
+            title: "Success",
+            description: "Transfer deleted successfully",
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description:
+              error instanceof Error ? error.message : "Failed to delete",
+            variant: "destructive",
+          });
+        }
+      });
+    }
   };
 
-  const handleApprove = async () => {
-    if (!approvingId) return;
-    startTransition(async () => {
-      try {
-        await approveCashTransfer(approvingId);
-        toast({
-          title: "Success",
-          description: "Transfer approved successfully",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description:
-            error instanceof Error ? error.message : "Failed to approve",
-          variant: "destructive",
-        });
-      } finally {
-        setApprovingId(null);
-      }
-    });
+  const handleApprove = async (id: string) => {
+    if (
+      await confirm({
+        title: "Approve Transfer",
+        description:
+          "Are you sure you want to approve this transfer? This will post the journal entries.",
+      })
+    ) {
+      startTransition(async () => {
+        try {
+          await approveCashTransfer(id);
+          toast({
+            title: "Success",
+            description: "Transfer approved successfully",
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description:
+              error instanceof Error ? error.message : "Failed to approve",
+            variant: "destructive",
+          });
+        }
+      });
+    }
   };
 
   return (
@@ -235,7 +244,7 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
                           {transfer.status === TransferStatus.PENDING && (
                             <>
                               <DropdownMenuItem
-                                onClick={() => setApprovingId(transfer.id)}
+                                onClick={() => handleApprove(transfer.id)}
                               >
                                 <Check className="mr-2 h-4 w-4" />
                                 Approve
@@ -249,7 +258,7 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => setDeletingId(transfer.id)}
+                                onClick={() => handleDelete(transfer.id)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
@@ -283,22 +292,6 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
           setIsTransferOpen(false);
         }}
         transfer={editingTransfer}
-      />
-
-      <ConfirmDialog
-        open={!!deletingId}
-        onOpenChange={(open) => !open && setDeletingId(null)}
-        onConfirm={handleDelete}
-        title="Delete Transfer"
-        description="Are you sure you want to delete this transfer? This action cannot be undone."
-      />
-
-      <ConfirmDialog
-        open={!!approvingId}
-        onOpenChange={(open) => !open && setApprovingId(null)}
-        onConfirm={handleApprove}
-        title="Approve Transfer"
-        description="This will create a journal entry and post it to the General Ledger. This action cannot be undone."
       />
     </div>
   );

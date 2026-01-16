@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
 import { updateAccount, deleteAccount, getAccounts } from "./actions";
 import { AccountDialog } from "./_components/account-dialog";
@@ -34,9 +34,8 @@ export default function AccountListPage() {
   const [draftName, setDraftName] = useState<string>("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [initialAccounts, setInitialAccounts] = useState<Account[]>([]);
+  const confirm = useConfirm();
 
   useEffect(() => {
     async function fetchData() {
@@ -91,42 +90,52 @@ export default function AccountListPage() {
     setDraftName("");
   }
 
-  async function confirmDelete() {
-    if (!accountToDelete) return;
-    setIsDeleting(true);
-    setError(null);
+  async function handleDelete(a: Account) {
+    if (
+      await confirm({
+        title: "Are you sure?",
+        description: (
+          <>
+            This action cannot be undone. This will permanently delete the
+            account
+            <span className="font-medium text-foreground">
+              {" "}
+              {a.code} — {a.name}
+            </span>
+            .
+          </>
+        ),
+        confirmText: "Delete",
+        variant: "destructive",
+      })
+    ) {
+      setError(null);
 
-    try {
-      const res = await deleteAccount(accountToDelete.id);
-      if (!res?.success) {
-        setError(res?.error || "Delete failed");
+      try {
+        const res = await deleteAccount(a.id);
+        if (!res?.success) {
+          setError(res?.error || "Delete failed");
+          toast({
+            title: "Error",
+            description: res?.error || "Delete failed",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Account deleted successfully",
+          });
+        }
+      } catch (err) {
+        setError("An unexpected error occurred");
         toast({
           title: "Error",
-          description: res?.error || "Delete failed",
+          description: "An unexpected error occurred",
           variant: "destructive",
         });
-      } else {
-        setAccountToDelete(null);
-        toast({
-          title: "Success",
-          description: "Account deleted successfully",
-        });
+        console.error(err);
       }
-    } catch (err) {
-      setError("An unexpected error occurred");
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-      console.error(err);
-    } finally {
-      setIsDeleting(false);
     }
-  }
-
-  function handleDelete(a: Account) {
-    setAccountToDelete(a);
   }
 
   function renderRows(a: Account, depth = 0): React.ReactElement[] {
@@ -275,29 +284,6 @@ export default function AccountListPage() {
             description: "Account created successfully",
           });
         }}
-      />
-
-      <ConfirmDialog
-        open={!!accountToDelete}
-        onOpenChange={(open) =>
-          !open && !isDeleting && setAccountToDelete(null)
-        }
-        title="Are you sure?"
-        description={
-          <>
-            This action cannot be undone. This will permanently delete the
-            account
-            <span className="font-medium text-foreground">
-              {" "}
-              {accountToDelete?.code} — {accountToDelete?.name}
-            </span>
-            .
-          </>
-        }
-        onConfirm={confirmDelete}
-        confirmText="Delete"
-        variant="destructive"
-        isLoading={isDeleting}
       />
     </PageListLayout>
   );
