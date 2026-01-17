@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Download } from "lucide-react";
 import { deleteFile, getFiles } from "../actions";
 import { useState } from "react";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 
 export function FileTable({
   files,
@@ -19,17 +21,28 @@ export function FileTable({
   files: Awaited<ReturnType<typeof getFiles>>;
 }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const confirm = useConfirm();
+  const alert = useAlert();
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this file?")) return;
-
-    setDeletingId(id);
-    try {
-      await deleteFile(id);
-    } catch (error) {
-      console.error("Failed to delete file:", error);
-    } finally {
-      setDeletingId(null);
+    if (
+      await confirm({
+        title: "Delete File",
+        description: "Are you sure you want to delete this file?",
+      })
+    ) {
+      setDeletingId(id);
+      try {
+        await deleteFile(id);
+      } catch (error) {
+        console.error("Failed to delete file:", error);
+        await alert({
+          title: "Error",
+          description: "Failed to delete file",
+        });
+      } finally {
+        setDeletingId(null);
+      }
     }
   };
 

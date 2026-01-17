@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { ContactDialog } from "./_components/contact-dialog";
 import { deleteContact, getContacts } from "./actions";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Badge } from "@/components/ui/badge";
 import { CustomInput } from "@/components/ui/custom-input";
 import { Protect } from "@/components/ui/protect";
@@ -50,14 +50,11 @@ export default function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<Contact | undefined>(
     undefined
   );
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [contactToDelete, setContactToDelete] = useState<Contact | undefined>(
-    undefined
-  );
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState<string>("");
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const confirm = useConfirm();
 
   const handleAddContact = () => {
     setSelectedContact(undefined);
@@ -69,16 +66,14 @@ export default function ContactsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteClick = (contact: Contact) => {
-    setContactToDelete(contact);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (contactToDelete) {
-      await deleteContact(contactToDelete.id);
-      setIsDeleteDialogOpen(false);
-      setContactToDelete(undefined);
+  const handleDeleteClick = async (contact: Contact) => {
+    if (
+      await confirm({
+        title: "Delete Contact",
+        description: `Are you sure you want to delete "${contact.name}"? This action cannot be undone.`,
+      })
+    ) {
+      await deleteContact(contact.id);
     }
   };
 
@@ -230,14 +225,6 @@ export default function ContactsPage() {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         contact={selectedContact}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Delete Contact"
-        description={`Are you sure you want to delete "${contactToDelete?.name}"? This action cannot be undone.`}
-        onConfirm={handleConfirmDelete}
       />
     </PageListLayout>
   );

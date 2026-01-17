@@ -24,7 +24,7 @@ import { UserDialog } from "./user-dialog";
 import { deleteUser, getRoles, getUsers } from "./actions";
 import { format } from "date-fns";
 
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Protect } from "@/components/ui/protect";
 import {
   PageListActions,
@@ -40,14 +40,13 @@ type User = Awaited<ReturnType<typeof getUsers>>["data"][number];
 export default function UsersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [roles, setRoles] = useState<
     { id: string; name: string; description: string | null }[]
   >([]);
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
+  const confirm = useConfirm();
 
   const handleAddUser = () => {
     setSelectedUser(undefined);
@@ -59,16 +58,17 @@ export default function UsersPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteClick = (user: User) => {
-    setUserToDelete(user);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (userToDelete) {
-      await deleteUser(userToDelete.id);
-      setIsDeleteDialogOpen(false);
-      setUserToDelete(undefined);
+  const handleDeleteClick = async (user: User) => {
+    if (
+      await confirm({
+        title: "Are you absolutely sure?",
+        description:
+          "This action cannot be undone. This will permanently delete the user account and remove their data from our servers.",
+        confirmText: "Delete",
+        variant: "destructive",
+      })
+    ) {
+      await deleteUser(user.id);
     }
   };
 
@@ -178,16 +178,6 @@ export default function UsersPage() {
           setIsDialogOpen(open);
           if (!open) setSelectedUser(undefined);
         }}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Are you absolutely sure?"
-        description="This action cannot be undone. This will permanently delete the user account and remove their data from our servers."
-        onConfirm={handleConfirmDelete}
-        confirmText="Delete"
-        variant="destructive"
       />
     </PageListLayout>
   );

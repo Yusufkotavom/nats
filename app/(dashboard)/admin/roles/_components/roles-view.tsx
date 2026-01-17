@@ -13,8 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RoleDialog } from "./role-dialog";
-import { deleteRole, getRoles, toggleRoleStatus } from "../actions";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { getRoles, toggleRoleStatus } from "../actions";
 import { Role } from "@/prisma/generated/prisma/browser";
 
 export function RolesView({
@@ -25,8 +24,6 @@ export function RolesView({
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const handleCreate = () => {
     setEditingRole(undefined);
@@ -40,19 +37,6 @@ export function RolesView({
 
   const handlePermissions = (role: Role) => {
     router.push(`/admin/roles/${role.id}`);
-  };
-
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    setLoading(true);
-    try {
-      await deleteRole(deleteId);
-      setDeleteId(null);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleToggleStatus = async (role: Role) => {
@@ -152,17 +136,6 @@ export function RolesView({
         role={editingRole}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-      />
-
-      <ConfirmDialog
-        open={!!deleteId}
-        onOpenChange={(open) => !open && setDeleteId(null)}
-        title="Are you absolutely sure?"
-        description="This action cannot be undone. This will permanently delete the role."
-        onConfirm={handleDelete}
-        confirmText="Delete"
-        variant="destructive"
-        isLoading={loading}
       />
     </>
   );
