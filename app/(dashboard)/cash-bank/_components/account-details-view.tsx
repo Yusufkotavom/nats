@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import {
   ScaleIcon,
   TrendingDownIcon,
@@ -27,7 +20,6 @@ import {
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CustomInput } from "@/components/ui/custom-input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
 import Link from "next/link";
 import {
@@ -92,6 +84,101 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
 
   // Net Balance for the period
   const periodNetBalance = totals.debit - totals.credit;
+
+  const columns: Column<any>[] = [
+    {
+      header: "Date",
+      headerClassName: "rounded-tl-lg",
+      cell: (entry) => formatDate(entry.journalEntry.transactionDate),
+    },
+    {
+      header: "Entry #",
+      cell: (entry) => (
+        <Link
+          href={`/accounting/journal/${entry.journalEntry.id}`}
+          className="text-blue-600 hover:underline"
+        >
+          {entry.journalEntry.entryNumber}
+        </Link>
+      ),
+    },
+    {
+      header: "Description",
+      cell: (entry) => (
+        <div className="flex flex-col">
+          <span className="text-sm">
+            {entry.description || entry.journalEntry.description || "-"}
+          </span>
+          {entry.journalEntry.attachments &&
+            entry.journalEntry.attachments.length > 0 && (
+              <div className="mt-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      {entry.journalEntry.attachments.length} Attachment
+                      {entry.journalEntry.attachments.length > 1 ? "s" : ""}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuLabel>Attachments</DropdownMenuLabel>
+                    {entry.journalEntry.attachments.map((file: any) => (
+                      <DropdownMenuItem key={file.id} asChild>
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex cursor-pointer items-center gap-2"
+                        >
+                          <FileIcon className="h-4 w-4" />
+                          <span className="max-w-[200px] truncate">
+                            {file.name}
+                          </span>
+                        </a>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+        </div>
+      ),
+    },
+    {
+      header: "Debit",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (entry) =>
+        Number(entry.debitAmount) > 0
+          ? formatCurrency(Number(entry.debitAmount))
+          : "-",
+    },
+    {
+      header: "Credit",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (entry) =>
+        Number(entry.creditAmount) > 0
+          ? formatCurrency(Number(entry.creditAmount))
+          : "-",
+    },
+    {
+      header: "Balance",
+      headerClassName: "text-right",
+      className: "text-right font-medium",
+      cell: (entry) => formatCurrency(entry.runningBalance),
+    },
+    {
+      header: "Status",
+      headerClassName: "text-center",
+      className: "text-center",
+      cell: (entry) => <StatusBadge status={entry.journalEntry.status} />,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -210,146 +297,17 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
-                <TableRow>
-                  <TableHead className="rounded-tl-lg">Date</TableHead>
-                  <TableHead>Entry #</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Debit</TableHead>
-                  <TableHead className="text-right">Credit</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && entries.length === 0 ? (
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Skeleton className="h-4 w-24" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-16" />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-4 w-48" />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Skeleton className="h-4 w-20 ml-auto" />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Skeleton className="h-4 w-20 ml-auto" />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Skeleton className="h-4 w-24 ml-auto" />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Skeleton className="h-6 w-16 mx-auto rounded-full" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : entries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      No transactions found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  entries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>
-                        {formatDate(entry.journalEntry.transactionDate)}
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/accounting/journal/${entry.journalEntry.id}`}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {entry.journalEntry.entryNumber}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm">
-                            {entry.description ||
-                              entry.journalEntry.description ||
-                              "-"}
-                          </span>
-                          {entry.journalEntry.attachments &&
-                            entry.journalEntry.attachments.length > 0 && (
-                              <div className="mt-1">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                    >
-                                      <Paperclip className="h-3 w-3" />
-                                      {
-                                        entry.journalEntry.attachments.length
-                                      }{" "}
-                                      Attachment
-                                      {entry.journalEntry.attachments.length > 1
-                                        ? "s"
-                                        : ""}
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="start">
-                                    <DropdownMenuLabel>
-                                      Attachments
-                                    </DropdownMenuLabel>
-                                    {entry.journalEntry.attachments.map(
-                                      (file: any) => (
-                                        <DropdownMenuItem key={file.id} asChild>
-                                          <a
-                                            href={file.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex cursor-pointer items-center gap-2"
-                                          >
-                                            <FileIcon className="h-4 w-4" />
-                                            <span className="max-w-[200px] truncate">
-                                              {file.name}
-                                            </span>
-                                          </a>
-                                        </DropdownMenuItem>
-                                      )
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {Number(entry.debitAmount) > 0
-                          ? formatCurrency(Number(entry.debitAmount))
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {Number(entry.creditAmount) > 0
-                          ? formatCurrency(Number(entry.creditAmount))
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(entry.runningBalance)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <StatusBadge status={entry.journalEntry.status} />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          <CustomPagination
-            totalEntries={totalCount}
-            pageSize={pageSize}
-            currentPage={page}
-            onPageChange={setPage}
+          <DataTable
+            data={entries}
+            columns={columns}
+            isLoading={loading}
+            emptyMessage="No transactions found."
+            pagination={{
+              totalEntries: totalCount,
+              pageSize,
+              currentPage: page,
+              onPageChange: setPage,
+            }}
           />
         </CardContent>
       </Card>

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import {
@@ -26,56 +19,51 @@ interface TransactionTableProps {
 }
 
 export function TransactionTable({ transactions }: TransactionTableProps) {
+  const columns: Column<TransactionWithDetails>[] = [
+    {
+      header: "Date",
+      cell: (tx) => formatDate(tx.date),
+    },
+    {
+      header: "Reference",
+      cell: (tx) => tx.reference || "-",
+    },
+    {
+      header: "Type",
+      cell: (tx) => (
+        <Badge variant={tx.type === "INCOME" ? "default" : "destructive"}>
+          {tx.type}
+        </Badge>
+      ),
+    },
+    {
+      header: "Cash Account",
+      accessorKey: "cashAccount", // accessorKey is optional if cell is provided, but good for reference
+      cell: (tx) => tx.cashAccount.name,
+    },
+    {
+      header: "Description",
+      accessorKey: "description",
+    },
+    {
+      header: "Amount",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (tx) => {
+        const totalAmount = tx.allocations.reduce(
+          (sum, a) => sum + Number(a.amount),
+          0
+        );
+        return formatCurrency(totalAmount, { currency: "IDR" });
+      },
+    },
+  ];
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Reference</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Cash Account</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((tx) => {
-            const totalAmount = tx.allocations.reduce(
-              (sum, a) => sum + Number(a.amount),
-              0
-            );
-            return (
-              <TableRow key={tx.id}>
-                <TableCell>{formatDate(tx.date)}</TableCell>
-                <TableCell>{tx.reference || "-"}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={tx.type === "INCOME" ? "default" : "destructive"}
-                  >
-                    {tx.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>{tx.cashAccount.name}</TableCell>
-                <TableCell>{tx.description}</TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(totalAmount, { currency: "IDR" })}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-          {transactions.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={6}
-                className="text-center h-24 text-muted-foreground"
-              >
-                No transactions found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      data={transactions}
+      columns={columns}
+      emptyMessage="No transactions found."
+    />
   );
 }

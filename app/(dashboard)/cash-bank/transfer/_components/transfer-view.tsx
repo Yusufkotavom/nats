@@ -13,14 +13,7 @@ import {
 } from "lucide-react";
 import { CashTransferDialog } from "../../_components/transfer-dialog";
 import { CashAccount, CashTransfer } from "../../types";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import { format } from "date-fns";
 import {
   DropdownMenu,
@@ -109,6 +102,137 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
     }
   };
 
+  const columns: Column<CashTransfer>[] = [
+    {
+      header: "Date",
+      cell: (transfer) => format(new Date(transfer.date), "MMM d, yyyy"),
+    },
+    {
+      header: "Reference",
+      cell: (transfer) => transfer.reference || "-",
+    },
+    {
+      header: "From",
+      cell: (transfer) => transfer.fromAccount.name,
+    },
+    {
+      header: "To",
+      cell: (transfer) => transfer.toAccount.name,
+    },
+    {
+      header: "Amount",
+      className: "font-medium",
+      cell: (transfer) =>
+        new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        }).format(Number(transfer.amount)),
+    },
+    {
+      header: "Description",
+      cell: (transfer) => (
+        <div className="flex flex-col">
+          <span>{transfer.description}</span>
+          {transfer.journalEntry?.attachments &&
+            transfer.journalEntry.attachments.length > 0 && (
+              <div className="mt-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      {transfer.journalEntry.attachments.length} Attachment
+                      {transfer.journalEntry.attachments.length > 1 ? "s" : ""}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuLabel>Attachments</DropdownMenuLabel>
+                    {transfer.journalEntry.attachments.map((file: any) => (
+                      <DropdownMenuItem key={file.id} asChild>
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex cursor-pointer items-center gap-2"
+                        >
+                          <FileIcon className="h-4 w-4" />
+                          <span className="max-w-[200px] truncate">
+                            {file.name}
+                          </span>
+                        </a>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+        </div>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (transfer) => (
+        <Badge
+          variant={
+            transfer.status === TransferStatus.APPROVED
+              ? "default"
+              : transfer.status === TransferStatus.REJECTED
+              ? "destructive"
+              : "secondary"
+          }
+        >
+          {transfer.status}
+        </Badge>
+      ),
+    },
+    {
+      header: "",
+      className: "w-[50px]",
+      cell: (transfer) => (
+        <div className="flex items-center justify-end gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              {transfer.status === TransferStatus.PENDING && (
+                <>
+                  <DropdownMenuItem onClick={() => handleApprove(transfer.id)}>
+                    <Check className="mr-2 h-4 w-4" />
+                    Approve
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEdit(transfer)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => handleDelete(transfer.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
+              {transfer.status === TransferStatus.APPROVED && (
+                <DropdownMenuItem disabled>
+                  Approved (Read Only)
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -130,155 +254,11 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
       </div>
 
       <div className="rounded-md border">
-        <Table>
-          <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Reference</TableHead>
-              <TableHead>From</TableHead>
-              <TableHead>To</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transfers.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={8}
-                  className="text-center py-8 text-muted-foreground"
-                >
-                  No transfers found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              transfers.map((transfer) => (
-                <TableRow key={transfer.id}>
-                  <TableCell>
-                    {format(new Date(transfer.date), "MMM d, yyyy")}
-                  </TableCell>
-                  <TableCell>{transfer.reference || "-"}</TableCell>
-                  <TableCell>{transfer.fromAccount.name}</TableCell>
-                  <TableCell>{transfer.toAccount.name}</TableCell>
-                  <TableCell className="font-medium">
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    }).format(Number(transfer.amount))}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span>{transfer.description}</span>
-                      {transfer.journalEntry?.attachments &&
-                        transfer.journalEntry.attachments.length > 0 && (
-                          <div className="mt-1">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                >
-                                  <Paperclip className="h-3 w-3" />
-                                  {
-                                    transfer.journalEntry.attachments.length
-                                  }{" "}
-                                  Attachment
-                                  {transfer.journalEntry.attachments.length > 1
-                                    ? "s"
-                                    : ""}
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start">
-                                <DropdownMenuLabel>
-                                  Attachments
-                                </DropdownMenuLabel>
-                                {transfer.journalEntry.attachments.map(
-                                  (file: any) => (
-                                    <DropdownMenuItem key={file.id} asChild>
-                                      <a
-                                        href={file.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex cursor-pointer items-center gap-2"
-                                      >
-                                        <FileIcon className="h-4 w-4" />
-                                        <span className="max-w-[200px] truncate">
-                                          {file.name}
-                                        </span>
-                                      </a>
-                                    </DropdownMenuItem>
-                                  )
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        transfer.status === TransferStatus.APPROVED
-                          ? "default"
-                          : transfer.status === TransferStatus.REJECTED
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {transfer.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          {transfer.status === TransferStatus.PENDING && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => handleApprove(transfer.id)}
-                              >
-                                <Check className="mr-2 h-4 w-4" />
-                                Approve
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleEdit(transfer)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleDelete(transfer.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {transfer.status === TransferStatus.APPROVED && (
-                            <DropdownMenuItem disabled>
-                              Approved (Read Only)
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          data={transfers}
+          columns={columns}
+          emptyMessage="No transfers found."
+        />
       </div>
 
       <CashTransferDialog

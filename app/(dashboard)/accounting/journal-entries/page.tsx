@@ -1,17 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import {
   useConfirm,
   useAlert,
@@ -31,7 +24,6 @@ import {
   Pencil,
   Trash2,
   CheckCircle,
-  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -41,7 +33,6 @@ import {
 } from "./actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Protect } from "@/components/ui/protect";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import {
   PageListActions,
   PageListContent,
@@ -132,40 +123,142 @@ export default function JournalEntryPage() {
     },
   });
 
-  const handleDelete = async (entry: JournalEntryWithDetails) => {
-    if (
-      await confirm({
-        title: "Are you sure?",
-        description: (
-          <>
-            This action cannot be undone. This will permanently delete the
-            journal entry
-            <span className="font-medium text-foreground">
-              {" "}
-              #{entry.entryNumber}
-            </span>
-            .
-          </>
-        ),
-        confirmText: "Delete",
-        variant: "destructive",
-      })
-    ) {
-      deleteMutation.mutate(entry.id);
-    }
-  };
+  const handleDelete = useMemo(
+    () => async (entry: JournalEntryWithDetails) => {
+      if (
+        await confirm({
+          title: "Are you sure?",
+          description: (
+            <>
+              This action cannot be undone. This will permanently delete the
+              journal entry
+              <span className="font-medium text-foreground">
+                {" "}
+                #{entry.entryNumber}
+              </span>
+              .
+            </>
+          ),
+          confirmText: "Delete",
+          variant: "destructive",
+        })
+      ) {
+        deleteMutation.mutate(entry.id);
+      }
+    },
+    [confirm, deleteMutation]
+  );
 
-  const handlePost = async (id: string) => {
-    if (
-      await confirm({
-        title: "Post Journal Entry",
-        description:
-          "Are you sure you want to post this journal entry? This action cannot be undone.",
-      })
-    ) {
-      postMutation.mutate(id);
-    }
-  };
+  const handlePost = useMemo(
+    () => async (id: string) => {
+      if (
+        await confirm({
+          title: "Post Journal Entry",
+          description:
+            "Are you sure you want to post this journal entry? This action cannot be undone.",
+        })
+      ) {
+        postMutation.mutate(id);
+      }
+    },
+    [confirm, postMutation]
+  );
+
+  const columns: Column<JournalEntryWithDetails>[] = useMemo(
+    () => [
+      {
+        header: "Date",
+        cell: (entry) => formatDate(entry.transactionDate),
+      },
+      {
+        header: "Number",
+        cell: (entry) => (
+          <Link
+            href={`/accounting/journal-entries/${entry.id}`}
+            target="_blank"
+            className="text-primary hover:underline font-medium"
+          >
+            {entry.entryNumber}
+          </Link>
+        ),
+        className: "font-medium",
+      },
+      {
+        header: "Description",
+        accessorKey: "description",
+      },
+      {
+        header: "Created By",
+        cell: (entry) => entry.user?.name || "Unknown",
+      },
+      {
+        header: "Amount",
+        cell: (entry) =>
+          formatCurrency(
+            entry.lines.reduce((acc, line) => {
+              return acc + Number(line.debitAmount || 0);
+            }, 0)
+          ),
+      },
+      {
+        header: "Status",
+        cell: (entry) => <StatusBadge status={entry.status} />,
+      },
+      {
+        header: "Actions",
+        className: "text-right",
+        headerClassName: "text-right",
+        cell: (entry) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/accounting/journal-entries/${entry.id}`}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Details
+                </Link>
+              </DropdownMenuItem>
+              {entry.status === "draft" && (
+                <>
+                  <Protect permission="journal_entries.edit">
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={`/accounting/journal-entries/${entry.id}/edit`}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Link>
+                    </DropdownMenuItem>
+                  </Protect>
+                  <Protect permission="journal_entries.create">
+                    <DropdownMenuItem onClick={() => handlePost(entry.id)}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Post Entry
+                    </DropdownMenuItem>
+                  </Protect>
+                  <Protect permission="journal_entries.delete">
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => handleDelete(entry)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </Protect>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    [formatDate, formatCurrency, handleDelete, handlePost]
+  );
 
   return (
     <PageListLayout>
@@ -230,122 +323,18 @@ export default function JournalEntryPage() {
       </PageListFilter>
 
       <PageListContent>
-        {isLoading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : (
-          <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Number</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
-                      No journal entries found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  entries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>{formatDate(entry.transactionDate)}</TableCell>
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/accounting/journal-entries/${entry.id}`}
-                          target="_blank"
-                          className="text-primary hover:underline font-medium"
-                        >
-                          {entry.entryNumber}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{entry.description}</TableCell>
-                      <TableCell>{entry.user?.name || "Unknown"}</TableCell>
-                      <TableCell>
-                        {formatCurrency(
-                          entry.lines.reduce((acc, line) => {
-                            return acc + Number(line.debitAmount || 0);
-                          }, 0)
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={entry.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/accounting/journal-entries/${entry.id}`}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                            {entry.status === "draft" && (
-                              <>
-                                <Protect permission="journal_entries.edit">
-                                  <DropdownMenuItem asChild>
-                                    <Link
-                                      href={`/accounting/journal-entries/${entry.id}/edit`}
-                                    >
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Edit
-                                    </Link>
-                                  </DropdownMenuItem>
-                                </Protect>
-                                <Protect permission="journal_entries.create">
-                                  <DropdownMenuItem
-                                    onClick={() => handlePost(entry.id)}
-                                  >
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Post Entry
-                                  </DropdownMenuItem>
-                                </Protect>
-                                <Protect permission="journal_entries.delete">
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
-                                    onClick={() => handleDelete(entry)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </Protect>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-            <div className="mt-4">
-              <CustomPagination
-                totalEntries={total}
-                currentPage={page}
-                pageSize={20}
-                onPageChange={setPage}
-              />
-            </div>
-          </>
-        )}
+        <DataTable
+          data={entries}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="No journal entries found."
+          pagination={{
+            totalEntries: total,
+            pageSize: 20,
+            currentPage: page,
+            onPageChange: setPage,
+          }}
+        />
       </PageListContent>
     </PageListLayout>
   );

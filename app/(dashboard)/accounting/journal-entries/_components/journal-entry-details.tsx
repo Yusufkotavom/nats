@@ -1,13 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { DataTable, Column } from "@/components/ui/data-table";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
+  TableFooter,
   TableRow,
+  TableCell,
 } from "@/components/ui/table";
 import Link from "next/link";
 import { Pencil, Paperclip, ArrowLeft } from "lucide-react";
@@ -31,6 +29,47 @@ export function JournalEntryDetails({
     (sum: number, line: any) => sum + Number(line.creditAmount),
     0
   );
+
+  const columns: Column<any>[] = [
+    {
+      header: "Account Code",
+      accessorKey: "account",
+      cell: (line) => line.account.code,
+    },
+    {
+      header: "Account Name",
+      accessorKey: "account",
+      cell: (line) => line.account.name,
+    },
+    {
+      header: "Description",
+      accessorKey: "description",
+      cell: (line) => line.description || "-",
+    },
+    {
+      header: "Relevant Contact",
+      accessorKey: "contact",
+      cell: (line) => line.contact?.name || "-",
+    },
+    {
+      header: "Debit",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (line) =>
+        Number(line.debitAmount) > 0
+          ? formatCurrency(Number(line.debitAmount))
+          : "-",
+    },
+    {
+      header: "Credit",
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (line) =>
+        Number(line.creditAmount) > 0
+          ? formatCurrency(Number(line.creditAmount))
+          : "-",
+    },
+  ];
 
   return (
     entry && (
@@ -84,49 +123,25 @@ export function JournalEntryDetails({
               Lines
             </h3>
             <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Account Code</TableHead>
-                    <TableHead>Account Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Relevant Contact</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Credit</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {entry.lines.map((line: any) => (
-                    <TableRow key={line.id}>
-                      <TableCell>{line.account.code}</TableCell>
-                      <TableCell>{line.account.name}</TableCell>
-                      <TableCell>{line.description || "-"}</TableCell>
-                      <TableCell>{line.contact?.name || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        {Number(line.debitAmount) > 0
-                          ? formatCurrency(Number(line.debitAmount))
-                          : "-"}
+              <DataTable
+                data={entry.lines}
+                columns={columns}
+                footer={
+                  <TableFooter>
+                    <TableRow className="font-bold bg-muted/50">
+                      <TableCell colSpan={4} className="text-right">
+                        Total
                       </TableCell>
                       <TableCell className="text-right">
-                        {Number(line.creditAmount) > 0
-                          ? formatCurrency(Number(line.creditAmount))
-                          : "-"}
+                        {formatCurrency(Number(totalDebit))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(Number(totalCredit))}
                       </TableCell>
                     </TableRow>
-                  ))}
-                  <TableRow className="font-bold bg-muted/50">
-                    <TableCell colSpan={4} className="text-right">
-                      Total
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(Number(totalDebit))}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(Number(totalCredit))}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+                  </TableFooter>
+                }
+              />
             </div>
           </div>
 
