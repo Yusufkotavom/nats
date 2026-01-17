@@ -1,14 +1,8 @@
 "use client";
 
-import { getLedgerAccounts } from "./actions";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState } from "react";
+import { getAccountHistory, getLedgerAccounts } from "./actions";
+import { DataTable, Column } from "@/components/ui/data-table";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import {
@@ -25,18 +19,32 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountType } from "@/prisma/generated/prisma/browser";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import {
   PageListContent,
   PageListHeader,
   PageListLayout,
   PageListTitle,
 } from "@/components/layout/page/list-layout";
-import { useLedger } from "./use-ledger";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import Link from "next/link";
 
+type LedgerEntry = NonNullable<
+  Awaited<ReturnType<typeof getAccountHistory>>["data"]
+>["items"][number];
+
 export default function LedgerViewPage() {
+  const [selectedAccount, setSelectedAccount] = useState<
+    | NonNullable<Awaited<ReturnType<typeof getLedgerAccounts>>["data"]>[number]
+    | undefined
+  >();
+
+  // Filters
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [showDraft, setShowDraft] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
   const { data: accounts = [] } = useQuery({
     queryKey: ["ledger-accounts"],
     queryFn: async () => {
@@ -45,26 +53,118 @@ export default function LedgerViewPage() {
     },
   });
 
-  const {
-    selectedAccount,
-    entries,
-    loading,
-    accountDetails,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    showDraft,
-    setShowDraft,
-    page,
-    setPage,
-    handleAccountChange,
-    balance,
-    pageSize,
-  } = useLedger();
+  const { data: entries, isLoading: loading } = useQuery({
+    queryKey: [
+      "ledger-entries",
+      {
+        accountId: selectedAccount?.id,
+        page,
+        pageSize,
+        startDate,
+        endDate,
+        showDraft,
+      },
+    ],
+    queryFn: async () => {
+      if (!selectedAccount?.id) return null;
+      const response = await getAccountHistory({
+        accountId: selectedAccount.id,
+        page,
+        pageSize,
+        startDate,
+        endDate,
+        showDraft,
+      });
+      return response.success ? response.data : null;
+    },
+    enabled: !!selectedAccount?.id,
+    placeholderData: keepPreviousData,
+  });
+
+  const accountDetails = entries?.account || null;
+
+  const handleAccountChange = (
+    value: string,
+    accounts: Awaited<ReturnType<typeof getLedgerAccounts>>["data"]
+  ) => {
+    const found = accounts?.find((item) => item.id == value);
+    if (found) {
+      setSelectedAccount(found);
+      setPage(1);
+    }
+  };
+
+  const balance =
+    accountDetails?.normalBalance === "debit"
+      ? (entries?.totals?.debit ?? 0) - (entries?.totals?.credit ?? 0)
+      : (entries?.totals?.credit ?? 0) - (entries?.totals?.debit ?? 0);
 
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
+
+  const columns: Column<LedgerEntry>[] = [
+    {
+      header: "Posted At",
+      cell: (entry) => formatDate(entry.journalEntry.postedAt || "Draft"),
+    },
+    {
+      header: "Trans. Date",
+      cell: (entry) => formatDate(entry.journalEntry.transactionDate),
+    },
+    {
+      header: "Entry #",
+      cell: (entry) => (
+        <Link
+          href={`/accounting/journal-entries/${entry.journalEntryId}`}
+          target="_blank"
+          className="text-primary hover:underline font-medium"
+        >
+          {entry.journalEntry.entryNumber}
+        </Link>
+      ),
+    },
+    {
+      header: "Description",
+      cell: (entry) => (
+        <div className="flex flex-col">
+          <span className="text-xs text-muted-foreground">
+            {entry.description}
+          </span>
+          <span className="text-xs">{entry.journalEntry.description}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Debit",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (entry) =>
+        Number(entry.debitAmount) > 0
+          ? formatCurrency(Number(entry.debitAmount))
+          : "-",
+    },
+    {
+      header: "Credit",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (entry) =>
+        Number(entry.creditAmount) > 0
+          ? formatCurrency(Number(entry.creditAmount))
+          : "-",
+    },
+    {
+      header: "Balance",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (entry) => formatCurrency(Number(entry.runningBalance)),
+    },
+    {
+      header: "Status",
+      className: "text-center",
+      headerClassName: "text-center",
+      cell: (entry) => <StatusBadge status={entry.journalEntry.status} />,
+    },
+  ];
 
   return (
     <PageListLayout>
@@ -73,7 +173,7 @@ export default function LedgerViewPage() {
       </PageListHeader>
 
       {selectedAccount?.id && (
-        <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+        <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium flex gap-2">
@@ -194,120 +294,26 @@ export default function LedgerViewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
-                  <TableRow>
-                    <TableHead className="rounded-tl-lg">Posted At</TableHead>
-                    <TableHead>Trans. Date</TableHead>
-                    <TableHead>Entry #</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Debit</TableHead>
-                    <TableHead className="text-right">Credit</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-center rounded-tr-lg">
-                      Status
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    Array.from({ length: 5 }).map((_, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-16" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-48" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Skeleton className="h-4 w-20 ml-auto" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Skeleton className="h-4 w-20 ml-auto" />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Skeleton className="h-4 w-24 ml-auto" />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Skeleton className="h-6 w-16 mx-auto rounded-full" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : entries?.items?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">
-                        {selectedAccount?.id
-                          ? "No transactions found."
-                          : "Select an account to view transactions."}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    entries?.items?.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell>
-                          {formatDate(entry.journalEntry.postedAt || "Draft")}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(entry.journalEntry.transactionDate)}
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/accounting/journal-entries/${entry.journalEntryId}`}
-                            target="_blank"
-                            className="text-primary hover:underline font-medium"
-                          >
-                            {entry.journalEntry.entryNumber}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className="text-xs text-muted-foreground">
-                              {entry.description}
-                            </span>
-                            <span className="text-xs">
-                              {entry.journalEntry.description}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {Number(entry.debitAmount) > 0
-                            ? formatCurrency(Number(entry.debitAmount))
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {Number(entry.creditAmount) > 0
-                            ? formatCurrency(Number(entry.creditAmount))
-                            : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(Number(entry.runningBalance))}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <StatusBadge status={entry.journalEntry.status} />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            {entries && entries.pagination.total > 0 && (
-              <div className="mt-4">
-                <CustomPagination
-                  totalEntries={entries.pagination.total}
-                  currentPage={page}
-                  pageSize={pageSize}
-                  onPageChange={setPage}
-                />
-              </div>
-            )}
+            <DataTable
+              data={entries?.items || []}
+              columns={columns}
+              isLoading={loading}
+              emptyMessage={
+                selectedAccount?.id
+                  ? "No transactions found."
+                  : "Select an account to view transactions."
+              }
+              pagination={
+                entries?.pagination.total
+                  ? {
+                      totalEntries: entries.pagination.total,
+                      pageSize: pageSize,
+                      currentPage: page,
+                      onPageChange: setPage,
+                    }
+                  : undefined
+              }
+            />
           </CardContent>
         </Card>
       </PageListContent>
