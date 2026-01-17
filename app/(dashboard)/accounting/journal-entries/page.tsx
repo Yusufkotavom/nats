@@ -260,7 +260,13 @@ export default function JournalEntryPage() {
                     <TableRow key={entry.id}>
                       <TableCell>{formatDate(entry.transactionDate)}</TableCell>
                       <TableCell className="font-medium">
-                        {entry.entryNumber}
+                        <Link
+                          href={`/accounting/journal-entries/${entry.id}`}
+                          target="_blank"
+                          className="text-primary hover:underline font-medium"
+                        >
+                          {entry.entryNumber}
+                        </Link>
                       </TableCell>
                       <TableCell>{entry.description}</TableCell>
                       <TableCell>{entry.user?.name || "Unknown"}</TableCell>
