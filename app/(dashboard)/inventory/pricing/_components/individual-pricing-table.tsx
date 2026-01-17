@@ -21,6 +21,7 @@ import { getPricingProducts, updateSinglePrice } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DiscountManager } from "./discount-manager";
 import { CustomPagination } from "@/components/ui/custom-pagination";
+import { useAlert } from "@/hooks/use-alert";
 
 type PricingProduct = Awaited<
   ReturnType<typeof getPricingProducts>
@@ -42,6 +43,7 @@ export function IndividualPricingTable({
   const pathname = usePathname();
   const { replace, refresh } = useRouter();
   const formatCurrency = useFormatCurrency();
+  const alert = useAlert();
 
   const [products, setProducts] = useState(initialProducts);
   const [searchTerm, setSearchTerm] = useState(
@@ -98,7 +100,7 @@ export function IndividualPricingTable({
       setEditingId(null);
       refresh();
     } else {
-      alert("Failed to update price");
+      await alert({ title: "Error", description: "Failed to update price" });
     }
   }
 

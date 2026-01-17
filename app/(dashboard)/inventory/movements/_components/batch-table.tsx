@@ -76,26 +76,31 @@ export function BatchTable({ batches, totalEntries }: BatchTableProps) {
 }
 
 import { useRouter } from "next/navigation";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 
 function BatchRow({ batch }: { batch: BatchWithDetails }) {
   const [isPending, startTransition] = useTransition();
-  const [showApproveDialog, setShowApproveDialog] = useState(false);
   const router = useRouter();
+  const confirm = useConfirm();
+  const alert = useAlert();
 
-  const handleApprove = (e: React.MouseEvent) => {
+  const handleApprove = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowApproveDialog(true);
-  };
-
-  const confirmApprove = () => {
-    startTransition(async () => {
-      const result = await approveMovement(batch.id);
-      if (!result.success) {
-        alert(result.error);
-      }
-      setShowApproveDialog(false);
-    });
+    if (
+      await confirm({
+        title: "Approve Movement",
+        description:
+          "Are you sure you want to approve this movement? This will update inventory levels and cannot be undone.",
+      })
+    ) {
+      startTransition(async () => {
+        const result = await approveMovement(batch.id);
+        if (!result.success) {
+          await alert({ title: "Error", description: result.error });
+        }
+      });
+    }
   };
 
   const handleReject = (e: React.MouseEvent) => {
@@ -106,7 +111,7 @@ function BatchRow({ batch }: { batch: BatchWithDetails }) {
     startTransition(async () => {
       const result = await rejectMovement({ movementId: batch.id, reason });
       if (!result.success) {
-        alert(result.error);
+        await alert({ title: "Error", description: result.error });
       }
     });
   };
@@ -187,16 +192,6 @@ function BatchRow({ batch }: { batch: BatchWithDetails }) {
             </Button>
           </div>
         )}
-        <ConfirmDialog
-          open={showApproveDialog}
-          onOpenChange={(open) => {
-            if (!open) setShowApproveDialog(false);
-          }}
-          title="Approve Movement"
-          description="Are you sure you want to approve this movement? This will update inventory levels and cannot be undone."
-          onConfirm={confirmApprove}
-          isLoading={isPending}
-        />
         {(batch.status === "COMPLETED" || batch.status === "APPROVED") &&
           batch.approvedBy && (
             <div className="flex flex-col text-xs text-muted-foreground">

@@ -21,6 +21,8 @@ import {
   removeDiscountFromProduct,
 } from "../actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 
 type DiscountProps = Awaited<
   ReturnType<typeof getPricingProducts>
@@ -41,6 +43,8 @@ export function DiscountManager({
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const formatCurrency = useFormatCurrency();
+  const confirm = useConfirm();
+  const alert = useAlert();
 
   // Form state
   const [code, setCode] = useState("");
@@ -81,7 +85,7 @@ export function DiscountManager({
       if (result.success) {
         resetForm();
       } else {
-        alert(result.error);
+        await alert({ title: "Error", description: result.error });
       }
     } catch (error) {
       console.error(error);
@@ -91,7 +95,13 @@ export function DiscountManager({
   };
 
   const handleRemove = async (discountId: string) => {
-    if (!confirm("Are you sure you want to remove this discount?")) return;
+    if (
+      !(await confirm({
+        title: "Remove Discount",
+        description: "Are you sure you want to remove this discount?",
+      }))
+    )
+      return;
     setIsLoading(true);
     try {
       await removeDiscountFromProduct({ productId, discountId });

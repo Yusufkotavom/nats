@@ -27,6 +27,8 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { BatchPricingInput, PricingAction, PricingScope } from "../types";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 
 interface BatchPricingFormProps {
   categories: Category[];
@@ -56,6 +58,8 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
     error?: string;
   } | null>(null);
   const formatCurrency = useFormatCurrency();
+  const confirm = useConfirm();
+  const alert = useAlert();
 
   // Simple form state
   const [categoryId, setCategoryId] = useState<string>("");
@@ -84,9 +88,11 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
   const handleApply = async () => {
     if (!value) return;
     if (
-      !confirm(
-        "Are you sure you want to update these prices? This action cannot be undone."
-      )
+      !(await confirm({
+        title: "Update Prices",
+        description:
+          "Are you sure you want to update these prices? This action cannot be undone.",
+      }))
     )
       return;
 
@@ -104,11 +110,11 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
         setPreviewData(null);
         setValue("");
       } else {
-        alert(res.error);
+        await alert({ title: "Error", description: res.error });
       }
     } catch (error) {
       console.error(error);
-      alert("Failed to apply changes");
+      await alert({ title: "Error", description: "Failed to apply changes" });
     } finally {
       setIsLoading(false);
     }

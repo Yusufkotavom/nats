@@ -33,11 +33,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { PurchaseOrderStatus } from "@/prisma/generated/prisma/enums";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface PurchaseOrderTableProps {
   orders: PurchaseOrderWithDetails[];
@@ -53,6 +53,7 @@ export function PurchaseOrderTable({
   const pathname = usePathname();
   const { replace } = useRouter();
   const formatCurrency = useFormatCurrency();
+  const confirm = useConfirm();
 
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
@@ -64,11 +65,6 @@ export function PurchaseOrderTable({
     searchParams.get("startDate") || ""
   );
   const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState<string | undefined>(
-    undefined
-  );
 
   const currentPage = Number(searchParams.get("page")) || 1;
 
@@ -126,16 +122,17 @@ export function PurchaseOrderTable({
     replace,
   ]);
 
-  const handleDeleteClick = (id: string) => {
-    setOrderToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (orderToDelete) {
-      await deletePurchaseOrder(orderToDelete);
-      setIsDeleteDialogOpen(false);
-      setOrderToDelete(undefined);
+  const handleDeleteClick = async (id: string) => {
+    if (
+      await confirm({
+        title: "Delete Purchase Order",
+        description:
+          "Are you sure you want to delete this purchase order? This action cannot be undone.",
+        confirmText: "Delete",
+        variant: "destructive",
+      })
+    ) {
+      await deletePurchaseOrder(id);
     }
   };
 
@@ -314,16 +311,6 @@ export function PurchaseOrderTable({
         currentPage={currentPage}
         totalEntries={totalEntries}
         pageSize={10}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Delete Purchase Order"
-        description="Are you sure you want to delete this purchase order? This action cannot be undone."
-        onConfirm={handleConfirmDelete}
-        confirmText="Delete"
-        variant="destructive"
       />
     </div>
   );

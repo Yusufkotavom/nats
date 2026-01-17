@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { approveMovement, rejectMovement } from "../../actions";
 import { useRouter } from "next/navigation";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 
 interface MovementActionsProps {
   batchId: string;
@@ -14,25 +15,29 @@ interface MovementActionsProps {
 
 export function MovementActions({ batchId, status }: MovementActionsProps) {
   const [isPending, startTransition] = useTransition();
-  const [showApproveDialog, setShowApproveDialog] = useState(false);
   const router = useRouter();
+  const confirm = useConfirm();
+  const alert = useAlert();
 
   if (status !== "PENDING") return null;
 
-  const handleApprove = () => {
-    setShowApproveDialog(true);
-  };
-
-  const confirmApprove = () => {
-    startTransition(async () => {
-      const result = await approveMovement(batchId);
-      if (!result.success) {
-        alert(result.error);
-      } else {
-        router.refresh();
-      }
-      setShowApproveDialog(false);
-    });
+  const handleApprove = async () => {
+    if (
+      await confirm({
+        title: "Approve Movement",
+        description:
+          "Are you sure you want to approve this movement? This will update inventory levels and cannot be undone.",
+      })
+    ) {
+      startTransition(async () => {
+        const result = await approveMovement(batchId);
+        if (!result.success) {
+          await alert({ title: "Error", description: result.error });
+        } else {
+          router.refresh();
+        }
+      });
+    }
   };
 
   const handleReject = () => {
@@ -42,7 +47,7 @@ export function MovementActions({ batchId, status }: MovementActionsProps) {
     startTransition(async () => {
       const result = await rejectMovement({ movementId: batchId, reason });
       if (!result.success) {
-        alert(result.error);
+        await alert({ title: "Error", description: result.error });
       } else {
         router.refresh();
       }
@@ -69,17 +74,6 @@ export function MovementActions({ batchId, status }: MovementActionsProps) {
         <X className="mr-2 h-4 w-4" />
         Reject
       </Button>
-
-      <ConfirmDialog
-        open={showApproveDialog}
-        onOpenChange={(open) => {
-          if (!open) setShowApproveDialog(false);
-        }}
-        title="Approve Movement"
-        description="Are you sure you want to approve this movement? This will update inventory levels and cannot be undone."
-        onConfirm={confirmApprove}
-        isLoading={isPending}
-      />
     </div>
   );
 }

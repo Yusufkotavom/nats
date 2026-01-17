@@ -20,6 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import Image from "next/image";
 
+import { useAlert } from "@/hooks/use-alert";
+
 interface ProductFormProps {
   product?: ProductFormData;
   categories: Category[];
@@ -36,6 +38,7 @@ export function ProductForm({
   readonly = false,
 }: ProductFormProps) {
   const router = useRouter();
+  const alert = useAlert();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const isEditing = !!product;
@@ -83,11 +86,17 @@ export function ProductForm({
       if (result.success && result.file) {
         handleInputChange("image", result.file.url);
       } else {
-        alert(result.error || "Failed to upload file");
+        await alert({
+          title: "Error",
+          description: result.error || "Failed to upload file",
+        });
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload file");
+      await alert({
+        title: "Error",
+        description: "Failed to upload file",
+      });
     } finally {
       setIsUploading(false);
       // Reset input
@@ -104,19 +113,25 @@ export function ProductForm({
     const salesFactor = Number(formData.salesConversionFactor);
 
     if (!formData.baseUnitId) {
-      alert("Base Unit is required");
+      await alert({ title: "Error", description: "Base Unit is required" });
       setIsLoading(false);
       return;
     }
 
     if (purchaseFactor < 0) {
-      alert("Purchase conversion factor must be positive");
+      await alert({
+        title: "Error",
+        description: "Purchase conversion factor must be positive",
+      });
       setIsLoading(false);
       return;
     }
 
     if (salesFactor < 0) {
-      alert("Sales conversion factor must be positive");
+      await alert({
+        title: "Error",
+        description: "Sales conversion factor must be positive",
+      });
       setIsLoading(false);
       return;
     }
@@ -158,11 +173,17 @@ export function ProductForm({
         router.push("/inventory/products");
         router.refresh();
       } else {
-        alert(result.error || "Something went wrong");
+        await alert({
+          title: "Error",
+          description: result.error || "Something went wrong",
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("An unexpected error occurred");
+      await alert({
+        title: "Error",
+        description: "An unexpected error occurred",
+      });
     } finally {
       setIsLoading(false);
     }

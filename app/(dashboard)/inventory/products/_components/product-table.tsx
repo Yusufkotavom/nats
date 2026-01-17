@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 interface ProductTableProps {
@@ -56,10 +56,7 @@ export function ProductTable({
     searchParams.get("search") || ""
   );
 
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | undefined>(
-    undefined
-  );
+  const confirm = useConfirm();
 
   const categoryFilter = searchParams.get("categoryId") || "ALL";
   const currentPage = Number(searchParams.get("page")) || 1;
@@ -93,16 +90,15 @@ export function ProductTable({
     replace(`${pathname}?${params.toString()}`);
   };
 
-  const handleDeleteClick = (id: string) => {
-    setProductToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (productToDelete) {
-      await deleteProduct(productToDelete);
-      setIsDeleteDialogOpen(false);
-      setProductToDelete(undefined);
+  const handleDeleteClick = async (id: string) => {
+    if (
+      await confirm({
+        title: "Delete Product",
+        description:
+          "Are you sure you want to delete this product? This action cannot be undone.",
+      })
+    ) {
+      await deleteProduct(id);
     }
   };
 
@@ -232,16 +228,6 @@ export function ProductTable({
           currentPage={currentPage}
         />
       </div>
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Are you sure you want to delete this product?"
-        description="This action cannot be undone. This will permanently delete the product."
-        onConfirm={handleConfirmDelete}
-        confirmText="Delete"
-        variant="destructive"
-      />
     </div>
   );
 }

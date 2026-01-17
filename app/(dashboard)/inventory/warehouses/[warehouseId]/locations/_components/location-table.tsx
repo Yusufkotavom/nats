@@ -15,6 +15,7 @@ import { LocationDialog } from "./location-dialog";
 import { deleteLocation } from "../actions";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useSearchParams } from "next/navigation";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface LocationTableProps {
   warehouseId: string;
@@ -29,9 +30,16 @@ export function LocationTable({
 }: LocationTableProps) {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
+  const confirm = useConfirm();
 
   async function handleDelete(id: string) {
-    if (confirm("Are you sure you want to delete this location?")) {
+    if (
+      await confirm({
+        title: "Delete Location",
+        description: "Are you sure you want to delete this location?",
+        variant: "destructive",
+      })
+    ) {
       await deleteLocation(id);
     }
   }

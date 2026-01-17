@@ -26,10 +26,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface PurchaseReturnTableProps {
   returns: PurchaseReturnWithDetails[];
@@ -46,14 +46,10 @@ export function PurchaseReturnTable({
   const pathname = usePathname();
   const { replace } = useRouter();
   const formatCurrency = useFormatCurrency();
+  const confirm = useConfirm();
 
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
-  );
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [returnToDelete, setReturnToDelete] = useState<string | undefined>(
-    undefined
   );
 
   const currentPage = Number(searchParams.get("page")) || 1;
@@ -75,16 +71,16 @@ export function PurchaseReturnTable({
     return () => clearTimeout(timer);
   }, [searchTerm, searchParams, pathname, replace]);
 
-  const handleDeleteClick = (id: string) => {
-    setReturnToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (returnToDelete) {
-      await deletePurchaseReturn(returnToDelete);
-      setIsDeleteDialogOpen(false);
-      setReturnToDelete(undefined);
+  const handleDeleteClick = async (id: string) => {
+    if (
+      await confirm({
+        title: "Delete Purchase Return",
+        description:
+          "Are you sure you want to delete this return? This action cannot be undone.",
+        variant: "destructive",
+      })
+    ) {
+      await deletePurchaseReturn(id);
     }
   };
 
@@ -218,15 +214,6 @@ export function PurchaseReturnTable({
         currentPage={currentPage}
         totalEntries={totalEntries}
         pageSize={10}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleConfirmDelete}
-        title="Delete Purchase Return"
-        description="Are you sure you want to delete this return? This action cannot be undone."
-        variant="destructive"
       />
     </div>
   );

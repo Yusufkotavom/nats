@@ -21,6 +21,7 @@ import Link from "next/link";
 import { deleteWarehouse } from "../actions";
 import { WarehouseDialog } from "./warehouse-dialog";
 import { useState } from "react";
+import { useConfirm } from "@/hooks/use-confirm";
 
 import {
   Inventory,
@@ -66,9 +67,15 @@ export function WarehouseTable({
     WarehouseWithInventory | undefined
   >(undefined);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const confirm = useConfirm();
 
   async function handleDelete(id: string) {
-    if (confirm("Are you sure you want to delete this warehouse?")) {
+    if (
+      await confirm({
+        title: "Delete Warehouse",
+        description: "Are you sure you want to delete this warehouse?",
+      })
+    ) {
       await deleteWarehouse(id);
     }
   }

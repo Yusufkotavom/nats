@@ -64,7 +64,6 @@ import {
   closePurchaseOrder,
   getPurchaseOrder,
 } from "../actions";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PurchaseOrderInput } from "../types";
 import { format } from "date-fns";
 import { cn, formatDate, generateId } from "@/lib/utils";
@@ -72,6 +71,8 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { getProducts } from "@/app/(dashboard)/inventory/products/actions";
+import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 
 interface PurchaseOrderFormProps {
   order?: Awaited<ReturnType<typeof getPurchaseOrder>>;
@@ -90,9 +91,8 @@ export function PurchaseOrderForm({
   const formatCurrency = useFormatCurrency();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!order;
-  const [issueDialogOpen, setIssueDialogOpen] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const confirm = useConfirm();
+  const alert = useAlert();
 
   // Determine if form should be read-only based on status
   const isDraft = order?.status === "DRAFT" || !order;
@@ -186,20 +186,29 @@ export function PurchaseOrderForm({
     if (isReadOnly) return;
 
     if (!formData.contactId) {
-      alert("Please select a vendor");
+      await alert({ title: "Error", description: "Please select a vendor" });
       return;
     }
     if (formData.items.length === 0) {
-      alert("Please add at least one item");
+      await alert({
+        title: "Error",
+        description: "Please add at least one item",
+      });
       return;
     }
     for (const item of formData.items) {
       if (!item.productId) {
-        alert("Please select a product for all items");
+        await alert({
+          title: "Error",
+          description: "Please select a product for all items",
+        });
         return;
       }
       if (item.quantity <= 0) {
-        alert("Quantity must be greater than 0");
+        await alert({
+          title: "Error",
+          description: "Quantity must be greater than 0",
+        });
         return;
       }
     }
@@ -225,64 +234,77 @@ export function PurchaseOrderForm({
           // Revalidation happens in action, so UI updates.
         }
       } else {
-        alert(result.error);
+        await alert({ title: "Error", description: result.error });
       }
     } catch (error) {
       console.error(error);
-      alert("An error occurred");
+      await alert({ title: "Error", description: "An error occurred" });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleIssue = () => {
+  const handleIssue = async () => {
     if (!order) return;
-    setIssueDialogOpen(true);
-  };
-
-  const confirmIssue = async () => {
-    if (!order) return;
-    setIsLoading(true);
-    try {
-      const result = await issuePurchaseOrder(order.id);
-      if (!result.success) alert(result.error);
-    } finally {
-      setIsLoading(false);
-      setIssueDialogOpen(false);
+    if (
+      await confirm({
+        title: "Issue Purchase Order",
+        description:
+          "Are you sure you want to issue this PO? This will make it immutable and ready to be sent to the vendor.",
+        confirmText: "Issue Order",
+      })
+    ) {
+      setIsLoading(true);
+      try {
+        const result = await issuePurchaseOrder(order.id);
+        if (!result.success)
+          await alert({ title: "Error", description: result.error });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!order) return;
-    setCancelDialogOpen(true);
-  };
-
-  const confirmCancel = async () => {
-    if (!order) return;
-    setIsLoading(true);
-    try {
-      const result = await cancelPurchaseOrder(order.id);
-      if (!result.success) alert(result.error);
-    } finally {
-      setIsLoading(false);
-      setCancelDialogOpen(false);
+    if (
+      await confirm({
+        title: "Cancel Purchase Order",
+        description:
+          "Are you sure you want to cancel this PO? This action cannot be undone.",
+        confirmText: "Cancel Order",
+        variant: "destructive",
+      })
+    ) {
+      setIsLoading(true);
+      try {
+        const result = await cancelPurchaseOrder(order.id);
+        if (!result.success)
+          await alert({ title: "Error", description: result.error });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (!order) return;
-    setCloseDialogOpen(true);
-  };
-
-  const confirmClose = async () => {
-    if (!order) return;
-    setIsLoading(true);
-    try {
-      const result = await closePurchaseOrder(order.id);
-      if (!result.success) alert(result.error);
-    } finally {
-      setIsLoading(false);
-      setCloseDialogOpen(false);
+    if (
+      await confirm({
+        title: "Close Purchase Order",
+        description:
+          "Are you sure you want to close this PO? This indicates that all items have been received or the order is finalized.",
+        confirmText: "Close Order",
+      })
+    ) {
+      setIsLoading(true);
+      try {
+        const result = await closePurchaseOrder(order.id);
+        if (!result.success)
+          await alert({ title: "Error", description: result.error });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -677,36 +699,6 @@ export function PurchaseOrderForm({
         </div>
       </form>
 
-      <ConfirmDialog
-        open={issueDialogOpen}
-        onOpenChange={setIssueDialogOpen}
-        title="Issue Purchase Order"
-        description="Are you sure you want to issue this PO? This will make it immutable and ready to be sent to the vendor."
-        onConfirm={confirmIssue}
-        isLoading={isLoading}
-        confirmText="Issue Order"
-      />
-
-      <ConfirmDialog
-        open={cancelDialogOpen}
-        onOpenChange={setCancelDialogOpen}
-        title="Cancel Purchase Order"
-        description="Are you sure you want to cancel this PO? This action cannot be undone."
-        onConfirm={confirmCancel}
-        isLoading={isLoading}
-        variant="destructive"
-        confirmText="Cancel Order"
-      />
-
-      <ConfirmDialog
-        open={closeDialogOpen}
-        onOpenChange={setCloseDialogOpen}
-        title="Close Purchase Order"
-        description="Are you sure you want to close this PO? This indicates that all items have been received or the order is finalized."
-        onConfirm={confirmClose}
-        isLoading={isLoading}
-        confirmText="Close Order"
-      />
     </div>
   );
 }

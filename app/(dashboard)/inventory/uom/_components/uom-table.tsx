@@ -25,8 +25,8 @@ import { deleteUnit } from "../actions";
 import { format } from "date-fns";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useSearchParams } from "next/navigation";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Protect } from "@/components/ui/protect";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface UomTableProps {
   units: Unit[];
@@ -36,11 +36,10 @@ interface UomTableProps {
 export function UomTable({ units, totalEntries }: UomTableProps) {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
+  const confirm = useConfirm();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<Unit | undefined>(undefined);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [unitToDelete, setUnitToDelete] = useState<Unit | undefined>(undefined);
 
   const handleAddUnit = () => {
     setSelectedUnit(undefined);
@@ -52,16 +51,15 @@ export function UomTable({ units, totalEntries }: UomTableProps) {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteClick = (unit: Unit) => {
-    setUnitToDelete(unit);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (unitToDelete) {
-      await deleteUnit(unitToDelete.id);
-      setIsDeleteDialogOpen(false);
-      setUnitToDelete(undefined);
+  const handleDeleteClick = async (unit: Unit) => {
+    if (
+      await confirm({
+        title: "Delete Unit",
+        description: "Are you sure you want to delete this unit?",
+        variant: "destructive",
+      })
+    ) {
+      await deleteUnit(unit.id);
     }
   };
 
@@ -112,7 +110,9 @@ export function UomTable({ units, totalEntries }: UomTableProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <Protect permission="inventory_products.edit">
-                          <DropdownMenuItem onClick={() => handleEditUnit(unit)}>
+                          <DropdownMenuItem
+                            onClick={() => handleEditUnit(unit)}
+                          >
                             <Pencil className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
                         </Protect>
@@ -144,16 +144,6 @@ export function UomTable({ units, totalEntries }: UomTableProps) {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         unit={selectedUnit}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Are you absolutely sure?"
-        description="This action cannot be undone. This will permanently delete the unit and remove it from our servers."
-        onConfirm={handleConfirmDelete}
-        confirmText="Delete"
-        variant="destructive"
       />
     </div>
   );

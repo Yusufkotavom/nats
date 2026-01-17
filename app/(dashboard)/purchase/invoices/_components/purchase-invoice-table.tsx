@@ -26,11 +26,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface PurchaseInvoiceTableProps {
   invoices: PurchaseInvoiceWithDetails[];
@@ -47,6 +47,7 @@ export function PurchaseInvoiceTable({
   const pathname = usePathname();
   const { replace } = useRouter();
   const formatCurrency = useFormatCurrency();
+  const confirm = useConfirm();
 
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
@@ -54,11 +55,6 @@ export function PurchaseInvoiceTable({
 
   const [statusFilter, setStatusFilter] = useState(
     searchParams.get("status") || "ALL"
-  );
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [invoiceToDelete, setInvoiceToDelete] = useState<string | undefined>(
-    undefined
   );
 
   const currentPage = Number(searchParams.get("page")) || 1;
@@ -90,16 +86,16 @@ export function PurchaseInvoiceTable({
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter, searchParams, pathname, replace]);
 
-  const handleDeleteClick = (id: string) => {
-    setInvoiceToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (invoiceToDelete) {
-      await deletePurchaseInvoice(invoiceToDelete);
-      setIsDeleteDialogOpen(false);
-      setInvoiceToDelete(undefined);
+  const handleDeleteClick = async (id: string) => {
+    if (
+      await confirm({
+        title: "Delete Purchase Invoice",
+        description:
+          "Are you sure you want to delete this invoice? This action cannot be undone.",
+        variant: "destructive",
+      })
+    ) {
+      await deletePurchaseInvoice(id);
     }
   };
 
@@ -248,15 +244,6 @@ export function PurchaseInvoiceTable({
         currentPage={currentPage}
         totalEntries={totalEntries}
         pageSize={10}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleConfirmDelete}
-        title="Delete Purchase Invoice"
-        description="Are you sure you want to delete this invoice? This action cannot be undone."
-        variant="destructive"
       />
     </div>
   );

@@ -26,9 +26,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface PurchaseReceiveTableProps {
   receives: PurchaseReceiveWithDetails[];
@@ -44,14 +44,10 @@ export function PurchaseReceiveTable({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
+  const confirm = useConfirm();
 
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("search") || ""
-  );
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [receiveToDelete, setReceiveToDelete] = useState<string | undefined>(
-    undefined
   );
 
   const currentPage = Number(searchParams.get("page")) || 1;
@@ -73,16 +69,16 @@ export function PurchaseReceiveTable({
     return () => clearTimeout(timer);
   }, [searchTerm, searchParams, pathname, replace]);
 
-  const handleDeleteClick = (id: string) => {
-    setReceiveToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (receiveToDelete) {
-      await deletePurchaseReceive(receiveToDelete);
-      setIsDeleteDialogOpen(false);
-      setReceiveToDelete(undefined);
+  const handleDeleteClick = async (id: string) => {
+    if (
+      await confirm({
+        title: "Delete Purchase Receive",
+        description:
+          "Are you sure you want to delete this receive? This action cannot be undone.",
+        variant: "destructive",
+      })
+    ) {
+      await deletePurchaseReceive(id);
     }
   };
 
@@ -206,15 +202,6 @@ export function PurchaseReceiveTable({
         currentPage={currentPage}
         totalEntries={totalEntries}
         pageSize={10}
-      />
-
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleConfirmDelete}
-        title="Delete Purchase Receive"
-        description="Are you sure you want to delete this receive? This action cannot be undone."
-        variant="destructive"
       />
     </div>
   );

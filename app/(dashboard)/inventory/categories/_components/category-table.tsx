@@ -24,6 +24,7 @@ import { Category } from "@/prisma/generated/prisma/browser";
 import { Protect } from "@/components/ui/protect";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useState } from "react";
+import { useConfirm } from "@/hooks/use-confirm";
 
 type CategoryWithCount = Category & {
   _count: { products: number };
@@ -42,6 +43,7 @@ export function CategoryTable({
   const [selectedCategory, setSelectedCategory] = useState<
     CategoryWithCount | undefined
   >(undefined);
+  const confirm = useConfirm();
 
   const handleEdit = (category: CategoryWithCount) => {
     setSelectedCategory(category);
@@ -49,7 +51,12 @@ export function CategoryTable({
   };
 
   async function handleDelete(id: string) {
-    if (confirm("Are you sure you want to delete this category?")) {
+    if (
+      await confirm({
+        title: "Delete Category",
+        description: "Are you sure you want to delete this category?",
+      })
+    ) {
       await deleteCategory(id);
     }
   }
