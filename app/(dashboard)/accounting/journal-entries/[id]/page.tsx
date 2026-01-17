@@ -1,44 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { notFound, useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { getJournalEntry } from "../actions";
 import { JournalEntryDetails } from "../_components/journal-entry-details";
+import { Loader2 } from "lucide-react";
 
 export default function JournalEntryDetailsPage() {
   const params = useParams<{ id: string }>();
-  const [entry, setEntry] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isNotFound, setIsNotFound] = useState(false);
 
-  useEffect(() => {
-    async function fetchEntry() {
-      if (!params?.id) return;
-      try {
-        const res = await getJournalEntry(params.id);
-        if (!res.success || !res.data) {
-          setIsNotFound(true);
-        } else {
-          setEntry(res.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch journal entry", error);
-        setIsNotFound(true);
-      } finally {
-        setLoading(false);
+  const {
+    data: entry,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["journal-entry", params?.id],
+    queryFn: async () => {
+      if (!params?.id) throw new Error("ID is required");
+      const res = await getJournalEntry(params.id);
+      if (!res.success || !res.data) {
+        throw new Error(res.error || "Journal entry not found");
       }
-    }
-    fetchEntry();
-  }, [params?.id]);
+      return res.data;
+    },
+    enabled: !!params?.id,
+    retry: false,
+  });
 
-  if (isNotFound) {
+  if (isError) {
     notFound();
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Loading entry details...
+      <div className="flex h-64 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/layout/others/theme-provider";
 import { ThemeColorProvider } from "@/components/layout/others/theme-color-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { DialogProvider } from "@/components/providers/dialog-provider";
+import { ReactQueryProvider } from "@/components/providers/query-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -40,10 +41,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ThemeColorProvider>
-            <DialogProvider>
-              {children}
-              <Toaster />
-            </DialogProvider>
+            <ReactQueryProvider>
+              <DialogProvider>
+                {children}
+                <Toaster />
+              </DialogProvider>
+            </ReactQueryProvider>
           </ThemeColorProvider>
         </ThemeProvider>
       </body>

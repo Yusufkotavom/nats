@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { getAccountHistory, getLedgerAccounts } from "./actions";
 import { NormalBalance } from "@/prisma/generated/prisma/browser";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 type AccountHistory = NonNullable<
   Awaited<ReturnType<typeof getAccountHistory>>
@@ -11,11 +12,6 @@ export function useLedger() {
     | NonNullable<Awaited<ReturnType<typeof getLedgerAccounts>>["data"]>[number]
     | undefined
   >();
-  const [entries, setEntries] = useState<AccountHistory>();
-  const [loading, setLoading] = useState(false);
-  const [accountDetails, setAccountDetails] = useState<{
-    normalBalance: NormalBalance;
-  } | null>(null);
 
   // Filters
   const [startDate, setStartDate] = useState("");
@@ -24,12 +20,14 @@ export function useLedger() {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  useEffect(() => {
-    if (!selectedAccount?.id) return;
-
-    const fetchEntries = async () => {
-      setLoading(true);
-      const responseWithPagination = await getAccountHistory({
+  const { data: entries, isLoading: loading } = useQuery({
+    queryKey: [
+      "ledger-entries",
+      { accountId: selectedAccount?.id, page, pageSize, startDate, endDate, showDraft },
+    ],
+    queryFn: async () => {
+      if (!selectedAccount?.id) return null;
+      const response = await getAccountHistory({
         accountId: selectedAccount.id,
         page,
         pageSize,
@@ -37,21 +35,13 @@ export function useLedger() {
         endDate,
         showDraft,
       });
+      return response.success ? response.data : null;
+    },
+    enabled: !!selectedAccount?.id,
+    placeholderData: keepPreviousData,
+  });
 
-      if (responseWithPagination.success && responseWithPagination.data) {
-        setEntries(responseWithPagination.data);
-        setAccountDetails(responseWithPagination.data.account);
-      }
-      setLoading(false);
-    };
-
-    // Debounce fetching
-    const timer = setTimeout(() => {
-      fetchEntries();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [selectedAccount?.id, startDate, endDate, showDraft, page, pageSize]);
+  const accountDetails = entries?.account || null;
 
   const handleAccountChange = (
     value: string,

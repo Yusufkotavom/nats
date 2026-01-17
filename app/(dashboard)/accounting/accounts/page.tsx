@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import {
@@ -12,7 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronDown,
+  Pencil,
+  Trash2,
+  Plus,
+  Loader2,
+} from "lucide-react";
 import { updateAccount, deleteAccount, getAccounts } from "./actions";
 import { AccountDialog } from "./_components/account-dialog";
 import { Protect } from "@/components/ui/protect";
@@ -25,24 +32,74 @@ import {
 } from "@/components/layout/page/list-layout";
 import { Account } from "../types";
 import { useConfirm, useToast } from "@/hooks";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function AccountListPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState<string>("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const confirm = useConfirm();
 
-  useEffect(() => {
-    async function fetchData() {
-      const accounts = await getAccounts(1);
-      setAccounts(accounts as Account[]);
-    }
-    fetchData();
-  }, []);
+  const { data: accounts = [], isLoading } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: async () => {
+      const res = await getAccounts(1);
+      return res as Account[];
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { name: string };
+    }) => {
+      return await updateAccount(id, data);
+    },
+    onSuccess: (res) => {
+      if (res.success) {
+        toast({
+          title: "Success",
+          description: "Account updated successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["accounts"] });
+        setEditingId(null);
+        setDraftName("");
+      } else {
+        setError(res.error || "Failed to update account");
+      }
+    },
+    onError: () => {
+      setError("Failed to update account");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await deleteAccount(id);
+    },
+    onSuccess: (res) => {
+      if (res.success) {
+        toast({
+          title: "Success",
+          description: "Account deleted successfully",
+        });
+        queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      } else {
+        toast({
+          title: "Error",
+          description: res.error || "Failed to delete account",
+          variant: "destructive",
+        });
+      }
+    },
+  });
 
   const byId = useMemo(() => {
     const map: Record<string, Account> = {};
@@ -76,17 +133,10 @@ export default function AccountListPage() {
     setDraftName(a.name);
   }
 
-  async function commitEdit(a: Account) {
+  function commitEdit(a: Account) {
     if (!editingId) return;
     setError(null);
-    await updateAccount(a.id, { name: draftName });
-    toast({
-      title: "Success",
-      description: "Account updated successfully",
-    });
-    // Data refresh is handled by Next.js Server Actions revalidation
-    setEditingId(null);
-    setDraftName("");
+    updateMutation.mutate({ id: a.id, data: { name: draftName } });
   }
 
   async function handleDelete(a: Account) {
@@ -108,33 +158,16 @@ export default function AccountListPage() {
         variant: "destructive",
       })
     ) {
-      setError(null);
-
-      try {
-        const res = await deleteAccount(a.id);
-        if (!res?.success) {
-          setError(res?.error || "Delete failed");
-          toast({
-            title: "Error",
-            description: res?.error || "Delete failed",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Success",
-            description: "Account deleted successfully",
-          });
-        }
-      } catch (err) {
-        setError("An unexpected error occurred");
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred",
-          variant: "destructive",
-        });
-        console.error(err);
-      }
+      deleteMutation.mutate(a.id);
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   function renderRows(a: Account, depth = 0): React.ReactElement[] {
@@ -278,10 +311,12 @@ export default function AccountListPage() {
         onOpenChange={setIsAdding}
         accounts={accounts}
         onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["accounts"] });
           toast({
             title: "Success",
             description: "Account created successfully",
           });
+          setIsAdding(false);
         }}
       />
     </PageListLayout>

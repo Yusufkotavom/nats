@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { JournalEntryForm } from "../../_components/journal-entry-form";
 import { getJournalEntry, updateJournalEntry } from "../../actions";
 import { getAccounts } from "../../../accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
-import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../../types";
 import { useAlert } from "@/hooks";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 export default function EditJournalEntryPage({
   params,
@@ -16,69 +17,82 @@ export default function EditJournalEntryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [entry, setEntry] = useState<any | null>(null);
-  const [accounts, setAccounts] = useState<
-    (Account & { children?: unknown[] })[]
-  >([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const alert = useAlert();
+  const queryClient = useQueryClient();
 
+  const { data: entry, isLoading: isEntryLoading } = useQuery({
+    queryKey: ["journal-entry", id],
+    queryFn: async () => {
+      const res = await getJournalEntry(id);
+      return res.success ? res.data : null;
+    },
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: async () => {
+      const res = await getAccounts();
+      return Array.isArray(res) ? res : res.data || [];
+    },
+  });
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: async () => {
+      const res = await getContacts({ pageSize: 1000 });
+      return res.data || [];
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: CreateJournalEntryData) => updateJournalEntry(id, data),
+    onSuccess: (res) => {
+      if (res.success) {
+        queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
+        queryClient.invalidateQueries({ queryKey: ["journal-entry", id] });
+        router.push("/accounting/journal-entries");
+      } else {
+        alert({
+          title: "Error",
+          description: res.error,
+        });
+      }
+    },
+  });
+
+  // Check posted status
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const [entryRes, accountsData, contactsRes] = await Promise.all([
-        getJournalEntry(id),
-        getAccounts(),
-        getContacts({ pageSize: 1000 }),
-      ]);
-
-      if (entryRes.success && entryRes.data) {
-        if (entryRes.data.status === "posted") {
-          await alert({
-            title: "Cannot edit",
-            description: "Cannot edit posted journal entries",
-          });
-          router.push(`/accounting/journal-entries/${id}`);
-          return;
-        }
-
-        setEntry(entryRes.data);
-      }
-      if (Array.isArray(accountsData)) {
-        setAccounts(accountsData);
-      }
-      setContacts(contactsRes.data || []);
-      setLoading(false);
-    };
-
-    loadData();
-  }, [id, router]);
-
-  const handleSubmit = async (data: CreateJournalEntryData) => {
-    setIsSubmitting(true);
-    const res = await updateJournalEntry(id, data);
-    setIsSubmitting(false);
-
-    if (res.success) {
-      router.push("/accounting/journal-entries");
-    } else {
-      await alert({
-        title: "Error",
-        description: res.error,
+    if (entry && entry.status === "posted") {
+      alert({
+        title: "Cannot edit",
+        description: "Cannot edit posted journal entries",
+      }).then(() => {
+        router.push(`/accounting/journal-entries/${id}`);
       });
     }
-  };
+  }, [entry, router, alert, id]);
 
-  if (loading) {
-    return <div className="p-8 text-center">Loading...</div>;
+  if (isEntryLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (!entry) {
     return <div className="p-8 text-center">Journal Entry not found</div>;
   }
+
+  // Prevent rendering form if posted (useEffect will redirect, but good to hide)
+  if (entry.status === "posted") {
+    return null;
+  }
+
+  const handleSubmit = async (data: CreateJournalEntryData) => {
+    updateMutation.mutate(data);
+  };
 
   return (
     <JournalEntryForm
@@ -86,7 +100,7 @@ export default function EditJournalEntryPage({
       accounts={accounts}
       contacts={contacts}
       onSubmit={handleSubmit}
-      isSubmitting={isSubmitting}
+      isSubmitting={updateMutation.isPending}
       onCancel={() => router.push("/accounting/journal-entries")}
     />
   );

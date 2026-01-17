@@ -34,11 +34,17 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { useLedger } from "./use-ledger";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 export default function LedgerViewPage() {
-  const [accounts, setAccounts] =
-    useState<Awaited<ReturnType<typeof getLedgerAccounts>>["data"]>();
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["ledger-accounts"],
+    queryFn: async () => {
+      const resp = await getLedgerAccounts();
+      return resp?.data || [];
+    },
+  });
 
   const {
     selectedAccount,
@@ -57,14 +63,6 @@ export default function LedgerViewPage() {
     balance,
     pageSize,
   } = useLedger();
-
-  useEffect(() => {
-    async function fetchData() {
-      const resp = await getLedgerAccounts();
-      setAccounts(resp?.data || []);
-    }
-    fetchData();
-  }, []);
 
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
@@ -245,7 +243,7 @@ export default function LedgerViewPage() {
                     ))
                   ) : entries?.items?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
+                      <TableCell colSpan={8} className="h-24 text-center">
                         {selectedAccount?.id
                           ? "No transactions found."
                           : "Select an account to view transactions."}
@@ -261,13 +259,13 @@ export default function LedgerViewPage() {
                           {formatDate(entry.journalEntry.transactionDate)}
                         </TableCell>
                         <TableCell>
-                          <a
+                          <Link
                             href={`/accounting/journal-entries/${entry.journalEntryId}`}
                             target="_blank"
                             className="text-primary hover:underline font-medium"
                           >
                             {entry.journalEntry.entryNumber}
-                          </a>
+                          </Link>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
@@ -280,12 +278,12 @@ export default function LedgerViewPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          {entry.debitAmount
+                          {Number(entry.debitAmount) > 0
                             ? formatCurrency(Number(entry.debitAmount))
                             : "-"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {entry.creditAmount
+                          {Number(entry.creditAmount) > 0
                             ? formatCurrency(Number(entry.creditAmount))
                             : "-"}
                         </TableCell>
@@ -301,12 +299,16 @@ export default function LedgerViewPage() {
                 </TableBody>
               </Table>
             </div>
-            <CustomPagination
-              totalEntries={entries?.pagination?.total || 0}
-              pageSize={pageSize}
-              currentPage={page}
-              onPageChange={setPage}
-            />
+            {entries && entries.pagination.total > 0 && (
+              <div className="mt-4">
+                <CustomPagination
+                  totalEntries={entries.pagination.total}
+                  currentPage={page}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </PageListContent>

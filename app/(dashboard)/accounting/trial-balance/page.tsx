@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useFormatCurrency } from "@/hooks";
 import {
   Table,
@@ -23,47 +23,58 @@ import {
   PageListLayout,
   PageListTitle,
 } from "@/components/layout/page/list-layout";
+import { useQuery } from "@tanstack/react-query";
 
 export default function TrialBalancePage() {
   const formatCurrency = useFormatCurrency();
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [items, setItems] = useState<TrialBalanceItem[]>([]);
-  const [totals, setTotals] = useState({ debit: 0, credit: 0 });
-  const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  const {
+    data: trialBalanceData,
+    isLoading: loading,
+    refetch,
+  } = useQuery({
+    queryKey: ["trial-balance", date],
+    queryFn: async () => {
       const res = await getTrialBalance(date);
-      if (res.success && res.data) {
-        setItems(res.data.items);
-        setTotals({
-          debit: res.data.totalDebit,
-          credit: res.data.totalCredit,
-        });
+      return res.success && res.data ? res.data : { items: [], totalDebit: 0, totalCredit: 0 };
+    },
+  });
 
-        // Default expand all
-        const initialExpanded: Record<string, boolean> = {};
-        res.data.items.forEach((item) => {
-          if (item.hasChildren) {
-            initialExpanded[item.accountId] = true;
-          }
-        });
-        setExpanded(initialExpanded);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+  const items = trialBalanceData?.items || [];
+  const totals = {
+    debit: trialBalanceData?.totalDebit || 0,
+    credit: trialBalanceData?.totalCredit || 0,
   };
 
+  // Default expand all when items change
   useEffect(() => {
-    fetchData();
-  }, [date]);
+    if (items.length > 0) {
+      const initialExpanded: Record<string, boolean> = {};
+      items.forEach((item) => {
+        if (item.hasChildren) {
+          initialExpanded[item.accountId] = true;
+        }
+      });
+      // Only set if expanded is empty (initial load) or we want to reset? 
+      // The original code reset expansion on every fetch. 
+      // "Default expand all" comment suggests this.
+      // However, resetting expansion on every date change might be annoying if user collapsed something.
+      // But since data structure might change, it's safer to re-expand.
+      // Or we can merge. But let's follow original behavior for now.
+      
+      // Original logic:
+      // const initialExpanded: Record<string, boolean> = {};
+      // res.data.items.forEach(...)
+      // setExpanded(initialExpanded);
+      
+      // So yes, it resets.
+      setExpanded(initialExpanded);
+    }
+  }, [items]); // items reference changes on new fetch
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -71,7 +82,6 @@ export default function TrialBalancePage() {
 
   const visibleItems = useMemo(() => {
     const result: TrialBalanceItem[] = [];
-
     const visibilityMap = new Map<string, boolean>(); // accountId -> isVisible
 
     for (const item of items) {
@@ -112,7 +122,7 @@ export default function TrialBalancePage() {
       <PageListHeader>
         <PageListTitle title="Trial Balance" />
         <PageListActions>
-          <Button size="sm" onClick={fetchData} disabled={loading}>
+          <Button size="sm" onClick={() => refetch()} disabled={loading}>
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
             />

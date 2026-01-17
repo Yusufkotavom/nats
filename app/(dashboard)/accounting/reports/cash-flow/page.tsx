@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   getCashFlowStatement,
-  CashFlowReport,
   ReportAccountLine,
 } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,8 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useQuery } from "@tanstack/react-query";
+
 import {
   Table,
   TableBody,
@@ -43,12 +44,19 @@ export default function CashFlowPage() {
     new Date(new Date().getFullYear() - 1, 11, 31).toISOString().split("T")[0]
   );
 
-  const [report, setReport] = useState<CashFlowReport | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const fetchReport = async () => {
-    setLoading(true);
-    try {
+  const {
+    data: report,
+    isLoading: loading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "cash-flow",
+      startDate,
+      endDate,
+      showComparative ? comparativeStartDate : null,
+      showComparative ? comparativeEndDate : null,
+    ],
+    queryFn: async () => {
       const res = await getCashFlowStatement(
         startDate,
         endDate,
@@ -56,21 +64,11 @@ export default function CashFlowPage() {
         showComparative ? comparativeEndDate : undefined
       );
       if (res.success && res.data) {
-        setReport(res.data);
-      } else {
-        console.error("Failed to fetch report:", res.error);
+        return res.data;
       }
-    } catch (error) {
-      console.error("Failed to fetch report:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReport();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      return null;
+    },
+  });
 
   const formatPercentage = (val: number) => {
     if (isNaN(val)) return "-";
@@ -147,7 +145,7 @@ export default function CashFlowPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-bold">Statement of Cash Flows</h1>
           <div className="flex items-center gap-4">
-            <Button onClick={fetchReport} disabled={loading}>
+            <Button onClick={() => refetch()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

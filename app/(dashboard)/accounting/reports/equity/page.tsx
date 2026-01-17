@@ -79,7 +79,7 @@ export default function EquityPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-bold">Statement of Changes in Equity</h1>
           <div className="flex items-center gap-4">
-            <Button onClick={fetchReport} disabled={loading}>
+            <Button onClick={() => fetchReport()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getBalanceSheet, BalanceSheetReport } from "../actions";
+import { useState } from "react";
+import { getBalanceSheet } from "../actions";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   Table,
@@ -35,32 +36,27 @@ export default function BalanceSheetPage() {
     new Date(new Date().getFullYear() - 1, 11, 31).toISOString().split("T")[0]
   );
 
-  const [report, setReport] = useState<BalanceSheetReport | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const fetchReport = async () => {
-    setLoading(true);
-    try {
+  const {
+    data: report,
+    isLoading: loading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "balance-sheet",
+      asOfDate,
+      showComparative ? comparativeDate : null,
+    ],
+    queryFn: async () => {
       const res = await getBalanceSheet(
         asOfDate,
         showComparative ? comparativeDate : undefined
       );
       if (res.success && res.data) {
-        setReport(res.data);
-      } else {
-        console.error("Failed to fetch report:", res.error);
+        return res.data;
       }
-    } catch (error) {
-      console.error("Failed to fetch report:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReport();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      return null;
+    },
+  });
 
   // Helper to render total line
   const renderTotalLine = (
@@ -109,7 +105,7 @@ export default function BalanceSheetPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-bold">Balance Sheet</h1>
           <div className="flex items-center gap-4">
-            <Button onClick={fetchReport} disabled={loading}>
+            <Button onClick={() => refetch()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
