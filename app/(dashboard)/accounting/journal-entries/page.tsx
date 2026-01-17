@@ -72,6 +72,7 @@ export default function JournalEntryPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const formatDate = useFormatDate();
+  const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
   const alert = useAlert();
 
@@ -242,6 +243,7 @@ export default function JournalEntryPage() {
                   <TableHead>Number</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Created By</TableHead>
+                  <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -262,6 +264,13 @@ export default function JournalEntryPage() {
                       </TableCell>
                       <TableCell>{entry.description}</TableCell>
                       <TableCell>{entry.user?.name || "Unknown"}</TableCell>
+                      <TableCell>
+                        {formatCurrency(
+                          entry.lines.reduce((acc, line) => {
+                            return acc + Number(line.debitAmount || 0);
+                          }, 0)
+                        )}
+                      </TableCell>
                       <TableCell>
                         <StatusBadge status={entry.status} />
                       </TableCell>

@@ -24,8 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountType } from "@/prisma/generated/prisma/browser";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { useFormatDate } from "@/hooks/use-format-date";
+import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import {
   PageListContent,
