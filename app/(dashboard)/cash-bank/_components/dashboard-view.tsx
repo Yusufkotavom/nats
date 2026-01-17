@@ -23,24 +23,28 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getAvailableGLAccounts, getDashboardStats } from "../actions";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface DashboardViewProps {
-  accounts: Awaited<ReturnType<typeof getDashboardStats>>["accounts"];
-  summary: Awaited<ReturnType<typeof getDashboardStats>>["summary"];
-  recentTransactions: Awaited<
-    ReturnType<typeof getDashboardStats>
-  >["recentTransactions"];
-  glAccounts: Awaited<ReturnType<typeof getAvailableGLAccounts>>;
-}
-
-export function DashboardView({
-  accounts,
-  summary,
-  recentTransactions,
-  glAccounts,
-}: DashboardViewProps) {
+export function DashboardView() {
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
+
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ["cash-bank", "dashboard-stats"],
+    queryFn: () => getDashboardStats(),
+  });
+
+  const { data: glAccounts, isLoading: isLoadingGL } = useQuery({
+    queryKey: ["cash-bank", "gl-accounts"],
+    queryFn: () => getAvailableGLAccounts(),
+  });
+
+  if (isLoadingStats || isLoadingGL || !stats || !glAccounts) {
+    return <Skeleton className="h-[400px] w-full" />;
+  }
+
+  const { accounts, summary, recentTransactions } = stats;
 
   return (
     <div className="space-y-6">

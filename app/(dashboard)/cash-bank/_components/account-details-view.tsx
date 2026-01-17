@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DataTable, Column } from "@/components/ui/data-table";
 import {
   ScaleIcon,
@@ -30,57 +30,38 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export function AccountDetailsView({ accountId }: { accountId: string }) {
-  const [entries, setEntries] = useState<any[]>([]);
-  const [account, setAccount] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [totals, setTotals] = useState<{ debit: number; credit: number }>({
-    debit: 0,
-    credit: 0,
-  });
-  const [currentBalance, setCurrentBalance] = useState(0);
-
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [totalCount, setTotalCount] = useState(0);
 
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
 
-  useEffect(() => {
-    const fetchEntries = async () => {
-      setLoading(true);
-      try {
-        const res = await getCashAccountDetails(accountId, {
-          page,
-          pageSize,
-          startDate: startDate ? new Date(startDate) : undefined,
-          endDate: endDate ? new Date(endDate) : undefined,
-        });
+  const { data, isLoading: loading } = useQuery({
+    queryKey: [
+      "cash-account-details",
+      accountId,
+      { page, pageSize, startDate, endDate },
+    ],
+    queryFn: () =>
+      getCashAccountDetails(accountId, {
+        page,
+        pageSize,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+      }),
+    placeholderData: keepPreviousData,
+  });
 
-        if (res) {
-          setEntries(res.lines);
-          setAccount(res.account);
-          setTotalCount(res.totalCount);
-          setTotals(res.periodTotals);
-          setCurrentBalance(res.totalBalance);
-        }
-      } catch (error) {
-        console.error("Failed to fetch account details", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      fetchEntries();
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [accountId, startDate, endDate, page, pageSize]);
+  const entries = data?.lines || [];
+  const account = data?.account;
+  const totalCount = data?.totalCount || 0;
+  const totals = data?.periodTotals || { debit: 0, credit: 0 };
+  const currentBalance = data?.totalBalance || 0;
 
   // Net Balance for the period
   const periodNetBalance = totals.debit - totals.credit;

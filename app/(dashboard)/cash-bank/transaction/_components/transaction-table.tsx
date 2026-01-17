@@ -8,6 +8,9 @@ import {
   CashAccount,
   CashTransactionAllocation,
 } from "@/prisma/generated/prisma/browser";
+import { useQuery } from "@tanstack/react-query";
+import { getCashTransactions } from "../actions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TransactionWithDetails extends CashTransaction {
   cashAccount: CashAccount;
@@ -15,10 +18,17 @@ interface TransactionWithDetails extends CashTransaction {
 }
 
 interface TransactionTableProps {
-  transactions: TransactionWithDetails[];
+  page?: number;
 }
 
-export function TransactionTable({ transactions }: TransactionTableProps) {
+export function TransactionTable({ page = 1 }: TransactionTableProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["cash-transactions", page],
+    queryFn: () => getCashTransactions(page),
+  });
+
+  const transactions = (data?.transactions || []) as TransactionWithDetails[];
+
   const columns: Column<TransactionWithDetails>[] = [
     {
       header: "Date",
@@ -58,6 +68,10 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
       },
     },
   ];
+
+  if (isLoading) {
+    return <Skeleton className="h-[400px] w-full" />;
+  }
 
   return (
     <DataTable

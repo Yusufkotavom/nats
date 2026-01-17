@@ -1,19 +1,30 @@
-import { Suspense } from "react";
+import {
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from "@tanstack/react-query";
 import { getCashAccounts, getTransfers } from "../actions";
 import { TransferView } from "./_components/transfer-view";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default async function TransferPage() {
-  const [transfers, accounts] = await Promise.all([
-    getTransfers(),
-    getCashAccounts(),
+  const queryClient = new QueryClient();
+
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: ["cash-transfers"],
+      queryFn: () => getTransfers(),
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["cash-accounts"],
+      queryFn: () => getCashAccounts(),
+    }),
   ]);
 
   return (
     <div className="container mx-auto px-4">
-      <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>
-        <TransferView transfers={transfers} accounts={accounts} />
-      </Suspense>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <TransferView />
+      </HydrationBoundary>
     </div>
   );
 }

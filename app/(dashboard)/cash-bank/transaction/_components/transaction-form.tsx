@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -47,6 +48,7 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleCancel = () => {
     if (onCancel) {
@@ -180,13 +182,17 @@ export function TransactionForm({
 
       setIsSubmitting(true);
       await createCashTransaction(formData);
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ["cash-transactions"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["cash-bank", "dashboard-stats"],
+      });
+
       toast({
         title: "Success",
         description: "Transaction created successfully",
       });
-      router.push("/accounting/journal-entries"); // Redirect to GL or list?
-      // User said: "The posted form should be then copied/posted to journal entries".
-      // Maybe redirect to the transaction list?
       router.push("/cash-bank/transaction");
     } catch (error) {
       console.error(error);

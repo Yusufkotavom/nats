@@ -25,16 +25,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { TransferStatus } from "@/prisma/generated/prisma/enums";
-import { approveCashTransfer, deleteCashTransfer } from "../../actions";
+import { approveCashTransfer, deleteCashTransfer, getTransfers, getCashAccounts } from "../../actions";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface TransferViewProps {
-  transfers: CashTransfer[];
-  accounts: CashAccount[];
-}
-
-export function TransferView({ transfers, accounts }: TransferViewProps) {
+export function TransferView() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<
     CashTransfer | undefined
@@ -42,6 +39,17 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
   const { toast } = useToast();
   const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+
+  const { data: transfers = [], isLoading: isLoadingTransfers } = useQuery({
+    queryKey: ["cash-transfers"],
+    queryFn: () => getTransfers(),
+  });
+
+  const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery({
+    queryKey: ["cash-accounts"],
+    queryFn: () => getCashAccounts(),
+  });
 
   const handleEdit = (transfer: CashTransfer) => {
     setEditingTransfer(transfer);
@@ -59,6 +67,7 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
       startTransition(async () => {
         try {
           await deleteCashTransfer(id);
+          queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           toast({
             title: "Success",
             description: "Transfer deleted successfully",
@@ -86,6 +95,7 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
       startTransition(async () => {
         try {
           await approveCashTransfer(id);
+          queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           toast({
             title: "Success",
             description: "Transfer approved successfully",
@@ -269,6 +279,8 @@ export function TransferView({ transfers, accounts }: TransferViewProps) {
         }}
         cashAccounts={accounts}
         onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
+          queryClient.invalidateQueries({ queryKey: ["cash-bank", "dashboard-stats"] });
           setIsTransferOpen(false);
         }}
         transfer={editingTransfer}

@@ -1,24 +1,30 @@
-import { Suspense } from "react";
+import {
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from "@tanstack/react-query";
 import { getDashboardStats, getAvailableGLAccounts } from "./actions";
 import { DashboardView } from "./_components/dashboard-view";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default async function CashBankPage() {
-  const [stats, glAccounts] = await Promise.all([
-    getDashboardStats(),
-    getAvailableGLAccounts(),
+  const queryClient = new QueryClient();
+
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: ["cash-bank", "dashboard-stats"],
+      queryFn: () => getDashboardStats(),
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["cash-bank", "gl-accounts"],
+      queryFn: () => getAvailableGLAccounts(),
+    }),
   ]);
 
   return (
     <div className="container mx-auto px-4">
-      <Suspense fallback={<Skeleton className="h-[200px] w-full" />}>
-        <DashboardView
-          accounts={stats.accounts}
-          summary={stats.summary}
-          recentTransactions={stats.recentTransactions}
-          glAccounts={glAccounts}
-        />
-      </Suspense>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <DashboardView />
+      </HydrationBoundary>
     </div>
   );
 }

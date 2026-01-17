@@ -22,6 +22,7 @@ import {
 } from "../actions";
 import { useToast, useConfirm, useFormatCurrency } from "@/hooks";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CashAccountListProps {
   accounts: Awaited<ReturnType<typeof getDashboardStats>>["accounts"];
@@ -42,6 +43,7 @@ export function CashAccountList({
   const { toast } = useToast();
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
+  const queryClient = useQueryClient();
 
   const handleDelete = async (id: string) => {
     if (
@@ -53,6 +55,9 @@ export function CashAccountList({
     ) {
       try {
         await deleteCashAccount(id);
+        queryClient.invalidateQueries({
+          queryKey: ["cash-bank", "dashboard-stats"],
+        });
         toast({
           title: "Success",
           description: "Account deleted successfully",
@@ -157,7 +162,11 @@ export function CashAccountList({
         }}
         account={editingAccount}
         glAccounts={glAccounts}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          queryClient.invalidateQueries({
+            queryKey: ["cash-bank", "dashboard-stats"],
+          });
+        }}
       />
     </div>
   );
