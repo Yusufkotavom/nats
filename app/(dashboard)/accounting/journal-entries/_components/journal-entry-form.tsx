@@ -23,7 +23,7 @@ import {
   X,
   StickyNote,
 } from "lucide-react";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatCurrency } from "@/hooks";
 import { Badge } from "@/components/ui/badge";
 import {
   DndContext,

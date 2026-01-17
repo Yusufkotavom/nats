@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatCurrency } from "@/hooks";
 import {
   Table,
   TableBody,

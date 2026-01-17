@@ -12,8 +12,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useConfirm } from "@/hooks/use-confirm";
-import { useAlert } from "@/hooks/use-alert";
+import {
+  useConfirm,
+  useAlert,
+  useFormatCurrency,
+  useFormatDate,
+} from "@/hooks";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,8 +40,6 @@ import {
 } from "./actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Protect } from "@/components/ui/protect";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { useFormatDate } from "@/hooks/use-format-date";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import {

@@ -12,12 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useConfirm } from "@/hooks/use-confirm";
 import { ChevronRight, ChevronDown, Pencil, Trash2, Plus } from "lucide-react";
 import { updateAccount, deleteAccount, getAccounts } from "./actions";
 import { AccountDialog } from "./_components/account-dialog";
 import { Protect } from "@/components/ui/protect";
-import { useToast } from "@/hooks/use-toast";
 import {
   PageListActions,
   PageListContent,
@@ -26,6 +24,7 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { Account } from "../types";
+import { useConfirm, useToast } from "@/hooks";
 
 export default function AccountListPage() {
   const { toast } = useToast();

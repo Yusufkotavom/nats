@@ -14,7 +14,7 @@ import {
 } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../types";
 import { generateId } from "@/lib/utils";
-import { useAlert } from "@/hooks/use-alert";
+import { useAlert } from "@/hooks";
 
 export default function CreateJournalEntryPage() {
   const [accounts, setAccounts] = useState<

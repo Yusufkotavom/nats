@@ -23,7 +23,6 @@ import {
   Wallet,
   PlusCircle,
   FileText,
-  PieChart,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";

@@ -9,8 +9,7 @@ import {
   LayoutDashboard,
   List,
 } from "lucide-react";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { useFormatDate } from "@/hooks/use-format-date";
+import { useFormatCurrency, useFormatDate } from "@/hooks";
 import {
   Table,
   TableBody,

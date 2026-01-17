@@ -21,8 +21,7 @@ import {
 } from "../actions";
 import { CashAccount, CashTransfer, CashTransferFormData } from "../types";
 import { Loader2, Paperclip } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { useToast, useFormatDate } from "@/hooks";
 import { Label } from "@/components/ui/label";
 import {
   AttachmentDialog,
@@ -47,6 +46,7 @@ export function CashTransferDialog({
   transfer,
 }: CashTransferDialogProps) {
   const { toast } = useToast();
+  const formatDate = useFormatDate();
   const [formData, setFormData] = useState<CashTransferFormData>({
     fromAccountId: "",
     toAccountId: "",
@@ -213,7 +213,7 @@ export function CashTransferDialog({
           <CustomInput
             label="Date"
             type="date"
-            value={formData.date ? format(formData.date, "yyyy-MM-dd") : ""}
+            value={formData.date ? formatDate(formData.date) : ""}
             onChange={(e) =>
               setFormData({ ...formData, date: new Date(e.target.value) })
             }

@@ -8,7 +8,7 @@ import { getAccounts } from "../../../accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../../types";
-import { useAlert } from "@/hooks/use-alert";
+import { useAlert } from "@/hooks";
 
 export default function EditJournalEntryPage({
   params,

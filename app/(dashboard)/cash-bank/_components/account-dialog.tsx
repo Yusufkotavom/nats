@@ -21,7 +21,7 @@ import {
 import { CashAccount, CashAccountFormData } from "../types";
 import { CashAccountType } from "@/prisma/generated/prisma/enums";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks";
 
 interface CashAccountDialogProps {
   open: boolean;

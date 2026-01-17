@@ -28,8 +28,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { CustomInput } from "@/components/ui/custom-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomPagination } from "@/components/ui/custom-pagination";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { useFormatDate } from "@/hooks/use-format-date";
+import { useFormatCurrency, useFormatDate } from "@/hooks";
 import Link from "next/link";
 import {
   DropdownMenu,
