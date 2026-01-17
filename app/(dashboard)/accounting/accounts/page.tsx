@@ -33,31 +33,31 @@ export default function AccountListPage() {
   const [draftName, setDraftName] = useState<string>("");
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [initialAccounts, setInitialAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const confirm = useConfirm();
 
   useEffect(() => {
     async function fetchData() {
       const accounts = await getAccounts(1);
-      setInitialAccounts(accounts as Account[]);
+      setAccounts(accounts as Account[]);
     }
     fetchData();
   }, []);
 
   const byId = useMemo(() => {
     const map: Record<string, Account> = {};
-    initialAccounts.forEach((a) => (map[a.id] = { ...a, children: [] }));
-    initialAccounts.forEach((a) => {
+    accounts.forEach((a) => (map[a.id] = { ...a, children: [] }));
+    accounts.forEach((a) => {
       if (a.parentId && map[a.parentId]) {
         map[a.parentId].children!.push(map[a.id]);
       }
     });
     return map;
-  }, [initialAccounts]);
+  }, [accounts]);
 
   const roots = useMemo(() => {
     const res: Account[] = [];
-    initialAccounts.forEach((a) => {
+    accounts.forEach((a) => {
       if (!a.parentId) {
         res.push(byId[a.id] || a);
       }
@@ -65,7 +65,7 @@ export default function AccountListPage() {
     // sort by code for stable view
     res.sort((x, y) => x.code.localeCompare(y.code));
     return res;
-  }, [initialAccounts, byId]);
+  }, [accounts, byId]);
 
   function toggleExpand(id: string) {
     setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? true) }));
@@ -276,7 +276,7 @@ export default function AccountListPage() {
       <AccountDialog
         open={isAdding}
         onOpenChange={setIsAdding}
-        accounts={initialAccounts}
+        accounts={accounts}
         onSuccess={() => {
           toast({
             title: "Success",
