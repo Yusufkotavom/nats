@@ -79,7 +79,7 @@ const data = {
           url: "/cash-bank",
         },
         {
-          title: "Revenue & Expense",
+          title: "Cash In & Out",
           url: "/cash-bank/transaction",
         },
         {

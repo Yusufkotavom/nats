@@ -83,7 +83,7 @@ export default function CashTransactionListPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Cash Revenue & Expense" />
+        <PageListTitle title="Cash In & Out" />
         <PageListActions>
           <Button asChild>
             <Link href="/cash-bank/transaction/new">
