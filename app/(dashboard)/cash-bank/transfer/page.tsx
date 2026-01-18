@@ -21,10 +21,8 @@ export default async function TransferPage() {
   ]);
 
   return (
-    <div className="container mx-auto px-4">
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <TransferView />
-      </HydrationBoundary>
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <TransferView />
+    </HydrationBoundary>
   );
 }

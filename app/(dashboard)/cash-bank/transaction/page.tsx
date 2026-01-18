@@ -9,6 +9,13 @@ import {
   QueryClient,
   dehydrate,
 } from "@tanstack/react-query";
+import {
+  PageListActions,
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
 
 export default async function CashTransactionListPage({
   searchParams,
@@ -30,21 +37,23 @@ export default async function CashTransactionListPage({
   const { total } = await getCashTransactions(page);
 
   return (
-    <div className="flex-1 space-y-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Cash Transactions</h2>
-        <div className="flex items-center space-x-2">
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Cash Transaction" />
+        <PageListActions>
           <Button asChild>
             <Link href="/cash-bank/transaction/new">
               <Plus className="mr-2 h-4 w-4" /> New Transaction
             </Link>
           </Button>
-        </div>
-      </div>
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <TransactionTable page={page} />
-      </HydrationBoundary>
+        </PageListActions>
+      </PageListHeader>
+      <PageListContent>
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <TransactionTable page={page} />
+        </HydrationBoundary>
+      </PageListContent>
       <CustomPagination totalEntries={total} pageSize={10} currentPage={page} />
-    </div>
+    </PageListLayout>
   );
 }

@@ -25,11 +25,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { TransferStatus } from "@/prisma/generated/prisma/enums";
-import { approveCashTransfer, deleteCashTransfer, getTransfers, getCashAccounts } from "../../actions";
+import {
+  approveCashTransfer,
+  deleteCashTransfer,
+  getTransfers,
+  getCashAccounts,
+} from "../../actions";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  PageListActions,
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
+import { useFormatCurrency } from "@/hooks";
 
 export function TransferView() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -40,6 +52,7 @@ export function TransferView() {
   const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
   const queryClient = useQueryClient();
+  const formatCurrency = useFormatCurrency();
 
   const { data: transfers = [], isLoading: isLoadingTransfers } = useQuery({
     queryKey: ["cash-transfers"],
@@ -132,11 +145,7 @@ export function TransferView() {
     {
       header: "Amount",
       className: "font-medium",
-      cell: (transfer) =>
-        new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        }).format(Number(transfer.amount)),
+      cell: (transfer) => formatCurrency(Number(transfer.amount)),
     },
     {
       header: "Description",
@@ -244,32 +253,29 @@ export function TransferView() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight">Transfers</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage fund transfers between accounts
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setEditingTransfer(undefined);
-            setIsTransferOpen(true);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Transfer
-        </Button>
-      </div>
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Transfer" />
+        <PageListActions>
+          <Button
+            onClick={() => {
+              setEditingTransfer(undefined);
+              setIsTransferOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Transfer
+          </Button>
+        </PageListActions>
+      </PageListHeader>
 
-      <div className="rounded-md border">
+      <PageListContent>
         <DataTable
           data={transfers}
           columns={columns}
           emptyMessage="No transfers found."
         />
-      </div>
+      </PageListContent>
 
       <CashTransferDialog
         open={isTransferOpen}
@@ -280,11 +286,13 @@ export function TransferView() {
         cashAccounts={accounts}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
-          queryClient.invalidateQueries({ queryKey: ["cash-bank", "dashboard-stats"] });
+          queryClient.invalidateQueries({
+            queryKey: ["cash-bank", "dashboard-stats"],
+          });
           setIsTransferOpen(false);
         }}
         transfer={editingTransfer}
       />
-    </div>
+    </PageListLayout>
   );
 }
