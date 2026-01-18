@@ -83,6 +83,10 @@ model CashTransaction {
   journalEntryId String       @unique
   journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
 
+  status       CashTransactionStatus @default(APPROVED)
+  approvedById String?
+  approvedAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -103,4 +107,10 @@ model CashTransactionAllocation {
 enum CashTransactionType {
   INCOME
   EXPENSE
+}
+
+enum CashTransactionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CashTransactionType } from "@/prisma/generated/prisma/enums";
-import { createCashTransaction } from "../actions";
+import { createCashTransaction, updateCashTransaction } from "../actions";
 import {
   CashTransactionAllocationFormData,
   CashTransactionFormData,
@@ -43,12 +43,16 @@ interface TransactionFormProps {
   cashAccounts: CashAccount[];
   glAccounts: Account[];
   onCancel?: () => void;
+  initialData?: CashTransactionFormData & { id?: string };
+  readOnly?: boolean;
 }
 
 export function TransactionForm({
   cashAccounts,
   glAccounts,
   onCancel,
+  initialData,
+  readOnly = false,
 }: TransactionFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -67,16 +71,23 @@ export function TransactionForm({
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const formatCurrency = useFormatCurrency();
 
-  const [formData, setFormData] = useState<CashTransactionFormData>({
-    date: new Date(),
-    type: CashTransactionType.INCOME,
-    cashAccountId: "",
-    allocations: [],
-    attachments: [],
-    notes: "",
-    reference: "",
-    description: "",
-  });
+  const [formData, setFormData] = useState<CashTransactionFormData>(
+    initialData
+      ? {
+          ...initialData,
+          date: new Date(initialData.date), // Ensure date is Date object
+        }
+      : {
+          date: new Date(),
+          type: CashTransactionType.INCOME,
+          cashAccountId: "",
+          allocations: [],
+          attachments: [],
+          notes: "",
+          reference: "",
+          description: "",
+        }
+  );
 
   const handleAddAllocation = () => {
     setFormData((prev) => ({
@@ -153,7 +164,19 @@ export function TransactionForm({
       }
 
       setIsSubmitting(true);
-      await createCashTransaction(formData);
+      if (initialData?.id) {
+        await updateCashTransaction(initialData.id, formData);
+        toast({
+          title: "Success",
+          description: "Transaction updated successfully",
+        });
+      } else {
+        await createCashTransaction(formData);
+        toast({
+          title: "Success",
+          description: "Transaction created successfully",
+        });
+      }
 
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ["cash-transactions"] });
@@ -187,16 +210,22 @@ export function TransactionForm({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">New Cash Transaction</h1>
+          <h1 className="text-xl font-bold">
+            {initialData?.id ? "Edit Cash Transaction" : "New Cash Transaction"}
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleCancel}>
-            Cancel
+            {readOnly ? "Back" : "Cancel"}
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Transaction
-          </Button>
+          {!readOnly && (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save Transaction
+            </Button>
+          )}
         </div>
       </div>
 
@@ -212,6 +241,7 @@ export function TransactionForm({
               { label: "Revenue (In)", value: CashTransactionType.INCOME },
               { label: "Expense (Out)", value: CashTransactionType.EXPENSE },
             ]}
+            disabled={readOnly}
           />
           <CustomInput
             label="Date"
@@ -224,6 +254,7 @@ export function TransactionForm({
             onChange={(e) =>
               setFormData({ ...formData, date: new Date(e.target.value) })
             }
+            disabled={readOnly}
           />
           <CustomInput
             label="Reference"
@@ -232,6 +263,7 @@ export function TransactionForm({
               setFormData({ ...formData, reference: e.target.value })
             }
             placeholder="Optional reference"
+            disabled={readOnly}
           />
         </div>
         <CustomSelect
@@ -245,6 +277,7 @@ export function TransactionForm({
             value: acc.id,
           }))}
           placeholder="Select Account"
+          disabled={readOnly}
         />
 
         <CustomInput
@@ -254,6 +287,7 @@ export function TransactionForm({
             setFormData({ ...formData, description: e.target.value })
           }
           placeholder="Transaction description"
+          disabled={readOnly}
         />
       </div>
 
@@ -262,11 +296,13 @@ export function TransactionForm({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Allocations</h2>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleAddAllocation}>
-              <Plus className="mr-2 h-4 w-4" /> Add Line
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={handleAddAllocation}>
+                <Plus className="mr-2 h-4 w-4" /> Add Line
+              </Button>
+            </div>
+          )}
         </div>
 
         <Table>
@@ -287,6 +323,7 @@ export function TransactionForm({
                       updateAllocation(index, "description", e.target.value)
                     }
                     placeholder="Line description"
+                    disabled={readOnly}
                   />
                 </TableCell>
                 <TableCell>
@@ -300,6 +337,7 @@ export function TransactionForm({
                       updateAllocation(index, "accountId", val)
                     }
                     placeholder="Select GL Account"
+                    disabled={readOnly}
                   />
                 </TableCell>
 
@@ -308,14 +346,17 @@ export function TransactionForm({
                     value={alloc.amount}
                     onChange={(val) => updateAllocation(index, "amount", val)}
                     className="text-right"
+                    disabled={readOnly}
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveAllocation(index)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveAllocation(index)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -325,7 +366,9 @@ export function TransactionForm({
                   colSpan={4}
                   className="text-center text-muted-foreground h-24"
                 >
-                  No allocations added. Click &quot;Add Line&quot; to start.
+                  {readOnly
+                    ? "No allocations found."
+                    : 'No allocations added. Click "Add Line" to start.'}
                 </TableCell>
               </TableRow>
             )}
@@ -338,6 +381,7 @@ export function TransactionForm({
               variant="outline"
               size="sm"
               onClick={() => setIsAttachmentDialogOpen(true)}
+              disabled={readOnly} // For now disable in readOnly, ideally should be view only
             >
               <Paperclip className="mr-2 h-4 w-4" />
               {formData.attachments.length > 0
@@ -348,6 +392,7 @@ export function TransactionForm({
               variant="outline"
               size="sm"
               onClick={() => setIsNoteDialogOpen(true)}
+              disabled={readOnly} // For now disable in readOnly
             >
               <StickyNote className="mr-2 h-4 w-4" />
               {formData.notes ? "Edit Note" : "Add Note"}

@@ -144,17 +144,9 @@ export default function TransferPage() {
       cell: (transfer) => transfer.reference || "-",
     },
     {
-      header: "From",
-      cell: (transfer) => transfer.fromAccount.name,
-    },
-    {
-      header: "To",
-      cell: (transfer) => transfer.toAccount.name,
-    },
-    {
-      header: "Amount",
-      className: "font-medium",
-      cell: (transfer) => formatCurrency(Number(transfer.amount)),
+      header: "From - To",
+      cell: (transfer) =>
+        `${transfer.fromAccount.name} -> ${transfer.toAccount.name}`,
     },
     {
       header: "Description",
@@ -199,6 +191,11 @@ export default function TransferPage() {
             )}
         </div>
       ),
+    },
+    {
+      header: "Amount",
+      className: "font-medium",
+      cell: (transfer) => formatCurrency(Number(transfer.amount)),
     },
     {
       header: "Status",
