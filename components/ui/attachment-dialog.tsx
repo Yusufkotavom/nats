@@ -132,23 +132,25 @@ export function AttachmentDialog({
                 <p className="text-sm">No attachments yet</p>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="flex w-full divide-y">
                 {attachments.map((file, index) => (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between p-3 hover:bg-muted/50"
+                    className="flex items-center justify-between p-3 hover:bg-muted/50 w-full"
                   >
                     <a
                       href={file.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-3 overflow-hidden"
+                      className="flex items-center gap-3 overflow-hidden w-full"
                     >
                       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
                         <FileIcon className="h-4 w-4" />
                       </div>
-                      <span className="truncate text-sm font-medium hover:underline">
-                        {file.name}
+                      <span className="w-full truncate text-sm font-medium hover:underline">
+                        {file.name.length > 100
+                          ? file.name.substring(0, 40) + "..."
+                          : file.name}
                       </span>
                     </a>
                     <Button
