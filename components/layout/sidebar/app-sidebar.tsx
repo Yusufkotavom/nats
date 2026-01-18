@@ -75,7 +75,7 @@ const data = {
       icon: Landmark,
       items: [
         {
-          title: "Accounts",
+          title: "Overview",
           url: "/cash-bank",
         },
         {

@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { CashTransferDialog } from "../../_components/transfer-dialog";
-import { CashAccount, CashTransfer } from "../../types";
+import { CashTransfer } from "../../types";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { format } from "date-fns";
 import {
