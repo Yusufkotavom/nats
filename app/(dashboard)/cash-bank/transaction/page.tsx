@@ -1,14 +1,9 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { getCashTransactions } from "./actions";
-import { TransactionTable } from "./_components/transaction-table";
-import { CustomPagination } from "@/components/ui/custom-pagination";
-import {
-  HydrationBoundary,
-  QueryClient,
-  dehydrate,
-} from "@tanstack/react-query";
 import {
   PageListActions,
   PageListContent,
@@ -16,30 +11,79 @@ import {
   PageListLayout,
   PageListTitle,
 } from "@/components/layout/page/list-layout";
+import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import { DataTable, Column } from "@/components/ui/data-table";
+import { Badge } from "@/components/ui/badge";
+import { formatDate, formatCurrency } from "@/lib/utils";
+import {
+  CashTransaction,
+  CashAccount,
+  CashTransactionAllocation,
+} from "@/prisma/generated/prisma/browser";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function CashTransactionListPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const resolvedSearchParams = await searchParams;
-  const page = Number(resolvedSearchParams.page) || 1;
+interface TransactionWithDetails extends CashTransaction {
+  cashAccount: CashAccount;
+  allocations: CashTransactionAllocation[];
+}
 
-  const queryClient = new QueryClient();
+export default function CashTransactionListPage() {
+  const searchParams = useSearchParams();
+  const page = Number(searchParams.get("page")) || 1;
 
-  // Prefetch data
-  await queryClient.prefetchQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["cash-transactions", page],
     queryFn: () => getCashTransactions(page),
   });
 
-  // Get data for pagination (we can also get it from queryClient but awaiting again is fine as it's cached/same request usually)
-  const { total } = await getCashTransactions(page);
+  const transactions = (data?.transactions || []) as TransactionWithDetails[];
+  const total = data?.total || 0;
+
+  const columns: Column<TransactionWithDetails>[] = [
+    {
+      header: "Date",
+      cell: (tx) => formatDate(tx.date),
+    },
+    {
+      header: "Reference",
+      cell: (tx) => tx.reference || "-",
+    },
+    {
+      header: "Type",
+      cell: (tx) => (
+        <Badge variant={tx.type === "INCOME" ? "default" : "destructive"}>
+          {tx.type}
+        </Badge>
+      ),
+    },
+    {
+      header: "Cash Account",
+      accessorKey: "cashAccount",
+      cell: (tx) => tx.cashAccount.name,
+    },
+    {
+      header: "Description",
+      accessorKey: "description",
+    },
+    {
+      header: "Amount",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (tx) => {
+        const totalAmount = tx.allocations.reduce(
+          (sum, a) => sum + Number(a.amount),
+          0
+        );
+        return formatCurrency(totalAmount, { currency: "IDR" });
+      },
+    },
+  ];
 
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Cash Transaction" />
+        <PageListTitle title="Cash Revenue & Expense" />
         <PageListActions>
           <Button asChild>
             <Link href="/cash-bank/transaction/new">
@@ -49,11 +93,21 @@ export default async function CashTransactionListPage({
         </PageListActions>
       </PageListHeader>
       <PageListContent>
-        <HydrationBoundary state={dehydrate(queryClient)}>
-          <TransactionTable page={page} />
-        </HydrationBoundary>
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : (
+          <DataTable
+            data={transactions}
+            columns={columns}
+            pagination={{
+              totalEntries: total,
+              pageSize: 20,
+              currentPage: page,
+            }}
+            emptyMessage="No transactions found."
+          />
+        )}
       </PageListContent>
-      <CustomPagination totalEntries={total} pageSize={10} currentPage={page} />
     </PageListLayout>
   );
 }
