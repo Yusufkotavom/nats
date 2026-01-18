@@ -6,6 +6,12 @@ export type CashTransactionAllocationFormData = {
   description?: string;
 };
 
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+}
+
 export type CashTransactionFormData = {
   type: CashTransactionType;
   date: Date;
@@ -13,5 +19,6 @@ export type CashTransactionFormData = {
   description?: string;
   cashAccountId: string;
   allocations: CashTransactionAllocationFormData[];
-  attachmentIds: string[];
+  attachments: Attachment[];
+  notes?: string;
 };

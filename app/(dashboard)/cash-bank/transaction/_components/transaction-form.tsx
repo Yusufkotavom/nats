@@ -23,6 +23,7 @@ import {
   ArrowLeft,
   Paperclip,
   Loader2,
+  StickyNote,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CashTransactionType } from "@/prisma/generated/prisma/enums";
@@ -30,10 +31,13 @@ import { createCashTransaction } from "../actions";
 import {
   CashTransactionAllocationFormData,
   CashTransactionFormData,
+  Attachment,
 } from "../types";
 import { Account, CashAccount } from "@/prisma/generated/prisma/browser";
-import { uploadTransferAttachment } from "../../actions";
-import { Label } from "@/components/ui/label";
+import { AttachmentDialog } from "@/components/ui/attachment-dialog";
+import { NoteDialog } from "@/components/ui/note-dialog";
+import { uploadFile } from "@/app/(dashboard)/general/files/actions";
+import { useFormatCurrency } from "@/hooks";
 
 interface TransactionFormProps {
   cashAccounts: CashAccount[];
@@ -59,20 +63,20 @@ export function TransactionForm({
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const formatCurrency = useFormatCurrency();
+
   const [formData, setFormData] = useState<CashTransactionFormData>({
     date: new Date(),
     type: CashTransactionType.INCOME,
     cashAccountId: "",
     allocations: [],
-    attachmentIds: [],
+    attachments: [],
+    notes: "",
     reference: "",
     description: "",
   });
-
-  const [attachments, setAttachments] = useState<
-    { id: string; name: string }[]
-  >([]);
-  const [isUploading, setIsUploading] = useState(false);
 
   const handleAddAllocation = () => {
     setFormData((prev) => ({
@@ -101,38 +105,6 @@ export function TransactionForm({
     setFormData((prev) => ({ ...prev, allocations: newAllocations }));
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    setIsUploading(true);
-
-    const files = Array.from(e.target.files);
-    try {
-      for (const file of files) {
-        const data = new FormData();
-        data.append("file", file);
-        const result = await uploadTransferAttachment(data);
-        if (result.success) {
-          setAttachments((prev) => [...prev, result.file]);
-          setFormData((prev) => ({
-            ...prev,
-            attachmentIds: [...prev.attachmentIds, result.file.id],
-          }));
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to upload file",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      // Reset input
-      e.target.value = "";
-    }
-  };
-
   const handleSubmit = async () => {
     try {
       if (!formData.cashAccountId) {
@@ -151,7 +123,7 @@ export function TransactionForm({
         });
         return;
       }
-      if (formData.attachmentIds.length === 0) {
+      if (formData.attachments.length === 0) {
         toast({
           title: "Validation Error",
           description: "Please upload at least one attachment",
@@ -228,46 +200,30 @@ export function TransactionForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left Column: Details */}
-        <div className="space-y-4 rounded-lg border p-4 bg-card">
-          <h2 className="text-lg font-semibold">Transaction Details</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <CustomSelect
-              label="Type"
-              value={formData.type}
-              onValueChange={(val) =>
-                setFormData({ ...formData, type: val as CashTransactionType })
-              }
-              options={[
-                { label: "Revenue (In)", value: CashTransactionType.INCOME },
-                { label: "Expense (Out)", value: CashTransactionType.EXPENSE },
-              ]}
-            />
-            <CustomInput
-              label="Date"
-              type="date"
-              value={
-                formData.date instanceof Date
-                  ? formData.date.toISOString().split("T")[0]
-                  : formData.date
-              }
-              onChange={(e) =>
-                setFormData({ ...formData, date: new Date(e.target.value) })
-              }
-            />
-          </div>
+      <div className="space-y-4 rounded-lg border bg-card p-4">
+        <div className="grid grid-cols-3 gap-4">
           <CustomSelect
-            label="Cash/Bank Account"
-            value={formData.cashAccountId}
+            label="Type"
+            value={formData.type}
             onValueChange={(val) =>
-              setFormData({ ...formData, cashAccountId: val })
+              setFormData({ ...formData, type: val as CashTransactionType })
             }
-            options={cashAccounts.map((acc) => ({
-              label: acc.name,
-              value: acc.id,
-            }))}
-            placeholder="Select Account"
+            options={[
+              { label: "Revenue (In)", value: CashTransactionType.INCOME },
+              { label: "Expense (Out)", value: CashTransactionType.EXPENSE },
+            ]}
+          />
+          <CustomInput
+            label="Date"
+            type="date"
+            value={
+              formData.date instanceof Date
+                ? formData.date.toISOString().split("T")[0]
+                : formData.date
+            }
+            onChange={(e) =>
+              setFormData({ ...formData, date: new Date(e.target.value) })
+            }
           />
           <CustomInput
             label="Reference"
@@ -277,81 +233,62 @@ export function TransactionForm({
             }
             placeholder="Optional reference"
           />
-          <CustomInput
-            label="Description"
-            value={formData.description || ""}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            placeholder="Transaction description"
-          />
         </div>
+        <CustomSelect
+          label="Cash/Bank Account"
+          value={formData.cashAccountId}
+          onValueChange={(val) =>
+            setFormData({ ...formData, cashAccountId: val })
+          }
+          options={cashAccounts.map((acc) => ({
+            label: acc.name,
+            value: acc.id,
+          }))}
+          placeholder="Select Account"
+        />
 
-        {/* Right Column: Attachments */}
-        <div className="space-y-4 rounded-lg border p-4 bg-card">
-          <h2 className="text-lg font-semibold">Attachments (Required)</h2>
-          <div className="space-y-2">
-            <Label
-              htmlFor="file-upload"
-              className="cursor-pointer inline-flex items-center gap-2 rounded-md border bg-muted px-4 py-2 text-sm font-medium hover:bg-muted/80"
-            >
-              <Paperclip className="h-4 w-4" />
-              Upload Files
-              <input
-                id="file-upload"
-                type="file"
-                multiple
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-            </Label>
-            {isUploading && (
-              <span className="text-sm text-muted-foreground ml-2">
-                Uploading...
-              </span>
-            )}
-          </div>
-
-          {attachments.length > 0 ? (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {attachments.map((file) => (
-                <div
-                  key={file.id}
-                  className="flex items-center gap-2 rounded-md border bg-background px-3 py-1 text-sm"
-                >
-                  <Paperclip className="h-3 w-3" />
-                  <span className="max-w-[150px] truncate">{file.name}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No files uploaded.</p>
-          )}
-        </div>
+        <CustomInput
+          label="Description"
+          value={formData.description || ""}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
+          placeholder="Transaction description"
+        />
       </div>
 
       {/* Allocations Table */}
       <div className="rounded-lg border bg-card p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Allocations</h2>
-          <Button variant="outline" size="sm" onClick={handleAddAllocation}>
-            <Plus className="mr-2 h-4 w-4" /> Add Line
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleAddAllocation}>
+              <Plus className="mr-2 h-4 w-4" /> Add Line
+            </Button>
+          </div>
         </div>
 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40%]">Account</TableHead>
               <TableHead className="w-[30%]">Description</TableHead>
-              <TableHead className="text-right w-[20%]">Amount</TableHead>
-              <TableHead className="w-[10%]"></TableHead>
+              <TableHead className="w-[40%]">Account</TableHead>
+              <TableHead className="w-[25%]">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {formData.allocations.map((alloc, index) => (
               <TableRow key={index}>
+                <TableCell>
+                  <CustomInput
+                    value={alloc.description || ""}
+                    onChange={(e) =>
+                      updateAllocation(index, "description", e.target.value)
+                    }
+                    placeholder="Line description"
+                  />
+                </TableCell>
                 <TableCell>
                   <SearchableSelect
                     options={glAccounts.map((acc) => ({
@@ -365,23 +302,13 @@ export function TransactionForm({
                     placeholder="Select GL Account"
                   />
                 </TableCell>
-                <TableCell>
-                  <CustomInput
-                    value={alloc.description || ""}
-                    onChange={(e) =>
-                      updateAllocation(index, "description", e.target.value)
-                    }
-                    placeholder="Line description"
-                  />
-                </TableCell>
-                <TableCell>
+
+                <TableCell className="flex">
                   <CurrencyInput
                     value={alloc.amount}
                     onChange={(val) => updateAllocation(index, "amount", val)}
                     className="text-right"
                   />
-                </TableCell>
-                <TableCell>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -405,13 +332,53 @@ export function TransactionForm({
           </TableBody>
         </Table>
 
-        <div className="flex justify-end mt-4 p-4 bg-muted/20 rounded-md">
-          <div className="flex items-center gap-4 text-lg font-bold">
+        <div className="flex justify-between mt-4 bg-muted/20 rounded-md">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAttachmentDialogOpen(true)}
+            >
+              <Paperclip className="mr-2 h-4 w-4" />
+              {formData.attachments.length > 0
+                ? `${formData.attachments.length} Attachments`
+                : "Attach File"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsNoteDialogOpen(true)}
+            >
+              <StickyNote className="mr-2 h-4 w-4" />
+              {formData.notes ? "Edit Note" : "Add Note"}
+            </Button>
+          </div>
+          <div className="flex items-center gap-4">
             <span>Total:</span>
-            <span>{totalAmount.toLocaleString()}</span>
+            <span>{formatCurrency(totalAmount)}</span>
           </div>
         </div>
       </div>
+
+      <AttachmentDialog
+        open={isAttachmentDialogOpen}
+        onOpenChange={setIsAttachmentDialogOpen}
+        attachments={formData.attachments}
+        onAttachmentsChange={(newAttachments) => {
+          setFormData((prev) => ({
+            ...prev,
+            attachments: newAttachments as Attachment[],
+          }));
+        }}
+        uploadAction={uploadFile}
+      />
+
+      <NoteDialog
+        open={isNoteDialogOpen}
+        onOpenChange={setIsNoteDialogOpen}
+        value={formData.notes || ""}
+        onChange={(val) => setFormData({ ...formData, notes: val })}
+      />
     </div>
   );
 }

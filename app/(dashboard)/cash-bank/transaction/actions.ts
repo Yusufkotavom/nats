@@ -17,7 +17,7 @@ export async function createCashTransaction(data: CashTransactionFormData) {
   if (!data.allocations.length) {
     throw new Error("At least one allocation is required");
   }
-  if (!data.attachmentIds.length) {
+  if (!data.attachments.length) {
     throw new Error("At least one attachment is required");
   }
 
@@ -68,11 +68,12 @@ export async function createCashTransaction(data: CashTransactionFormData) {
         status: EntryStatus.posted,
         userId: session.userId,
         postedAt: new Date(),
+        notes: data.notes,
         lines: {
           create: lines,
         },
         attachments: {
-          connect: data.attachmentIds.map((id) => ({ id })),
+          connect: data.attachments.map((a) => ({ id: a.id })),
         },
       },
     });
@@ -84,6 +85,7 @@ export async function createCashTransaction(data: CashTransactionFormData) {
         date: data.date,
         reference: data.reference,
         description: data.description,
+        note: data.notes,
         journalEntryId: journalEntry.id,
         allocations: {
           create: data.allocations.map((a) => ({

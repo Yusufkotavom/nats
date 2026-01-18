@@ -8,7 +8,6 @@ import {
   Building,
   ShoppingCart,
   Rocket,
-  UsersIcon,
   Settings,
   Landmark,
 } from "lucide-react";
@@ -84,7 +83,7 @@ const data = {
           url: "/cash-bank/transaction",
         },
         {
-          title: "Transfers",
+          title: "Internal Transfers",
           url: "/cash-bank/transfer",
         },
       ],
