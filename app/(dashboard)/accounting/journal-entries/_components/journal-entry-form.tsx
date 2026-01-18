@@ -49,6 +49,13 @@ import { SortableTableRow } from "@/components/ui/sortable-row";
 import { MentionsList } from "./mentions-list";
 import { generateId } from "@/lib/utils";
 import { Decimal } from "@/prisma/generated/prisma/internal/prismaNamespace";
+import {
+  PageFormLayout,
+  PageFormHeader,
+  PageFormTitle,
+  PageFormActions,
+  PageFormContent,
+} from "@/components/layout/page/form-layout";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -293,16 +300,14 @@ export function JournalEntryForm({
 
   return (
     formData && (
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold tracking-tight">
-              {initialData?.entryNumber
-                ? `Edit Journal Entry`
-                : "New Journal Entry"}
-            </h2>
-          </div>
-          <div className="flex justify-end gap-2">
+      <PageFormLayout>
+        <PageFormHeader>
+          <PageFormTitle>
+            {initialData?.entryNumber
+              ? `Edit Journal Entry`
+              : "New Journal Entry"}
+          </PageFormTitle>
+          <PageFormActions>
             <Button
               type="button"
               variant="outline"
@@ -320,10 +325,10 @@ export function JournalEntryForm({
               <Save />
               {isSubmitting ? "Saving..." : "Save"}
             </Button>
-          </div>
-        </div>
+          </PageFormActions>
+        </PageFormHeader>
 
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <PageFormContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex gap-4">
               <CustomInput
@@ -592,7 +597,7 @@ export function JournalEntryForm({
               </div>
             </div>
           </form>
-        </div>
+        </PageFormContent>
         {activeMention && activeMention.rect && (
           <MentionsList
             contacts={contacts.filter((c) =>
@@ -606,7 +611,7 @@ export function JournalEntryForm({
             }}
           />
         )}
-      </div>
+      </PageFormLayout>
     )
   );
 }
