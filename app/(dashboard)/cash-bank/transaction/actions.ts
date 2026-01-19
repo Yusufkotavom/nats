@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { CashTransactionFormData } from "./types";
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/auth/auth";
+import { SuperJSON } from "@/lib/superjson";
 import {
   CashTransactionType,
   EntryStatus,
@@ -24,7 +25,7 @@ export async function createCashTransaction(data: CashTransactionFormData) {
 
   const totalAmount = data.allocations.reduce(
     (sum, a) => sum + Number(a.amount),
-    0
+    0,
   );
 
   const cashAccount = await prisma.cashAccount.findUnique({
@@ -104,12 +105,12 @@ export async function createCashTransaction(data: CashTransactionFormData) {
 
   revalidatePath("/cash-bank/transaction");
   revalidatePath("/accounting/journal-entries");
-  return result;
+  return SuperJSON.serialize(result);
 }
 
 export async function getCashTransactions(
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
 ) {
   const skip = (page - 1) * pageSize;
 
@@ -138,7 +139,7 @@ export async function getCashTransactions(
   ]);
 
   return {
-    transactions,
+    transactions: SuperJSON.serialize(transactions),
     total,
     totalPages: Math.ceil(total / pageSize),
   };
@@ -161,12 +162,12 @@ export async function getCashTransaction(id: string) {
       },
     },
   });
-  return transaction;
+  return SuperJSON.serialize(transaction);
 }
 
 export async function updateCashTransaction(
   id: string,
-  data: CashTransactionFormData
+  data: CashTransactionFormData,
 ) {
   // const session = await verifySession(); // Not strictly needed for update if we don't track updatedBy, but good practice if we did.
 
@@ -180,7 +181,7 @@ export async function updateCashTransaction(
 
   const totalAmount = data.allocations.reduce(
     (sum, a) => sum + Number(a.amount),
-    0
+    0,
   );
 
   const cashAccount = await prisma.cashAccount.findUnique({
@@ -269,7 +270,7 @@ export async function updateCashTransaction(
 
   revalidatePath("/cash-bank/transaction");
   revalidatePath("/accounting/journal-entries");
-  return result;
+  return SuperJSON.serialize(result);
 }
 
 export async function approveCashTransaction(id: string) {
@@ -314,7 +315,7 @@ export async function approveCashTransaction(id: string) {
   revalidatePath("/cash-bank/transaction");
   revalidatePath("/accounting/journal-entries");
   revalidatePath("/cash-bank"); // For dashboard stats
-  return result;
+  return SuperJSON.serialize(result);
 }
 
 export async function deleteCashTransaction(id: string) {

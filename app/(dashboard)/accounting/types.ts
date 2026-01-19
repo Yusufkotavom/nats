@@ -1,6 +1,7 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
-import { getJournalEntry } from "./journal-entries/actions";
 import { PaginatedResult } from "@/lib/pagination";
+import { Decimal } from "decimal.js";
+import { EntryStatus } from "@/prisma/generated/prisma/enums";
 
 // Use Prisma's generated type for Account, including relations we commonly fetch
 export type Account = Prisma.AccountGetPayload<{
@@ -43,6 +44,50 @@ export type TrialBalanceResult = {
   totalCredit: number;
 };
 
-export type CreateJournalEntryData = NonNullable<
-  Awaited<ReturnType<typeof getJournalEntry>>["data"]
->;
+export type JournalEntryLineData = {
+  id?: string;
+  accountId: string;
+  debitAmount: Decimal | number;
+  creditAmount: Decimal | number;
+  description?: string;
+  contactId?: string | null;
+  lineNumber?: number;
+  account?: { name: string; code: string };
+  contact?: { name: string } | null;
+};
+
+export type JournalEntryAttachmentData = {
+  id: string;
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+};
+
+export type CreateJournalEntryData = {
+  id?: string;
+  entryNumber?: string;
+  transactionDate: Date;
+  description?: string | null;
+  notes?: string | null;
+  status?: EntryStatus | string;
+  lines: JournalEntryLineData[];
+  attachments?: JournalEntryAttachmentData[];
+  user?: { name: string | null; email: string | null } | null;
+};
+
+export type JournalEntryWithDetails = Prisma.JournalEntryGetPayload<{
+  include: {
+    lines: {
+      include: {
+        account: true;
+        contact: true;
+      };
+      orderBy: { lineNumber: "asc" };
+    };
+    user: {
+      select: { name: true; email: true };
+    };
+    attachments: true;
+  };
+}>;

@@ -1,12 +1,13 @@
 import { useCompanyProfile } from "@/components/session-provider";
 import { formatCurrency } from "@/lib/utils";
 import { useCallback } from "react";
+import { Decimal } from "decimal.js";
 
 export function useFormatCurrency() {
   const profile = useCompanyProfile();
 
   const format = useCallback(
-    (amount: number) => {
+    (amount: number | Decimal) => {
       return formatCurrency(amount, {
         currency: profile?.currency,
         currencySymbol: profile?.currencySymbol,

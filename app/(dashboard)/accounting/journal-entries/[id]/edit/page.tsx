@@ -6,10 +6,14 @@ import { JournalEntryForm } from "../../_components/journal-entry-form";
 import { getJournalEntry, updateJournalEntry } from "../../actions";
 import { getAccounts } from "../../../accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
-import { CreateJournalEntryData } from "../../../types";
+import {
+  CreateJournalEntryData,
+  JournalEntryWithDetails,
+} from "../../../types";
 import { useAlert } from "@/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import SuperJSON from "superjson";
 
 export default function EditJournalEntryPage({
   params,
@@ -25,7 +29,9 @@ export default function EditJournalEntryPage({
     queryKey: ["journal-entry", id],
     queryFn: async () => {
       const res = await getJournalEntry(id);
-      return res.success ? res.data : null;
+      return res.success && res.data
+        ? SuperJSON.deserialize<JournalEntryWithDetails>(res.data)
+        : null;
     },
   });
 
@@ -46,7 +52,8 @@ export default function EditJournalEntryPage({
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: CreateJournalEntryData) => updateJournalEntry(id, data),
+    mutationFn: (data: CreateJournalEntryData) =>
+      updateJournalEntry(id, SuperJSON.serialize(data)),
     onSuccess: (res) => {
       if (res.success) {
         queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
@@ -94,9 +101,33 @@ export default function EditJournalEntryPage({
     updateMutation.mutate(data);
   };
 
+  const initialData: CreateJournalEntryData | undefined = entry
+    ? {
+        ...entry,
+        lines: entry.lines.map((line) => ({
+          id: line.id,
+          accountId: line.accountId,
+          debitAmount: line.debitAmount,
+          creditAmount: line.creditAmount,
+          description: line.description || undefined,
+          contactId: line.contactId,
+          lineNumber: line.lineNumber,
+          account: { name: line.account.name, code: line.account.code },
+          contact: line.contact ? { name: line.contact.name } : null,
+        })),
+        attachments: entry.attachments.map((att) => ({
+          id: att.id,
+          name: att.name,
+          url: att.url,
+          size: att.size,
+          type: att.mimeType,
+        })),
+      }
+    : undefined;
+
   return (
     <JournalEntryForm
-      initialData={entry}
+      initialData={initialData}
       accounts={accounts}
       contacts={contacts}
       onSubmit={handleSubmit}

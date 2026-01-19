@@ -35,6 +35,7 @@ import {
   CashTransactionStatus,
 } from "@/prisma/generated/prisma/browser";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Decimal } from "decimal.js";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useTransition } from "react";
+import { SuperJSON } from "@/lib/superjson";
 
 interface TransactionWithDetails extends CashTransaction {
   cashAccount: CashAccount;
@@ -63,7 +65,13 @@ export default function CashTransactionListPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["cash-transactions", page],
-    queryFn: () => getCashTransactions(page),
+    queryFn: async () => {
+      const res = await getCashTransactions(page);
+      return {
+        ...res,
+        transactions: SuperJSON.deserialize(res.transactions),
+      };
+    },
   });
 
   const transactions = (data?.transactions ||
@@ -164,8 +172,8 @@ export default function CashTransactionListPage() {
       headerClassName: "text-right",
       cell: (tx) => {
         const totalAmount = tx.allocations.reduce(
-          (sum, a) => sum + Number(a.amount),
-          0
+          (sum, a) => sum.plus(new Decimal(a.amount)),
+          new Decimal(0),
         );
         return formatCurrency(totalAmount, { currency: "IDR" });
       },
@@ -178,8 +186,8 @@ export default function CashTransactionListPage() {
             tx.status === "APPROVED"
               ? "default"
               : tx.status === "REJECTED"
-              ? "destructive"
-              : "secondary"
+                ? "destructive"
+                : "secondary"
           }
         >
           {tx.status}

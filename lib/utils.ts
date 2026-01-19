@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format } from "date-fns";
+import { Decimal } from "decimal.js";
 
 /**
  * Combines multiple class names into a single string, merging Tailwind CSS classes intelligently.
@@ -29,7 +30,7 @@ export interface FormatDateOptions {
  */
 export const formatDate = (
   date: Date | string | number,
-  options?: FormatDateOptions
+  options?: FormatDateOptions,
 ) => {
   const { dateFormat = "MMM dd, yyyy", includeTime = false } = options || {};
 
@@ -61,14 +62,16 @@ export interface FormatCurrencyOptions {
  * @returns The formatted currency string
  */
 export const formatCurrency = (
-  amount: number,
-  options?: FormatCurrencyOptions
+  amount: number | Decimal,
+  options?: FormatCurrencyOptions,
 ) => {
   const {
     currency = "USD",
     currencySymbol,
     currencyFormat = "standard",
   } = options || {};
+
+  const numericAmount = amount instanceof Decimal ? amount.toNumber() : amount;
 
   let targetLocale = "en-US";
   if (currencyFormat === "european") {
@@ -82,7 +85,7 @@ export const formatCurrency = (
       style: "decimal",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(numericAmount);
 
     if (currencyFormat === "european") {
       return `${formattedNumber} ${currencySymbol}`;
@@ -93,7 +96,7 @@ export const formatCurrency = (
   return new Intl.NumberFormat(targetLocale, {
     style: "currency",
     currency: currency,
-  }).format(amount);
+  }).format(numericAmount);
 };
 
 /**

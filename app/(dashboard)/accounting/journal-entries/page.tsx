@@ -48,11 +48,9 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { SelectItem } from "@/components/ui/select";
-
-// Define type based on the return of getJournalEntries
-type JournalEntryWithDetails = NonNullable<
-  Awaited<ReturnType<typeof getJournalEntries>>["data"]
->["items"][number];
+import { SuperJSON } from "@/lib/superjson";
+import { JournalEntryWithDetails } from "../types";
+import { Decimal } from "decimal.js";
 
 export default function JournalEntryPage() {
   const queryClient = useQueryClient();
@@ -87,7 +85,15 @@ export default function JournalEntryPage() {
         status,
         search: debouncedSearch,
       });
-      return res.success ? res.data : null;
+      if (res.success && res.data) {
+        return {
+          items: SuperJSON.deserialize<JournalEntryWithDetails[]>(
+            res.data.items,
+          ),
+          pagination: res.data.pagination,
+        };
+      }
+      return null;
     },
     placeholderData: keepPreviousData,
   });
@@ -146,7 +152,7 @@ export default function JournalEntryPage() {
         deleteMutation.mutate(entry.id);
       }
     },
-    [confirm, deleteMutation]
+    [confirm, deleteMutation],
   );
 
   const handlePost = useMemo(
@@ -161,7 +167,7 @@ export default function JournalEntryPage() {
         postMutation.mutate(id);
       }
     },
-    [confirm, postMutation]
+    [confirm, postMutation],
   );
 
   const columns: Column<JournalEntryWithDetails>[] = useMemo(
@@ -196,8 +202,12 @@ export default function JournalEntryPage() {
         cell: (entry) =>
           formatCurrency(
             entry.lines.reduce((acc, line) => {
-              return acc + Number(line.debitAmount || 0);
-            }, 0)
+              const amount =
+                line.debitAmount instanceof Decimal
+                  ? line.debitAmount.toNumber()
+                  : Number(line.debitAmount || 0);
+              return acc + amount;
+            }, 0),
           ),
       },
       {
@@ -257,7 +267,7 @@ export default function JournalEntryPage() {
         ),
       },
     ],
-    [formatDate, formatCurrency, handleDelete, handlePost]
+    [formatDate, formatCurrency, handleDelete, handlePost],
   );
 
   return (

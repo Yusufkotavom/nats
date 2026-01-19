@@ -3,6 +3,8 @@ import { TransactionForm } from "../_components/transaction-form";
 import { getCashTransaction } from "../actions";
 import { notFound } from "next/navigation";
 import { CashTransactionFormData } from "../types";
+import { SuperJSON } from "@/lib/superjson";
+import { Decimal } from "decimal.js";
 
 interface PageProps {
   params: Promise<{
@@ -13,7 +15,7 @@ interface PageProps {
 export default async function EditTransactionPage({ params }: PageProps) {
   const { transactionId } = await params;
 
-  const [cashAccounts, glAccounts, transaction] = await Promise.all([
+  const [cashAccounts, glAccounts, transactionResult] = await Promise.all([
     prisma.cashAccount.findMany({
       where: { isActive: true },
     }),
@@ -23,6 +25,10 @@ export default async function EditTransactionPage({ params }: PageProps) {
     }),
     getCashTransaction(transactionId),
   ]);
+
+  const transaction: any = transactionResult
+    ? SuperJSON.deserialize(transactionResult)
+    : null;
 
   if (!transaction) {
     notFound();
@@ -37,12 +43,12 @@ export default async function EditTransactionPage({ params }: PageProps) {
     reference: transaction.reference || undefined,
     description: transaction.description || undefined,
     notes: transaction.note || undefined,
-    allocations: transaction.allocations.map((a) => ({
+    allocations: transaction.allocations.map((a: any) => ({
       accountId: a.accountId,
-      amount: Number(a.amount),
+      amount: new Decimal(a.amount).toNumber(),
       description: a.description || undefined,
     })),
-    attachments: transaction.journalEntry.attachments.map((a) => ({
+    attachments: transaction.journalEntry.attachments.map((a: any) => ({
       id: a.id,
       name: a.name,
       url: a.url,
