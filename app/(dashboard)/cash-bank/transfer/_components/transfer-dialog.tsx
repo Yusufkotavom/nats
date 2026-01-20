@@ -23,12 +23,10 @@ import { CashAccount, CashTransfer, CashTransferFormData } from "../../types";
 import { Loader2, Paperclip } from "lucide-react";
 import { useToast, useFormatDate } from "@/hooks";
 import { Label } from "@/components/ui/label";
-import {
-  AttachmentDialog,
-  Attachment,
-} from "@/components/ui/attachment-dialog";
+import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { useEffect } from "react";
 import { Prisma } from "@/prisma/generated/prisma/browser";
+import { useAttachmentDialog } from "@/hooks/use-attachment-dialog";
 
 interface CashTransferDialogProps {
   open: boolean;
@@ -58,9 +56,10 @@ export function CashTransferDialog({
     description: "",
     attachmentIds: [],
   });
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
+  const attachmentDialog = useAttachmentDialog();
   const [isPending, startTransition] = useTransition();
+
+  const { setAttachments } = attachmentDialog;
 
   useEffect(() => {
     if (transfer && open) {
@@ -84,7 +83,7 @@ export function CashTransferDialog({
               name: a.name,
               size: a.size,
               type: a.type,
-            }))
+            })),
           );
         } else {
           setAttachments([]);
@@ -104,7 +103,7 @@ export function CashTransferDialog({
         setAttachments([]);
       });
     }
-  }, [transfer, open]);
+  }, [transfer, open, setAttachments]);
 
   const handleSubmit = () => {
     if (
@@ -134,7 +133,7 @@ export function CashTransferDialog({
         if (transfer) {
           await updateCashTransfer(transfer.id, {
             ...formData,
-            attachmentIds: attachments.map((a) => a.id),
+            attachmentIds: attachmentDialog.attachments.map((a) => a.id),
           });
           toast({
             title: "Success",
@@ -143,7 +142,7 @@ export function CashTransferDialog({
         } else {
           await createCashTransfer({
             ...formData,
-            attachmentIds: attachments.map((a) => a.id),
+            attachmentIds: attachmentDialog.attachments.map((a) => a.id),
           });
           toast({
             title: "Success",
@@ -162,7 +161,7 @@ export function CashTransferDialog({
             description: "",
             attachmentIds: [],
           });
-          setAttachments([]);
+          attachmentDialog.setAttachments([]);
         }
       } catch (error) {
         toast({
@@ -235,7 +234,11 @@ export function CashTransferDialog({
           <CustomInput
             label="Date"
             type="date"
-            value={formData.date ? formatDate(formData.date) : ""}
+            value={
+              formData.date instanceof Date
+                ? formData.date.toISOString().split("T")[0]
+                : formData.date
+            }
             onChange={(e) =>
               setFormData({ ...formData, date: new Date(e.target.value) })
             }
@@ -266,13 +269,13 @@ export function CashTransferDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setIsAttachmentOpen(true)}
-              disabled={viewOnly && attachments.length === 0}
+              onClick={attachmentDialog.openDialog}
+              disabled={viewOnly && attachmentDialog.attachments.length === 0}
             >
               <Paperclip className="mr-2 h-4 w-4" />
-              {attachments.length > 0
-                ? `${attachments.length} Attachment${
-                    attachments.length > 1 ? "s" : ""
+              {attachmentDialog.attachments.length > 0
+                ? `${attachmentDialog.attachments.length} Attachment${
+                    attachmentDialog.attachments.length > 1 ? "s" : ""
                   }`
                 : "Add Attachments"}
             </Button>
@@ -292,10 +295,7 @@ export function CashTransferDialog({
       </DialogContent>
 
       <AttachmentDialog
-        open={isAttachmentOpen}
-        onOpenChange={setIsAttachmentOpen}
-        attachments={attachments}
-        onAttachmentsChange={setAttachments}
+        {...attachmentDialog.dialogProps}
         uploadAction={uploadTransferAttachment}
       />
     </Dialog>

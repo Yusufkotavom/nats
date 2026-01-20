@@ -16,28 +16,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Plus,
-  Trash2,
-  Save,
-  ArrowLeft,
-  Paperclip,
-  Loader2,
-  StickyNote,
-} from "lucide-react";
+import { Plus, Trash2, Paperclip, Loader2, StickyNote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CashTransactionType } from "@/prisma/generated/prisma/enums";
 import { createCashTransaction, updateCashTransaction } from "../actions";
 import {
   CashTransactionAllocationFormData,
   CashTransactionFormData,
-  Attachment,
 } from "../types";
 import { Account, CashAccount } from "@/prisma/generated/prisma/browser";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { NoteDialog } from "@/components/ui/note-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { useFormatCurrency } from "@/hooks";
+import { useAttachmentDialog } from "@/hooks/use-attachment-dialog";
+import { useNoteDialog } from "@/hooks/use-note-dialog";
 
 interface TransactionFormProps {
   cashAccounts: CashAccount[];
@@ -67,9 +60,12 @@ export function TransactionForm({
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
-  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const formatCurrency = useFormatCurrency();
+
+  const attachmentDialog = useAttachmentDialog({
+    initialAttachments: initialData?.attachments,
+  });
+  const noteDialog = useNoteDialog({ initialValue: initialData?.notes });
 
   const [formData, setFormData] = useState<CashTransactionFormData>(
     initialData
@@ -156,14 +152,20 @@ export function TransactionForm({
       }
 
       setIsSubmitting(true);
+      const submitData = {
+        ...formData,
+        attachments: attachmentDialog.attachments,
+        notes: noteDialog.note,
+      };
+
       if (initialData?.id) {
-        await updateCashTransaction(initialData.id, formData);
+        await updateCashTransaction(initialData.id, submitData);
         toast({
           title: "Success",
           description: "Transaction updated successfully",
         });
       } else {
-        await createCashTransaction(formData);
+        await createCashTransaction(submitData);
         toast({
           title: "Success",
           description: "Transaction created successfully",
@@ -372,22 +374,22 @@ export function TransactionForm({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsAttachmentDialogOpen(true)}
+              onClick={attachmentDialog.openDialog}
               disabled={readOnly} // For now disable in readOnly, ideally should be view only
             >
               <Paperclip className="mr-2 h-4 w-4" />
-              {formData.attachments.length > 0
-                ? `${formData.attachments.length} Attachments`
+              {attachmentDialog.attachments.length > 0
+                ? `${attachmentDialog.attachments.length} Attachments`
                 : "Attach File"}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsNoteDialogOpen(true)}
+              onClick={noteDialog.openDialog}
               disabled={readOnly} // For now disable in readOnly
             >
               <StickyNote className="mr-2 h-4 w-4" />
-              {formData.notes ? "Edit Note" : "Add Note"}
+              {noteDialog.note ? "Edit Note" : "Add Note"}
             </Button>
           </div>
           <div className="flex items-center gap-4">
@@ -398,24 +400,11 @@ export function TransactionForm({
       </div>
 
       <AttachmentDialog
-        open={isAttachmentDialogOpen}
-        onOpenChange={setIsAttachmentDialogOpen}
-        attachments={formData.attachments}
-        onAttachmentsChange={(newAttachments) => {
-          setFormData((prev) => ({
-            ...prev,
-            attachments: newAttachments as Attachment[],
-          }));
-        }}
+        {...attachmentDialog.dialogProps}
         uploadAction={uploadFile}
       />
 
-      <NoteDialog
-        open={isNoteDialogOpen}
-        onOpenChange={setIsNoteDialogOpen}
-        value={formData.notes || ""}
-        onChange={(val) => setFormData({ ...formData, notes: val })}
-      />
+      <NoteDialog {...noteDialog.dialogProps} />
     </div>
   );
 }

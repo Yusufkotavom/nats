@@ -144,11 +144,11 @@ export function AttachmentDialog({
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 overflow-hidden w-full"
                     >
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
                         <FileIcon className="h-4 w-4" />
                       </div>
                       <span className="w-full truncate text-sm font-medium hover:underline">
-                        {file.name.length > 100
+                        {file.name.length > 40
                           ? file.name.substring(0, 40) + "..."
                           : file.name}
                       </span>
