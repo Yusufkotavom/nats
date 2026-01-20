@@ -53,7 +53,7 @@ export function SearchableSelect({
 
   const selectedOption = React.useMemo(
     () => options.find((o) => o.value === value),
-    [options, value]
+    [options, value],
   );
 
   const inputValue = selectedOption ? selectedOption.label : "";
@@ -64,7 +64,9 @@ export function SearchableSelect({
         className={cn("cursor-text", className)}
         onClick={() => !disabled && setOpen(true)}
         onKeyDown={(e) =>
-          !disabled && /^[a-zA-Z0-9]$/.test(e.key) && setOpen(true)
+          !disabled &&
+          (e.key === "Enter" || /^[a-zA-Z0-9]$/.test(e.key)) &&
+          setOpen(true)
         }
       >
         <InputGroupAddon>

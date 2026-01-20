@@ -57,7 +57,7 @@ export default function TransferPage() {
   const queryClient = useQueryClient();
   const formatCurrency = useFormatCurrency();
 
-  const { data: transfers = [], isLoading: isLoadingTransfers } = useQuery({
+  const { data: transfers = [] } = useQuery({
     queryKey: ["cash-transfers"],
     queryFn: async () => {
       const serialized = await getTransfers();
@@ -65,7 +65,7 @@ export default function TransferPage() {
     },
   });
 
-  const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery({
+  const { data: accounts = [] } = useQuery({
     queryKey: ["cash-accounts"],
     queryFn: () => getCashAccounts(),
   });
@@ -209,8 +209,8 @@ export default function TransferPage() {
             transfer.status === TransferStatus.APPROVED
               ? "default"
               : transfer.status === TransferStatus.REJECTED
-              ? "destructive"
-              : "secondary"
+                ? "destructive"
+                : "secondary"
           }
         >
           {transfer.status}

@@ -11,25 +11,28 @@ import {
   CashTransactionStatus,
 } from "@/prisma/generated/prisma/enums";
 import { Prisma } from "@/prisma/generated/prisma/client";
+import { SuperJSONResult } from "superjson";
 
-export async function createCashTransaction(data: CashTransactionFormData) {
+export async function createCashTransaction(
+  data: CashTransactionFormData | SuperJSONResult,
+) {
   const session = await verifySession();
 
   // Validation
-  if (!data.allocations.length) {
+  const data2 = SuperJSON.deserialize(
+    data as SuperJSONResult,
+  ) as CashTransactionFormData;
+  console.log({ data, data2 });
+  if (!data2.allocations.length) {
     throw new Error("At least one allocation is required");
   }
-  if (!data.attachments.length) {
-    throw new Error("At least one attachment is required");
-  }
-
-  const totalAmount = data.allocations.reduce(
+  const totalAmount = data2.allocations.reduce(
     (sum, a) => sum + Number(a.amount),
     0,
   );
 
   const cashAccount = await prisma.cashAccount.findUnique({
-    where: { id: data.cashAccountId },
+    where: { id: data2.cashAccountId },
   });
   if (!cashAccount) throw new Error("Cash account not found");
 
@@ -42,21 +45,21 @@ export async function createCashTransaction(data: CashTransactionFormData) {
   // 1. Cash Line
   lines.push({
     accountId: cashAccount.glAccountId,
-    debitAmount: data.type === CashTransactionType.INCOME ? totalAmount : 0,
-    creditAmount: data.type === CashTransactionType.EXPENSE ? totalAmount : 0,
-    description: data.description || "Cash Transaction",
+    debitAmount: data2.type === CashTransactionType.INCOME ? totalAmount : 0,
+    creditAmount: data2.type === CashTransactionType.EXPENSE ? totalAmount : 0,
+    description: data2.description || "Cash Transaction",
     lineNumber: lineNumber++,
   });
 
   // 2. Allocation Lines
-  for (const alloc of data.allocations) {
+  for (const alloc of data2.allocations) {
     lines.push({
       accountId: alloc.accountId,
       debitAmount:
-        data.type === CashTransactionType.EXPENSE ? Number(alloc.amount) : 0,
+        data2.type === CashTransactionType.EXPENSE ? Number(alloc.amount) : 0,
       creditAmount:
-        data.type === CashTransactionType.INCOME ? Number(alloc.amount) : 0,
-      description: alloc.description || data.description,
+        data2.type === CashTransactionType.INCOME ? Number(alloc.amount) : 0,
+      description: alloc.description || data2.description,
       lineNumber: lineNumber++,
     });
   }
@@ -65,33 +68,33 @@ export async function createCashTransaction(data: CashTransactionFormData) {
     const journalEntry = await tx.journalEntry.create({
       data: {
         entryNumber,
-        transactionDate: data.date,
-        description: data.description,
+        transactionDate: data2.date,
+        description: data2.description,
         status: EntryStatus.draft, // Changed to draft
         userId: session.userId,
         // postedAt: new Date(), // Removed postedAt
-        notes: data.notes,
+        notes: data2.notes,
         lines: {
           create: lines,
         },
         attachments: {
-          connect: data.attachments.map((a) => ({ id: a.id })),
+          connect: data2.attachments.map((a) => ({ id: a.id })),
         },
       },
     });
 
     const transaction = await tx.cashTransaction.create({
       data: {
-        cashAccountId: data.cashAccountId,
-        type: data.type,
-        date: data.date,
-        reference: data.reference,
-        description: data.description,
-        note: data.notes,
+        cashAccountId: data2.cashAccountId,
+        type: data2.type,
+        date: data2.date,
+        reference: data2.reference,
+        description: data2.description,
+        note: data2.notes,
         journalEntryId: journalEntry.id,
         status: CashTransactionStatus.PENDING, // Explicitly set to PENDING
         allocations: {
-          create: data.allocations.map((a) => ({
+          create: data2.allocations.map((a) => ({
             accountId: a.accountId,
             amount: a.amount,
             description: a.description,
@@ -167,25 +170,28 @@ export async function getCashTransaction(id: string) {
 
 export async function updateCashTransaction(
   id: string,
-  data: CashTransactionFormData,
+  data: CashTransactionFormData | SuperJSONResult,
 ) {
   // const session = await verifySession(); // Not strictly needed for update if we don't track updatedBy, but good practice if we did.
 
+  const data2 = SuperJSON.deserialize(
+    data as SuperJSONResult,
+  ) as CashTransactionFormData;
   // Validation
-  if (!data.allocations.length) {
+  if (!data2.allocations.length) {
     throw new Error("At least one allocation is required");
   }
-  if (!data.attachments.length) {
+  if (!data2.attachments.length) {
     throw new Error("At least one attachment is required");
   }
 
-  const totalAmount = data.allocations.reduce(
+  const totalAmount = data2.allocations.reduce(
     (sum, a) => sum + Number(a.amount),
     0,
   );
 
   const cashAccount = await prisma.cashAccount.findUnique({
-    where: { id: data.cashAccountId },
+    where: { id: data2.cashAccountId },
   });
   if (!cashAccount) throw new Error("Cash account not found");
 
@@ -196,21 +202,21 @@ export async function updateCashTransaction(
   // 1. Cash Line
   lines.push({
     accountId: cashAccount.glAccountId,
-    debitAmount: data.type === CashTransactionType.INCOME ? totalAmount : 0,
-    creditAmount: data.type === CashTransactionType.EXPENSE ? totalAmount : 0,
-    description: data.description || "Cash Transaction",
+    debitAmount: data2.type === CashTransactionType.INCOME ? totalAmount : 0,
+    creditAmount: data2.type === CashTransactionType.EXPENSE ? totalAmount : 0,
+    description: data2.description || "Cash Transaction",
     lineNumber: lineNumber++,
   });
 
   // 2. Allocation Lines
-  for (const alloc of data.allocations) {
+  for (const alloc of data2.allocations) {
     lines.push({
       accountId: alloc.accountId,
       debitAmount:
-        data.type === CashTransactionType.EXPENSE ? Number(alloc.amount) : 0,
+        data2.type === CashTransactionType.EXPENSE ? Number(alloc.amount) : 0,
       creditAmount:
-        data.type === CashTransactionType.INCOME ? Number(alloc.amount) : 0,
-      description: alloc.description || data.description,
+        data2.type === CashTransactionType.INCOME ? Number(alloc.amount) : 0,
+      description: alloc.description || data2.description,
       lineNumber: lineNumber++,
     });
   }
@@ -231,11 +237,11 @@ export async function updateCashTransaction(
     await tx.journalEntry.update({
       where: { id: existingTransaction.journalEntryId },
       data: {
-        transactionDate: data.date,
-        description: data.description,
-        notes: data.notes,
+        transactionDate: data2.date,
+        description: data2.description,
+        notes: data2.notes,
         attachments: {
-          set: data.attachments.map((a) => ({ id: a.id })),
+          set: data2.attachments.map((a) => ({ id: a.id })),
         },
         lines: {
           deleteMany: {},
@@ -248,15 +254,15 @@ export async function updateCashTransaction(
     const transaction = await tx.cashTransaction.update({
       where: { id },
       data: {
-        cashAccountId: data.cashAccountId,
-        type: data.type,
-        date: data.date,
-        reference: data.reference,
-        description: data.description,
-        note: data.notes,
+        cashAccountId: data2.cashAccountId,
+        type: data2.type,
+        date: data2.date,
+        reference: data2.reference,
+        description: data2.description,
+        note: data2.notes,
         allocations: {
           deleteMany: {},
-          create: data.allocations.map((a) => ({
+          create: data2.allocations.map((a) => ({
             accountId: a.accountId,
             amount: a.amount,
             description: a.description,

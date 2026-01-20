@@ -195,7 +195,7 @@ export default function CashTransactionListPage() {
       ),
     },
     {
-      header: "",
+      header: "Actions",
       cell: (tx) => {
         return (
           <DropdownMenu>

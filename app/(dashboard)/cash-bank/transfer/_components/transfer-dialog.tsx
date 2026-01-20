@@ -27,6 +27,7 @@ import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { useEffect } from "react";
 import { Prisma } from "@/prisma/generated/prisma/browser";
 import { useAttachmentDialog } from "@/hooks/use-attachment-dialog";
+import SuperJSON from "superjson";
 
 interface CashTransferDialogProps {
   open: boolean;
@@ -46,7 +47,6 @@ export function CashTransferDialog({
   viewOnly,
 }: CashTransferDialogProps) {
   const { toast } = useToast();
-  const formatDate = useFormatDate();
   const [formData, setFormData] = useState<CashTransferFormData>({
     fromAccountId: "",
     toAccountId: "",
@@ -132,7 +132,7 @@ export function CashTransferDialog({
       try {
         if (transfer) {
           await updateCashTransfer(transfer.id, {
-            ...formData,
+            ...SuperJSON.serialize(formData),
             attachmentIds: attachmentDialog.attachments.map((a) => a.id),
           });
           toast({
@@ -141,7 +141,7 @@ export function CashTransferDialog({
           });
         } else {
           await createCashTransfer({
-            ...formData,
+            ...SuperJSON.serialize(formData),
             attachmentIds: attachmentDialog.attachments.map((a) => a.id),
           });
           toast({

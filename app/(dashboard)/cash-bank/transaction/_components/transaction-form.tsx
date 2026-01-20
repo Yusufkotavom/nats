@@ -31,6 +31,7 @@ import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { useFormatCurrency } from "@/hooks";
 import { useAttachmentDialog } from "@/hooks/use-attachment-dialog";
 import { useNoteDialog } from "@/hooks/use-note-dialog";
+import SuperJSON from "superjson";
 
 interface TransactionFormProps {
   cashAccounts: CashAccount[];
@@ -122,14 +123,6 @@ export function TransactionForm({
         });
         return;
       }
-      if (formData.allocations.length === 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please add at least one allocation",
-          variant: "destructive",
-        });
-        return;
-      }
 
       // Check if allocations have accountId and amount > 0
       for (const alloc of formData.allocations) {
@@ -159,13 +152,16 @@ export function TransactionForm({
       };
 
       if (initialData?.id) {
-        await updateCashTransaction(initialData.id, submitData);
+        await updateCashTransaction(
+          initialData.id,
+          SuperJSON.serialize(submitData),
+        );
         toast({
           title: "Success",
           description: "Transaction updated successfully",
         });
       } else {
-        await createCashTransaction(submitData);
+        await createCashTransaction(SuperJSON.serialize(submitData));
         toast({
           title: "Success",
           description: "Transaction created successfully",

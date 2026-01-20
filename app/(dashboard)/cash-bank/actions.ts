@@ -16,6 +16,7 @@ import {
 } from "@/prisma/generated/prisma/client";
 import { saveFile } from "@/lib/file-service";
 import { verifySession } from "@/lib/auth/auth";
+import { SuperJSONResult } from "superjson";
 
 export async function uploadTransferAttachment(formData: FormData) {
   const session = await verifySession();
@@ -190,17 +191,22 @@ export async function deleteCashAccount(id: string) {
 
 // --- Transfer Actions ---
 
-export async function createCashTransfer(data: CashTransferFormData) {
+export async function createCashTransfer(
+  data: CashTransferFormData | SuperJSONResult,
+) {
   const session = await verifySession();
   const userId = session.userId;
 
+  const data2 = SuperJSON.deserialize(
+    data as SuperJSONResult,
+  ) as CashTransferFormData;
   // 1. Validate accounts
   const fromAccount = await prisma.cashAccount.findUnique({
-    where: { id: data.fromAccountId },
+    where: { id: data2.fromAccountId },
     include: { glAccount: true },
   });
   const toAccount = await prisma.cashAccount.findUnique({
-    where: { id: data.toAccountId },
+    where: { id: data2.toAccountId },
     include: { glAccount: true },
   });
 
@@ -208,21 +214,13 @@ export async function createCashTransfer(data: CashTransferFormData) {
     throw new Error("Invalid accounts.");
   }
 
-  if (data.fromAccountId === data.toAccountId) {
+  if (data2.fromAccountId === data2.toAccountId) {
     throw new Error("Cannot transfer to the same account.");
   }
 
   // 2. Create Transfer (Pending Approval)
   const transfer = await prisma.cashTransfer.create({
-    data: {
-      fromAccountId: data.fromAccountId,
-      toAccountId: data.toAccountId,
-      amount: data.amount,
-      date: data.date,
-      reference: data.reference,
-      description: data.description,
-      // No Journal Entry yet
-    },
+    data: data2,
   });
 
   revalidatePath("/accounting/cash-bank");
@@ -232,7 +230,7 @@ export async function createCashTransfer(data: CashTransferFormData) {
 
 export async function updateCashTransfer(
   id: string,
-  data: CashTransferFormData,
+  data: CashTransferFormData | SuperJSONResult,
 ) {
   const transfer = await prisma.cashTransfer.findUnique({
     where: { id },
@@ -246,21 +244,18 @@ export async function updateCashTransfer(
     throw new Error("Cannot edit approved transfer");
   }
 
+  const data2 = SuperJSON.deserialize(
+    data as SuperJSONResult,
+  ) as CashTransferFormData;
+
   // Validate accounts
-  if (data.fromAccountId === data.toAccountId) {
+  if (data2.fromAccountId === data2.toAccountId) {
     throw new Error("Cannot transfer to the same account.");
   }
 
   const updatedTransfer = await prisma.cashTransfer.update({
     where: { id },
-    data: {
-      fromAccountId: data.fromAccountId,
-      toAccountId: data.toAccountId,
-      amount: data.amount,
-      date: data.date,
-      reference: data.reference,
-      description: data.description,
-    },
+    data: data2,
   });
 
   revalidatePath("/accounting/cash-bank");
