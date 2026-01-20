@@ -23,6 +23,7 @@ interface CategoryDialogProps {
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function CategoryDialog({
@@ -30,6 +31,7 @@ export function CategoryDialog({
   trigger,
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  onSuccess,
 }: CategoryDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +58,7 @@ export function CategoryDialog({
       } else {
         await createCategory(data);
       }
+      onSuccess?.();
       setOpen(false);
     } catch (error) {
       console.error(error);

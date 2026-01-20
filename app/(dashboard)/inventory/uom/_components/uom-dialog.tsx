@@ -20,9 +20,15 @@ interface UomDialogProps {
   unit?: Unit;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function UomDialog({ unit, open, onOpenChange }: UomDialogProps) {
+export function UomDialog({
+  unit,
+  open,
+  onOpenChange,
+  onSuccess,
+}: UomDialogProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -44,6 +50,7 @@ export function UomDialog({ unit, open, onOpenChange }: UomDialogProps) {
       }
 
       if (res.success) {
+        onSuccess?.();
         onOpenChange(false);
       } else {
         alert(res.error);

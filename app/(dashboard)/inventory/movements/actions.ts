@@ -7,7 +7,7 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";
 
 import { getSession } from "@/lib/auth/auth";
-import { processMovement, executeInventoryUpdate } from "./logic";
+import { executeInventoryUpdate, processMovement } from "./logic";
 
 export async function getMovementBatches(page: number = 1, limit: number = 10) {
   const skip = (page - 1) * limit;

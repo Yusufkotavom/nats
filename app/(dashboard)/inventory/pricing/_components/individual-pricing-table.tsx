@@ -2,27 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { Button } from "@/components/ui/button";
 import { SelectItem } from "@/components/ui/select";
-import { Search, Filter, Save, Loader2, Check } from "lucide-react";
+import { Search, Save, Loader2, Check, X } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Category } from "@/prisma/generated/prisma/browser";
 import { updateSinglePrice } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DiscountManager } from "./discount-manager";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useAlert } from "@/hooks/use-alert";
 import { PricingProductWithDetails } from "../types";
+import { DataTable, Column } from "@/components/ui/data-table";
 
 interface IndividualPricingTableProps {
   initialProducts: PricingProductWithDetails[];
@@ -111,6 +103,94 @@ export function IndividualPricingTable({
     setEditValue("");
   }
 
+  const columns: Column<PricingProductWithDetails>[] = [
+    {
+      header: "Product",
+      cell: (product) => (
+        <>
+          <div className="text-xs text-muted-foreground">{product.sku}</div>
+          <div className="font-medium">{product.name}</div>
+        </>
+      ),
+    },
+    {
+      header: "Category",
+      cell: (product) => product.category?.name || "-",
+    },
+    {
+      header: "Cost",
+      cell: (product) => formatCurrency(Number(product.cost)),
+    },
+    {
+      header: "Price",
+      cell: (product) => {
+        if (editingId === product.id) {
+          return (
+            <div className="flex items-center gap-2">
+              <CurrencyInput
+                value={editValue}
+                onChange={setEditValue}
+                className="h-8 w-24 text-right"
+                autoFocus
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-green-600"
+                onClick={() => updatePrice(product.id, Number(editValue))}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-red-500"
+                onClick={cancelEditing}
+                disabled={isSaving}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          );
+        }
+        return formatCurrency(Number(product.price));
+      },
+    },
+    {
+      header: "Discounts",
+      cell: (product) => (
+        <DiscountManager
+          productId={product.id}
+          productName={product.name}
+          discounts={product.discounts}
+        />
+      ),
+    },
+    {
+      header: "",
+      className: "w-[100px]",
+      cell: (product) => {
+        if (editingId !== product.id) {
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => startEditing(product)}
+            >
+              Edit
+            </Button>
+          );
+        }
+        return null;
+      },
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4 items-center">
@@ -140,103 +220,15 @@ export function IndividualPricingTable({
       </div>
 
       <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Cost</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Discounts</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  No products found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="text-xs text-muted-foreground">
-                      {product.sku}
-                    </div>
-                    <div className="font-medium">{product.name}</div>
-                  </TableCell>
-                  <TableCell>{product.category?.name || "-"}</TableCell>
-                  <TableCell>{formatCurrency(Number(product.cost))}</TableCell>
-                  <TableCell>
-                    {editingId === product.id ? (
-                      <div className="flex items-center gap-2">
-                        <CurrencyInput
-                          value={editValue}
-                          onChange={setEditValue}
-                          className="h-8 w-24 text-right"
-                          autoFocus
-                        />
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-green-600"
-                          onClick={() =>
-                            updatePrice(product.id, Number(editValue))
-                          }
-                          disabled={isSaving}
-                        >
-                          {isSaving ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Check className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-red-500"
-                          onClick={cancelEditing}
-                          disabled={isSaving}
-                        >
-                          <Filter className="h-4 w-4 rotate-45" />{" "}
-                        </Button>
-                      </div>
-                    ) : (
-                      formatCurrency(Number(product.price))
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DiscountManager
-                      productId={product.id}
-                      productName={product.name}
-                      discounts={product.discounts}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {editingId !== product.id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startEditing(product)}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="py-4">
-        <CustomPagination
-          totalEntries={totalEntries}
-          pageSize={10}
-          currentPage={currentPage}
+        <DataTable
+          data={products}
+          columns={columns}
+          emptyMessage="No products found."
+          pagination={{
+            totalEntries,
+            pageSize: 10,
+            currentPage,
+          }}
         />
       </div>
     </div>

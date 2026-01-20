@@ -3,22 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { SelectItem } from "@/components/ui/select";
 import { Search, Eye } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Category, Inventory, Product, Unit } from "@/prisma/generated/prisma/browser";
+import { DataTable, Column } from "@/components/ui/data-table";
 
 type InventoryWithProduct = Omit<Inventory, "unitCost"> & {
   unitCost: number;
@@ -91,6 +83,55 @@ export function InventoryTable({
     replace(`${pathname}?${params.toString()}`);
   };
 
+  const columns: Column<InventoryWithProduct>[] = [
+    {
+      header: "SKU/Name",
+      cell: (inv) => (
+        <>
+          <div className="text-xs text-muted-foreground">
+            {inv.product.sku}
+          </div>
+          <div className="font-medium">{inv.product.name}</div>
+        </>
+      ),
+    },
+    {
+      header: "Category",
+      cell: (inv) => inv.product.category?.name || "-",
+    },
+    {
+      header: "Cost",
+      cell: (inv) => formatCurrency(inv.product.cost),
+    },
+    {
+      header: "Quantity",
+      cell: (inv) => `${inv.quantity} ${inv.product.baseUnit?.symbol}`,
+    },
+    {
+      header: "Value",
+      cell: (inv) => {
+        const totalValue = inv.quantity * inv.product.cost;
+        return formatCurrency(totalValue);
+      },
+    },
+    {
+      header: "Actions",
+      className: "w-[100px]",
+      cell: (inv) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          asChild
+          title="View Product"
+        >
+          <Link href={`/inventory/products/${inv.product.id}`}>
+            <Eye className="h-4 w-4" />
+          </Link>
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4 items-center">
@@ -120,66 +161,17 @@ export function InventoryTable({
       </div>
 
       <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SKU/Name</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Cost</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {inventory.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  No inventory found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              inventory.map((inv) => {
-                const totalValue = inv.quantity * inv.product.cost;
-                return (
-                  <TableRow key={inv.id}>
-                    <TableCell>
-                      <div className="text-xs text-muted-foreground">
-                        {inv.product.sku}
-                      </div>
-                      <div className="font-medium">{inv.product.name}</div>
-                    </TableCell>
-                    <TableCell>{inv.product.category?.name || "-"}</TableCell>
-                    <TableCell>{formatCurrency(inv.product.cost)}</TableCell>
-                    <TableCell>
-                      {inv.quantity} {inv.product.baseUnit?.symbol}
-                    </TableCell>
-                    <TableCell>{formatCurrency(totalValue)}</TableCell>
-                    <TableCell>
-                       <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                        title="View Product"
-                      >
-                        <Link href={`/inventory/products/${inv.product.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+        <DataTable
+          data={inventory}
+          columns={columns}
+          emptyMessage="No inventory found."
+          pagination={{
+            totalEntries,
+            pageSize: 10,
+            currentPage,
+          }}
+        />
       </div>
-
-      <CustomPagination
-        totalEntries={totalEntries}
-        pageSize={10}
-        currentPage={currentPage}
-      />
     </div>
   );
 }

@@ -57,7 +57,7 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn(className)}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -95,8 +95,8 @@ export function DataTable<T>({
                     {col.cell
                       ? col.cell(item)
                       : col.accessorKey
-                      ? (item[col.accessorKey] as React.ReactNode)
-                      : null}
+                        ? (item[col.accessorKey] as React.ReactNode)
+                        : null}
                   </TableCell>
                 ))}
               </TableRow>
