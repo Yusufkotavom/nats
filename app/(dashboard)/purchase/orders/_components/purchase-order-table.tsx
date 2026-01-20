@@ -38,17 +38,21 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { PurchaseOrderStatus } from "@/prisma/generated/prisma/enums";
 import { useConfirm } from "@/hooks/use-confirm";
+import { SuperJSONResult } from "superjson";
+import { SuperJSON } from "@/lib/superjson";
 
 interface PurchaseOrderTableProps {
-  orders: PurchaseOrderWithDetails[];
+  orders: SuperJSONResult;
   totalPages: number;
   totalEntries: number;
 }
 
 export function PurchaseOrderTable({
-  orders,
+  orders: serializedOrders,
   totalEntries,
 }: PurchaseOrderTableProps) {
+  const orders =
+    SuperJSON.deserialize<PurchaseOrderWithDetails[]>(serializedOrders);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -56,13 +60,13 @@ export function PurchaseOrderTable({
   const confirm = useConfirm();
 
   const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("search") || ""
+    searchParams.get("search") || "",
   );
   const [statusFilter, setStatusFilter] = useState(
-    searchParams.get("status") || "ALL"
+    searchParams.get("status") || "ALL",
   );
   const [startDate, setStartDate] = useState(
-    searchParams.get("startDate") || ""
+    searchParams.get("startDate") || "",
   );
   const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
 

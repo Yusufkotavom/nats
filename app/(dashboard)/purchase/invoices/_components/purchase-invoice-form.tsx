@@ -42,35 +42,34 @@ import {
   getPurchaseOrder,
 } from "../actions";
 import { PurchaseInvoiceWithDetails, PurchaseInvoiceInput } from "../types";
+import { PurchaseOrderWithDetails } from "../../orders/types";
 import { format } from "date-fns";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { generateId } from "@/lib/utils";
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
 interface PurchaseInvoiceFormProps {
-  invoice?: PurchaseInvoiceWithDetails;
+  invoice?: SuperJSONResult | null;
   vendors: { id: string; name: string }[];
-  purchaseOrders: {
-    id: string;
-    orderNumber: string;
-    contactId: string;
-    contact: { name: string };
-    items?: {
-      quantity: number;
-      unitCost: number; // or Decimal? Prisma Decimal comes as string or Decimal object usually, but serialized as number or string.
-      // Assuming serialized to number in actions.
-      product?: { name: string };
-    }[];
-  }[];
+  purchaseOrders: SuperJSONResult;
   readonly?: boolean;
 }
 
 export function PurchaseInvoiceForm({
-  invoice,
+  invoice: serializedInvoice,
   vendors,
-  purchaseOrders,
+  purchaseOrders: serializedPurchaseOrders,
   readonly = false,
 }: PurchaseInvoiceFormProps) {
+  const invoice = serializedInvoice
+    ? SuperJSON.deserialize<PurchaseInvoiceWithDetails>(serializedInvoice)
+    : undefined;
+  const purchaseOrders = SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
+    serializedPurchaseOrders,
+  );
+
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!invoice;
@@ -110,7 +109,7 @@ export function PurchaseInvoiceForm({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -135,15 +134,17 @@ export function PurchaseInvoiceForm({
         // Note: We might need to fetch full PO details if items are not passed fully,
         // but here we rely on purchaseOrders prop or fetch if needed.
         // Actually getPurchaseOrder action is available.
-        const fullPo = await getPurchaseOrder(poId);
+        const serializedFullPo = await getPurchaseOrder(poId);
+        const fullPo = serializedFullPo
+          ? SuperJSON.deserialize<PurchaseOrderWithDetails>(serializedFullPo)
+          : null;
 
         if (fullPo) {
           // Auto-select vendor
           setFormData((prev) => ({ ...prev, contactId: fullPo.contactId }));
 
           // Populate items from PO
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const newItems = fullPo.items.map((item: any) => ({
+          const newItems = fullPo.items.map((item) => ({
             id: generateId(),
             description: item.product?.name || "Item",
             quantity: item.quantity, // Use original qty or remaining? Usually Bill matches PO.
@@ -187,7 +188,7 @@ export function PurchaseInvoiceForm({
   const handleItemChange = (
     index: number,
     field: keyof (typeof formData.items)[0],
-    value: string | number | undefined
+    value: string | number | undefined,
   ) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -219,12 +220,12 @@ export function PurchaseInvoiceForm({
 
   const itemsTotal = formData.items.reduce(
     (sum, item) => sum + calculateItemValues(item).total,
-    0
+    0,
   );
 
   const itemsNetTotal = formData.items.reduce(
     (sum, item) => sum + calculateItemValues(item).taxableAmount,
-    0
+    0,
   );
 
   const totalAmount =
@@ -487,7 +488,7 @@ export function PurchaseInvoiceForm({
                                   handleItemChange(
                                     index,
                                     "description",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 disabled={readonly}
@@ -502,7 +503,7 @@ export function PurchaseInvoiceForm({
                                   handleItemChange(
                                     index,
                                     "quantity",
-                                    parseInt(e.target.value) || 0
+                                    parseInt(e.target.value) || 0,
                                   )
                                 }
                                 disabled={readonly}
@@ -515,7 +516,7 @@ export function PurchaseInvoiceForm({
                                   handleItemChange(
                                     index,
                                     "unitPrice",
-                                    Number(val)
+                                    Number(val),
                                   )
                                 }
                                 disabled={readonly}
@@ -531,7 +532,7 @@ export function PurchaseInvoiceForm({
                                   handleItemChange(
                                     index,
                                     "discount",
-                                    Number(e.target.value)
+                                    Number(e.target.value),
                                   )
                                 }
                                 disabled={readonly}
@@ -547,7 +548,7 @@ export function PurchaseInvoiceForm({
                                   handleItemChange(
                                     index,
                                     "tax",
-                                    Number(e.target.value)
+                                    Number(e.target.value),
                                   )
                                 }
                                 disabled={readonly}
@@ -556,7 +557,7 @@ export function PurchaseInvoiceForm({
                             <TableCell>
                               <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
                                 {calculateItemValues(
-                                  item
+                                  item,
                                 ).total.toLocaleString()}
                               </div>
                             </TableCell>

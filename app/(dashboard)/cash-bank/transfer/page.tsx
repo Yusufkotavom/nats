@@ -43,6 +43,7 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { useFormatCurrency } from "@/hooks";
+import { SuperJSON } from "@/lib/superjson";
 
 export default function TransferPage() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -58,7 +59,10 @@ export default function TransferPage() {
 
   const { data: transfers = [], isLoading: isLoadingTransfers } = useQuery({
     queryKey: ["cash-transfers"],
-    queryFn: () => getTransfers(),
+    queryFn: async () => {
+      const serialized = await getTransfers();
+      return SuperJSON.deserialize<CashTransfer[]>(serialized);
+    },
   });
 
   const { data: accounts = [], isLoading: isLoadingAccounts } = useQuery({

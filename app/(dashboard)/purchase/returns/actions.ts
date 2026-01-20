@@ -1,8 +1,9 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
-import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
+import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReturnInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
@@ -13,7 +14,7 @@ export { getPurchaseOrder, getPurchaseInvoice };
 export async function getPurchaseReturns(
   page: number = 1,
   limit: number = 10,
-  search?: string
+  search?: string,
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseReturnWhereInput = {
@@ -60,7 +61,7 @@ export async function getPurchaseReturns(
   ]);
 
   return {
-    returns: serializePrisma(returns),
+    returns: SuperJSON.serialize(returns),
     total,
     totalPages: Math.ceil(total / limit),
   };
@@ -86,10 +87,10 @@ export async function getPurchaseReturn(id: string) {
     },
   });
 
-  return serializePrisma(purchaseReturn);
+  if (!purchaseReturn) return null;
+
+  return SuperJSON.serialize(purchaseReturn);
 }
-
-
 
 export async function getPurchaseOrdersForReturn() {
   const orders = await prisma.purchaseOrder.findMany({
@@ -109,7 +110,7 @@ export async function getPurchaseOrdersForReturn() {
       },
     },
   });
-  return serializePrisma(orders);
+  return SuperJSON.serialize(orders);
 }
 
 export async function getPurchaseInvoicesForReturn() {
@@ -134,7 +135,7 @@ export async function getPurchaseInvoicesForReturn() {
       },
     },
   });
-  return serializePrisma(invoices);
+  return SuperJSON.serialize(invoices);
 }
 
 // Let's check the schema again for PurchaseInvoiceItem.
@@ -184,12 +185,12 @@ export const createPurchaseReturn = authorizedAction(
       });
 
       revalidatePath("/purchase/returns");
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Return:", error);
       return { success: false, error: "Failed to create Purchase Return" };
     }
-  }
+  },
 );
 
 export const updatePurchaseReturn = authorizedAction(
@@ -259,12 +260,12 @@ export const updatePurchaseReturn = authorizedAction(
       });
 
       revalidatePath("/purchase/returns");
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Return:", error);
       return { success: false, error: "Failed to update Purchase Return" };
     }
-  }
+  },
 );
 
 export const deletePurchaseReturn = authorizedAction(
@@ -291,5 +292,5 @@ export const deletePurchaseReturn = authorizedAction(
       console.error("Failed to delete Return:", error);
       return { success: false, error: "Failed to delete Purchase Return" };
     }
-  }
+  },
 );

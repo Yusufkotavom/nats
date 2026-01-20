@@ -29,18 +29,21 @@ import {
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
 interface PurchaseReceiveTableProps {
-  receives: PurchaseReceiveWithDetails[];
+  receives: SuperJSONResult;
   totalPages: number;
   totalEntries: number;
 }
 
 export function PurchaseReceiveTable({
-  receives,
+  receives: serializedReceives,
   totalPages,
   totalEntries,
 }: PurchaseReceiveTableProps) {
+  const receives = SuperJSON.deserialize<PurchaseReceiveWithDetails[]>(serializedReceives);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();

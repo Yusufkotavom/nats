@@ -4,6 +4,7 @@ import { Protect } from "@/components/ui/protect";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { SuperJSON } from "@/lib/superjson";
 
 export default async function Page({
   searchParams,
@@ -13,29 +14,13 @@ export default async function Page({
   const params = await searchParams;
   const page = Number(params.page) || 1;
 
-  const { batches, total } = await getMovementBatches(page, 10);
+  const { batches: serializedBatches, total } = await getMovementBatches(
+    page,
+    10
+  );
 
-  // Convert Decimals to numbers for client component serialization
-  const formattedBatches = batches.map((batch) => ({
-    ...batch,
-    details: batch.details.map((detail) => ({
-      ...detail,
-      unitCost: Number(detail.unitCost),
-      product: {
-        ...detail.product,
-        price: Number(detail.product.price),
-        cost: Number(detail.product.cost),
-        averageCost: Number(detail.product.averageCost),
-        purchaseConversionFactor: Number(
-          detail.product.purchaseConversionFactor
-        ),
-        salesConversionFactor: Number(detail.product.salesConversionFactor),
-      },
-    })),
-  }));
-
-  // Cast to specific type to match component props
-  const typedBatches = formattedBatches as unknown as BatchWithDetails[];
+  const batches =
+    SuperJSON.deserialize<BatchWithDetails[]>(serializedBatches);
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -51,7 +36,7 @@ export default async function Page({
           </Button>
         </Protect>
       </div>
-      <BatchTable batches={typedBatches} totalEntries={total} />
+      <BatchTable batches={batches} totalEntries={total} />
     </div>
   );
 }

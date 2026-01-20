@@ -73,20 +73,26 @@ import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { getProducts } from "@/app/(dashboard)/inventory/products/actions";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
+import { SuperJSONResult } from "superjson";
+import { SuperJSON } from "@/lib/superjson";
+import { PurchaseOrderWithDetails } from "../types";
 
 interface PurchaseOrderFormProps {
-  order?: Awaited<ReturnType<typeof getPurchaseOrder>>;
+  order?: SuperJSONResult;
   vendors: Awaited<ReturnType<typeof getContacts>>["data"];
   products: Awaited<ReturnType<typeof getProducts>>["products"];
   readonly?: boolean;
 }
 
 export function PurchaseOrderForm({
-  order,
+  order: serializedOrder,
   vendors,
   products,
   readonly = false,
 }: PurchaseOrderFormProps) {
+  const order = serializedOrder
+    ? SuperJSON.deserialize<PurchaseOrderWithDetails>(serializedOrder)
+    : undefined;
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const [isLoading, setIsLoading] = useState(false);
@@ -121,7 +127,7 @@ export function PurchaseOrderForm({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -159,7 +165,7 @@ export function PurchaseOrderForm({
   const handleItemChange = (
     index: number,
     field: keyof (typeof formData.items)[0],
-    value: string | number
+    value: string | number,
   ) => {
     if (isReadOnly) return;
     const newItems = [...formData.items];
@@ -178,7 +184,7 @@ export function PurchaseOrderForm({
 
   const totalAmount = formData.items.reduce(
     (sum, item) => sum + item.quantity * item.unitCost,
-    0
+    0,
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -328,12 +334,12 @@ export function PurchaseOrderForm({
                 formData.status === "DRAFT"
                   ? "bg-gray-500"
                   : formData.status === "ISSUED"
-                  ? "bg-blue-500"
-                  : formData.status === "PARTIALLY_RECEIVED"
-                  ? "bg-yellow-500"
-                  : formData.status === "CLOSED"
-                  ? "bg-green-500"
-                  : "bg-red-500"
+                    ? "bg-blue-500"
+                    : formData.status === "PARTIALLY_RECEIVED"
+                      ? "bg-yellow-500"
+                      : formData.status === "CLOSED"
+                        ? "bg-green-500"
+                        : "bg-red-500",
               )}
             />
             <span className="font-medium">
@@ -621,7 +627,7 @@ export function PurchaseOrderForm({
                                   handleItemChange(
                                     index,
                                     "quantity",
-                                    Number(e.target.value)
+                                    Number(e.target.value),
                                   )
                                 }
                                 disabled={isReadOnly}
@@ -643,7 +649,7 @@ export function PurchaseOrderForm({
                                   handleItemChange(
                                     index,
                                     "unitCost",
-                                    Number(val)
+                                    Number(val),
                                   )
                                 }
                                 disabled={isReadOnly}
@@ -698,7 +704,6 @@ export function PurchaseOrderForm({
           </div>
         </div>
       </form>
-
     </div>
   );
 }

@@ -38,46 +38,46 @@ import { useToast } from "@/hooks/use-toast";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { generateId } from "@/lib/utils";
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+import { PurchaseOrderWithDetails } from "../../orders/types";
+import { PurchaseInvoiceWithDetails } from "../../invoices/types";
 
 interface PurchaseReturnFormProps {
-  returnItem?: PurchaseReturnWithDetails;
+  returnItem?: SuperJSONResult;
   vendors: { id: string; name: string }[];
-  purchaseOrders: {
-    id: string;
-    orderNumber: string;
-    contactId: string;
-    items: {
-      productId: string;
-      quantity: number;
-      receivedQuantity: number;
-      unitCost: number;
-      product: {
-        name: string;
-        baseUnit?: { symbol: string } | null;
-        purchaseUnit?: { symbol: string } | null;
-      };
-    }[];
-  }[];
-  purchaseInvoices: { id: string; invoiceNumber: string; contactId: string }[];
+  purchaseOrders: SuperJSONResult;
+  purchaseInvoices: SuperJSONResult;
   readonly?: boolean;
 }
 
 export function PurchaseReturnForm({
-  returnItem,
+  returnItem: serializedReturnItem,
   vendors,
-  purchaseOrders,
-  purchaseInvoices,
+  purchaseOrders: serializedPurchaseOrders,
+  purchaseInvoices: serializedPurchaseInvoices,
   readonly = false,
 }: PurchaseReturnFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
+  const returnItem = serializedReturnItem
+    ? SuperJSON.deserialize<PurchaseReturnWithDetails>(serializedReturnItem)
+    : undefined;
+
+  const purchaseOrders = SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
+    serializedPurchaseOrders,
+  );
+  const purchaseInvoices = SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(
+    serializedPurchaseInvoices,
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const [formData, setFormData] = useState<
@@ -111,10 +111,10 @@ export function PurchaseReturnForm({
   useEffect(() => {
     if (formData.contactId) {
       setFilteredPurchaseOrders(
-        purchaseOrders.filter((po) => po.contactId === formData.contactId)
+        purchaseOrders.filter((po) => po.contactId === formData.contactId),
       );
       setFilteredPurchaseInvoices(
-        purchaseInvoices.filter((pi) => pi.contactId === formData.contactId)
+        purchaseInvoices.filter((pi) => pi.contactId === formData.contactId),
       );
     } else {
       setFilteredPurchaseOrders([]);
@@ -166,7 +166,7 @@ export function PurchaseReturnForm({
   const handleItemChange = (
     index: number,
     field: keyof PurchaseReturnInput["items"][0],
-    value: number
+    value: number,
   ) => {
     setFormData((prev) => {
       const newItems = [...prev.items];
@@ -189,7 +189,7 @@ export function PurchaseReturnForm({
   const calculateTotal = () => {
     return formData.items.reduce(
       (acc, item) => acc + item.quantity * item.unitPrice,
-      0
+      0,
     );
   };
 
@@ -206,7 +206,7 @@ export function PurchaseReturnForm({
       if (returnItem) {
         const result = await updatePurchaseReturn(
           returnItem.id,
-          submissionData
+          submissionData,
         );
         if (!result.success) throw new Error(result.error);
         toast({
@@ -468,7 +468,7 @@ export function PurchaseReturnForm({
                                 handleItemChange(
                                   index,
                                   "quantity",
-                                  Number(e.target.value)
+                                  Number(e.target.value),
                                 )
                               }
                               disabled={readonly}
@@ -484,7 +484,7 @@ export function PurchaseReturnForm({
                                 handleItemChange(
                                   index,
                                   "unitPrice",
-                                  Number(e.target.value)
+                                  Number(e.target.value),
                                 )
                               }
                               disabled={readonly}

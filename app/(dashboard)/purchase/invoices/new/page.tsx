@@ -20,7 +20,7 @@ export default async function NewPurchaseInvoicePage() {
   return (
     <PurchaseInvoiceForm
       vendors={vendors.data}
-      purchaseOrders={purchaseOrders as any}
+      purchaseOrders={purchaseOrders}
     />
   );
 }

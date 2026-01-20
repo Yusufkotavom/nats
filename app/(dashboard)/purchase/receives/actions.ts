@@ -1,18 +1,19 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReceiveInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
+import { SuperJSON } from "@/lib/superjson";
 
 export { getPurchaseOrder };
 
 export async function getPurchaseReceives(
   page: number = 1,
   limit: number = 10,
-  search?: string
+  search?: string,
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseReceiveWhereInput = {
@@ -53,7 +54,7 @@ export async function getPurchaseReceives(
   ]);
 
   return {
-    receives: serializePrisma(receives),
+    receives: SuperJSON.serialize(receives),
     total,
     totalPages: Math.ceil(total / limit),
   };
@@ -73,7 +74,9 @@ export async function getPurchaseReceive(id: string) {
     },
   });
 
-  return serializePrisma(receive);
+  if (!receive) return null;
+
+  return SuperJSON.serialize(receive);
 }
 
 export async function getProducts() {
@@ -96,7 +99,7 @@ export async function getProducts() {
       },
     },
   });
-  return serializePrisma(products);
+  return SuperJSON.serialize(products);
 }
 
 export async function getPurchaseOrdersForSelect() {
@@ -110,7 +113,7 @@ export async function getPurchaseOrdersForSelect() {
       items: true,
     },
   });
-  return serializePrisma(orders);
+  return SuperJSON.serialize(orders);
 }
 
 // Helper to generate Receive Number
@@ -159,12 +162,12 @@ export const createPurchaseReceive = authorizedAction(
       });
 
       revalidatePath("/purchase/receives");
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Receive:", error);
       return { success: false, error: "Failed to create Purchase Receive" };
     }
-  }
+  },
 );
 
 export const updatePurchaseReceive = authorizedAction(
@@ -173,7 +176,7 @@ export const updatePurchaseReceive = authorizedAction(
     id: string,
     data: PurchaseReceiveInput & {
       status?: "DRAFT" | "COMPLETED" | "CANCELLED";
-    }
+    },
   ) => {
     try {
       const currentReceive = await prisma.purchaseReceive.findUnique({
@@ -207,6 +210,11 @@ export const updatePurchaseReceive = authorizedAction(
                 productId: item.productId,
                 quantity: item.quantity,
                 purchaseOrderItemId: item.purchaseOrderItemId,
+                // No cost in Receive Item?
+                // PurchaseReceiveItem only has quantity and links.
+                // It doesn't store cost?
+                // The schema:
+                // model PurchaseReceiveItem { ... quantity Float ... }
               })),
             },
           },
@@ -242,10 +250,10 @@ export const updatePurchaseReceive = authorizedAction(
 
             if (po) {
               const allReceived = po.items.every(
-                (item) => item.receivedQuantity >= item.quantity
+                (item) => item.receivedQuantity >= item.quantity,
               );
               const anyReceived = po.items.some(
-                (item) => item.receivedQuantity > 0
+                (item) => item.receivedQuantity > 0,
               );
 
               let newStatus = po.status;
@@ -272,12 +280,12 @@ export const updatePurchaseReceive = authorizedAction(
 
       revalidatePath("/purchase/receives");
       revalidatePath("/purchase/orders");
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Receive:", error);
       return { success: false, error: "Failed to update Purchase Receive" };
     }
-  }
+  },
 );
 
 export const deletePurchaseReceive = authorizedAction(
@@ -304,5 +312,5 @@ export const deletePurchaseReceive = authorizedAction(
       console.error("Failed to delete Receive:", error);
       return { success: false, error: "Failed to delete Purchase Receive" };
     }
-  }
+  },
 );

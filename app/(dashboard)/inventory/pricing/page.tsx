@@ -3,6 +3,9 @@ import { BatchPricingForm } from "./_components/batch-pricing-form";
 import { IndividualPricingTable } from "./_components/individual-pricing-table";
 import { Protect } from "@/components/ui/protect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SuperJSON } from "@/lib/superjson";
+import { Category } from "@/prisma/generated/prisma/browser";
+import { PricingProductWithDetails } from "./types";
 
 export default async function PricingPage({
   searchParams,
@@ -18,12 +21,16 @@ export default async function PricingPage({
   const search = params.search || "";
   const categoryId = params.categoryId || "ALL";
 
-  const [categories, productsData] = await Promise.all([
+  const [serializedCategories, productsData] = await Promise.all([
     getCategories(),
     getPricingProducts(page, 10, search, categoryId),
   ]);
 
-  const { products, totalPages, total } = productsData;
+  const { products: serializedProducts, totalPages, total } = productsData;
+  const categories = SuperJSON.deserialize<Category[]>(serializedCategories);
+  const products = SuperJSON.deserialize<PricingProductWithDetails[]>(
+    serializedProducts
+  );
 
   return (
     <div className="flex-1 space-y-4 px-4">

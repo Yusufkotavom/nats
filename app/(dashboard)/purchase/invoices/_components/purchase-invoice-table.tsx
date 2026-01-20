@@ -32,17 +32,21 @@ import { Badge } from "@/components/ui/badge";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useConfirm } from "@/hooks/use-confirm";
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+
 interface PurchaseInvoiceTableProps {
-  invoices: PurchaseInvoiceWithDetails[];
+  invoices: SuperJSONResult;
   totalPages: number;
   totalEntries: number;
 }
 
 export function PurchaseInvoiceTable({
-  invoices,
+  invoices: serializedInvoices,
   totalPages,
   totalEntries,
 }: PurchaseInvoiceTableProps) {
+  const invoices = SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(serializedInvoices);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();

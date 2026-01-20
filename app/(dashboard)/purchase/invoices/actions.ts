@@ -1,11 +1,11 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
 import {
   Prisma,
   PurchaseInvoiceStatus,
-  ContactType,
 } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseInvoiceInput } from "./types";
@@ -17,7 +17,7 @@ export async function getPurchaseInvoices(
   page: number = 1,
   limit: number = 10,
   search?: string,
-  status?: string
+  status?: string,
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseInvoiceWhereInput = {
@@ -60,7 +60,7 @@ export async function getPurchaseInvoices(
   ]);
 
   return {
-    invoices: serializePrisma(invoices),
+    invoices: SuperJSON.serialize(invoices),
     total,
     totalPages: Math.ceil(total / limit),
   };
@@ -76,7 +76,7 @@ export async function getPurchaseInvoice(id: string) {
     },
   });
 
-  return serializePrisma(invoice);
+  return SuperJSON.serialize(invoice);
 }
 
 export async function getPurchaseOrdersForSelect() {
@@ -95,7 +95,7 @@ export async function getPurchaseOrdersForSelect() {
       },
     },
   });
-  return serializePrisma(orders);
+  return SuperJSON.serialize(orders);
 }
 
 export const createPurchaseInvoice = authorizedAction(
@@ -172,12 +172,12 @@ export const createPurchaseInvoice = authorizedAction(
       });
 
       revalidatePath("/purchase/invoices");
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Invoice:", error);
       return { success: false, error: "Failed to create Purchase Invoice" };
     }
-  }
+  },
 );
 
 export const updatePurchaseInvoice = authorizedAction(
@@ -284,12 +284,12 @@ export const updatePurchaseInvoice = authorizedAction(
       });
 
       revalidatePath("/purchase/invoices");
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Invoice:", error);
       return { success: false, error: "Failed to update Purchase Invoice" };
     }
-  }
+  },
 );
 
 export const deletePurchaseInvoice = authorizedAction(
@@ -316,5 +316,5 @@ export const deletePurchaseInvoice = authorizedAction(
       console.error("Failed to delete Invoice:", error);
       return { success: false, error: "Failed to delete Purchase Invoice" };
     }
-  }
+  },
 );

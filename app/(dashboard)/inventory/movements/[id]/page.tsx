@@ -11,11 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { MovementActions } from "./_components/movement-actions";
 import { cn } from "@/lib/utils";
+import { SuperJSON } from "@/lib/superjson";
+import { BatchWithDetails } from "../_components/batch-table";
 
 export default async function MovementDetailsPage({
   params,
@@ -23,11 +22,13 @@ export default async function MovementDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const batch = await getMovementBatchById(id);
+  const serializedBatch = await getMovementBatchById(id);
 
-  if (!batch) {
+  if (!serializedBatch) {
     notFound();
   }
+
+  const batch = SuperJSON.deserialize<BatchWithDetails>(serializedBatch);
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4">
@@ -57,10 +58,10 @@ export default async function MovementDetailsPage({
                 batch.status === "COMPLETED" || batch.status === "APPROVED"
                   ? "default"
                   : batch.status === "PENDING"
-                  ? "outline"
-                  : batch.status === "REJECTED"
-                  ? "destructive"
-                  : "secondary"
+                    ? "outline"
+                    : batch.status === "REJECTED"
+                      ? "destructive"
+                      : "secondary"
               }
               className={cn(
                 batch.status === "PENDING" &&
@@ -68,7 +69,7 @@ export default async function MovementDetailsPage({
                 batch.status === "COMPLETED" &&
                   "bg-green-100 text-green-800 hover:bg-green-100",
                 batch.status === "REJECTED" &&
-                  "bg-red-100 text-red-800 hover:bg-red-100"
+                  "bg-red-100 text-red-800 hover:bg-red-100",
               )}
             >
               {batch.status}
@@ -95,10 +96,10 @@ export default async function MovementDetailsPage({
                 batch.type === "IN"
                   ? "default"
                   : batch.type === "OUT"
-                  ? "destructive"
-                  : batch.type === "TRANSFER"
-                  ? "outline"
-                  : "secondary"
+                    ? "destructive"
+                    : batch.type === "TRANSFER"
+                      ? "outline"
+                      : "secondary"
               }
             >
               {batch.type}
@@ -111,82 +112,120 @@ export default async function MovementDetailsPage({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {format(new Date(batch.transactionDate), "MMM d, yyyy")}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {format(new Date(batch.transactionDate), "HH:mm")}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Source</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-semibold">
-              {batch.fromWarehouse?.name || "External / Adjustment"}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Destination</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-semibold">
-              {batch.toWarehouse?.name || "External / Adjustment"}
+              {format(new Date(batch.createdAt), "dd MMM yyyy")}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Unit Cost</TableHead>
-                <TableHead>Total Cost</TableHead>
-                <TableHead>Notes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {batch.details.map((detail) => (
-                <TableRow key={detail.id}>
-                  <TableCell>
-                    <div className="font-medium">{detail.product.sku}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {detail.product.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>{detail.quantity}</TableCell>
-                  <TableCell>
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    }).format(detail.unitCost.toNumber())}
-                  </TableCell>
-                  <TableCell>
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    }).format(detail.unitCost.toNumber() * detail.quantity)}
-                  </TableCell>
-                  <TableCell>{detail.notes || "-"}</TableCell>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4 lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Movement Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Unit Cost</TableHead>
+                  <TableHead>Total Cost</TableHead>
+                  <TableHead>Location</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {batch.details.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">
+                      {item.product.name}
+                      <div className="text-xs text-muted-foreground">
+                        {item.product.sku}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {item.quantity} {item.product.baseUnit?.symbol}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat("id-ID", {
+                        style: "currency",
+                        currency: "IDR",
+                      }).format(Number(item.unitCost))}
+                    </TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat("id-ID", {
+                        style: "currency",
+                        currency: "IDR",
+                      }).format(Number(item.unitCost) * item.quantity)}
+                    </TableCell>
+                    <TableCell>{item.locationId || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-3 lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Locations</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                From Warehouse
+              </span>
+              <div className="flex items-center rounded-md border p-3">
+                {batch.fromWarehouse ? (
+                  <div>
+                    <div className="font-medium">
+                      {batch.fromWarehouse.name}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {batch.fromWarehouse.address || "No address"}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    External / Adjustment
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                To Warehouse
+              </span>
+              <div className="flex items-center rounded-md border p-3">
+                {batch.toWarehouse ? (
+                  <div>
+                    <div className="font-medium">{batch.toWarehouse.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {batch.toWarehouse.address || "No address"}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    External / Adjustment
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {batch.notes && (
+              <div className="space-y-2 pt-4">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Notes
+                </span>
+                <div className="rounded-md bg-muted p-3 text-sm">
+                  {batch.notes}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

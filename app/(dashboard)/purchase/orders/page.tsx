@@ -29,7 +29,7 @@ export default async function Page({
     search,
     status,
     startDate,
-    endDate
+    endDate,
   );
 
   return (

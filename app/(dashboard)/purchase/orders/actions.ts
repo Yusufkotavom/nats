@@ -1,11 +1,12 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { PurchaseOrderInput } from "./types";
+import { SuperJSON } from "@/lib/superjson";
 
 export async function getPurchaseOrders(
   page: number = 1,
@@ -13,7 +14,7 @@ export async function getPurchaseOrders(
   search?: string,
   status?: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseOrderWhereInput = {
@@ -75,7 +76,7 @@ export async function getPurchaseOrders(
   ]);
 
   return {
-    orders: serializePrisma(orders),
+    orders: SuperJSON.serialize(orders),
     total,
     totalPages: Math.ceil(total / limit),
   };
@@ -104,7 +105,9 @@ export async function getPurchaseOrder(id: string) {
     },
   });
 
-  return serializePrisma(order);
+  if (!order) return null;
+
+  return SuperJSON.serialize(order);
 }
 
 // Helper to generate PO Number
@@ -162,12 +165,12 @@ export const createPurchaseOrder = authorizedAction(
       });
 
       revalidatePath("/purchase/orders");
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create PO:", error);
       return { success: false, error: "Failed to create Purchase Order" };
     }
-  }
+  },
 );
 
 export const updatePurchaseOrder = authorizedAction(
@@ -228,12 +231,12 @@ export const updatePurchaseOrder = authorizedAction(
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update PO:", error);
       return { success: false, error: "Failed to update Purchase Order" };
     }
-  }
+  },
 );
 
 export const issuePurchaseOrder = authorizedAction(
@@ -261,12 +264,12 @@ export const issuePurchaseOrder = authorizedAction(
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to issue PO:", error);
       return { success: false, error: "Failed to issue Purchase Order" };
     }
-  }
+  },
 );
 
 export const cancelPurchaseOrder = authorizedAction(
@@ -293,12 +296,12 @@ export const cancelPurchaseOrder = authorizedAction(
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to cancel PO:", error);
       return { success: false, error: "Failed to cancel Purchase Order" };
     }
-  }
+  },
 );
 
 export const closePurchaseOrder = authorizedAction(
@@ -332,12 +335,12 @@ export const closePurchaseOrder = authorizedAction(
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
-      return { success: true, data: serializePrisma(result) };
+      return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to close PO:", error);
       return { success: false, error: "Failed to close Purchase Order" };
     }
-  }
+  },
 );
 
 export const deletePurchaseOrder = authorizedAction(
@@ -353,5 +356,5 @@ export const deletePurchaseOrder = authorizedAction(
       console.error("Failed to delete PO:", error);
       return { success: false, error: "Failed to delete Purchase Order" };
     }
-  }
+  },
 );

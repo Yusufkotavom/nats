@@ -25,6 +25,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { getAvailableGLAccounts, getDashboardStats } from "../actions";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SuperJSON } from "@/lib/superjson";
+import { JournalEntryLine } from "@/prisma/generated/prisma/client";
 
 export function DashboardView() {
   const formatCurrency = useFormatCurrency();
@@ -32,7 +34,18 @@ export function DashboardView() {
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ["cash-bank", "dashboard-stats"],
-    queryFn: () => getDashboardStats(),
+    queryFn: async () => {
+      const data = await getDashboardStats();
+      return {
+        ...data,
+        recentTransactions: SuperJSON.deserialize<
+          (JournalEntryLine & {
+            journalEntry: any;
+            account: any;
+          })[]
+        >(data.recentTransactions),
+      };
+    },
   });
 
   const { data: glAccounts, isLoading: isLoadingGL } = useQuery({

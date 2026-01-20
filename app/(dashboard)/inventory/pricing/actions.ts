@@ -1,15 +1,17 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma, DiscountType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { BatchPricingInput, PriceCalculationResult } from "./types";
+import { SuperJSON } from "@/lib/superjson";
 
 export async function getCategories() {
-  return await prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   });
+  return SuperJSON.serialize(categories);
 }
 
 export async function getPricingProducts(
@@ -61,7 +63,7 @@ export async function getPricingProducts(
   ]);
 
   return {
-    products: serializePrisma(products),
+    products: SuperJSON.serialize(products),
     total,
     totalPages: Math.ceil(total / limit),
   };

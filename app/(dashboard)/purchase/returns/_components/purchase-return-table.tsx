@@ -30,18 +30,21 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
 interface PurchaseReturnTableProps {
-  returns: PurchaseReturnWithDetails[];
+  returns: SuperJSONResult;
   totalPages: number;
   totalEntries: number;
 }
 
 export function PurchaseReturnTable({
-  returns,
+  returns: serializedReturns,
   totalPages,
   totalEntries,
 }: PurchaseReturnTableProps) {
+  const returns = SuperJSON.deserialize<PurchaseReturnWithDetails[]>(serializedReturns);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();

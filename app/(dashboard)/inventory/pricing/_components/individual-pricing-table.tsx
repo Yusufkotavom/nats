@@ -17,18 +17,15 @@ import { SelectItem } from "@/components/ui/select";
 import { Search, Filter, Save, Loader2, Check } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { Category } from "@/prisma/generated/prisma/browser";
-import { getPricingProducts, updateSinglePrice } from "../actions";
+import { updateSinglePrice } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DiscountManager } from "./discount-manager";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useAlert } from "@/hooks/use-alert";
-
-type PricingProduct = Awaited<
-  ReturnType<typeof getPricingProducts>
->["products"][number];
+import { PricingProductWithDetails } from "../types";
 
 interface IndividualPricingTableProps {
-  initialProducts: PricingProduct[];
+  initialProducts: PricingProductWithDetails[];
   categories: Category[];
   totalPages: number;
   totalEntries: number;
@@ -47,7 +44,7 @@ export function IndividualPricingTable({
 
   const [products, setProducts] = useState(initialProducts);
   const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("search") || ""
+    searchParams.get("search") || "",
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string | number>("");
@@ -104,7 +101,7 @@ export function IndividualPricingTable({
     }
   }
 
-  function startEditing(product: PricingProduct) {
+  function startEditing(product: PricingProductWithDetails) {
     setEditingId(product.id);
     setEditValue(Number(product.price));
   }

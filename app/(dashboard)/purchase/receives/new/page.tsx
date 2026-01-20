@@ -13,10 +13,7 @@ export default async function Page() {
   return (
     <PurchaseReceiveForm
       vendors={vendors.data}
-      products={products.map((p) => ({
-        ...p,
-        cost: 0,
-      }))}
+      products={products}
       purchaseOrders={purchaseOrders}
     />
   );

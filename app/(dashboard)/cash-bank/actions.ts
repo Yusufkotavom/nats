@@ -1,8 +1,9 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { CashAccountFormData, CashTransferFormData } from "./types";
 import { revalidatePath } from "next/cache";
+import { SuperJSON } from "@/lib/superjson";
 import {
   CashAccountType,
   EntryStatus,
@@ -112,7 +113,7 @@ export async function getDashboardStats() {
       totalCash,
       totalBank,
     },
-    recentTransactions: serializePrisma(recentTransactions),
+    recentTransactions: SuperJSON.serialize(recentTransactions),
   };
 }
 
@@ -231,7 +232,7 @@ export async function createCashTransfer(data: CashTransferFormData) {
 
 export async function updateCashTransfer(
   id: string,
-  data: CashTransferFormData
+  data: CashTransferFormData,
 ) {
   const transfer = await prisma.cashTransfer.findUnique({
     where: { id },
@@ -376,7 +377,7 @@ export async function getTransfers() {
       date: "desc",
     },
   });
-  return serializePrisma(transfers);
+  return SuperJSON.serialize(transfers);
 }
 
 export async function getCashTransfers(accountId?: string) {
@@ -411,7 +412,7 @@ export async function getCashAccountDetails(
     pageSize?: number;
     startDate?: Date;
     endDate?: Date;
-  }
+  },
 ) {
   const { page = 1, pageSize = 20, startDate, endDate } = params || {};
   const skip = (page - 1) * pageSize;

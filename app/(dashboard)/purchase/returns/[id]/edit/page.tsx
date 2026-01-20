@@ -8,6 +8,8 @@ import { ContactType } from "@/prisma/generated/prisma/enums";
 import { PurchaseReturnForm } from "../../_components/purchase-return-form";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { SuperJSON } from "@/lib/superjson";
+import { PurchaseReturnWithDetails } from "../../types";
 
 export const metadata: Metadata = {
   title: "Edit Purchase Return | Pasak",
@@ -34,7 +36,13 @@ export default async function EditPurchaseReturnPage(props: PageProps) {
     notFound();
   }
 
-  if (returnItem.status === "COMPLETED" || returnItem.status === "CANCELLED") {
+  const deserializedReturn =
+    SuperJSON.deserialize<PurchaseReturnWithDetails>(returnItem);
+
+  if (
+    deserializedReturn.status === "COMPLETED" ||
+    deserializedReturn.status === "CANCELLED"
+  ) {
     return (
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-center h-full">
@@ -50,16 +58,14 @@ export default async function EditPurchaseReturnPage(props: PageProps) {
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">
-          Edit Purchase Return {returnItem.returnNumber}
+          Edit Purchase Return {deserializedReturn.returnNumber}
         </h2>
       </div>
       <PurchaseReturnForm
         returnItem={returnItem}
         vendors={vendors.data}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        purchaseOrders={purchaseOrders as any}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        purchaseInvoices={purchaseInvoices as any}
+        purchaseOrders={purchaseOrders}
+        purchaseInvoices={purchaseInvoices}
       />
     </div>
   );

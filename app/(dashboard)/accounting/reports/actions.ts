@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { Account, ContactType } from "@/prisma/generated/prisma/client";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 
