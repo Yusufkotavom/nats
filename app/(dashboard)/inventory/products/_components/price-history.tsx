@@ -10,10 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 
+import { Decimal } from "decimal.js";
+
 interface PriceHistoryProps {
   history?: {
     id: string;
-    price: number;
+    price: number | Decimal;
     effectiveDate: Date;
   }[];
 }

@@ -43,21 +43,44 @@ export function ProductForm({
   const [isUploading, setIsUploading] = useState(false);
   const isEditing = !!product;
 
+  type FormDataType = {
+    sku: string;
+    name: string;
+    description: string;
+    categoryId: string;
+    price: string | number;
+    cost: string | number;
+    minStock: number;
+    isActive: boolean;
+    baseUnitId: string;
+    purchaseUnitId: string;
+    purchaseConversionFactor: string | number;
+    salesUnitId: string;
+    salesConversionFactor: string | number;
+    image: string;
+    inventoryAccountId: string;
+    cogsAccountId: string;
+    salesAccountId: string;
+    payableAccountId: string;
+    receivableAccountId: string;
+  };
+
   // Fully controlled form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataType>({
     sku: product?.sku || "",
     name: product?.name || "",
     description: product?.description || "",
     categoryId: product?.categoryId || "",
-    price: product?.price || "",
-    cost: product?.cost || "",
+    price: product?.price?.toString() || "",
+    cost: product?.cost?.toString() || "",
     minStock: product?.minStock || 0,
     isActive: product?.isActive ?? true,
     baseUnitId: product?.baseUnitId || "",
     purchaseUnitId: product?.purchaseUnitId || "",
-    purchaseConversionFactor: product?.purchaseConversionFactor || 1,
+    purchaseConversionFactor:
+      product?.purchaseConversionFactor?.toString() || 1,
     salesUnitId: product?.salesUnitId || "",
-    salesConversionFactor: product?.salesConversionFactor || 1,
+    salesConversionFactor: product?.salesConversionFactor?.toString() || 1,
     image: product?.image || "",
     inventoryAccountId: product?.inventoryAccountId || "",
     cogsAccountId: product?.cogsAccountId || "",
@@ -68,7 +91,7 @@ export function ProductForm({
 
   const handleInputChange = (
     field: string,
-    value: string | number | boolean | null
+    value: string | number | boolean | null,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -109,8 +132,8 @@ export function ProductForm({
     setIsLoading(true);
 
     // Validation
-    const purchaseFactor = Number(formData.purchaseConversionFactor);
-    const salesFactor = Number(formData.salesConversionFactor);
+    const purchaseFactor = formData.purchaseConversionFactor;
+    const salesFactor = formData.salesConversionFactor;
 
     if (!formData.baseUnitId) {
       await alert({ title: "Error", description: "Base Unit is required" });
@@ -118,7 +141,7 @@ export function ProductForm({
       return;
     }
 
-    if (purchaseFactor < 0) {
+    if (Number(purchaseFactor) < 0) {
       await alert({
         title: "Error",
         description: "Purchase conversion factor must be positive",
@@ -127,7 +150,7 @@ export function ProductForm({
       return;
     }
 
-    if (salesFactor < 0) {
+    if (Number(salesFactor) < 0) {
       await alert({
         title: "Error",
         description: "Sales conversion factor must be positive",
@@ -136,8 +159,8 @@ export function ProductForm({
       return;
     }
 
-    const priceValue = Number(formData.price);
-    const costValue = Number(formData.cost);
+    const priceValue = formData.price;
+    const costValue = formData.cost;
 
     const data = {
       sku: formData.sku,
@@ -145,15 +168,15 @@ export function ProductForm({
       description: formData.description,
       image: formData.image,
       categoryId: formData.categoryId || null,
-      price: priceValue,
-      cost: costValue,
+      price: priceValue.toString(),
+      cost: costValue.toString(),
       minStock: Number(formData.minStock),
       isActive: formData.isActive,
       baseUnitId: formData.baseUnitId || null,
       purchaseUnitId: formData.purchaseUnitId || null,
-      purchaseConversionFactor: purchaseFactor || 1,
+      purchaseConversionFactor: purchaseFactor?.toString() || 1,
       salesUnitId: formData.salesUnitId || null,
-      salesConversionFactor: salesFactor || 1,
+      salesConversionFactor: salesFactor?.toString() || 1,
       inventoryAccountId: formData.inventoryAccountId || null,
       cogsAccountId: formData.cogsAccountId || null,
       salesAccountId: formData.salesAccountId || null,
@@ -196,8 +219,8 @@ export function ProductForm({
           {readonly
             ? "Product Details"
             : isEditing
-            ? "Edit Product"
-            : "Create Product"}
+              ? "Edit Product"
+              : "Create Product"}
         </h2>
       </div>
 
@@ -386,7 +409,7 @@ export function ProductForm({
                     onChange={(e) =>
                       handleInputChange(
                         "purchaseConversionFactor",
-                        e.target.value
+                        e.target.value,
                       )
                     }
                     disabled={readonly}

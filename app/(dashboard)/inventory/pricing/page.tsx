@@ -21,16 +21,15 @@ export default async function PricingPage({
   const search = params.search || "";
   const categoryId = params.categoryId || "ALL";
 
-  const [serializedCategories, productsData] = await Promise.all([
+  const [categoriesData, productsData] = await Promise.all([
     getCategories(),
     getPricingProducts(page, 10, search, categoryId),
   ]);
 
   const { products: serializedProducts, totalPages, total } = productsData;
-  const categories = SuperJSON.deserialize<Category[]>(serializedCategories);
-  const products = SuperJSON.deserialize<PricingProductWithDetails[]>(
-    serializedProducts
-  );
+  const categories = categoriesData;
+  const products =
+    SuperJSON.deserialize<PricingProductWithDetails[]>(serializedProducts);
 
   return (
     <div className="flex-1 space-y-4 px-4">

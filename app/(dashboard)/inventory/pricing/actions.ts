@@ -11,14 +11,14 @@ export async function getCategories() {
   const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   });
-  return SuperJSON.serialize(categories);
+  return categories;
 }
 
 export async function getPricingProducts(
   page: number = 1,
   limit: number = 10,
   search?: string,
-  categoryId?: string
+  categoryId?: string,
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.ProductWhereInput = {
@@ -80,7 +80,7 @@ export const updateSinglePrice = authorizedAction(
       console.error("Update price error:", error);
       return { success: false, error: "Failed to update price" };
     }
-  }
+  },
 );
 
 export async function getProductDiscounts(productId: string) {
@@ -161,7 +161,7 @@ export const createAndAssignDiscount = authorizedAction(
       console.error("Create discount error:", error);
       return { success: false, error: "Failed to create/assign discount" };
     }
-  }
+  },
 );
 
 export const removeDiscountFromProduct = authorizedAction(
@@ -182,7 +182,7 @@ export const removeDiscountFromProduct = authorizedAction(
       console.error("Remove discount error:", error);
       return { success: false, error: "Failed to remove discount" };
     }
-  }
+  },
 );
 
 export async function previewPriceChanges(data: BatchPricingInput) {
@@ -280,13 +280,13 @@ export const applyBatchPricing = authorizedAction(
         error: "Failed to apply batch pricing.",
       };
     }
-  }
+  },
 );
 
 export async function calculateProductPrice(
   productId: string,
   quantity: number = 1,
-  date: Date = new Date()
+  date: Date = new Date(),
 ): Promise<PriceCalculationResult> {
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -387,7 +387,7 @@ export async function updateProductPrice(productId: string, newPrice: number) {
 }
 
 export async function batchUpdateProductPrices(
-  updates: { id: string; price: number }[]
+  updates: { id: string; price: number }[],
 ) {
   if (updates.length === 0) return 0;
 

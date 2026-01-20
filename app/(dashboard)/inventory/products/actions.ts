@@ -5,6 +5,7 @@ import { Prisma } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { ProductFormData, ProductInput } from "../types";
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { SuperJSON } from "@/lib/superjson";
 
 // Categories
 
@@ -36,7 +37,7 @@ export async function getProducts(
   page: number = 1,
   limit: number = 10,
   search?: string,
-  categoryId?: string
+  categoryId?: string,
 ) {
   const skip = (page - 1) * limit;
   const where: Prisma.ProductWhereInput = {
@@ -77,22 +78,11 @@ export async function getProducts(
     prisma.product.count({ where }),
   ]);
 
-  return {
-    products: products.map((p) => ({
-      ...p,
-      price: Number(p.price),
-      cost: Number(p.cost),
-      averageCost: Number(p.averageCost),
-      purchaseConversionFactor: Number(p.purchaseConversionFactor),
-      salesConversionFactor: Number(p.salesConversionFactor),
-      inventory: p.inventory.map((i) => ({
-        ...i,
-        unitCost: Number(i.unitCost),
-      })),
-    })),
+  return SuperJSON.serialize({
+    products,
     total,
     totalPages: Math.ceil(total / limit),
-  };
+  });
 }
 
 export async function getProduct(id: string) {
@@ -111,18 +101,7 @@ export async function getProduct(id: string) {
 
   if (!product) return null;
 
-  return {
-    ...product,
-    price: Number(product.price),
-    cost: Number(product.cost),
-    averageCost: Number(product.averageCost),
-    purchaseConversionFactor: Number(product.purchaseConversionFactor),
-    salesConversionFactor: Number(product.salesConversionFactor),
-    priceHistory: product.priceHistory.map((ph) => ({
-      ...ph,
-      price: Number(ph.price),
-    })),
-  };
+  return SuperJSON.serialize(product);
 }
 
 export const createProduct = authorizedAction(
@@ -137,8 +116,8 @@ export const createProduct = authorizedAction(
             description: data.description,
             image: data.image,
             categoryId: data.categoryId,
-            price: Number(data.price),
-            cost: Number(data.cost),
+            price: data.price,
+            cost: data.cost,
             minStock: data.minStock,
             isActive: data.isActive,
             baseUnitId: data.baseUnitId,
@@ -158,7 +137,7 @@ export const createProduct = authorizedAction(
         await tx.priceHistory.create({
           data: {
             productId: newProduct.id,
-            price: Number(data.price),
+            price: data.price,
             effectiveDate: new Date(),
           },
         });
@@ -169,20 +148,13 @@ export const createProduct = authorizedAction(
       revalidatePath("/inventory/products");
       return {
         success: true,
-        data: {
-          ...product,
-          price: Number(product.price),
-          cost: Number(product.cost),
-          averageCost: Number(product.averageCost),
-          purchaseConversionFactor: Number(product.purchaseConversionFactor),
-          salesConversionFactor: Number(product.salesConversionFactor),
-        },
+        data: SuperJSON.serialize(product),
       };
     } catch (error) {
       console.error("Failed to create product:", error);
       return { success: false, error: "Failed to create product" };
     }
-  }
+  },
 );
 
 export const updateProduct = authorizedAction(
@@ -198,8 +170,8 @@ export const updateProduct = authorizedAction(
         return { success: false, error: "Product not found" };
       }
 
-      const newPrice = Number(data.price);
-      const oldPrice = Number(currentProduct.price);
+      const newPrice = data.price;
+      const oldPrice = currentProduct.price;
 
       // If price changed, we need to record history
       // We can do this in a transaction to ensure data integrity
@@ -212,7 +184,7 @@ export const updateProduct = authorizedAction(
             description: data.description,
             categoryId: data.categoryId,
             price: newPrice,
-            cost: Number(data.cost),
+            cost: data.cost,
             minStock: data.minStock,
             isActive: data.isActive,
             baseUnitId: data.baseUnitId,
@@ -228,7 +200,7 @@ export const updateProduct = authorizedAction(
           },
         });
 
-        if (newPrice !== oldPrice) {
+        if (!oldPrice.equals(newPrice)) {
           await tx.priceHistory.create({
             data: {
               productId: id,
@@ -244,20 +216,13 @@ export const updateProduct = authorizedAction(
       revalidatePath("/inventory/products");
       return {
         success: true,
-        data: {
-          ...product,
-          price: Number(product.price),
-          cost: Number(product.cost),
-          averageCost: Number(product.averageCost),
-          purchaseConversionFactor: Number(product.purchaseConversionFactor),
-          salesConversionFactor: Number(product.salesConversionFactor),
-        },
+        data: SuperJSON.serialize(product),
       };
     } catch (error) {
       console.error("Failed to update product:", error);
       return { success: false, error: "Failed to update product" };
     }
-  }
+  },
 );
 
 export const deleteProduct = authorizedAction(
@@ -273,5 +238,5 @@ export const deleteProduct = authorizedAction(
       console.error("Failed to delete product:", error);
       return { success: false, error: "Failed to delete product" };
     }
-  }
+  },
 );

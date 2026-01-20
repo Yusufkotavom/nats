@@ -41,6 +41,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { ProductFormData } from "../types";
+import { SuperJSON } from "@/lib/superjson";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -60,7 +61,16 @@ export default function ProductsPage() {
         getCategories(),
         getUnits(),
       ]);
-      return { productsData, categories, units: units.data };
+      const productsDataDeserialized = SuperJSON.deserialize(productsData) as {
+        products: ProductFormData[];
+        total: number;
+        totalPages: number;
+      };
+      return {
+        productsData: productsDataDeserialized,
+        categories,
+        units: units.data,
+      };
     },
     placeholderData: keepPreviousData,
   });
@@ -108,7 +118,8 @@ export default function ProductsPage() {
       header: "Stock",
       cell: (product) => {
         const totalStock = product?.inventory?.reduce(
-          (acc: number, inv: { quantity: number }) => acc + inv.quantity,
+          (acc: number, inv: { quantity: number }) =>
+            acc + Number(inv.quantity),
           0,
         );
         return `${totalStock} ${product.baseUnit?.symbol}`;

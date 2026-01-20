@@ -1,4 +1,5 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
+import { Decimal } from "decimal.js";
 
 export type ProductFormData = Omit<
   Prisma.ProductGetPayload<{
@@ -17,17 +18,18 @@ export type ProductFormData = Omit<
   | "purchaseConversionFactor"
   | "salesConversionFactor"
 > & {
-  price: number;
-  cost: number;
-  averageCost: number;
-  purchaseConversionFactor: number;
-  salesConversionFactor: number;
+  price: Decimal;
+  cost: Decimal;
+  averageCost: Decimal;
+  purchaseConversionFactor: Decimal;
+  salesConversionFactor: Decimal;
   inventory?: {
     quantity: number;
+    unitCost: Decimal;
   }[];
   priceHistory?: {
     id: string;
-    price: number;
+    price: Decimal;
     effectiveDate: Date;
   }[];
 };
@@ -38,15 +40,15 @@ export type ProductInput = {
   description?: string | null;
   image?: string | null;
   categoryId?: string | null;
-  price: number;
-  cost: number;
+  price: number | string;
+  cost: number | string;
   minStock: number;
   isActive: boolean;
   baseUnitId?: string | null;
   purchaseUnitId?: string | null;
-  purchaseConversionFactor?: number;
+  purchaseConversionFactor?: number | string;
   salesUnitId?: string | null;
-  salesConversionFactor?: number;
+  salesConversionFactor?: number | string;
   inventoryAccountId?: string | null;
   cogsAccountId?: string | null;
   salesAccountId?: string | null;
