@@ -86,7 +86,7 @@ export function TransactionForm({
           notes: "",
           reference: "",
           description: "",
-        }
+        },
   );
 
   const handleAddAllocation = () => {
@@ -109,7 +109,7 @@ export function TransactionForm({
   const updateAllocation = (
     index: number,
     field: keyof CashTransactionAllocationFormData,
-    value: any
+    value: any,
   ) => {
     const newAllocations = [...formData.allocations];
     newAllocations[index] = { ...newAllocations[index], [field]: value };
@@ -130,14 +130,6 @@ export function TransactionForm({
         toast({
           title: "Validation Error",
           description: "Please add at least one allocation",
-          variant: "destructive",
-        });
-        return;
-      }
-      if (formData.attachments.length === 0) {
-        toast({
-          title: "Validation Error",
-          description: "Please upload at least one attachment",
           variant: "destructive",
         });
         return;
@@ -203,7 +195,7 @@ export function TransactionForm({
 
   const totalAmount = formData.allocations.reduce(
     (sum, a) => sum + Number(a.amount || 0),
-    0
+    0,
   );
 
   return (

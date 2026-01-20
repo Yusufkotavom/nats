@@ -33,7 +33,7 @@ export function DashboardView() {
   const formatDate = useFormatDate();
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ["cash-bank", "dashboard-stats"],
+    queryKey: ["cash-bank"],
     queryFn: async () => {
       const data = await getDashboardStats();
       return {
@@ -58,6 +58,7 @@ export function DashboardView() {
   }
 
   const { accounts, summary, recentTransactions } = stats;
+  console.log({ stats });
 
   return (
     <div className="space-y-6">
@@ -145,7 +146,7 @@ export function DashboardView() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentTransactions.length === 0 ? (
+                    {recentTransactions?.length === 0 ? (
                       <TableRow>
                         <TableCell
                           colSpan={7}
@@ -155,7 +156,8 @@ export function DashboardView() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      recentTransactions.map((line) => (
+                      Array.isArray(recentTransactions) &&
+                      recentTransactions?.map((line) => (
                         <TableRow key={line.id}>
                           <TableCell>
                             {formatDate(line.journalEntry.transactionDate)}
