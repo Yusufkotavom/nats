@@ -6,10 +6,13 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { Button } from "@/components/ui/button";
 import { SelectItem } from "@/components/ui/select";
-import { Search, Save, Loader2, Check, X } from "lucide-react";
+import { Search, Loader2, Check, X } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { Category } from "@/prisma/generated/prisma/browser";
-import { getPricingProducts, updateSinglePrice, getCategories } from "../actions";
+import {
+  getPricingProducts,
+  updateSinglePrice,
+  getCategories,
+} from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DiscountManager } from "./discount-manager";
 import { useAlert } from "@/hooks/use-alert";
@@ -21,7 +24,7 @@ import { SuperJSON } from "@/lib/superjson";
 export function IndividualPricingTable() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { replace, refresh } = useRouter();
+  const { replace } = useRouter();
   const formatCurrency = useFormatCurrency();
   const alert = useAlert();
 
@@ -44,13 +47,21 @@ export function IndividualPricingTable() {
 
   // Fetch products
   const { data: productsData, isLoading } = useQuery({
-    queryKey: ["pricing-products", { page, search: searchTerm, categoryId: categoryFilter }],
+    queryKey: [
+      "pricing-products",
+      { page, search: searchTerm, categoryId: categoryFilter },
+    ],
     queryFn: async () => {
-      const res = await getPricingProducts(page, pageSize, searchTerm, categoryFilter);
+      const res = await getPricingProducts(
+        page,
+        pageSize,
+        searchTerm,
+        categoryFilter,
+      );
       return {
         ...res,
         products: SuperJSON.deserialize<PricingProductWithDetails[]>(
-          res.products
+          res.products,
         ),
       };
     },
@@ -130,7 +141,8 @@ export function IndividualPricingTable() {
     } catch (error) {
       await alert({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update",
+        description:
+          error instanceof Error ? error.message : "Failed to update",
       });
     } finally {
       setIsSaving(false);
@@ -149,7 +161,7 @@ export function IndividualPricingTable() {
     },
     {
       header: "Category",
-      cell: (item) => item.category.name,
+      cell: (item) => item.category?.name,
     },
     {
       header: "Cost Price",
@@ -164,7 +176,7 @@ export function IndividualPricingTable() {
               <div className="w-32">
                 <CurrencyInput
                   value={editValue}
-                  onValueChange={(val) => setEditValue(val || 0)}
+                  onChange={(val) => setEditValue(val)}
                   className="h-8"
                 />
               </div>
@@ -220,7 +232,13 @@ export function IndividualPricingTable() {
     },
     {
       header: "Discounts",
-      cell: (item) => <DiscountManager product={item} />,
+      cell: (item) => (
+        <DiscountManager
+          productName={item.name}
+          productId={item.id}
+          discounts={item.discounts}
+        />
+      ),
     },
   ];
 

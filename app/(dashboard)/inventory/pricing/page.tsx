@@ -1,8 +1,4 @@
-import {
-  HydrationBoundary,
-  QueryClient,
-  dehydrate,
-} from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { getCategories, getPricingProducts } from "./actions";
 import { BatchPricingForm } from "./_components/batch-pricing-form";
 import { IndividualPricingTable } from "./_components/individual-pricing-table";
@@ -47,41 +43,35 @@ export default async function PricingPage({
   ]);
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="flex-1 space-y-4 px-4">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">
-            Pricing Configuration
-          </h2>
-        </div>
-
-        <Tabs defaultValue="individual" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="individual">Individual Pricing</TabsTrigger>
-            <TabsTrigger value="batch">Batch Pricing</TabsTrigger>
-          </TabsList>
-          <TabsContent value="batch" className="space-y-4">
-            <Protect
-              permission="products.edit"
-              fallback={
-                <div>You do not have permission to manage pricing.</div>
-              }
-            >
-              <BatchPricingForm />
-            </Protect>
-          </TabsContent>
-          <TabsContent value="individual" className="space-y-4">
-            <Protect
-              permission="products.edit"
-              fallback={
-                <div>You do not have permission to manage pricing.</div>
-              }
-            >
-              <IndividualPricingTable />
-            </Protect>
-          </TabsContent>
-        </Tabs>
+    <div className="flex-1 space-y-4 px-4">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-2xl font-bold tracking-tight">
+          Pricing Configuration
+        </h2>
       </div>
-    </HydrationBoundary>
+
+      <Tabs defaultValue="individual" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="individual">Individual Pricing</TabsTrigger>
+          <TabsTrigger value="batch">Batch Pricing</TabsTrigger>
+        </TabsList>
+        <TabsContent value="batch" className="space-y-4">
+          <Protect
+            permission="products.edit"
+            fallback={<div>You do not have permission to manage pricing.</div>}
+          >
+            <BatchPricingForm />
+          </Protect>
+        </TabsContent>
+        <TabsContent value="individual" className="space-y-4">
+          <Protect
+            permission="products.edit"
+            fallback={<div>You do not have permission to manage pricing.</div>}
+          >
+            <IndividualPricingTable />
+          </Protect>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
