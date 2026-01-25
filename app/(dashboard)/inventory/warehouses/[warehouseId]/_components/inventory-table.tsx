@@ -9,39 +9,31 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { Category, Inventory, Product, Unit } from "@/prisma/generated/prisma/browser";
+import { Category, Prisma } from "@/prisma/generated/prisma/browser";
 import { DataTable, Column } from "@/components/ui/data-table";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { getWarehouseInventory } from "../actions";
+import { SuperJSON } from "@/lib/superjson";
 
-type InventoryWithProduct = Omit<Inventory, "unitCost"> & {
-  unitCost: number;
-  product: Omit<
-    Product,
-    | "price"
-    | "cost"
-    | "averageCost"
-    | "purchaseConversionFactor"
-    | "salesConversionFactor"
-  > & {
-    price: number;
-    cost: number;
-    averageCost: number;
-    purchaseConversionFactor: number;
-    salesConversionFactor: number;
-    category: Category | null;
-    baseUnit: Unit | null;
+type InventoryWithProduct = Prisma.InventoryGetPayload<{
+  include: {
+    product: {
+      include: {
+        category: true;
+        baseUnit: true;
+      };
+    };
   };
-};
+}>;
 
 interface InventoryTableProps {
-  inventory: InventoryWithProduct[];
+  warehouseId: string;
   categories: Category[];
-  totalEntries: number;
 }
 
 export function InventoryTable({
-  inventory,
+  warehouseId,
   categories,
-  totalEntries,
 }: InventoryTableProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -49,11 +41,37 @@ export function InventoryTable({
   const formatCurrency = useFormatCurrency();
 
   const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("search") || ""
+    searchParams.get("search") || "",
   );
 
   const categoryFilter = searchParams.get("categoryId") || "ALL";
   const currentPage = Number(searchParams.get("page")) || 1;
+  const search = searchParams.get("search") || undefined;
+
+  const { data, isLoading } = useQuery({
+    queryKey: [
+      "warehouse-inventory",
+      warehouseId,
+      currentPage,
+      search,
+      categoryFilter,
+    ],
+    queryFn: () =>
+      getWarehouseInventory(
+        warehouseId,
+        currentPage,
+        10,
+        search,
+        categoryFilter === "ALL" ? undefined : categoryFilter,
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+  const inventoryData = data?.inventory;
+  const inventory = inventoryData
+    ? SuperJSON.deserialize<InventoryWithProduct[]>(inventoryData)
+    : [];
+  const totalEntries = data?.total || 0;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -88,9 +106,7 @@ export function InventoryTable({
       header: "SKU/Name",
       cell: (inv) => (
         <>
-          <div className="text-xs text-muted-foreground">
-            {inv.product.sku}
-          </div>
+          <div className="text-xs text-muted-foreground">{inv.product.sku}</div>
           <div className="font-medium">{inv.product.name}</div>
         </>
       ),
@@ -110,7 +126,7 @@ export function InventoryTable({
     {
       header: "Value",
       cell: (inv) => {
-        const totalValue = inv.quantity * inv.product.cost;
+        const totalValue = inv.product.cost.mul(inv.quantity);
         return formatCurrency(totalValue);
       },
     },
@@ -118,12 +134,7 @@ export function InventoryTable({
       header: "Actions",
       className: "w-[100px]",
       cell: (inv) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          asChild
-          title="View Product"
-        >
+        <Button variant="ghost" size="icon" asChild title="View Product">
           <Link href={`/inventory/products/${inv.product.id}`}>
             <Eye className="h-4 w-4" />
           </Link>

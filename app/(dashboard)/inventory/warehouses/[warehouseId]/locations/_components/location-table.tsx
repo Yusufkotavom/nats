@@ -3,26 +3,39 @@
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import { Location } from "@/prisma/generated/prisma/browser";
-import { LocationDialog } from "./location-dialog";
-import { deleteLocation } from "../actions";
+import {
+  useQuery,
+  keepPreviousData,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { getLocations, deleteLocation } from "../actions";
 import { useSearchParams } from "next/navigation";
 import { useConfirm } from "@/hooks/use-confirm";
 import { DataTable, Column } from "@/components/ui/data-table";
+import { LocationDialog } from "./location-dialog";
+import { SuperJSON } from "@/lib/superjson";
 
 interface LocationTableProps {
   warehouseId: string;
-  locations: Location[];
-  totalEntries: number;
 }
 
-export function LocationTable({
-  warehouseId,
-  locations,
-  totalEntries,
-}: LocationTableProps) {
+export function LocationTable({ warehouseId }: LocationTableProps) {
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get("page")) || 1;
   const confirm = useConfirm();
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["locations", warehouseId, currentPage],
+    queryFn: () => getLocations(warehouseId, currentPage),
+    placeholderData: keepPreviousData,
+  });
+
+  const locationsData = data?.locations;
+  const locations = locationsData
+    ? SuperJSON.deserialize<Location[]>(locationsData)
+    : [];
+  const totalEntries = data?.total || 0;
 
   async function handleDelete(id: string) {
     if (
@@ -33,6 +46,7 @@ export function LocationTable({
       })
     ) {
       await deleteLocation(id);
+      queryClient.invalidateQueries({ queryKey: ["locations", warehouseId] });
     }
   }
 

@@ -22,17 +22,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Category } from "@/prisma/generated/prisma/browser";
-import { applyBatchPricing, previewPriceChanges } from "../actions";
+import { applyBatchPricing, previewPriceChanges, getCategories } from "../actions";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { BatchPricingInput, PricingAction, PricingScope } from "../types";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
-
-interface BatchPricingFormProps {
-  categories: Category[];
-}
+import { useQuery } from "@tanstack/react-query";
 
 interface PreviewData {
   totalProducts: number;
@@ -47,7 +44,8 @@ interface PreviewData {
     margin: number;
   }[];
 }
-export function BatchPricingForm({ categories }: BatchPricingFormProps) {
+
+export function BatchPricingForm() {
   const [scope, setScope] = useState<PricingScope>("ALL");
   const [action, setAction] = useState<PricingAction>("PERCENTAGE_INC");
   const [isLoading, setIsLoading] = useState(false);
@@ -64,6 +62,11 @@ export function BatchPricingForm({ categories }: BatchPricingFormProps) {
   // Simple form state
   const [categoryId, setCategoryId] = useState<string>("");
   const [value, setValue] = useState<string>("");
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories,
+  });
 
   const handlePreview = async () => {
     if (!value) return;

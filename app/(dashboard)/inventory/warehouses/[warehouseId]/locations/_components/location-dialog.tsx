@@ -18,6 +18,8 @@ import { useState } from "react";
 import { createLocation, updateLocation } from "../actions";
 import { Location, LocationType } from "@/prisma/generated/prisma/browser";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 interface LocationDialogProps {
   warehouseId: string;
   location?: Location;
@@ -31,6 +33,7 @@ export function LocationDialog({
 }: LocationDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,6 +57,7 @@ export function LocationDialog({
       } else {
         await createLocation(data);
       }
+      queryClient.invalidateQueries({ queryKey: ["locations", warehouseId] });
       setOpen(false);
     } catch (error) {
       console.error(error);

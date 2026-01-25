@@ -2,17 +2,20 @@
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
+import { SuperJSON } from "@/lib/superjson";
 
 export async function getWarehouse(warehouseId: string) {
-  return prisma.warehouse.findUnique({
+  const warehouse = await prisma.warehouse.findUnique({
     where: { id: warehouseId },
   });
+  return SuperJSON.serialize(warehouse);
 }
 
 export async function getCategories() {
-  return prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   });
+  return SuperJSON.serialize(categories);
 }
 
 export async function getWarehouseInventory(
@@ -20,7 +23,7 @@ export async function getWarehouseInventory(
   page: number = 1,
   limit: number = 10,
   search?: string,
-  categoryId?: string
+  categoryId?: string,
 ) {
   const skip = (page - 1) * limit;
 
@@ -64,18 +67,7 @@ export async function getWarehouseInventory(
   ]);
 
   return {
-    inventory: inventory.map((inv) => ({
-      ...inv,
-      unitCost: Number(inv.unitCost),
-      product: {
-        ...inv.product,
-        price: Number(inv.product.price),
-        cost: Number(inv.product.cost),
-        averageCost: Number(inv.product.averageCost),
-        purchaseConversionFactor: Number(inv.product.purchaseConversionFactor),
-        salesConversionFactor: Number(inv.product.salesConversionFactor),
-      },
-    })),
+    inventory: SuperJSON.serialize(inventory),
     total,
     totalPages: Math.ceil(total / limit),
   };

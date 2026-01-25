@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { SuperJSON } from "@/lib/superjson";
 
 export async function getInventoryDashboardMetrics() {
   const [
@@ -52,33 +53,7 @@ export async function getInventoryDashboardMetrics() {
   return {
     totalProducts,
     totalValue: Number(totalValue),
-    lowStockItems: lowStockItems.map((item) => ({
-      ...item,
-      unitCost: item.unitCost.toNumber(),
-      product: {
-        ...item.product,
-        price: item.product.price?.toNumber(),
-        cost: item.product.cost?.toNumber(),
-        averageCost: item.product.averageCost?.toNumber(),
-        purchaseConversionFactor:
-          item.product.purchaseConversionFactor?.toNumber(),
-        salesConversionFactor: item.product.salesConversionFactor?.toNumber(),
-      },
-    })),
-
-    recentMovements: recentMovements.map((movement) => ({
-      ...movement,
-      unitCost: movement.product?.cost?.toNumber(),
-      product: {
-        ...movement.product,
-        price: movement?.product?.price?.toNumber(),
-        cost: movement?.product?.cost?.toNumber(),
-        averageCost: movement?.product?.averageCost?.toNumber(),
-        purchaseConversionFactor:
-          movement?.product?.purchaseConversionFactor?.toNumber(),
-        salesConversionFactor:
-          movement?.product?.salesConversionFactor?.toNumber(),
-      },
-    })),
+    lowStockItems: SuperJSON.serialize(lowStockItems),
+    recentMovements: SuperJSON.serialize(recentMovements),
   };
 }
