@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CustomInput } from "@/components/ui/custom-input";
 import {
   Table,
   TableBody,
@@ -10,11 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
 import { deletePurchaseReturn } from "../actions";
-import { useState, useEffect } from "react";
 import { PurchaseReturnWithDetails } from "../types";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Protect } from "@/components/ui/protect";
 import Link from "next/link";
 import { CustomPagination } from "@/components/ui/custom-pagination";
@@ -41,38 +39,15 @@ interface PurchaseReturnTableProps {
 
 export function PurchaseReturnTable({
   returns: serializedReturns,
-  totalPages,
   totalEntries,
 }: PurchaseReturnTableProps) {
-  const returns = SuperJSON.deserialize<PurchaseReturnWithDetails[]>(serializedReturns);
+  const returns =
+    SuperJSON.deserialize<PurchaseReturnWithDetails[]>(serializedReturns);
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const { replace } = useRouter();
   const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
 
-  const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("search") || ""
-  );
-
   const currentPage = Number(searchParams.get("page")) || 1;
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams);
-      if (searchTerm) {
-        params.set("search", searchTerm);
-      } else {
-        params.delete("search");
-      }
-      params.set("page", "1");
-
-      if (params.get("search") !== (searchParams.get("search") || null)) {
-        replace(`${pathname}?${params.toString()}`);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm, searchParams, pathname, replace]);
 
   const handleDeleteClick = async (id: string) => {
     if (
@@ -104,20 +79,6 @@ export function PurchaseReturnTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 items-center space-x-2">
-          <div className="relative flex-1 md:max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <CustomInput
-              placeholder="Search returns..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
       <div className="rounded-md border">
         <Table>
           <TableHeader>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { CustomInput } from "@/components/ui/custom-input";
 import {
   Table,
   TableBody,
@@ -10,11 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
 import { deletePurchaseInvoice } from "../actions";
-import { useState, useEffect } from "react";
 import { PurchaseInvoiceWithDetails } from "../types";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Protect } from "@/components/ui/protect";
 import Link from "next/link";
 import { CustomPagination } from "@/components/ui/custom-pagination";
@@ -29,7 +27,6 @@ import {
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { CustomSelect } from "@/components/ui/custom-select";
 import { useConfirm } from "@/hooks/use-confirm";
 
 import { SuperJSON } from "@/lib/superjson";
@@ -43,52 +40,15 @@ interface PurchaseInvoiceTableProps {
 
 export function PurchaseInvoiceTable({
   invoices: serializedInvoices,
-  totalPages,
   totalEntries,
 }: PurchaseInvoiceTableProps) {
-  const invoices = SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(serializedInvoices);
+  const invoices =
+    SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(serializedInvoices);
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const { replace } = useRouter();
   const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
 
-  const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("search") || ""
-  );
-
-  const [statusFilter, setStatusFilter] = useState(
-    searchParams.get("status") || "ALL"
-  );
-
   const currentPage = Number(searchParams.get("page")) || 1;
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams);
-      if (searchTerm) {
-        params.set("search", searchTerm);
-      } else {
-        params.delete("search");
-      }
-
-      if (statusFilter && statusFilter !== "ALL") {
-        params.set("status", statusFilter);
-      } else {
-        params.delete("status");
-      }
-
-      params.set("page", "1");
-
-      const currentSearch = searchParams.get("search") || "";
-      const currentStatus = searchParams.get("status") || "ALL";
-
-      if (searchTerm !== currentSearch || statusFilter !== currentStatus) {
-        replace(`${pathname}?${params.toString()}`);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, searchParams, pathname, replace]);
 
   const handleDeleteClick = async (id: string) => {
     if (
@@ -122,33 +82,6 @@ export function PurchaseInvoiceTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 items-center space-x-2">
-          <div className="relative flex-1 md:max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <CustomInput
-              placeholder="Search invoices..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <CustomSelect
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-            options={[
-              { value: "ALL", label: "All Status" },
-              { value: "DRAFT", label: "Draft" },
-              { value: "BILLED", label: "Billed" },
-              { value: "PARTIALLY_PAID", label: "Partially Paid" },
-              { value: "PAID", label: "Paid" },
-              { value: "CANCELED", label: "Canceled" },
-            ]}
-            triggerClassName="w-[180px]"
-          />
-        </div>
-      </div>
-
       <div className="rounded-md border">
         <Table>
           <TableHeader>

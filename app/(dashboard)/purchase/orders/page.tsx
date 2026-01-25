@@ -4,6 +4,14 @@ import { Protect } from "@/components/ui/protect";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import {
+  PageListActions,
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
+import { PurchaseOrderFilters } from "./_components/purchase-order-filters";
 
 export default async function Page({
   searchParams,
@@ -33,10 +41,10 @@ export default async function Page({
   );
 
   return (
-    <div className="flex-1 space-y-4 px-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-xl font-bold tracking-tight">Purchase Orders</h2>
-        <div className="flex items-center space-x-2">
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Purchase Orders" />
+        <PageListActions>
           <Protect permission="purchase.create">
             <Button asChild>
               <Link href="/purchase/orders/new">
@@ -44,14 +52,18 @@ export default async function Page({
               </Link>
             </Button>
           </Protect>
-        </div>
-      </div>
+        </PageListActions>
+      </PageListHeader>
 
-      <PurchaseOrderTable
-        orders={orders}
-        totalPages={totalPages}
-        totalEntries={total}
-      />
-    </div>
+      <PurchaseOrderFilters />
+
+      <PageListContent>
+        <PurchaseOrderTable
+          orders={orders}
+          totalPages={totalPages}
+          totalEntries={total}
+        />
+      </PageListContent>
+    </PageListLayout>
   );
 }

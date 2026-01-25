@@ -5,6 +5,14 @@ import Link from "next/link";
 import { PurchaseReceiveTable } from "./_components/purchase-receive-table";
 import { getPurchaseReceives } from "./actions";
 import { Protect } from "@/components/ui/protect";
+import {
+  PageListActions,
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
+import { PurchaseReceiveFilters } from "./_components/purchase-receive-filters";
 
 export default async function Page(props: {
   searchParams: Promise<{ page?: string; search?: string }>;
@@ -20,10 +28,10 @@ export default async function Page(props: {
   );
 
   return (
-    <div className="flex-1 space-y-4 px-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-xl font-bold tracking-tight">Purchase Receives</h2>
-        <div className="flex items-center space-x-2">
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Purchase Receives" />
+        <PageListActions>
           <Protect permission="purchase.create">
             <Button asChild>
               <Link href="/purchase/receives/new">
@@ -31,15 +39,20 @@ export default async function Page(props: {
               </Link>
             </Button>
           </Protect>
-        </div>
-      </div>
-      <Suspense fallback={<div>Loading...</div>}>
-        <PurchaseReceiveTable
-          receives={receives}
-          totalPages={totalPages}
-          totalEntries={total}
-        />
-      </Suspense>
-    </div>
+        </PageListActions>
+      </PageListHeader>
+
+      <PurchaseReceiveFilters />
+
+      <PageListContent>
+        <Suspense fallback={<div>Loading...</div>}>
+          <PurchaseReceiveTable
+            receives={receives}
+            totalPages={totalPages}
+            totalEntries={total}
+          />
+        </Suspense>
+      </PageListContent>
+    </PageListLayout>
   );
 }

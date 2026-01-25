@@ -6,6 +6,14 @@ import { getPurchaseInvoices } from "./actions";
 import { PurchaseInvoiceTable } from "./_components/purchase-invoice-table";
 import { Protect } from "@/components/ui/protect";
 import { Metadata } from "next";
+import {
+  PageListActions,
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
+import { PurchaseInvoiceFilters } from "./_components/purchase-invoice-filters";
 
 export const metadata: Metadata = {
   title: "Purchase Invoices | Pasak",
@@ -34,10 +42,10 @@ export default async function PurchaseInvoicesPage(props: PageProps) {
   );
 
   return (
-    <div className="flex-1 space-y-4 px-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-xl font-bold tracking-tight">Purchase Invoices</h2>
-        <div className="flex items-center space-x-2">
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Purchase Invoices" />
+        <PageListActions>
           <Protect permission="purchase.create">
             <Button asChild>
               <Link href="/purchase/invoices/new">
@@ -45,15 +53,20 @@ export default async function PurchaseInvoicesPage(props: PageProps) {
               </Link>
             </Button>
           </Protect>
-        </div>
-      </div>
-      <Suspense fallback={<div>Loading...</div>}>
-        <PurchaseInvoiceTable
-          invoices={invoices}
-          totalPages={totalPages}
-          totalEntries={total}
-        />
-      </Suspense>
-    </div>
+        </PageListActions>
+      </PageListHeader>
+
+      <PurchaseInvoiceFilters />
+
+      <PageListContent>
+        <Suspense fallback={<div>Loading...</div>}>
+          <PurchaseInvoiceTable
+            invoices={invoices}
+            totalPages={totalPages}
+            totalEntries={total}
+          />
+        </Suspense>
+      </PageListContent>
+    </PageListLayout>
   );
 }
