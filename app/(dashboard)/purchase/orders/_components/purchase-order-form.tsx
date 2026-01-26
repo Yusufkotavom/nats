@@ -76,6 +76,7 @@ import { useAlert } from "@/hooks/use-alert";
 import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchaseOrderWithDetails } from "../types";
+import { ProductWithDetails } from "@/app/(dashboard)/inventory/types";
 
 interface PurchaseOrderFormProps {
   order?: SuperJSONResult;
@@ -87,12 +88,16 @@ interface PurchaseOrderFormProps {
 export function PurchaseOrderForm({
   order: serializedOrder,
   vendors,
-  products,
+  products: serializedProducts,
   readonly = false,
 }: PurchaseOrderFormProps) {
   const order = serializedOrder
     ? SuperJSON.deserialize<PurchaseOrderWithDetails>(serializedOrder)
     : undefined;
+  const products = serializedProducts
+    ? SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts)
+    : [];
+
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const [isLoading, setIsLoading] = useState(false);
@@ -173,7 +178,7 @@ export function PurchaseOrderForm({
 
     // Auto-fill cost if product changes
     if (field === "productId") {
-      const product = products.find((p) => p.id === value);
+      const product = products?.find((p: { id: string }) => p.id === value);
       if (product) {
         newItems[index].unitCost = Number(product.cost);
       }
@@ -611,11 +616,17 @@ export function PurchaseOrderForm({
                                 placeholder="Select Product"
                                 disabled={isReadOnly}
                               >
-                                {products.map((p) => (
-                                  <SelectItem key={p.id} value={p.id}>
-                                    {p.name} ({p.sku})
-                                  </SelectItem>
-                                ))}
+                                {products?.map(
+                                  (p: {
+                                    id: string;
+                                    name: string;
+                                    sku: string;
+                                  }) => (
+                                    <SelectItem key={p.id} value={p.id}>
+                                      {p.name} ({p.sku})
+                                    </SelectItem>
+                                  ),
+                                )}
                               </CustomSelect>
                             </TableCell>
                             <TableCell>
@@ -635,10 +646,14 @@ export function PurchaseOrderForm({
                             </TableCell>
                             <TableCell>
                               <div className="flex h-10 items-center text-sm text-muted-foreground">
-                                {products.find((p) => p.id === item.productId)
-                                  ?.purchaseUnit?.symbol ||
-                                  products.find((p) => p.id === item.productId)
-                                    ?.baseUnit?.symbol ||
+                                {products?.find(
+                                  (p: { id: string }) =>
+                                    p.id === item.productId,
+                                )?.purchaseUnit?.symbol ||
+                                  products?.find(
+                                    (p: { id: string }) =>
+                                      p.id === item.productId,
+                                  )?.baseUnit?.symbol ||
                                   "-"}
                               </div>
                             </TableCell>

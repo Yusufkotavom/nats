@@ -60,16 +60,17 @@ export default function ProductsPage() {
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["products", { page, search, categoryId }],
     queryFn: async () => {
-      const serialized = await getProducts(
-        page,
-        pageSize,
-        search || undefined,
-        categoryId,
-      );
-      return SuperJSON.deserialize(serialized) as {
-        products: ProductFormData[];
-        total: number;
-        totalPages: number;
+      const {
+        products: serializedProducts,
+        total,
+        totalPages,
+      } = await getProducts(page, pageSize, search || undefined, categoryId);
+      return {
+        products: SuperJSON.deserialize(
+          serializedProducts,
+        ) as ProductFormData[],
+        total,
+        totalPages,
       };
     },
     placeholderData: keepPreviousData,

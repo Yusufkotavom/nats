@@ -434,7 +434,7 @@ export function PurchaseReceiveForm({
                                   readonly || !!item.purchaseOrderItemId
                                 }
                               >
-                                {products.map((p) => (
+                                {products?.map((p) => (
                                   <SelectItem key={p.id} value={p.id}>
                                     {p.name} ({p.sku})
                                   </SelectItem>

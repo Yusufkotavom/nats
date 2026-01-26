@@ -55,3 +55,17 @@ export type ProductInput = {
   payableAccountId?: string | null;
   receivableAccountId?: string | null;
 };
+
+export type ProductWithDetails = Prisma.ProductGetPayload<{
+  include: {
+    category: true;
+    baseUnit: true;
+    purchaseUnit: true;
+    salesUnit: true;
+    inventory: {
+      include: {
+        warehouse: true;
+      };
+    };
+  };
+}>;

@@ -10,7 +10,12 @@ export type PurchaseOrderWithDetails = Prisma.PurchaseOrderGetPayload<{
     cancelledBy: { select: { name: true } };
     items: {
       include: {
-        product: true;
+        product: {
+          include: {
+            baseUnit: true;
+            purchaseUnit: true;
+          };
+        };
       };
     };
   };

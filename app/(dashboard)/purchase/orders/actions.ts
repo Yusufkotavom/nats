@@ -64,7 +64,12 @@ export async function getPurchaseOrders(
         cancelledBy: { select: { name: true } },
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                baseUnit: true,
+                purchaseUnit: true,
+              },
+            },
           },
         },
       },

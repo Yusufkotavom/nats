@@ -78,11 +78,11 @@ export async function getProducts(
     prisma.product.count({ where }),
   ]);
 
-  return SuperJSON.serialize({
-    products,
+  return {
+    products: SuperJSON.serialize(products),
     total,
     totalPages: Math.ceil(total / limit),
-  });
+  };
 }
 
 export async function getProduct(id: string) {
