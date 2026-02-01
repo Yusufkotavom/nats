@@ -9,6 +9,11 @@ import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { executeInventoryUpdate, processMovement } from "./logic";
 
+export async function getCompanyProfile() {
+  const companyProfile = await prisma.companyProfile.findFirst();
+  return SuperJSON.serialize(companyProfile);
+}
+
 export async function getMovementBatches(page: number = 1, limit: number = 10) {
   const skip = (page - 1) * limit;
 
@@ -51,7 +56,11 @@ export async function getMovementBatchById(id: string) {
       toWarehouse: true,
       details: {
         include: {
-          product: true,
+          product: {
+            include: {
+              baseUnit: true,
+            },
+          },
         },
       },
       approvedBy: {

@@ -1,5 +1,7 @@
-import { getMovementBatchById } from "../actions";
-import { notFound } from "next/navigation";
+"use client";
+
+import { getMovementBatchById, getCompanyProfile } from "../actions";
+import { notFound, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -11,10 +13,11 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MovementActions } from "./_components/movement-actions";
-import { cn } from "@/lib/utils";
+import { cn, formatDate, formatCurrency } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
-import { useFormatCurrency, useFormatDate } from "@/hooks";
-import { InventoryMovement, InventoryMovementDetail, Prisma, Product, Warehouse } from "@/prisma/generated/prisma/browser";
+import { Prisma } from "@/prisma/generated/prisma/browser";
+import { useQuery } from "@tanstack/react-query";
+import { CompanyProfile } from "@/prisma/generated/prisma/client";
 
 export type BatchWithDetails = Prisma.InventoryMovementGetPayload<{
   include: {
@@ -22,7 +25,11 @@ export type BatchWithDetails = Prisma.InventoryMovementGetPayload<{
     toWarehouse: true;
     details: {
       include: {
-        product: true;
+        product: {
+          include: {
+            baseUnit: true;
+          };
+        };
       };
     };
     approvedBy: {
@@ -35,21 +42,38 @@ export type BatchWithDetails = Prisma.InventoryMovementGetPayload<{
   };
 }>;
 
-export default async function MovementDetailsPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const serializedBatch = await getMovementBatchById(id);
+export default function MovementDetailsPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
+
+  const { data: serializedBatch, isLoading: isBatchLoading } = useQuery({
+    queryKey: ["movement-batch", id],
+    queryFn: () => getMovementBatchById(id),
+  });
+
+  const { data: serializedProfile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ["company-profile"],
+    queryFn: () => getCompanyProfile(),
+  });
+
+  if (isBatchLoading || isProfileLoading) {
+    return <div className="p-4">Loading...</div>;
+  }
 
   if (!serializedBatch) {
     notFound();
   }
 
   const batch = SuperJSON.deserialize<BatchWithDetails>(serializedBatch);
-  const formatDate = useFormatDate();
-  const formatCurrency = useFormatCurrency();
+  const companyProfile = serializedProfile
+    ? SuperJSON.deserialize<CompanyProfile>(serializedProfile)
+    : null;
+
+  const currencyOptions = {
+    currency: companyProfile?.currency,
+    currencySymbol: companyProfile?.currencySymbol,
+    currencyFormat: companyProfile?.currencyFormat,
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4">
@@ -133,7 +157,9 @@ export default async function MovementDetailsPage({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatDate(batch.createdAt)}
+              {formatDate(batch.createdAt, {
+                dateFormat: companyProfile?.dateFormat,
+              })}
             </div>
           </CardContent>
         </Card>
@@ -152,7 +178,7 @@ export default async function MovementDetailsPage({
                   <TableHead>Quantity</TableHead>
                   <TableHead>Unit Cost</TableHead>
                   <TableHead>Total Cost</TableHead>
-                  <TableHead>Location</TableHead>
+                  <TableHead>Batch Number</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -168,15 +194,15 @@ export default async function MovementDetailsPage({
                       {item.quantity} {item.product.baseUnit?.symbol}
                     </TableCell>
                     <TableCell>
-                      {formatCurrency(Number(item.unitCost))}
+                      {formatCurrency(Number(item.unitCost), currencyOptions)}
                     </TableCell>
                     <TableCell>
-                      {new Intl.NumberFormat("id-ID", {
-                        style: "currency",
-                        currency: "IDR",
-                      }).format(Number(item.unitCost) * item.quantity)}
+                      {formatCurrency(
+                        Number(item.unitCost) * item.quantity,
+                        currencyOptions,
+                      )}
                     </TableCell>
-                    <TableCell>{item.locationId || "-"}</TableCell>
+                    <TableCell>{item.batchNumber || "-"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -200,7 +226,7 @@ export default async function MovementDetailsPage({
                       {batch.fromWarehouse.name}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {batch.fromWarehouse.address || "No address"}
+                      {batch.fromWarehouse.location || "No address"}
                     </div>
                   </div>
                 ) : (
@@ -220,7 +246,7 @@ export default async function MovementDetailsPage({
                   <div>
                     <div className="font-medium">{batch.toWarehouse.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {batch.toWarehouse.address || "No address"}
+                      {batch.toWarehouse.location || "No address"}
                     </div>
                   </div>
                 ) : (

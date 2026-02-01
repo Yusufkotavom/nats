@@ -162,10 +162,6 @@ export function MovementsView() {
 
   const columns: Column<BatchWithDetails>[] = [
     {
-      header: "",
-      className: "w-[50px]",
-    },
-    {
       header: "Date",
       cell: (batch) => formatDate(batch.transactionDate),
     },

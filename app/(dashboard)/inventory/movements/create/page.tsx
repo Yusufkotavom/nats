@@ -1,10 +1,33 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "../../products/actions";
 import { getWarehouses } from "../../warehouses/actions";
 import { BatchMovementForm } from "../_components/batch-movement-form";
+import { SuperJSON } from "@/lib/superjson";
+import { Product, Warehouse } from "@/prisma/generated/prisma/browser";
 
-export default async function CreateMovementPage() {
-  const { products } = await getProducts();
-  const warehouses = await getWarehouses();
+export default function CreateMovementPage() {
+  const { data: productsData, isLoading: isProductsLoading } = useQuery({
+    queryKey: ["products-list"],
+    queryFn: () => getProducts(),
+  });
+
+  const { data: warehousesData, isLoading: isWarehousesLoading } = useQuery({
+    queryKey: ["warehouses-list"],
+    queryFn: () => getWarehouses(),
+  });
+
+  if (isProductsLoading || isWarehousesLoading) {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  const products = productsData?.products
+    ? SuperJSON.deserialize<Product[]>(productsData.products)
+    : [];
+  const warehouses = warehousesData?.warehouses
+    ? SuperJSON.deserialize<Warehouse[]>(warehousesData.warehouses)
+    : [];
 
   // Convert Decimals to numbers for client component
   const formattedProducts = products.map((p) => ({
@@ -26,7 +49,7 @@ export default async function CreateMovementPage() {
 
       <BatchMovementForm
         products={formattedProducts}
-        warehouses={warehouses.warehouses}
+        warehouses={warehouses}
       />
     </div>
   );
