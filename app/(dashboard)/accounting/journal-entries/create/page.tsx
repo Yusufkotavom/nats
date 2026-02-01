@@ -12,7 +12,7 @@ import { generateId } from "@/lib/utils";
 import { useAlert } from "@/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Decimal } from "decimal.js";
-import SuperJSON from "superjson";
+import { SuperJSON } from "@/lib/superjson";
 
 export default function CreateJournalEntryPage() {
   const router = useRouter();

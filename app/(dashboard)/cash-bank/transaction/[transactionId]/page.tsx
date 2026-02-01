@@ -15,7 +15,7 @@ interface PageProps {
 export default async function EditTransactionPage({ params }: PageProps) {
   const { transactionId } = await params;
 
-  const [cashAccounts, glAccounts, transactionResult] = await Promise.all([
+  const [cashAccounts, glAccounts, transactionResult, contacts] = await Promise.all([
     prisma.cashAccount.findMany({
       where: { isActive: true },
     }),
@@ -24,6 +24,10 @@ export default async function EditTransactionPage({ params }: PageProps) {
       orderBy: { code: "asc" },
     }),
     getCashTransaction(transactionId),
+    prisma.contact.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const transaction: any = transactionResult
@@ -57,14 +61,11 @@ export default async function EditTransactionPage({ params }: PageProps) {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="grid gap-4">
-        <TransactionForm
-          cashAccounts={cashAccounts}
-          glAccounts={glAccounts}
-          initialData={initialData}
-          readOnly={transaction.status === "APPROVED"} contacts={[]} />
-      </div>
-    </div>
+    <TransactionForm
+      cashAccounts={cashAccounts}
+      glAccounts={glAccounts}
+      initialData={initialData}
+      readOnly={transaction.status === "APPROVED"}
+      contacts={contacts} />
   );
 }

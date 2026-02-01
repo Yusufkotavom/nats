@@ -17,14 +17,10 @@ export default async function NewTransactionPage() {
   ]);
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="grid gap-4">
-        <TransactionForm
-          cashAccounts={cashAccounts}
-          glAccounts={glAccounts}
-          contacts={contacts}
-        />
-      </div>
-    </div>
+    < TransactionForm
+      cashAccounts={cashAccounts}
+      glAccounts={glAccounts}
+      contacts={contacts}
+    />
   );
 }

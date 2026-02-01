@@ -13,7 +13,7 @@ import {
 import { useAlert } from "@/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import SuperJSON from "superjson";
+import { SuperJSON } from "@/lib/superjson";
 
 export default function EditJournalEntryPage({
   params,
@@ -103,26 +103,26 @@ export default function EditJournalEntryPage({
 
   const initialData: CreateJournalEntryData | undefined = entry
     ? {
-        ...entry,
-        lines: entry.lines.map((line) => ({
-          id: line.id,
-          accountId: line.accountId,
-          debitAmount: line.debitAmount,
-          creditAmount: line.creditAmount,
-          description: line.description || undefined,
-          contactId: line.contactId,
-          lineNumber: line.lineNumber,
-          account: { name: line.account.name, code: line.account.code },
-          contact: line.contact ? { name: line.contact.name } : null,
-        })),
-        attachments: entry.attachments.map((att) => ({
-          id: att.id,
-          name: att.name,
-          url: att.url,
-          size: att.size,
-          type: att.mimeType,
-        })),
-      }
+      ...entry,
+      lines: entry.lines.map((line) => ({
+        id: line.id,
+        accountId: line.accountId,
+        debitAmount: line.debitAmount,
+        creditAmount: line.creditAmount,
+        description: line.description || undefined,
+        contactId: line.contactId,
+        lineNumber: line.lineNumber,
+        account: { name: line.account.name, code: line.account.code },
+        contact: line.contact ? { name: line.contact.name } : null,
+      })),
+      attachments: entry.attachments.map((att) => ({
+        id: att.id,
+        name: att.name,
+        url: att.url,
+        size: att.size,
+        type: att.mimeType,
+      })),
+    }
     : undefined;
 
   return (

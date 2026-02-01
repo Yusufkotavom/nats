@@ -27,7 +27,7 @@ import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { useEffect } from "react";
 import { Prisma } from "@/prisma/generated/prisma/browser";
 import { useAttachmentDialog } from "@/hooks/use-attachment-dialog";
-import SuperJSON from "superjson";
+import { SuperJSON } from "@/lib/superjson";
 
 interface CashTransferDialogProps {
   open: boolean;
@@ -274,9 +274,8 @@ export function CashTransferDialog({
             >
               <Paperclip className="mr-2 h-4 w-4" />
               {attachmentDialog.attachments.length > 0
-                ? `${attachmentDialog.attachments.length} Attachment${
-                    attachmentDialog.attachments.length > 1 ? "s" : ""
-                  }`
+                ? `${attachmentDialog.attachments.length} Attachment${attachmentDialog.attachments.length > 1 ? "s" : ""
+                }`
                 : "Add Attachments"}
             </Button>
           </div>

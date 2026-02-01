@@ -31,7 +31,15 @@ import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { useFormatCurrency } from "@/hooks";
 import { useAttachmentDialog } from "@/hooks/use-attachment-dialog";
 import { useNoteDialog } from "@/hooks/use-note-dialog";
-import SuperJSON from "superjson";
+import { SuperJSON } from "@/lib/superjson";
+import {
+  PageFormActions,
+  PageFormContent,
+  PageFormHeader,
+  PageFormLayout,
+  PageFormTitle,
+} from "@/components/layout/page/form-layout";
+import { Label } from "@/components/ui/label";
 
 interface TransactionFormProps {
   cashAccounts: CashAccount[];
@@ -78,12 +86,12 @@ export function TransactionForm({
       }
       : {
         date: new Date(),
-          type: CashTransactionType.INCOME,
-          cashAccountId: "",
-          contactId: "",
-          allocations: [],
-          attachments: [],
-          notes: "",
+        type: CashTransactionType.INCOME,
+        cashAccountId: "",
+        contactId: "",
+        allocations: [],
+        attachments: [],
+        notes: "",
         reference: "",
         description: "",
       },
@@ -200,14 +208,12 @@ export function TransactionForm({
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">
-            {initialData?.id ? "Edit Cash Transaction" : "New Cash Transaction"}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
+    <PageFormLayout>
+      <PageFormHeader>
+        <PageFormTitle>
+          {initialData?.id ? "Edit Cash Transaction" : "New Cash Transaction"}
+        </PageFormTitle>
+        <PageFormActions>
           <Button variant="outline" onClick={handleCancel}>
             {readOnly ? "Back" : "Cancel"}
           </Button>
@@ -219,11 +225,11 @@ export function TransactionForm({
               Save Transaction
             </Button>
           )}
-        </div>
-      </div>
+        </PageFormActions>
+      </PageFormHeader>
 
-      <div className="space-y-4 rounded-lg border bg-card p-4">
-        <div className="grid grid-cols-3 gap-4">
+      <PageFormContent className="space-y-8">
+        <div className="grid grid-cols-2 gap-4">
           <CustomSelect
             label="Type"
             value={formData.type}
@@ -249,6 +255,21 @@ export function TransactionForm({
             }
             disabled={readOnly}
           />
+          <div className="space-y-1">
+            <Label>Contact (Optional)</Label>
+            <SearchableSelect
+              value={formData.contactId}
+              onValueChange={(val) =>
+                setFormData({ ...formData, contactId: val || undefined })
+              }
+              options={contacts.map((c) => ({
+                label: c.name,
+                value: c.id,
+              }))}
+              placeholder="Select Contact"
+              disabled={readOnly}
+            />
+          </div>
           <CustomInput
             label="Reference"
             value={formData.reference || ""}
@@ -258,145 +279,147 @@ export function TransactionForm({
             placeholder="Optional reference"
             disabled={readOnly}
           />
+          <CustomSelect
+            label="Cash/Bank Account"
+            value={formData.cashAccountId}
+            onValueChange={(val) =>
+              setFormData({ ...formData, cashAccountId: val })
+            }
+            options={cashAccounts.map((acc) => ({
+              label: acc.name,
+              value: acc.id,
+            }))}
+            placeholder="Select Account"
+            disabled={readOnly}
+          />
+
+          <CustomInput
+            label="Description"
+            value={formData.description || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
+            placeholder="Transaction description"
+            disabled={readOnly}
+          />
         </div>
-        <CustomSelect
-          label="Cash/Bank Account"
-          value={formData.cashAccountId}
-          onValueChange={(val) =>
-            setFormData({ ...formData, cashAccountId: val })
-          }
-          options={cashAccounts.map((acc) => ({
-            label: acc.name,
-            value: acc.id,
-          }))}
-          placeholder="Select Account"
-          disabled={readOnly}
-        />
 
-        <CustomInput
-          label="Description"
-          value={formData.description || ""}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-          placeholder="Transaction description"
-          disabled={readOnly}
-        />
-      </div>
+        {/* Allocations Table */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Allocations</h2>
 
-      {/* Allocations Table */}
-      <div className="rounded-lg border bg-card p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Allocations</h2>
+            {!readOnly && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleAddAllocation}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Line
+                </Button>
+              </div>
+            )}
+          </div>
 
-          {!readOnly && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleAddAllocation}>
-                <Plus className="mr-2 h-4 w-4" /> Add Line
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[30%]">Description</TableHead>
+                  <TableHead className="w-[40%]">Account</TableHead>
+                  <TableHead className="w-[25%]">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {formData.allocations.map((alloc, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <CustomInput
+                        value={alloc.description || ""}
+                        onChange={(e) =>
+                          updateAllocation(index, "description", e.target.value)
+                        }
+                        placeholder="Line description"
+                        disabled={readOnly}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <SearchableSelect
+                        options={glAccounts.map((acc) => ({
+                          label: `${acc.code} - ${acc.name}`,
+                          value: acc.id,
+                        }))}
+                        value={alloc.accountId}
+                        onValueChange={(val) =>
+                          updateAllocation(index, "accountId", val)
+                        }
+                        placeholder="Select GL Account"
+                        disabled={readOnly}
+                      />
+                    </TableCell>
+
+                    <TableCell className="flex">
+                      <CurrencyInput
+                        value={alloc.amount}
+                        onChange={(val) => updateAllocation(index, "amount", val)}
+                        className="text-right"
+                        disabled={readOnly}
+                      />
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveAllocation(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {formData.allocations.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-muted-foreground h-24"
+                    >
+                      {readOnly
+                        ? "No allocations found."
+                        : 'No allocations added. Click "Add Line" to start.'}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="flex justify-between bg-muted/20 rounded-md p-2">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={attachmentDialog.openDialog}
+                disabled={readOnly} // For now disable in readOnly, ideally should be view only
+              >
+                <Paperclip className="mr-2 h-4 w-4" />
+                {attachmentDialog.attachments.length > 0
+                  ? `${attachmentDialog.attachments.length} Attachments`
+                  : "Attach File"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={noteDialog.openDialog}
+                disabled={readOnly} // For now disable in readOnly
+              >
+                <StickyNote className="mr-2 h-4 w-4" />
+                {noteDialog.note ? "Edit Note" : "Add Note"}
               </Button>
             </div>
-          )}
-        </div>
-
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[30%]">Description</TableHead>
-              <TableHead className="w-[40%]">Account</TableHead>
-              <TableHead className="w-[25%]">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {formData.allocations.map((alloc, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <CustomInput
-                    value={alloc.description || ""}
-                    onChange={(e) =>
-                      updateAllocation(index, "description", e.target.value)
-                    }
-                    placeholder="Line description"
-                    disabled={readOnly}
-                  />
-                </TableCell>
-                <TableCell>
-                  <SearchableSelect
-                    options={glAccounts.map((acc) => ({
-                      label: `${acc.code} - ${acc.name}`,
-                      value: acc.id,
-                    }))}
-                    value={alloc.accountId}
-                    onValueChange={(val) =>
-                      updateAllocation(index, "accountId", val)
-                    }
-                    placeholder="Select GL Account"
-                    disabled={readOnly}
-                  />
-                </TableCell>
-
-                <TableCell className="flex">
-                  <CurrencyInput
-                    value={alloc.amount}
-                    onChange={(val) => updateAllocation(index, "amount", val)}
-                    className="text-right"
-                    disabled={readOnly}
-                  />
-                  {!readOnly && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveAllocation(index)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {formData.allocations.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="text-center text-muted-foreground h-24"
-                >
-                  {readOnly
-                    ? "No allocations found."
-                    : 'No allocations added. Click "Add Line" to start.'}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-
-        <div className="flex justify-between mt-4 bg-muted/20 rounded-md">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={attachmentDialog.openDialog}
-              disabled={readOnly} // For now disable in readOnly, ideally should be view only
-            >
-              <Paperclip className="mr-2 h-4 w-4" />
-              {attachmentDialog.attachments.length > 0
-                ? `${attachmentDialog.attachments.length} Attachments`
-                : "Attach File"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={noteDialog.openDialog}
-              disabled={readOnly} // For now disable in readOnly
-            >
-              <StickyNote className="mr-2 h-4 w-4" />
-              {noteDialog.note ? "Edit Note" : "Add Note"}
-            </Button>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>Total:</span>
-            <span>{formatCurrency(totalAmount)}</span>
+            <div className="flex items-center gap-4">
+              <span>Total:</span>
+              <span>{formatCurrency(totalAmount)}</span>
+            </div>
           </div>
         </div>
-      </div>
+      </PageFormContent>
 
       <AttachmentDialog
         {...attachmentDialog.dialogProps}
@@ -404,6 +427,6 @@ export function TransactionForm({
       />
 
       <NoteDialog {...noteDialog.dialogProps} />
-    </div>
+    </PageFormLayout>
   );
 }
