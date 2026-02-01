@@ -24,15 +24,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { PurchasePaymentWithDetails } from "./types";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { CustomPagination } from "@/components/ui/custom-pagination";
+import { DataTable, Column } from "@/components/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,12 +35,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate, useFormatCurrency } from "@/hooks";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTransition } from "react";
 
 export default function PurchasePaymentsPage() {
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
   const formatDate = useFormatDate();
+  const [isPending, startTransition] = useTransition();
 
   const { data, isLoading } = useQuery({
     queryKey: ["purchase-payments", page, search],
@@ -62,6 +57,8 @@ export default function PurchasePaymentsPage() {
         totalPages: result.totalPages,
       };
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const formatCurrency = useFormatCurrency();
@@ -77,17 +74,27 @@ export default function PurchasePaymentsPage() {
           "Are you sure you want to post this payment to the ledger? This action cannot be undone.",
       })
     ) {
-      const result = await postPurchasePayment(id);
-      if (result.success) {
-        toast({ title: "Success", description: "Payment posted successfully" });
-        queryClient.invalidateQueries({ queryKey: ["purchase-payments"] });
-      } else {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
+      startTransition(async () => {
+        try {
+          const result = await postPurchasePayment(id);
+          if (result.success) {
+            toast({ title: "Success", description: "Payment posted successfully" });
+            queryClient.invalidateQueries({ queryKey: ["purchase-payments"] });
+          } else {
+            toast({
+              title: "Error",
+              description: result.error,
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to post payment",
+            variant: "destructive",
+          });
+        }
+      });
     }
   };
 
@@ -100,10 +107,125 @@ export default function PurchasePaymentsPage() {
         variant: "destructive",
       })
     ) {
-      await deletePurchasePayment(id);
-      queryClient.invalidateQueries({ queryKey: ["purchase-payments"] });
+      startTransition(async () => {
+        try {
+          await deletePurchasePayment(id);
+          queryClient.invalidateQueries({ queryKey: ["purchase-payments"] });
+          toast({
+            title: "Success",
+            description: "Payment deleted successfully",
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to delete payment",
+            variant: "destructive",
+          });
+        }
+      });
     }
   };
+
+  const columns: Column<PurchasePaymentWithDetails>[] = [
+    {
+      header: "Payment #",
+      accessorKey: "paymentNumber",
+      className: "font-medium",
+    },
+    {
+      header: "Status",
+      accessorKey: "journalEntryId",
+      cell: (item) =>
+        item.journalEntryId ? (
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-200"
+          >
+            Posted
+          </Badge>
+        ) : (
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-200"
+          >
+            Unposted
+          </Badge>
+        ),
+    },
+    {
+      header: "Date",
+      accessorKey: "paymentDate",
+      cell: (item) => formatDate(item.paymentDate),
+    },
+    {
+      header: "Vendor",
+      cell: (item) => item.contact?.name || "-",
+    },
+    {
+      header: "Invoice #",
+      cell: (item) => (
+        <Link href={`/purchase/invoices/${item.purchaseInvoiceId}`}>
+          <span className="font-medium text-primary">
+            {item.purchaseInvoice.invoiceNumber}
+          </span>
+        </Link>
+      ),
+    },
+    {
+      header: "Account",
+      cell: (item) => item.cashAccount?.name || "-",
+    },
+    {
+      header: "Amount",
+      accessorKey: "amount",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (item) => formatCurrency(Number(item.amount)),
+    },
+    {
+      header: "",
+      className: "w-[50px]",
+      cell: (payment) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href={`/purchase/payments/${payment.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                Details
+              </Link>
+            </DropdownMenuItem>
+            {!payment.journalEntryId && (
+              <Protect permission="purchase.create">
+                <DropdownMenuItem onClick={() => handlePost(payment.id)}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Post
+                </DropdownMenuItem>
+              </Protect>
+            )}
+            {!payment.journalEntryId && (
+              <Protect permission="purchase.delete">
+                <DropdownMenuItem
+                  onClick={() => handleDelete(payment.id)}
+                  className="text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </Protect>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
 
   return (
     <PageListLayout>
@@ -124,113 +246,20 @@ export default function PurchasePaymentsPage() {
         <PurchasePaymentFilters />
       </PageListFilter>
       <PageListContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Payment #</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Invoice #</TableHead>
-              <TableHead>Account</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : data?.payments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  No payments found
-                </TableCell>
-              </TableRow>
-            ) : (
-              data?.payments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">
-                    {payment.paymentNumber}
-                  </TableCell>
-                  <TableCell>
-                    {payment.journalEntryId ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200"
-                      >
-                        Posted
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-yellow-50 text-yellow-700 border-yellow-200"
-                      >
-                        Unposted
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {formatDate(payment.paymentDate)}
-                  </TableCell>
-                  <TableCell>{payment.contact.name}</TableCell>
-                  <TableCell>
-                    <Link href={`/purchase/invoices/${payment.purchaseInvoiceId}`}>
-                      <span className="font-medium text-primary">{payment.purchaseInvoice.invoiceNumber}</span>
-                    </Link>
-                  </TableCell>
-                  <TableCell>{payment.cashAccount.name}</TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(Number(payment.amount))}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link href={`/purchase/payments/${payment.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Details
-                          </Link>
-                        </DropdownMenuItem>
-                        {!payment.journalEntryId && (
-                          <Protect permission="purchase.create">
-                            <DropdownMenuItem onClick={() => handlePost(payment.id)}>
-                              <BookOpen className="mr-2 h-4 w-4" />
-                              Post
-                            </DropdownMenuItem>
-                          </Protect>
-                        )}
-                        {!payment.journalEntryId && (
-                          <Protect permission="purchase.delete">
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(payment.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </Protect>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        <CustomPagination totalEntries={data?.total || 0} pageSize={10} />
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : (
+          <DataTable
+            data={data?.payments || []}
+            columns={columns}
+            pagination={{
+              totalEntries: data?.total || 0,
+              pageSize: 10,
+              currentPage: page,
+            }}
+            emptyMessage="No payments found"
+          />
+        )}
       </PageListContent>
     </PageListLayout>
   );

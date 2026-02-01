@@ -18,16 +18,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchaseReceiveWithDetails } from "./types";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,10 +28,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate } from "@/hooks";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PurchaseReceivesPage() {
   const searchParams = useSearchParams();
@@ -89,6 +81,84 @@ export default function PurchaseReceivesPage() {
     }
   };
 
+  const columns: Column<PurchaseReceiveWithDetails>[] = [
+    {
+      header: "Receive #",
+      accessorKey: "receiveNumber",
+      className: "font-medium",
+    },
+    {
+      header: "PO #",
+      cell: (item) => (
+        <Link href={`/purchase/orders/${item.purchaseOrderId}`}>
+          <span className="font-medium text-primary">
+            {item.purchaseOrder?.orderNumber || "-"}
+          </span>
+        </Link>
+      ),
+    },
+    {
+      header: "Vendor",
+      cell: (item) => item.contact?.name || "-",
+    },
+    {
+      header: "Date",
+      accessorKey: "receiveDate",
+      cell: (item) => formatDate(item.receiveDate),
+    },
+    {
+      header: "Status",
+      accessorKey: "status",
+      cell: (item) => (
+        <Badge className={getStatusColor(item.status)}>
+          {item.status}
+        </Badge>
+      ),
+    },
+    {
+      header: "",
+      className: "w-[80px]",
+      cell: (receive) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href={`/purchase/receives/${receive.id}`}>
+                <Eye className="mr-2 h-4 w-4" /> Details
+              </Link>
+            </DropdownMenuItem>
+            {receive.status !== "COMPLETED" && (
+              <Protect permission="purchase.edit">
+                <DropdownMenuItem asChild>
+                  <Link href={`/purchase/receives/${receive.id}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                  </Link>
+                </DropdownMenuItem>
+              </Protect>
+            )}
+            <DropdownMenuSeparator />
+            {receive.status !== "COMPLETED" && (
+              <Protect permission="purchase.delete">
+                <DropdownMenuItem
+                  className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
+                  onClick={() => handleDeleteClick(receive.id)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </DropdownMenuItem>
+              </Protect>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
   return (
     <PageListLayout>
       <PageListHeader>
@@ -109,107 +179,20 @@ export default function PurchaseReceivesPage() {
       </PageListFilter>
 
       <PageListContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Receive #</TableHead>
-              <TableHead>PO #</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : data?.receives.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No purchase receives found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data?.receives.map((receive) => (
-                <TableRow key={receive.id}>
-                  <TableCell className="font-medium">
-                    {receive.receiveNumber}
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/purchase/orders/${receive.purchaseOrderId}`}>
-                      <span className="font-medium text-primary">{receive.purchaseOrder?.orderNumber || "-"}</span>
-                    </Link>
-                  </TableCell>
-                  <TableCell>{receive.contact.name}</TableCell>
-                  <TableCell>
-                    {formatDate(receive.receiveDate)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(receive.status)}>
-                      {receive.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/purchase/receives/${receive.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> Details
-                          </Link>
-                        </DropdownMenuItem>
-                        {receive.status !== "COMPLETED" && (
-                          <Protect permission="purchase.edit">
-                            <DropdownMenuItem asChild>
-                              <Link
-                                href={`/purchase/receives/${receive.id}/edit`}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" /> Edit
-                              </Link>
-                            </DropdownMenuItem>
-                          </Protect>
-                        )}
-                        <DropdownMenuSeparator />
-                        {receive.status !== "COMPLETED" && (
-                          <Protect permission="purchase.delete">
-                            <DropdownMenuItem
-                              className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
-                              onClick={() => handleDeleteClick(receive.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                          </Protect>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-
-        <CustomPagination
-          currentPage={page}
-          totalEntries={data?.total || 0}
-          pageSize={10}
-        />
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : (
+          <DataTable
+            data={data?.receives || []}
+            columns={columns}
+            pagination={{
+              totalEntries: data?.total || 0,
+              pageSize: 10,
+              currentPage: page,
+            }}
+            emptyMessage="No purchase receives found."
+          />
+        )}
       </PageListContent>
     </PageListLayout>
   );

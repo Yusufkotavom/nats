@@ -18,16 +18,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchaseReturnWithDetails } from "./types";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,10 +29,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate } from "@/hooks";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PurchaseReturnsPage() {
   const searchParams = useSearchParams();
@@ -93,6 +85,101 @@ export default function PurchaseReturnsPage() {
     }
   };
 
+  const columns: Column<PurchaseReturnWithDetails>[] = [
+    {
+      header: "Return #",
+      accessorKey: "returnNumber",
+      className: "font-medium",
+    },
+    {
+      header: "Vendor",
+      cell: (item) => item.contact?.name || "-",
+    },
+    {
+      header: "PO #",
+      cell: (item) => (
+        <Link href={`/purchase/orders/${item.purchaseOrderId}`}>
+          <span className="font-medium text-primary">
+            {item.purchaseOrder?.orderNumber || "-"}
+          </span>
+        </Link>
+      ),
+    },
+    {
+      header: "Invoice #",
+      cell: (item) => (
+        <Link href={`/purchase/invoices/${item.purchaseInvoiceId}`}>
+          <span className="font-medium text-primary">
+            {item.purchaseInvoice?.invoiceNumber || "-"}
+          </span>
+        </Link>
+      ),
+    },
+    {
+      header: "Date",
+      accessorKey: "returnDate",
+      cell: (item) => formatDate(item.returnDate),
+    },
+    {
+      header: "Status",
+      accessorKey: "status",
+      cell: (item) => (
+        <Badge className={getStatusColor(item.status)}>
+          {item.status}
+        </Badge>
+      ),
+    },
+    {
+      header: "Total Amount",
+      accessorKey: "totalAmount",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (item) => formatCurrency(Number(item.totalAmount)),
+    },
+    {
+      header: "",
+      className: "w-[80px]",
+      cell: (returnItem) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href={`/purchase/returns/${returnItem.id}`}>
+                <Eye className="mr-2 h-4 w-4" /> Details
+              </Link>
+            </DropdownMenuItem>
+            {returnItem.status === "DRAFT" && (
+              <>
+                <Protect permission="purchase.edit">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/purchase/returns/${returnItem.id}/edit`}>
+                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                    </Link>
+                  </DropdownMenuItem>
+                </Protect>
+                <DropdownMenuSeparator />
+                <Protect permission="purchase.delete">
+                  <DropdownMenuItem
+                    className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
+                    onClick={() => handleDeleteClick(returnItem.id)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </DropdownMenuItem>
+                </Protect>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
   return (
     <PageListLayout>
       <PageListHeader>
@@ -113,119 +200,20 @@ export default function PurchaseReturnsPage() {
       </PageListFilter>
 
       <PageListContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Return #</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>PO #</TableHead>
-              <TableHead>Invoice #</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total Amount</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={8}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : data?.returns.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={8}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No purchase returns found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data?.returns.map((returnItem) => (
-                <TableRow key={returnItem.id}>
-                  <TableCell className="font-medium">
-                    {returnItem.returnNumber}
-                  </TableCell>
-                  <TableCell>{returnItem.contact.name}</TableCell>
-                  <TableCell>
-                    <Link href={`/purchase/orders/${returnItem.purchaseOrderId}`}>
-                      <span className="font-medium text-primary">{returnItem.purchaseOrder?.orderNumber || "-"}</span>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/purchase/invoices/${returnItem.purchaseInvoiceId}`}>
-                      <span className="font-medium text-primary">{returnItem.purchaseInvoice?.invoiceNumber || "-"}</span>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {formatDate(returnItem.returnDate)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(returnItem.status)}>
-                      {returnItem.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(Number(returnItem.totalAmount))}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/purchase/returns/${returnItem.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> Details
-                          </Link>
-                        </DropdownMenuItem>
-                        {returnItem.status === "DRAFT" && (
-                          <>
-                            <Protect permission="purchase.edit">
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/purchase/returns/${returnItem.id}/edit`}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" /> Edit
-                                </Link>
-                              </DropdownMenuItem>
-                            </Protect>
-                            <DropdownMenuSeparator />
-                            <Protect permission="purchase.delete">
-                              <DropdownMenuItem
-                                className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
-                                onClick={() =>
-                                  handleDeleteClick(returnItem.id)
-                                }
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
-                            </Protect>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-
-        <CustomPagination
-          currentPage={page}
-          totalEntries={data?.total || 0}
-          pageSize={10}
-        />
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : (
+          <DataTable
+            data={data?.returns || []}
+            columns={columns}
+            pagination={{
+              totalEntries: data?.total || 0,
+              pageSize: 10,
+              currentPage: page,
+            }}
+            emptyMessage="No purchase returns found."
+          />
+        )}
       </PageListContent>
     </PageListLayout>
   );

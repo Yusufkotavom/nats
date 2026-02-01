@@ -14,20 +14,12 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { PurchaseOrderFilters } from "./_components/purchase-order-filters";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchaseOrderWithDetails } from "./types";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
-import { CustomPagination } from "@/components/ui/custom-pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +31,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTransition } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PurchaseOrdersPage() {
   const searchParams = useSearchParams();
@@ -47,6 +42,9 @@ export default function PurchaseOrdersPage() {
   const status = searchParams.get("status") || "ALL";
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data, isLoading } = useQuery({
     queryKey: [
@@ -74,6 +72,8 @@ export default function PurchaseOrdersPage() {
         totalPages: result.totalPages,
       };
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const formatCurrency = useFormatCurrency();
@@ -90,7 +90,22 @@ export default function PurchaseOrdersPage() {
         variant: "destructive",
       })
     ) {
-      await deletePurchaseOrder(id);
+      startTransition(async () => {
+        try {
+          await deletePurchaseOrder(id);
+          queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+          toast({
+            title: "Success",
+            description: "Purchase order deleted successfully",
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to delete purchase order",
+            variant: "destructive",
+          });
+        }
+      });
     }
   };
 
@@ -111,6 +126,83 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const columns: Column<PurchaseOrderWithDetails>[] = [
+    {
+      header: "PO Number",
+      accessorKey: "orderNumber",
+      className: "font-medium",
+    },
+    {
+      header: "Vendor",
+      cell: (item) => item.contact?.name || "-",
+    },
+    {
+      header: "Date",
+      accessorKey: "orderDate",
+      cell: (item) => formatDate(item.orderDate),
+    },
+    {
+      header: "Expected",
+      accessorKey: "expectedDate",
+      cell: (item) =>
+        item.expectedDate ? formatDate(item.expectedDate) : "-",
+    },
+    {
+      header: "Status",
+      accessorKey: "status",
+      cell: (item) => (
+        <Badge className={getStatusColor(item.status)}>
+          {item.status.replace("_", " ")}
+        </Badge>
+      ),
+    },
+    {
+      header: "Total Amount",
+      accessorKey: "totalAmount",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (item) => formatCurrency(Number(item.totalAmount)),
+    },
+    {
+      header: "",
+      className: "w-[80px]",
+      cell: (order) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href={`/purchase/orders/${order.id}`}>
+                <Eye className="mr-2 h-4 w-4" /> Details
+              </Link>
+            </DropdownMenuItem>
+            <Protect permission="purchase.edit">
+              <DropdownMenuItem asChild>
+                <Link href={`/purchase/orders/${order.id}/edit`}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                </Link>
+              </DropdownMenuItem>
+            </Protect>
+            <DropdownMenuSeparator />
+            <Protect permission="purchase.delete">
+              <DropdownMenuItem
+                className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
+                onClick={() => handleDeleteClick(order.id)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </Protect>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
   return (
     <PageListLayout>
       <PageListHeader>
@@ -130,105 +222,20 @@ export default function PurchaseOrdersPage() {
       </PageListFilter>
 
       <PageListContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>PO Number</TableHead>
-              <TableHead>Vendor</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Expected</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total Amount</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : data?.orders.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No purchase orders found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data?.orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">
-                    {order.orderNumber}
-                  </TableCell>
-                  <TableCell>{order.contact.name}</TableCell>
-                  <TableCell>
-                    {formatDate(order.orderDate)}
-                  </TableCell>
-                  <TableCell>
-                    {order.expectedDate
-                      ? formatDate(order.expectedDate)
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(order.status)}>
-                      {order.status.replace("_", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(Number(order.totalAmount))}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/purchase/orders/${order.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> Details
-                          </Link>
-                        </DropdownMenuItem>
-                        <Protect permission="purchase.edit">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/purchase/orders/${order.id}/edit`}>
-                              <Pencil className="mr-2 h-4 w-4" /> Edit
-                            </Link>
-                          </DropdownMenuItem>
-                        </Protect>
-                        <DropdownMenuSeparator />
-                        <Protect permission="purchase.delete">
-                          <DropdownMenuItem
-                            className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
-                            onClick={() => handleDeleteClick(order.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </Protect>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-
-        <CustomPagination
-          currentPage={page}
-          totalEntries={data?.total || 0}
-          pageSize={10}
-        />
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : (
+          <DataTable
+            data={data?.orders || []}
+            columns={columns}
+            pagination={{
+              totalEntries: data?.total || 0,
+              pageSize: 10,
+              currentPage: page,
+            }}
+            emptyMessage="No purchase orders found."
+          />
+        )}
       </PageListContent>
     </PageListLayout>
   );
