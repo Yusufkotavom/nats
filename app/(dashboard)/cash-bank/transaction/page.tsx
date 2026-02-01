@@ -165,7 +165,17 @@ export default function CashTransactionListPage() {
     {
       header: "Contact",
       accessorKey: "contact",
-      cell: (tx) => tx.contact?.name || "-",
+      cell: (tx) =>
+        tx.contact ? (
+          <Link target="_blank"
+            href={`/general/contacts/${tx.contact.id}`}
+            className="text-primary hover:underline"
+          >
+            {tx.contact.name}
+          </Link>
+        ) : (
+          "-"
+        ),
     },
     {
       header: "Cash Account",

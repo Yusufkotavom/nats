@@ -69,9 +69,9 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="cash-transactions">Cash Transactions</TabsTrigger>
           <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="journal-entries">Journal Entries</TabsTrigger>
+          <TabsTrigger value="invoices">Purchase Invoices</TabsTrigger>
+          <TabsTrigger value="payments">PurchasePayments</TabsTrigger>
+          <TabsTrigger value="journal-entries">General Entries</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">

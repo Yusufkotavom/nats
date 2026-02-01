@@ -99,7 +99,17 @@ export default function PurchaseReceivesPage() {
     },
     {
       header: "Vendor",
-      cell: (item) => item.contact?.name || "-",
+      cell: (item) =>
+        item.contact ? (
+          <Link target="_blank"
+            href={`/general/contacts/${item.contact.id}`}
+            className="text-primary hover:underline"
+          >
+            {item.contact.name}
+          </Link>
+        ) : (
+          "-"
+        ),
     },
     {
       header: "Date",

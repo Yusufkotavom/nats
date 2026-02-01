@@ -55,7 +55,17 @@ export function JournalEntryDetails({
     {
       header: "Relevant Contact",
       accessorKey: "contact",
-      cell: (line) => line.contact?.name || "-",
+      cell: (line) =>
+        line.contact ? (
+          <Link target="_blank"
+            href={`/general/contacts/${line.contact.id}`}
+            className="text-primary hover:underline"
+          >
+            {line.contact.name}
+          </Link>
+        ) : (
+          "-"
+        ),
     },
     {
       header: "Debit",
