@@ -1,6 +1,6 @@
 "use client";
 
-import { CashAccountList } from "./account-list";
+import { CashAccountList } from "./cash-account-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Wallet,

@@ -1,4 +1,4 @@
-import { AccountDetailsView } from "../_components/account-details-view";
+import { AccountDetailsView } from "../_components/cash-account-details-view";
 
 interface PageProps {
   params: Promise<{ id: string }>;
