@@ -39,6 +39,36 @@ export const getLedgerAccounts = authorizedAction("ledger.view", async () => {
 });
 
 /**
+ * Fetch account details by id.
+ * Permission: "ledger.view"
+ */
+export const getAccountById = authorizedAction(
+  "ledger.view",
+  async (id: string) => {
+    try {
+      const account = await prisma.account.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          code: true,
+          type: true,
+          name: true,
+        },
+      });
+
+      if (!account) {
+        return { success: false, error: "Account not found" };
+      }
+
+      return { success: true, data: account };
+    } catch (error) {
+      console.error("Error fetching account by id:", error);
+      return { success: false, error: "Failed to fetch account" };
+    }
+  }
+);
+
+/**
  * Fetch ledger entries for a specific account with pagination and filtering.
  * Calculates running balances dynamically, handling both draft and posted entries.
  * Permission: "ledger.view"
