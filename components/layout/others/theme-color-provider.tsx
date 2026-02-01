@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-export type ThemeColor = "indigo" | "red" | "blue" | "green" | "orange";
+export type ThemeColor = string;
 
 type ThemeColorContextType = {
   themeColor: ThemeColor;
@@ -32,16 +32,14 @@ export function ThemeColorProvider({
   React.useEffect(() => {
     if (!isMounted) return;
     const body = document.body;
-    body.classList.remove(
-      "theme-indigo",
-      "theme-red",
-      "theme-blue",
-      "theme-green",
-      "theme-orange"
-    );
-    if (themeColor !== "indigo") {
+    // Remove any existing theme-* classes
+    body.className = body.className
+      .split(" ")
+      .filter((cls) => !cls.startsWith("theme-"))
+      .join(" ");
+    
       body.classList.add(`theme-${themeColor}`);
-    }
+    
     localStorage.setItem("theme-color", themeColor);
   }, [themeColor, isMounted]);
 

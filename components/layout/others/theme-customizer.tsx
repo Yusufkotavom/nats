@@ -23,7 +23,7 @@ export function ThemeCustomizer() {
 
   const colors: { name: ThemeColor; label: string; color: string }[] = [
     { name: "indigo", label: "Indigo", color: "bg-indigo-500" },
-    { name: "red", label: "Red", color: "bg-red-500" },
+    { name: "amethys", label: "Amethys", color: "bg-purple-500" },
     { name: "blue", label: "Blue", color: "bg-blue-500" },
     { name: "green", label: "Green", color: "bg-green-500" },
     { name: "orange", label: "Orange", color: "bg-orange-500" },
