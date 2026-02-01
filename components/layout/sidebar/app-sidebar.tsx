@@ -144,6 +144,10 @@ const data = {
           title: "Purchase Return",
           url: "/purchase/returns",
         },
+        {
+          title: "Purchase Payments",
+          url: "/purchase/payments",
+        },
       ],
     },
     {

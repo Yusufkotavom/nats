@@ -52,6 +52,34 @@ export const register: PermissionType[] = [
     module: "vendors",
   },
 
+  // Purchasing
+  {
+    name: "purchase.view",
+    description: "Allows viewing purchase module",
+    module: "purchase",
+  },
+  {
+    name: "purchase.create",
+    description: "Allows creating purchase records",
+    module: "purchase",
+  },
+  {
+    name: "purchase.payments",
+    description: "Allows managing purchase payments",
+    module: "purchase",
+  },
+  {
+    name: "purchase.edit",
+    description: "Allows editing purchase records",
+    module: "purchase",
+  },
+  {
+    name: "purchase.delete",
+    description: "Allows deleting purchase records",
+    module: "purchase",
+  },
+
+  // Sales
   // Customers
   {
     name: "customers.create",
