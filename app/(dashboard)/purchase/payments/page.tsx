@@ -8,6 +8,7 @@ import { Protect } from "@/components/ui/protect";
 import {
   PageListActions,
   PageListContent,
+  PageListFilter,
   PageListHeader,
   PageListLayout,
   PageListTitle,
@@ -88,83 +89,81 @@ export default function PurchasePaymentsPage() {
           </Protect>
         </PageListActions>
       </PageListHeader>
-      <PageListContent>
+      <PageListFilter>
         <PurchasePaymentFilters />
-        <div className="rounded-md border mt-4">
-          <Table>
-            <TableHeader>
+      </PageListFilter>
+      <PageListContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Payment #</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Vendor</TableHead>
+              <TableHead>Invoice #</TableHead>
+              <TableHead>Account</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
               <TableRow>
-                <TableHead>Payment #</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableCell colSpan={7} className="text-center py-8">
+                  Loading...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    Loading...
+            ) : data?.payments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  No payments found
+                </TableCell>
+              </TableRow>
+            ) : (
+              data?.payments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell className="font-medium">
+                    {payment.paymentNumber}
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(payment.paymentDate), "dd/MM/yyyy")}
+                  </TableCell>
+                  <TableCell>{payment.contact.name}</TableCell>
+                  <TableCell>
+                    {payment.purchaseInvoice.invoiceNumber}
+                  </TableCell>
+                  <TableCell>{payment.cashAccount.name}</TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(Number(payment.amount))}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <Protect permission="purchase.delete">
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(payment.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </Protect>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ) : data?.payments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    No payments found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data?.payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-medium">
-                      {payment.paymentNumber}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(payment.paymentDate), "dd/MM/yyyy")}
-                    </TableCell>
-                    <TableCell>{payment.contact.name}</TableCell>
-                    <TableCell>
-                      {payment.purchaseInvoice.invoiceNumber}
-                    </TableCell>
-                    <TableCell>{payment.cashAccount.name}</TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(Number(payment.amount))}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <Protect permission="purchase.delete">
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(payment.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </Protect>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="mt-4">
-          <CustomPagination totalEntries={data?.total || 0} pageSize={10} />
-        </div>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        <CustomPagination totalEntries={data?.total || 0} pageSize={10} />
       </PageListContent>
     </PageListLayout>
   );

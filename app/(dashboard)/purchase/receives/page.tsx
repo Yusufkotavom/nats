@@ -8,6 +8,7 @@ import Link from "next/link";
 import {
   PageListActions,
   PageListContent,
+  PageListFilter,
   PageListHeader,
   PageListLayout,
   PageListTitle,
@@ -101,11 +102,11 @@ export default function PurchaseReceivesPage() {
         </PageListActions>
       </PageListHeader>
 
-      <PurchaseReceiveFilters />
+      <PageListFilter>
+        <PurchaseReceiveFilters />
+      </PageListFilter>
 
-      <PageListContent>
-        <div className="space-y-4">
-          <div className="rounded-md border">
+      <PageListContent> 
             <Table>
               <TableHeader>
                 <TableRow>
@@ -199,14 +200,12 @@ export default function PurchaseReceivesPage() {
                 )}
               </TableBody>
             </Table>
-          </div>
 
           <CustomPagination
             currentPage={page}
             totalEntries={data?.total || 0}
             pageSize={10}
           />
-        </div>
       </PageListContent>
     </PageListLayout>
   );

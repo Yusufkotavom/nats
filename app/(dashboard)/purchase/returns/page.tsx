@@ -8,6 +8,7 @@ import Link from "next/link";
 import {
   PageListActions,
   PageListContent,
+  PageListFilter,
   PageListHeader,
   PageListLayout,
   PageListTitle,
@@ -105,122 +106,120 @@ export default function PurchaseReturnsPage() {
         </PageListActions>
       </PageListHeader>
 
-      <PurchaseReturnFilters />
+      <PageListFilter>
+        <PurchaseReturnFilters />
+      </PageListFilter>
 
-      <PageListContent>
-        <div className="space-y-4">
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Return #</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>PO #</TableHead>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total Amount</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
+      <PageListContent> 
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Return #</TableHead>
+              <TableHead>Vendor</TableHead>
+              <TableHead>PO #</TableHead>
+              <TableHead>Invoice #</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Total Amount</TableHead>
+              <TableHead className="w-[80px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : data?.returns.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  No purchase returns found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              data?.returns.map((returnItem) => (
+                <TableRow key={returnItem.id}>
+                  <TableCell className="font-medium">
+                    {returnItem.returnNumber}
+                  </TableCell>
+                  <TableCell>{returnItem.contact.name}</TableCell>
+                  <TableCell>
+                    {returnItem.purchaseOrder?.orderNumber || "-"}
+                  </TableCell>
+                  <TableCell>
+                    {returnItem.purchaseInvoice?.invoiceNumber || "-"}
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(returnItem.returnDate), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(returnItem.status)}>
+                      {returnItem.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(Number(returnItem.totalAmount))}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/purchase/returns/${returnItem.id}`}>
+                            <Eye className="mr-2 h-4 w-4" /> Details
+                          </Link>
+                        </DropdownMenuItem>
+                        {returnItem.status === "DRAFT" && (
+                          <>
+                            <Protect permission="purchase.edit">
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/purchase/returns/${returnItem.id}/edit`}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                                </Link>
+                              </DropdownMenuItem>
+                            </Protect>
+                            <DropdownMenuSeparator />
+                            <Protect permission="purchase.delete">
+                              <DropdownMenuItem
+                                className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
+                                onClick={() =>
+                                  handleDeleteClick(returnItem.id)
+                                }
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </Protect>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : data?.returns.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      No purchase returns found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  data?.returns.map((returnItem) => (
-                    <TableRow key={returnItem.id}>
-                      <TableCell className="font-medium">
-                        {returnItem.returnNumber}
-                      </TableCell>
-                      <TableCell>{returnItem.contact.name}</TableCell>
-                      <TableCell>
-                        {returnItem.purchaseOrder?.orderNumber || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {returnItem.purchaseInvoice?.invoiceNumber || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(returnItem.returnDate), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(returnItem.status)}>
-                          {returnItem.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(Number(returnItem.totalAmount))}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/purchase/returns/${returnItem.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> Details
-                              </Link>
-                            </DropdownMenuItem>
-                            {returnItem.status === "DRAFT" && (
-                              <>
-                                <Protect permission="purchase.edit">
-                                  <DropdownMenuItem asChild>
-                                    <Link
-                                      href={`/purchase/returns/${returnItem.id}/edit`}
-                                    >
-                                      <Pencil className="mr-2 h-4 w-4" /> Edit
-                                    </Link>
-                                  </DropdownMenuItem>
-                                </Protect>
-                                <DropdownMenuSeparator />
-                                <Protect permission="purchase.delete">
-                                  <DropdownMenuItem
-                                    className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
-                                    onClick={() =>
-                                      handleDeleteClick(returnItem.id)
-                                    }
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
-                                </Protect>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
-          <CustomPagination
-            currentPage={page}
-            totalEntries={data?.total || 0}
-            pageSize={10}
-          />
-        </div>
+        <CustomPagination
+          currentPage={page}
+          totalEntries={data?.total || 0}
+          pageSize={10}
+        />
       </PageListContent>
     </PageListLayout>
   );

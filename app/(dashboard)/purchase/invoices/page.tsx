@@ -8,6 +8,7 @@ import { Protect } from "@/components/ui/protect";
 import {
   PageListActions,
   PageListContent,
+  PageListFilter,
   PageListHeader,
   PageListLayout,
   PageListTitle,
@@ -108,11 +109,11 @@ export default function PurchaseInvoicesPage() {
         </PageListActions>
       </PageListHeader>
 
-      <PurchaseInvoiceFilters />
+      <PageListFilter>
+        <PurchaseInvoiceFilters />
+      </PageListFilter>
 
-      <PageListContent>
-        <div className="space-y-4">
-          <div className="rounded-md border">
+      <PageListContent> 
             <Table>
               <TableHeader>
                 <TableRow>
@@ -216,14 +217,12 @@ export default function PurchaseInvoicesPage() {
                 )}
               </TableBody>
             </Table>
-          </div>
 
           <CustomPagination
             currentPage={page}
             totalEntries={data?.total || 0}
             pageSize={10}
           />
-        </div>
       </PageListContent>
     </PageListLayout>
   );

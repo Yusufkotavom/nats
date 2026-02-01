@@ -259,10 +259,7 @@ export default function LedgerViewPage() {
       )}
 
       <PageListContent>
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              <div className="flex items-end gap-4 flex-wrap">
+          <div className="flex items-end gap-4 flex-wrap p-4">
                 {accounts && (
                   <div className="space-y-1">
                     <Label>Account</Label>
@@ -310,10 +307,8 @@ export default function LedgerViewPage() {
                   <Label htmlFor="showDraft">Show Draft</Label>
                 </div>
               </div>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable
+           <div className="px-4">
+             <DataTable
               data={entries?.items || []}
               columns={columns}
               isLoading={loading}
@@ -332,9 +327,8 @@ export default function LedgerViewPage() {
                     }
                   : undefined
               }
-            />
-          </CardContent>
-        </Card>
+            /> 
+           </div>
       </PageListContent>
     </PageListLayout>
   );
