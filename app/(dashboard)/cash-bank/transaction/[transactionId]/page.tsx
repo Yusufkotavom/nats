@@ -40,6 +40,7 @@ export default async function EditTransactionPage({ params }: PageProps) {
     date: transaction.date,
     type: transaction.type,
     cashAccountId: transaction.cashAccountId,
+    contactId: transaction.contactId || undefined,
     reference: transaction.reference || undefined,
     description: transaction.description || undefined,
     notes: transaction.note || undefined,
@@ -62,8 +63,7 @@ export default async function EditTransactionPage({ params }: PageProps) {
           cashAccounts={cashAccounts}
           glAccounts={glAccounts}
           initialData={initialData}
-          readOnly={transaction.status === "APPROVED"}
-        />
+          readOnly={transaction.status === "APPROVED"} contacts={[]} />
       </div>
     </div>
   );

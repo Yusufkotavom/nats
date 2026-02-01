@@ -17,6 +17,7 @@ export type CashTransactionFormData = {
   date: Date;
   reference?: string;
   description?: string;
+  contactId?: string;
   cashAccountId: string;
   allocations: CashTransactionAllocationFormData[];
   attachments: Attachment[];

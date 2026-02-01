@@ -86,6 +86,7 @@ export async function createCashTransaction(
     const transaction = await tx.cashTransaction.create({
       data: {
         cashAccountId: data2.cashAccountId,
+        contactId: data2.contactId,
         type: data2.type,
         date: data2.date,
         reference: data2.reference,
@@ -153,6 +154,7 @@ export async function getCashTransaction(id: string) {
     where: { id },
     include: {
       cashAccount: true,
+      contact: true,
       journalEntry: {
         include: {
           attachments: true,
@@ -255,6 +257,7 @@ export async function updateCashTransaction(
       where: { id },
       data: {
         cashAccountId: data2.cashAccountId,
+        contactId: data2.contactId,
         type: data2.type,
         date: data2.date,
         reference: data2.reference,

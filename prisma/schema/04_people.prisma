@@ -24,4 +24,5 @@ model Contact {
     purchaseReturns  PurchaseReturn[]
     purchasePayments PurchasePayment[]
     journalEntryLines JournalEntryLine[]
+    cashTransactions CashTransaction[]
 }

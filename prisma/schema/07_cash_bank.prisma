@@ -77,6 +77,10 @@ model CashTransaction {
   description String?
   note        String?
 
+  // Contact Relation
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
   // Allocations
   allocations CashTransactionAllocation[]
 

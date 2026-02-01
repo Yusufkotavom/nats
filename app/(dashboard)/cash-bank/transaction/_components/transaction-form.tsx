@@ -24,7 +24,7 @@ import {
   CashTransactionAllocationFormData,
   CashTransactionFormData,
 } from "../types";
-import { Account, CashAccount } from "@/prisma/generated/prisma/browser";
+import { Account, CashAccount, Contact } from "@/prisma/generated/prisma/browser";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { NoteDialog } from "@/components/ui/note-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
@@ -36,6 +36,7 @@ import SuperJSON from "superjson";
 interface TransactionFormProps {
   cashAccounts: CashAccount[];
   glAccounts: Account[];
+  contacts: Contact[];
   onCancel?: () => void;
   initialData?: CashTransactionFormData & { id?: string };
   readOnly?: boolean;
@@ -44,6 +45,7 @@ interface TransactionFormProps {
 export function TransactionForm({
   cashAccounts,
   glAccounts,
+  contacts,
   onCancel,
   initialData,
   readOnly = false,
@@ -71,19 +73,20 @@ export function TransactionForm({
   const [formData, setFormData] = useState<CashTransactionFormData>(
     initialData
       ? {
-          ...initialData,
-          date: new Date(initialData.date), // Ensure date is Date object
-        }
+        ...initialData,
+        date: new Date(initialData.date), // Ensure date is Date object
+      }
       : {
-          date: new Date(),
+        date: new Date(),
           type: CashTransactionType.INCOME,
           cashAccountId: "",
+          contactId: "",
           allocations: [],
           attachments: [],
           notes: "",
-          reference: "",
-          description: "",
-        },
+        reference: "",
+        description: "",
+      },
   );
 
   const handleAddAllocation = () => {
