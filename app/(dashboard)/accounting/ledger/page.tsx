@@ -27,10 +27,23 @@ import {
 } from "@/components/layout/page/list-layout";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import Link from "next/link";
+import { SuperJSON } from "@/lib/superjson";
+import { Prisma } from "@/prisma/generated/prisma/client";
 
-type LedgerEntry = NonNullable<
-  Awaited<ReturnType<typeof getAccountHistory>>["data"]
->["items"][number];
+type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
+  include: {
+    journalEntry: {
+      select: {
+        entryNumber: true;
+        transactionDate: true;
+        description: true;
+        createdAt: true;
+        postedAt: true;
+        status: true;
+      };
+    };
+  };
+}>;
 
 export default function LedgerViewPage() {
   const [selectedAccount, setSelectedAccount] = useState<
@@ -75,7 +88,13 @@ export default function LedgerViewPage() {
         endDate,
         showDraft,
       });
-      return response.success ? response.data : null;
+      if (response.success && response.data) {
+        const deserializedItems = SuperJSON.deserialize<LedgerEntry[]>(
+          response.data.items,
+        );
+        return { ...response.data, items: deserializedItems };
+      }
+      return null;
     },
     enabled: !!selectedAccount?.id,
     placeholderData: keepPreviousData,
@@ -85,7 +104,7 @@ export default function LedgerViewPage() {
 
   const handleAccountChange = (
     value: string,
-    accounts: Awaited<ReturnType<typeof getLedgerAccounts>>["data"]
+    accounts: Awaited<ReturnType<typeof getLedgerAccounts>>["data"],
   ) => {
     const found = accounts?.find((item) => item.id == value);
     if (found) {

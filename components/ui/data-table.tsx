@@ -57,64 +57,55 @@ export function DataTable<T>({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
+    <div className={cn(className)}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((col, index) => (
+              <TableHead key={index} className={col.headerClassName}>
+                {col.header}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {isLoading ? (
             <TableRow>
-              {columns.map((col, index) => (
-                <TableHead key={index} className={col.headerClassName}>
-                  {col.header}
-                </TableHead>
-              ))}
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : data.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.map((item, rowIndex) => (
-                <TableRow
-                  key={getRowKey(item, rowIndex)}
-                  className={
-                    onRowClick ? "cursor-pointer hover:bg-muted/50" : ""
-                  }
-                  onClick={() => onRowClick?.(item)}
-                >
-                  {columns.map((col, colIndex) => (
-                    <TableCell key={colIndex} className={col.className}>
-                      {col.cell
-                        ? col.cell(item)
-                        : col.accessorKey
+          ) : data.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="h-24 text-center">
+                {emptyMessage}
+              </TableCell>
+            </TableRow>
+          ) : (
+            data.map((item, rowIndex) => (
+              <TableRow
+                key={getRowKey(item, rowIndex)}
+                className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                onClick={() => onRowClick?.(item)}
+              >
+                {columns.map((col, colIndex) => (
+                  <TableCell key={colIndex} className={col.className}>
+                    {col.cell
+                      ? col.cell(item)
+                      : col.accessorKey
                         ? (item[col.accessorKey] as React.ReactNode)
                         : null}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-          {footer}
-        </Table>
-      </div>
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+        {footer}
+      </Table>
+
       {pagination && (
         <CustomPagination
           totalEntries={pagination.totalEntries}

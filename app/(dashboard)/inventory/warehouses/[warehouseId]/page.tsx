@@ -1,8 +1,10 @@
 import { getWarehouse, getWarehouseInventory, getCategories } from "./actions";
-import { InventoryTable } from "./_components/inventory-table";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { WarehouseDetailView } from "./_components/warehouse-detail-view";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
 import { notFound } from "next/navigation";
 
 export default async function Page({
@@ -22,32 +24,40 @@ export default async function Page({
   const categoryId =
     typeof resolvedSearchParams.categoryId === "string"
       ? resolvedSearchParams.categoryId
-      : undefined;
+      : "ALL";
 
-  const [warehouse, categories, { inventory, total }] = await Promise.all([
-    getWarehouse(warehouseId),
-    getCategories(),
-    getWarehouseInventory(warehouseId, page, 10, search, categoryId),
-  ]);
+  const warehouse = await getWarehouse(warehouseId);
 
-  if (!warehouse) {
+  if (!warehouse.json) {
     notFound();
   }
 
-  return (
-    <div className="flex flex-1 flex-col gap-4 px-4">
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <h2 className="text-lg font-bold tracking-tight">{warehouse.name}</h2>
-          <p className="text-sm text-muted-foreground">{warehouse.location}</p>
-        </div>
-      </div>
+  const queryClient = new QueryClient();
 
-      <InventoryTable
-        inventory={inventory}
-        categories={categories}
-        totalEntries={total}
-      />
-    </div>
+  // Set warehouse data directly since we already fetched it
+  queryClient.setQueryData(["warehouse", warehouseId], warehouse);
+
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: ["categories"],
+      queryFn: getCategories,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["warehouse-inventory", warehouseId, page, search, categoryId],
+      queryFn: () =>
+        getWarehouseInventory(
+          warehouseId,
+          page,
+          10,
+          search,
+          categoryId === "ALL" ? undefined : categoryId,
+        ),
+    }),
+  ]);
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <WarehouseDetailView warehouseId={warehouseId} />
+    </HydrationBoundary>
   );
 }

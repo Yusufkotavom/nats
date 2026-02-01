@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getJournalEntry } from "../actions";
 import { JournalEntryDetails } from "../_components/journal-entry-details";
 import { Loader2 } from "lucide-react";
+import { SuperJSON } from "@/lib/superjson";
+import { JournalEntryWithDetails } from "../../types";
 
 export default function JournalEntryDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -21,7 +23,7 @@ export default function JournalEntryDetailsPage() {
       if (!res.success || !res.data) {
         throw new Error(res.error || "Journal entry not found");
       }
-      return res.data;
+      return SuperJSON.deserialize<JournalEntryWithDetails>(res.data);
     },
     enabled: !!params?.id,
     retry: false,
@@ -38,6 +40,8 @@ export default function JournalEntryDetailsPage() {
       </div>
     );
   }
+
+  if (!entry) return null;
 
   return <JournalEntryDetails entry={entry} />;
 }

@@ -22,6 +22,7 @@ interface WarehouseDialogProps {
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function WarehouseDialog({
@@ -29,6 +30,7 @@ export function WarehouseDialog({
   trigger,
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  onSuccess,
 }: WarehouseDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +57,7 @@ export function WarehouseDialog({
       } else {
         await createWarehouse(data);
       }
+      onSuccess?.();
       setOpen?.(false);
     } catch (error) {
       console.error(error);
@@ -65,15 +68,6 @@ export function WarehouseDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ? (
-          trigger
-        ) : (
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Add Warehouse
-          </Button>
-        )}
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>

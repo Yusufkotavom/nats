@@ -22,10 +22,8 @@ export default async function NewPurchaseReturnPage() {
   return (
     <PurchaseReturnForm
       vendors={vendors.data}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      purchaseOrders={purchaseOrders as any}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      purchaseInvoices={purchaseInvoices as any}
+      purchaseOrders={purchaseOrders}
+      purchaseInvoices={purchaseInvoices}
     />
   );
 }

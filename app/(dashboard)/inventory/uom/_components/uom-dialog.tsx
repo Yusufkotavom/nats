@@ -16,14 +16,23 @@ import { useState } from "react";
 import { createUnit, updateUnit } from "../actions";
 import { Unit } from "@/prisma/generated/prisma/browser";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 interface UomDialogProps {
   unit?: Unit;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function UomDialog({ unit, open, onOpenChange }: UomDialogProps) {
+export function UomDialog({
+  unit,
+  open,
+  onOpenChange,
+  onSuccess,
+}: UomDialogProps) {
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,6 +53,8 @@ export function UomDialog({ unit, open, onOpenChange }: UomDialogProps) {
       }
 
       if (res.success) {
+        queryClient.invalidateQueries({ queryKey: ["uom"] });
+        onSuccess?.();
         onOpenChange(false);
       } else {
         alert(res.error);

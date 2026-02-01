@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
+import { SuperJSON } from "@/lib/superjson";
+import { PurchaseInvoiceWithDetails } from "../../types";
 
 export const metadata: Metadata = {
   title: "Edit Purchase Invoice | Pasak",
@@ -18,15 +20,19 @@ interface PageProps {
 
 export default async function EditPurchaseInvoicePage(props: PageProps) {
   const params = await props.params;
-  const [invoice, vendors, purchaseOrders] = await Promise.all([
-    getPurchaseInvoice(params.id),
-    getContacts({ type: ContactType.VENDOR }),
-    getPurchaseOrdersForSelect(),
-  ]);
+  const [serializedInvoice, vendors, serializedPurchaseOrders] =
+    await Promise.all([
+      getPurchaseInvoice(params.id),
+      getContacts({ type: ContactType.VENDOR }),
+      getPurchaseOrdersForSelect(),
+    ]);
 
-  if (!invoice) {
+  if (!serializedInvoice) {
     notFound();
   }
+
+  const invoice =
+    SuperJSON.deserialize<PurchaseInvoiceWithDetails>(serializedInvoice);
 
   if (invoice.status === "PAID" || invoice.status === "CANCELED") {
     return (
@@ -42,9 +48,9 @@ export default async function EditPurchaseInvoicePage(props: PageProps) {
 
   return (
     <PurchaseInvoiceForm
-      invoice={invoice}
+      invoice={serializedInvoice}
       vendors={vendors.data}
-      purchaseOrders={purchaseOrders as any}
+      purchaseOrders={serializedPurchaseOrders}
     />
   );
 }

@@ -18,11 +18,14 @@ import { useState } from "react";
 import { createCategory, updateCategory } from "../actions";
 import { Category } from "@/prisma/generated/prisma/browser";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 interface CategoryDialogProps {
   category?: Category;
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 export function CategoryDialog({
@@ -30,9 +33,11 @@ export function CategoryDialog({
   trigger,
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  onSuccess,
 }: CategoryDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -56,6 +61,8 @@ export function CategoryDialog({
       } else {
         await createCategory(data);
       }
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      onSuccess?.();
       setOpen(false);
     } catch (error) {
       console.error(error);

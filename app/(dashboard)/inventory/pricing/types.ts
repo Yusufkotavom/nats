@@ -1,4 +1,18 @@
-import { DiscountType } from "@/prisma/generated/prisma/client";
+import { DiscountType, Prisma } from "@/prisma/generated/prisma/client";
+
+export type PricingProductWithDetails = Prisma.ProductGetPayload<{
+  select: {
+    id: true;
+    name: true;
+    sku: true;
+    price: true;
+    cost: true;
+    category: {
+      select: { name: true };
+    };
+    discounts: true;
+  };
+}>;
 
 export type PricingScope = "ALL" | "CATEGORY";
 export type PricingAction =

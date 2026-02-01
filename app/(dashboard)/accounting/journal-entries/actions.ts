@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { EntryStatus } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
@@ -8,6 +8,9 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { CreateJournalEntryData } from "../types";
 import { getPaginationMetadata } from "@/lib/pagination";
+import { SuperJSON } from "@/lib/superjson";
+import { Decimal } from "decimal.js";
+import { SuperJSONResult } from "superjson";
 
 /**
  * Fetch journal entries with pagination and filtering.
@@ -89,11 +92,11 @@ export const getJournalEntries = authorizedAction(
     return {
       success: true,
       data: {
-        items: serializePrisma(entries),
+        items: SuperJSON.serialize(entries),
         pagination: getPaginationMetadata(total, page, pageSize),
       },
     };
-  }
+  },
 );
 
 /**
@@ -124,8 +127,8 @@ export const getJournalEntry = authorizedAction(
     });
     if (!entry) return { success: false, error: "Journal entry not found" };
 
-    return { success: true, data: serializePrisma(entry) };
-  }
+    return { success: true, data: SuperJSON.serialize(entry) };
+  },
 );
 
 /**
@@ -137,8 +140,11 @@ export const getJournalEntry = authorizedAction(
  */
 export const createJournalEntry = authorizedAction(
   "journal_entries.create",
-  async (data: CreateJournalEntryData) => {
+  async (data: SuperJSONResult) => {
     try {
+      const data2 = SuperJSON.deserialize(
+        data as SuperJSONResult,
+      ) as CreateJournalEntryData;
       const user = await getSession();
 
       if (!user?.userId) {
@@ -147,14 +153,22 @@ export const createJournalEntry = authorizedAction(
 
       // Validate debit = credit
       const totalDebit =
-        data?.lines.reduce(
-          (sum, line) => sum + (line?.debitAmount?.toNumber() || 0),
-          0
+        data2?.lines.reduce(
+          (sum, line) =>
+            sum +
+            (line?.debitAmount instanceof Decimal
+              ? line.debitAmount.toNumber()
+              : Number(line?.debitAmount || 0)),
+          0,
         ) || 0;
       const totalCredit =
-        data?.lines.reduce(
-          (sum, line) => sum + (line?.creditAmount?.toNumber() || 0),
-          0
+        data2?.lines.reduce(
+          (sum, line) =>
+            sum +
+            (line?.creditAmount instanceof Decimal
+              ? line.creditAmount.toNumber()
+              : Number(line?.creditAmount || 0)),
+          0,
         ) || 0;
 
       if (Math.abs(totalDebit - totalCredit) > 0.01) {
@@ -162,11 +176,7 @@ export const createJournalEntry = authorizedAction(
         return { success: false, error: "Debits must equal credits" };
       }
 
-      // Generate entry number (simple auto-increment logic or similar)
-      // For now, let's use a timestamp-based random string or similar,
-      // or we can query the last one.
-      // Let's stick to a simple format: JE-YYYYMMDD-XXXX
-      const dateStr = data?.transactionDate
+      const dateStr = data2?.transactionDate
         .toISOString()
         .slice(0, 10)
         .replace(/-/g, "");
@@ -185,12 +195,12 @@ export const createJournalEntry = authorizedAction(
         data: {
           userId: user?.userId,
           entryNumber,
-          transactionDate: data?.transactionDate || new Date(),
-          description: data?.description,
-          notes: data?.notes,
+          transactionDate: data2?.transactionDate || new Date(),
+          description: data2?.description,
+          notes: data2?.notes,
           status: "draft",
           lines: {
-            create: data?.lines.map((line, index) => ({
+            create: data2?.lines.map((line, index) => ({
               accountId: line.accountId,
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
@@ -199,9 +209,9 @@ export const createJournalEntry = authorizedAction(
               lineNumber: index + 1,
             })),
           },
-          attachments: data?.attachments?.length
+          attachments: data2?.attachments?.length
             ? {
-                connect: data.attachments.map((a) => ({ id: a.id })),
+                connect: data2.attachments.map((a) => ({ id: a.id })),
               }
             : undefined,
         },
@@ -231,17 +241,17 @@ export const createJournalEntry = authorizedAction(
       if (!createdEntry) throw new Error("Failed to fetch created entry");
 
       revalidatePath("/accounting/journal-entries");
-      return { success: true, data: serializePrisma(entry) };
+      return { success: true, data: SuperJSON.serialize(entry) };
     } catch (error) {
       console.error("Failed to create journal entry:", error);
       return { success: false, error: "Failed to create journal entry" };
     }
-  }
+  },
 );
 
 export async function updateJournalEntry(
   id: string,
-  data: CreateJournalEntryData
+  data: CreateJournalEntryData | SuperJSONResult,
 ) {
   try {
     const existingEntry = await prisma.journalEntry.findUnique({
@@ -257,15 +267,26 @@ export async function updateJournalEntry(
     }
 
     // Validate debit = credit
+    const data2 = SuperJSON.deserialize(
+      data as SuperJSONResult,
+    ) as CreateJournalEntryData;
     const totalDebit =
-      data?.lines.reduce(
-        (sum, line) => sum + (line?.debitAmount?.toNumber() || 0),
-        0
+      data2?.lines.reduce(
+        (sum, line) =>
+          sum +
+          (line?.debitAmount instanceof Decimal
+            ? line.debitAmount.toNumber()
+            : Number(line?.debitAmount || 0)),
+        0,
       ) || 0;
     const totalCredit =
-      data?.lines.reduce(
-        (sum, line) => sum + (line?.creditAmount?.toNumber() || 0),
-        0
+      data2?.lines.reduce(
+        (sum, line) =>
+          sum +
+          (line?.creditAmount instanceof Decimal
+            ? line.creditAmount.toNumber()
+            : Number(line?.creditAmount || 0)),
+        0,
       ) || 0;
 
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
@@ -283,10 +304,10 @@ export async function updateJournalEntry(
       await tx.journalEntry.update({
         where: { id },
         data: {
-          transactionDate: data?.transactionDate,
-          description: data?.description,
+          transactionDate: data2?.transactionDate,
+          description: data2?.description,
           lines: {
-            create: data?.lines.map((line, index) => ({
+            create: data2?.lines.map((line, index) => ({
               accountId: line.accountId,
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
@@ -296,7 +317,7 @@ export async function updateJournalEntry(
             })),
           },
           attachments: {
-            set: data?.attachments?.map((a) => ({ id: a.id })) || [],
+            set: data2?.attachments?.map((a) => ({ id: a.id })) || [],
           },
         },
       });
@@ -372,11 +393,11 @@ export async function postJournalEntry(id: string) {
       // Double check journal entry balance
       const totalDebit = existingEntry.lines.reduce(
         (sum, line) => sum + (line?.debitAmount?.toNumber() || 0),
-        0
+        0,
       );
       const totalCredit = existingEntry.lines.reduce(
         (sum, line) => sum + (line?.creditAmount?.toNumber() || 0),
-        0
+        0,
       );
 
       if (Math.abs(totalDebit - totalCredit) > 0.01) {

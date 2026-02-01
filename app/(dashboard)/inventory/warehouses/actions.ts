@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { SuperJSON } from "@/lib/superjson";
 
 export async function getWarehouses(page: number = 1, limit: number = 10) {
   const skip = (page - 1) * limit;
@@ -23,23 +24,7 @@ export async function getWarehouses(page: number = 1, limit: number = 10) {
   ]);
 
   return {
-    warehouses: warehouses.map((warehouse) => ({
-      ...warehouse,
-      inventory: warehouse.inventory.map((inv) => ({
-        ...inv,
-        unitCost: Number(inv.unitCost),
-        product: {
-          ...inv.product,
-          price: Number(inv.product.price),
-          cost: Number(inv.product.cost),
-          averageCost: Number(inv.product.averageCost),
-          purchaseConversionFactor: Number(
-            inv.product.purchaseConversionFactor
-          ),
-          salesConversionFactor: Number(inv.product.salesConversionFactor),
-        },
-      })),
-    })),
+    warehouses: SuperJSON.serialize(warehouses),
     total,
     totalPages: Math.ceil(total / limit),
   };
@@ -98,6 +83,7 @@ export const deleteWarehouse = authorizedAction(
 
 export async function getInventoryLevels(warehouseId?: string) {
   const where = warehouseId ? { warehouseId } : {};
+
   const inventory = await prisma.inventory.findMany({
     where,
     include: {
@@ -105,22 +91,9 @@ export async function getInventoryLevels(warehouseId?: string) {
       warehouse: true,
     },
     orderBy: {
-      product: {
-        name: "asc",
-      },
+      product: { name: "asc" },
     },
   });
 
-  return inventory.map((inv) => ({
-    ...inv,
-    unitCost: Number(inv.unitCost),
-    product: {
-      ...inv.product,
-      price: Number(inv.product.price),
-      cost: Number(inv.product.cost),
-      averageCost: Number(inv.product.averageCost),
-      purchaseConversionFactor: Number(inv.product.purchaseConversionFactor),
-      salesConversionFactor: Number(inv.product.salesConversionFactor),
-    },
-  }));
+  return SuperJSON.serialize(inventory);
 }

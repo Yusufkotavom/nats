@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { getProducts } from "@/app/(dashboard)/inventory/products/actions";
+import { SuperJSONResult } from "superjson";
 
 export default async function Page({
   params,
@@ -11,19 +12,19 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [order, vendors, products] = await Promise.all([
+  const [orderResult, vendors, products] = await Promise.all([
     getPurchaseOrder(id),
     getContacts({ type: ContactType.VENDOR }),
     getProducts(),
   ]);
 
-  if (!order) {
+  if (!orderResult) {
     notFound();
   }
 
   return (
     <PurchaseOrderForm
-      order={order}
+      order={orderResult as SuperJSONResult}
       vendors={vendors.data}
       products={products.products}
       readonly

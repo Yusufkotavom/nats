@@ -10,35 +10,58 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Activity, AlertTriangle, Box, DollarSign } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  Box,
+  DollarSign,
+  Loader2,
+} from "lucide-react";
 import { getInventoryDashboardMetrics } from "./actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useQuery } from "@tanstack/react-query";
+import { SuperJSON } from "@/lib/superjson";
+import {
+  Inventory,
+  InventoryMovement,
+  Product,
+  Warehouse,
+} from "@/prisma/generated/prisma/browser";
 
-type DashboardMetrics = Awaited<
-  ReturnType<typeof getInventoryDashboardMetrics>
->;
+type InventoryWithRelations = Inventory & {
+  product: Product;
+  warehouse: Warehouse;
+};
 
-interface Movement {
-  id: string;
-  type: string;
-  createdAt: string | Date;
-  product?: { name: string };
-  quantity?: number;
-}
+type MovementWithRelations = InventoryMovement & {
+  product: Product;
+  fromWarehouse: Warehouse | null;
+  toWarehouse: Warehouse | null;
+};
 
 export default function InventoryDashboardPage() {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const formatCurrency = useFormatCurrency();
 
-  useEffect(() => {
-    getInventoryDashboardMetrics().then(setMetrics);
-  }, []);
+  const { data: metrics, isLoading } = useQuery({
+    queryKey: ["inventory-dashboard-metrics"],
+    queryFn: async () => {
+      const data = await getInventoryDashboardMetrics();
+      return {
+        ...data,
+        lowStockItems: SuperJSON.deserialize<InventoryWithRelations[]>(
+          data.lowStockItems,
+        ),
+        recentMovements: SuperJSON.deserialize<MovementWithRelations[]>(
+          data.recentMovements,
+        ),
+      };
+    },
+  });
 
-  if (!metrics) {
+  if (isLoading || !metrics) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Loading dashboard...
+      <div className="flex h-[400px] w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -104,7 +127,7 @@ export default function InventoryDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{recentMovements.length}</div>
             <p className="text-xs text-muted-foreground">
-              In the last 24 hours
+              Movements in last 24h
             </p>
           </CardContent>
         </Card>
@@ -113,68 +136,65 @@ export default function InventoryDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Recent Movements</CardTitle>
+            <CardTitle>Low Stock Items</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Warehouse</TableHead>
+                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead className="text-right">Reorder Point</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(recentMovements as unknown as Movement[]).map((movement) => (
-                  <TableRow key={movement.id}>
-                    <TableCell className="font-medium">
-                      {movement.product?.name}
-                    </TableCell>
-                    <TableCell>{movement.type}</TableCell>
-                    <TableCell
-                      className={
-                        (movement.quantity || 0) < 0
-                          ? "text-red-500"
-                          : "text-green-500"
-                      }
-                    >
-                      {movement.quantity}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(movement.createdAt), "MMM d, HH:mm")}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {Array.isArray(lowStockItems) &&
+                  lowStockItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">
+                        {item.product.name}
+                      </TableCell>
+                      <TableCell>{item.warehouse.name}</TableCell>
+                      <TableCell className="text-right text-red-500 font-bold">
+                        {item.quantity}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.reorderPoint}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Low Stock Alerts</CardTitle>
+            <CardTitle>Recent Movements</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              {lowStockItems.map((item) => (
-                <div key={item.id} className="flex items-center">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {item.product.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.warehouse.name}
-                    </p>
+              {Array.isArray(recentMovements) &&
+                recentMovements.map((movement) => (
+                  <div key={movement.id} className="flex items-center">
+                    <div className="ml-4 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {movement.product?.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {movement.type} •{" "}
+                        {format(new Date(movement.createdAt), "PP")}
+                      </p>
+                    </div>
+                    <div className="ml-auto font-medium">
+                      {movement.type === "IN" ? "+" : "-"}
+                    </div>
                   </div>
-                  <div className="ml-auto font-medium text-red-500">
-                    {item.quantity} / {item.reorderPoint}
-                  </div>
+                ))}
+              {recentMovements.length === 0 && (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  No recent movements
                 </div>
-              ))}
-              {lowStockItems.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No items are currently low on stock.
-                </p>
               )}
             </div>
           </CardContent>

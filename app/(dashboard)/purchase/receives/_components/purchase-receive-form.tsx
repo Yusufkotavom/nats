@@ -52,22 +52,56 @@ import { format } from "date-fns";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { generateId } from "@/lib/utils";
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+import { PurchaseReceiveWithDetails } from "../types";
+import { PurchaseOrderWithDetails } from "../../orders/types";
+
+interface ProductForSelect {
+  id: string;
+  name: string;
+  sku: string;
+  baseUnit: { symbol: string } | null;
+  purchaseUnit: { symbol: string } | null;
+}
+
+interface PurchaseOrderForSelect {
+  id: string;
+  orderNumber: string;
+  contactId: string;
+  contact: { name: string };
+  items: {
+    id: string;
+    productId: string;
+    quantity: number;
+    receivedQuantity: number;
+  }[];
+}
 
 interface PurchaseReceiveFormProps {
-  receive?: Awaited<ReturnType<typeof getPurchaseReceive>>;
+  receive?: SuperJSONResult | null;
   vendors: Awaited<ReturnType<typeof getContacts>>["data"];
-  products: Awaited<ReturnType<typeof getProducts>>;
-  purchaseOrders: Awaited<ReturnType<typeof getPurchaseOrdersForSelect>>;
+  products: SuperJSONResult;
+  purchaseOrders: SuperJSONResult;
   readonly?: boolean;
 }
 
 export function PurchaseReceiveForm({
-  receive,
+  receive: serializedReceive,
   vendors,
-  products,
-  purchaseOrders,
+  products: serializedProducts,
+  purchaseOrders: serializedPurchaseOrders,
   readonly = false,
 }: PurchaseReceiveFormProps) {
+  const receive = serializedReceive
+    ? SuperJSON.deserialize<PurchaseReceiveWithDetails>(serializedReceive)
+    : undefined;
+  const products =
+    SuperJSON.deserialize<ProductForSelect[]>(serializedProducts);
+  const purchaseOrders = SuperJSON.deserialize<PurchaseOrderForSelect[]>(
+    serializedPurchaseOrders,
+  );
+
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!receive;
@@ -96,7 +130,7 @@ export function PurchaseReceiveForm({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -112,7 +146,7 @@ export function PurchaseReceiveForm({
   };
 
   const [status, setStatus] = useState<"DRAFT" | "COMPLETED" | "CANCELLED">(
-    receive?.status || "DRAFT"
+    receive?.status || "DRAFT",
   );
 
   // When Purchase Order is selected, populate items
@@ -121,8 +155,10 @@ export function PurchaseReceiveForm({
 
     if (poId) {
       try {
-        const po = await getPurchaseOrder(poId);
-        if (po) {
+        const serializedPo = await getPurchaseOrder(poId);
+        if (serializedPo) {
+          const po =
+            SuperJSON.deserialize<PurchaseOrderWithDetails>(serializedPo);
           // Auto-select vendor
           setFormData((prev) => ({ ...prev, contactId: po.contactId }));
 
@@ -161,7 +197,7 @@ export function PurchaseReceiveForm({
   const handleItemChange = (
     index: number,
     field: keyof (typeof formData.items)[0],
-    value: string | number | undefined
+    value: string | number | undefined,
   ) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
@@ -398,7 +434,7 @@ export function PurchaseReceiveForm({
                                   readonly || !!item.purchaseOrderItemId
                                 }
                               >
-                                {products.map((p) => (
+                                {products?.map((p) => (
                                   <SelectItem key={p.id} value={p.id}>
                                     {p.name} ({p.sku})
                                   </SelectItem>
@@ -414,7 +450,7 @@ export function PurchaseReceiveForm({
                                   handleItemChange(
                                     index,
                                     "quantity",
-                                    parseInt(e.target.value) || 0
+                                    parseInt(e.target.value) || 0,
                                   )
                                 }
                                 disabled={readonly}

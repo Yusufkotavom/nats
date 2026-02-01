@@ -65,6 +65,32 @@ model PurchaseOrderItem {
   updatedAt DateTime @updatedAt
 }
 
+model PurchasePayment {
+  id            String  @id @default(cuid())
+  paymentNumber String  @unique
+  contactId     String
+  contact       Contact @relation(fields: [contactId], references: [id])
+
+  purchaseInvoiceId String
+  purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id])
+
+  paymentDate DateTime @default(now())
+  amount      Decimal
+  reference   String?
+  notes       String?
+
+  // Link to Cash/Bank Account
+  cashAccountId String
+  cashAccount   CashAccount @relation(fields: [cashAccountId], references: [id])
+
+  // Link to Journal Entry
+  journalEntryId String?       @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum PurchaseReceiveStatus {
   DRAFT
   COMPLETED
@@ -138,8 +164,9 @@ model PurchaseInvoice {
 
   notes String?
 
-  items   PurchaseInvoiceItem[]
-  returns PurchaseReturn[]
+  items    PurchaseInvoiceItem[]
+  returns  PurchaseReturn[]
+  payments PurchasePayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

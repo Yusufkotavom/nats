@@ -75,11 +75,11 @@ const data = {
       icon: Landmark,
       items: [
         {
-          title: "Accounts",
+          title: "Overview",
           url: "/cash-bank",
         },
         {
-          title: "Revenue & Expense",
+          title: "Cash In & Out",
           url: "/cash-bank/transaction",
         },
         {
@@ -143,6 +143,10 @@ const data = {
         {
           title: "Purchase Return",
           url: "/purchase/returns",
+        },
+        {
+          title: "Purchase Payments",
+          url: "/purchase/payments",
         },
       ],
     },

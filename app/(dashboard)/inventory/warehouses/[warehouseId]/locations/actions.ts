@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { LocationType } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
+import { SuperJSON } from "@/lib/superjson";
 
 export async function getLocations(
   warehouseId: string,
@@ -24,14 +25,17 @@ export async function getLocations(
     }),
   ]);
 
-  return { locations, total };
+  return {
+    locations: SuperJSON.serialize(locations),
+    total,
+  };
 }
 
 export async function getWarehouse(warehouseId: string) {
     const warehouse = await prisma.warehouse.findUnique({
         where: { id: warehouseId }
     });
-    return warehouse;
+    return SuperJSON.serialize(warehouse);
 }
 
 export const createLocation = authorizedAction(

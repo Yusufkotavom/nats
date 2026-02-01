@@ -10,14 +10,7 @@ import {
   List,
 } from "lucide-react";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable, Column } from "@/components/ui/data-table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,14 +18,33 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { getAvailableGLAccounts, getDashboardStats } from "../actions";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SuperJSON } from "@/lib/superjson";
+import {
+  JournalEntryLine,
+  JournalEntry,
+  Account,
+} from "@/prisma/generated/prisma/client";
+
+type RecentTransaction = JournalEntryLine & {
+  journalEntry: JournalEntry;
+  account: Account;
+};
 
 export function DashboardView() {
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ["cash-bank", "dashboard-stats"],
-    queryFn: () => getDashboardStats(),
+    queryKey: ["cash-bank"],
+    queryFn: async () => {
+      const data = await getDashboardStats();
+      return {
+        ...data,
+        recentTransactions: SuperJSON.deserialize<RecentTransaction[]>(
+          data.recentTransactions,
+        ),
+      };
+    },
   });
 
   const { data: glAccounts, isLoading: isLoadingGL } = useQuery({
@@ -40,11 +52,65 @@ export function DashboardView() {
     queryFn: () => getAvailableGLAccounts(),
   });
 
+  const columns: Column<RecentTransaction>[] = [
+    {
+      header: "Date",
+      cell: (item) => formatDate(item.journalEntry.transactionDate),
+    },
+    {
+      header: "Entry #",
+      cell: (item) => (
+        <Link
+          href={`/accounting/journal-entries/${item.journalEntry.id}`}
+          className="text-primary hover:underline font-medium"
+          target="_blank"
+        >
+          {item.journalEntry.entryNumber}
+        </Link>
+      ),
+    },
+    {
+      header: "Account",
+      cell: (item) => `${item.account.code} - ${item.account.name}`,
+    },
+    {
+      header: "Description",
+      cell: (item) => (
+        <span className="truncate block max-w-[200px]">
+          {item.description || item.journalEntry.description}
+        </span>
+      ),
+    },
+    {
+      header: "Debit",
+      headerClassName: "text-right",
+      className: "text-right font-medium",
+      cell: (item) =>
+        Number(item.debitAmount) > 0
+          ? formatCurrency(Number(item.debitAmount))
+          : "-",
+    },
+    {
+      header: "Credit",
+      headerClassName: "text-right",
+      className: "text-right font-medium",
+      cell: (item) =>
+        Number(item.creditAmount) > 0
+          ? formatCurrency(Number(item.creditAmount))
+          : "-",
+    },
+    {
+      header: "Status",
+      cell: (item) => <StatusBadge status={item.journalEntry.status} />,
+    },
+  ];
+
   if (isLoadingStats || isLoadingGL || !stats || !glAccounts) {
     return <Skeleton className="h-[400px] w-full" />;
   }
 
   const { accounts, summary, recentTransactions } = stats;
+  console.log({ stats });
 
   return (
     <div className="space-y-6">
@@ -119,67 +185,11 @@ export function DashboardView() {
             </div>
             <Card className="p-0">
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader className="[&_tr]:border-b bg-muted sticky top-0 z-10">
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Entry #</TableHead>
-                      <TableHead>Account</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Debit</TableHead>
-                      <TableHead className="text-right">Credit</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentTransactions.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          No recent transactions found.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      recentTransactions.map((line) => (
-                        <TableRow key={line.id}>
-                          <TableCell>
-                            {formatDate(line.journalEntry.transactionDate)}
-                          </TableCell>
-                          <TableCell>
-                            <Link
-                              href={`/accounting/journal-entries/${line.journalEntry.id}`}
-                              className="text-primary hover:underline font-medium"
-                              target="_blank"
-                            >
-                              {line.journalEntry.entryNumber}
-                            </Link>
-                          </TableCell>
-                          <TableCell>
-                            {line.account.code} - {line.account.name}
-                          </TableCell>
-                          <TableCell className="text-xs truncate">
-                            {line.description || line.journalEntry.description}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {Number(line.debitAmount) > 0
-                              ? formatCurrency(Number(line.debitAmount))
-                              : "-"}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {Number(line.creditAmount) > 0
-                              ? formatCurrency(Number(line.creditAmount))
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={line.journalEntry.status} />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <DataTable
+                  data={recentTransactions || []}
+                  columns={columns}
+                  emptyMessage="No recent transactions found."
+                />
               </CardContent>
             </Card>
           </div>

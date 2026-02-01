@@ -50,6 +50,7 @@ model JournalEntry {
   // Cash & Bank Relations
   cashTransfer    CashTransfer?
   cashTransaction CashTransaction?
+  purchasePayment PurchasePayment?
 
   @@index([transactionDate])
   @@index([status])

@@ -48,7 +48,14 @@ import { NoteDialog } from "@/components/ui/note-dialog";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { MentionsList } from "./mentions-list";
 import { generateId } from "@/lib/utils";
-import { Decimal } from "@/prisma/generated/prisma/internal/prismaNamespace";
+import { Decimal } from "decimal.js";
+import {
+  PageFormLayout,
+  PageFormHeader,
+  PageFormTitle,
+  PageFormActions,
+  PageFormContent,
+} from "@/components/layout/page/form-layout";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -69,10 +76,10 @@ export function JournalEntryForm({
 }: JournalEntryFormProps) {
   const formatCurrency = useFormatCurrency();
   const leafAccounts = accounts.filter(
-    (a) => !a.children || a.children.length === 0
+    (a) => !a.children || a.children.length === 0,
   );
   const [formData, setFormData] = useState<CreateJournalEntryData>(
-    initialData as CreateJournalEntryData
+    initialData as CreateJournalEntryData,
   );
 
   const [activeMention, setActiveMention] = useState<{
@@ -84,7 +91,7 @@ export function JournalEntryForm({
 
   const handleDescriptionChange = (
     index: number,
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = e.target.value;
     updateLine(index, "description", value);
@@ -109,7 +116,7 @@ export function JournalEntryForm({
     if (!activeMention) return;
 
     const filtered = contacts.filter((c) =>
-      c.name.toLowerCase().includes(activeMention.query.toLowerCase())
+      c.name.toLowerCase().includes(activeMention.query.toLowerCase()),
     );
 
     if (e.key === "ArrowDown") {
@@ -187,7 +194,7 @@ export function JournalEntryForm({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -205,14 +212,20 @@ export function JournalEntryForm({
     }
   };
 
-  const totalDebit = formData?.lines?.reduce(
-    (sum, line) => line?.debitAmount?.add(sum),
-    new Prisma.Decimal(0)
-  );
-  const totalCredit = formData?.lines?.reduce(
-    (sum, line) => line?.creditAmount?.add(sum),
-    new Prisma.Decimal(0)
-  );
+  const totalDebit = formData?.lines?.reduce((sum, line) => {
+    const amount =
+      line.debitAmount instanceof Decimal
+        ? line.debitAmount
+        : new Decimal(line.debitAmount || 0);
+    return sum.add(amount);
+  }, new Decimal(0));
+  const totalCredit = formData?.lines?.reduce((sum, line) => {
+    const amount =
+      line.creditAmount instanceof Decimal
+        ? line.creditAmount
+        : new Decimal(line.creditAmount || 0);
+    return sum.add(amount);
+  }, new Decimal(0));
   const isBalanced = totalCredit.equals(totalDebit);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,11 +242,17 @@ export function JournalEntryForm({
       return;
     }
 
-    const validLines = formData.lines.filter(
-      (l) =>
-        l.accountId &&
-        (l.debitAmount.toNumber() > 0 || l.creditAmount.toNumber() > 0)
-    );
+    const validLines = formData.lines.filter((l) => {
+      const debit =
+        l.debitAmount instanceof Decimal
+          ? l.debitAmount.toNumber()
+          : Number(l.debitAmount || 0);
+      const credit =
+        l.creditAmount instanceof Decimal
+          ? l.creditAmount.toNumber()
+          : Number(l.creditAmount || 0);
+      return l.accountId && (debit > 0 || credit > 0);
+    });
 
     if (validLines.length < 2) {
       setError("At least two lines with accounts and amounts are required");
@@ -246,7 +265,7 @@ export function JournalEntryForm({
   const updateLine = (
     index: number,
     field: string,
-    value: string | Decimal
+    value: string | Decimal,
   ) => {
     if (!formData) return;
     const newLines = [...formData.lines];
@@ -265,12 +284,12 @@ export function JournalEntryForm({
           accountId: "",
           account: { name: "", code: "" },
           contact: null,
-          journalEntryId: formData.id,
-          runningBalance: null,
+          // journalEntryId: formData.id, // removed extra property
+          // runningBalance: null, // removed extra property
           contactId: null,
           lineNumber: formData.lines.length,
-          debitAmount: new Prisma.Decimal(0),
-          creditAmount: new Prisma.Decimal(0),
+          debitAmount: new Decimal(0),
+          creditAmount: new Decimal(0),
           description: "",
         },
       ],
@@ -293,16 +312,14 @@ export function JournalEntryForm({
 
   return (
     formData && (
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold tracking-tight">
-              {initialData?.entryNumber
-                ? `Edit Journal Entry`
-                : "New Journal Entry"}
-            </h2>
-          </div>
-          <div className="flex justify-end gap-2">
+      <PageFormLayout>
+        <PageFormHeader>
+          <PageFormTitle>
+            {initialData?.entryNumber
+              ? `Edit Journal Entry`
+              : "New Journal Entry"}
+          </PageFormTitle>
+          <PageFormActions>
             <Button
               type="button"
               variant="outline"
@@ -320,10 +337,10 @@ export function JournalEntryForm({
               <Save />
               {isSubmitting ? "Saving..." : "Save"}
             </Button>
-          </div>
-        </div>
+          </PageFormActions>
+        </PageFormHeader>
 
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <PageFormContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex gap-4">
               <CustomInput
@@ -384,11 +401,14 @@ export function JournalEntryForm({
                   </TableHeader>
                   <TableBody>
                     <SortableContext
-                      items={formData.lines}
+                      items={formData.lines.map((l) => ({
+                        ...l,
+                        id: l.id || "",
+                      }))}
                       strategy={verticalListSortingStrategy}
                     >
                       {formData.lines.map((line, index) => (
-                        <SortableTableRow key={line.id} id={line.id}>
+                        <SortableTableRow key={line.id} id={line.id || ""}>
                           <TableCell>
                             <SearchableSelect
                               value={line.accountId}
@@ -417,7 +437,7 @@ export function JournalEntryForm({
                               {line.contactId &&
                                 (() => {
                                   const contact = contacts.find(
-                                    (c) => c.id === line.contactId
+                                    (c) => c.id === line.contactId,
                                   );
                                   if (!contact) return null;
 
@@ -459,12 +479,16 @@ export function JournalEntryForm({
                           <TableCell>
                             <CurrencyInput
                               className="text-right border-0"
-                              value={line?.debitAmount?.toNumber() || 0}
+                              value={
+                                line.debitAmount instanceof Decimal
+                                  ? line.debitAmount.toNumber()
+                                  : Number(line.debitAmount || 0)
+                              }
                               onChange={(val) =>
                                 updateLine(
                                   index,
                                   "debitAmount",
-                                  new Prisma.Decimal(val)
+                                  new Decimal(val),
                                 )
                               }
                               onFocus={(e) => e.target.select()}
@@ -473,12 +497,16 @@ export function JournalEntryForm({
                           <TableCell>
                             <CurrencyInput
                               className="text-right border-0"
-                              value={line.creditAmount.toNumber()}
+                              value={
+                                line.creditAmount instanceof Decimal
+                                  ? line.creditAmount.toNumber()
+                                  : Number(line.creditAmount || 0)
+                              }
                               onChange={(val) =>
                                 updateLine(
                                   index,
                                   "creditAmount",
-                                  new Prisma.Decimal(val)
+                                  new Decimal(val),
                                 )
                               }
                               onFocus={(e) => e.target.select()}
@@ -525,7 +553,7 @@ export function JournalEntryForm({
                           className="text-right font-bold text-red-600"
                         >
                           {formatCurrency(
-                            totalDebit.sub(totalCredit).toNumber()
+                            totalDebit.sub(totalCredit).toNumber(),
                           )}
                         </TableCell>
                         <TableCell></TableCell>
@@ -553,8 +581,8 @@ export function JournalEntryForm({
                     onClick={() => setIsAttachmentDialogOpen(true)}
                   >
                     <Paperclip className="mr-2 h-3 w-3" />
-                    {formData.attachments.length > 0
-                      ? `${formData.attachments.length} Attachments`
+                    {(formData.attachments?.length || 0) > 0
+                      ? `${formData.attachments?.length} Attachments`
                       : "Attach File"}
                   </Button>
                   <Button
@@ -572,7 +600,7 @@ export function JournalEntryForm({
                 <AttachmentDialog
                   open={isAttachmentDialogOpen}
                   onOpenChange={setIsAttachmentDialogOpen}
-                  attachments={formData.attachments}
+                  attachments={formData.attachments || []}
                   onAttachmentsChange={(newAttachments) => {
                     setFormData((prev) => ({
                       ...prev,
@@ -592,11 +620,11 @@ export function JournalEntryForm({
               </div>
             </div>
           </form>
-        </div>
+        </PageFormContent>
         {activeMention && activeMention.rect && (
           <MentionsList
             contacts={contacts.filter((c) =>
-              c.name.toLowerCase().includes(activeMention.query.toLowerCase())
+              c.name.toLowerCase().includes(activeMention.query.toLowerCase()),
             )}
             selectedIndex={activeMention.selectedIndex}
             onSelect={handleSelectContact}
@@ -606,7 +634,7 @@ export function JournalEntryForm({
             }}
           />
         )}
-      </div>
+      </PageFormLayout>
     )
   );
 }

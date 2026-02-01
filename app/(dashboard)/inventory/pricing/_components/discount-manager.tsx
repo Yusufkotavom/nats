@@ -14,19 +14,14 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Plus, Trash2, Tag } from "lucide-react";
-import { Discount, DiscountType } from "@/prisma/generated/prisma/client";
-import {
-  createAndAssignDiscount,
-  getPricingProducts,
-  removeDiscountFromProduct,
-} from "../actions";
+import { DiscountType } from "@/prisma/generated/prisma/client";
+import { PricingProductWithDetails } from "../types";
+import { createAndAssignDiscount, removeDiscountFromProduct } from "../actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
 
-type DiscountProps = Awaited<
-  ReturnType<typeof getPricingProducts>
->["products"][number]["discounts"][number];
+type DiscountProps = PricingProductWithDetails["discounts"][number];
 
 interface DiscountManagerProps {
   productId: string;
@@ -51,7 +46,7 @@ export function DiscountManager({
   const [type, setType] = useState<DiscountType>("PERCENTAGE");
   const [value, setValue] = useState("");
   const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [endDate, setEndDate] = useState("");
   const [minQuantity, setMinQuantity] = useState("");

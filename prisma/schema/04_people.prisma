@@ -22,5 +22,6 @@ model Contact {
     purchaseReceives PurchaseReceive[]
     purchaseInvoices PurchaseInvoice[]
     purchaseReturns  PurchaseReturn[]
+    purchasePayments PurchasePayment[]
     journalEntryLines JournalEntryLine[]
 }

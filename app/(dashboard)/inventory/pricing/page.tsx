@@ -1,8 +1,11 @@
+import { QueryClient } from "@tanstack/react-query";
 import { getCategories, getPricingProducts } from "./actions";
 import { BatchPricingForm } from "./_components/batch-pricing-form";
 import { IndividualPricingTable } from "./_components/individual-pricing-table";
 import { Protect } from "@/components/ui/protect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SuperJSON } from "@/lib/superjson";
+import { PricingProductWithDetails } from "./types";
 
 export default async function PricingPage({
   searchParams,
@@ -18,12 +21,26 @@ export default async function PricingPage({
   const search = params.search || "";
   const categoryId = params.categoryId || "ALL";
 
-  const [categories, productsData] = await Promise.all([
-    getCategories(),
-    getPricingProducts(page, 10, search, categoryId),
-  ]);
+  const queryClient = new QueryClient();
 
-  const { products, totalPages, total } = productsData;
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: ["categories"],
+      queryFn: getCategories,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["pricing-products", { page, search, categoryId }],
+      queryFn: async () => {
+        const res = await getPricingProducts(page, 10, search, categoryId);
+        return {
+          ...res,
+          products: SuperJSON.deserialize<PricingProductWithDetails[]>(
+            res.products,
+          ),
+        };
+      },
+    }),
+  ]);
 
   return (
     <div className="flex-1 space-y-4 px-4">
@@ -43,7 +60,7 @@ export default async function PricingPage({
             permission="products.edit"
             fallback={<div>You do not have permission to manage pricing.</div>}
           >
-            <BatchPricingForm categories={categories} />
+            <BatchPricingForm />
           </Protect>
         </TabsContent>
         <TabsContent value="individual" className="space-y-4">
@@ -51,12 +68,7 @@ export default async function PricingPage({
             permission="products.edit"
             fallback={<div>You do not have permission to manage pricing.</div>}
           >
-            <IndividualPricingTable
-              initialProducts={products}
-              categories={categories}
-              totalPages={totalPages}
-              totalEntries={total}
-            />
+            <IndividualPricingTable />
           </Protect>
         </TabsContent>
       </Tabs>

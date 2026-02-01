@@ -2,32 +2,38 @@
 
 import { Button } from "@/components/ui/button";
 import { DataTable, Column } from "@/components/ui/data-table";
-import {
-  TableFooter,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+import { TableFooter, TableRow, TableCell } from "@/components/ui/table";
 import Link from "next/link";
 import { Pencil, Paperclip, ArrowLeft } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { getJournalEntry } from "../actions";
+import { Decimal } from "decimal.js";
+import { JournalEntryWithDetails } from "../../types";
 
 export function JournalEntryDetails({
   entry,
 }: {
-  entry: Awaited<ReturnType<typeof getJournalEntry>>["data"];
+  entry: JournalEntryWithDetails;
 }) {
   const router = useRouter();
 
   const totalDebit = entry?.lines.reduce(
-    (sum: number, line: any) => sum + Number(line.debitAmount),
-    0
+    (sum: number, line: any) =>
+      sum +
+      (line.debitAmount instanceof Decimal
+        ? line.debitAmount.toNumber()
+        : Number(line.debitAmount || 0)),
+    0,
   );
   const totalCredit = entry?.lines.reduce(
-    (sum: number, line: any) => sum + Number(line.creditAmount),
-    0
+    (sum: number, line: any) =>
+      sum +
+      (line.creditAmount instanceof Decimal
+        ? line.creditAmount.toNumber()
+        : Number(line.creditAmount || 0)),
+    0,
   );
 
   const columns: Column<any>[] = [
@@ -55,19 +61,25 @@ export function JournalEntryDetails({
       header: "Debit",
       headerClassName: "text-right",
       className: "text-right",
-      cell: (line) =>
-        Number(line.debitAmount) > 0
-          ? formatCurrency(Number(line.debitAmount))
-          : "-",
+      cell: (line) => {
+        const amount =
+          line.debitAmount instanceof Decimal
+            ? line.debitAmount.toNumber()
+            : Number(line.debitAmount || 0);
+        return amount > 0 ? formatCurrency(amount) : "-";
+      },
     },
     {
       header: "Credit",
       headerClassName: "text-right",
       className: "text-right",
-      cell: (line) =>
-        Number(line.creditAmount) > 0
-          ? formatCurrency(Number(line.creditAmount))
-          : "-",
+      cell: (line) => {
+        const amount =
+          line.creditAmount instanceof Decimal
+            ? line.creditAmount.toNumber()
+            : Number(line.creditAmount || 0);
+        return amount > 0 ? formatCurrency(amount) : "-";
+      },
     },
   ];
 

@@ -26,10 +26,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     <PurchaseReceiveForm
       receive={receive}
       vendors={vendors.data}
-      products={products.map((p) => ({
-        ...p,
-        cost: 0,
-      }))}
+      products={products}
       purchaseOrders={purchaseOrders}
     />
   );

@@ -1,9 +1,11 @@
 "use server";
 
-import { prisma, serializePrisma } from "@/lib/prisma";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { Prisma, DiscountType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getPaginationMetadata } from "@/lib/pagination";
+import { SuperJSON } from "@/lib/superjson";
 
 /**
  * Fetch all accounts that can be posted to (isPosting = true).
@@ -136,7 +138,7 @@ export const getAccountHistory = authorizedAction(
         }),
       ]);
 
-      const finalLines = serializePrisma(lines);
+      const finalLines = SuperJSON.serialize(lines);
 
       return {
         success: true,
@@ -154,5 +156,5 @@ export const getAccountHistory = authorizedAction(
       console.error("Error fetching ledger entries:", error);
       return { success: false, error: "Failed to fetch ledger entries" };
     }
-  }
+  },
 );
