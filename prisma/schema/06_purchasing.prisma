@@ -87,6 +87,8 @@ model PurchasePayment {
   journalEntryId String?       @unique
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
 
+  attachments File[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

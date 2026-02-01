@@ -1,9 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Eye, BookOpen } from "lucide-react";
 import Link from "next/link";
-import { getPurchasePayments, deletePurchasePayment } from "./actions";
+import {
+  getPurchasePayments,
+  deletePurchasePayment,
+  postPurchasePayment,
+} from "./actions";
 import { Protect } from "@/components/ui/protect";
 import {
   PageListActions,
@@ -14,10 +18,12 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { PurchasePaymentFilters } from "./_components/purchase-payment-filters";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchasePaymentWithDetails } from "./types";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -60,6 +66,30 @@ export default function PurchasePaymentsPage() {
 
   const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handlePost = async (id: string) => {
+    if (
+      await confirm({
+        title: "Post Payment",
+        description:
+          "Are you sure you want to post this payment to the ledger? This action cannot be undone.",
+      })
+    ) {
+      const result = await postPurchasePayment(id);
+      if (result.success) {
+        toast({ title: "Success", description: "Payment posted successfully" });
+        queryClient.invalidateQueries({ queryKey: ["purchase-payments"] });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (
@@ -71,6 +101,7 @@ export default function PurchasePaymentsPage() {
       })
     ) {
       await deletePurchasePayment(id);
+      queryClient.invalidateQueries({ queryKey: ["purchase-payments"] });
     }
   };
 
@@ -97,6 +128,7 @@ export default function PurchasePaymentsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Payment #</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Vendor</TableHead>
               <TableHead>Invoice #</TableHead>
@@ -125,6 +157,23 @@ export default function PurchasePaymentsPage() {
                     {payment.paymentNumber}
                   </TableCell>
                   <TableCell>
+                    {payment.journalEntryId ? (
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-200"
+                      >
+                        Posted
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                      >
+                        Unposted
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     {format(new Date(payment.paymentDate), "dd/MM/yyyy")}
                   </TableCell>
                   <TableCell>{payment.contact.name}</TableCell>
@@ -146,6 +195,20 @@ export default function PurchasePaymentsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href={`/purchase/payments/${payment.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        {!payment.journalEntryId && (
+                          <Protect permission="purchase.create">
+                            <DropdownMenuItem onClick={() => handlePost(payment.id)}>
+                              <BookOpen className="mr-2 h-4 w-4" />
+                              Post to Ledger
+                            </DropdownMenuItem>
+                          </Protect>
+                        )}
                         <Protect permission="purchase.delete">
                           <DropdownMenuItem
                             onClick={() => handleDelete(payment.id)}

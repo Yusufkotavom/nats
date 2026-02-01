@@ -9,6 +9,7 @@ export type PurchasePaymentInput = {
   reference?: string;
   notes?: string;
   cashAccountId: string;
+  attachmentIds?: string[];
 };
 
 export type PurchasePaymentWithDetails = Prisma.PurchasePaymentGetPayload<{
@@ -16,5 +17,7 @@ export type PurchasePaymentWithDetails = Prisma.PurchasePaymentGetPayload<{
     contact: true;
     purchaseInvoice: true;
     cashAccount: true;
+    journalEntry: true;
+    attachments: true;
   };
 }>;

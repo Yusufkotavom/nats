@@ -27,6 +27,7 @@ interface AttachmentDialogProps {
     file?: { id: string; name: string; url: string };
     error?: string;
   }>;
+  readonly?: boolean;
 }
 
 export function AttachmentDialog({
@@ -35,6 +36,7 @@ export function AttachmentDialog({
   attachments,
   onAttachmentsChange,
   uploadAction,
+  readonly = false,
 }: AttachmentDialogProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,31 +94,33 @@ export function AttachmentDialog({
             <h3 className="text-sm font-medium">
               Files ({attachments.length})
             </h3>
-            <div className="relative">
-              <input
-                type="file"
-                id="dialog-file-upload"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={isUploading}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  document.getElementById("dialog-file-upload")?.click()
-                }
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-3 w-3" />
-                )}
-                {isUploading ? "Uploading..." : "Upload New"}
-              </Button>
-            </div>
+            {!readonly && (
+              <div className="relative">
+                <input
+                  type="file"
+                  id="dialog-file-upload"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    document.getElementById("dialog-file-upload")?.click()
+                  }
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-3 w-3" />
+                  )}
+                  {isUploading ? "Uploading..." : "Upload New"}
+                </Button>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -153,15 +157,17 @@ export function AttachmentDialog({
                           : file.name}
                       </span>
                     </a>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeAttachment(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Remove</span>
-                    </Button>
+                    {!readonly && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeAttachment(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Remove</span>
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

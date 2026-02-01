@@ -16,7 +16,7 @@ import {
 } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, Paperclip } from "lucide-react";
 import {
   PageFormActions,
   PageFormContent,
@@ -29,27 +29,50 @@ import {
   Contact,
   CashAccount,
 } from "@/prisma/generated/prisma/client";
-import { PurchasePaymentInput } from "../types";
+import { PurchasePaymentInput, PurchasePaymentWithDetails } from "../types";
 import { Card, CardContent } from "@/components/ui/card";
+import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
+import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 
-export function PurchasePaymentForm() {
+interface PurchasePaymentFormProps {
+  initialData?: PurchasePaymentWithDetails;
+  readonly?: boolean;
+}
+
+export function PurchasePaymentForm({
+  initialData,
+  readonly = false,
+}: PurchasePaymentFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState<PurchasePaymentInput>({
-    paymentNumber: "",
-    contactId: "",
-    purchaseInvoiceId: "",
-    paymentDate: new Date(),
-    amount: 0,
-    reference: "",
-    notes: "",
-    cashAccountId: "",
+    paymentNumber: initialData?.paymentNumber || "",
+    contactId: initialData?.contactId || "",
+    purchaseInvoiceId: initialData?.purchaseInvoiceId || "",
+    paymentDate: initialData?.paymentDate ? new Date(initialData.paymentDate) : new Date(),
+    amount: initialData ? Number(initialData.amount) : 0,
+    reference: initialData?.reference || "",
+    notes: initialData?.notes || "",
+    cashAccountId: initialData?.cashAccountId || "",
   });
 
   // Date string for input
-  const [dateStr, setDateStr] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [dateStr, setDateStr] = useState(
+    format(
+      initialData?.paymentDate ? new Date(initialData.paymentDate) : new Date(),
+      "yyyy-MM-dd",
+    ),
+  );
+  const [attachments, setAttachments] = useState<Attachment[]>(
+    initialData?.attachments?.map((a) => ({
+      id: a.id,
+      name: a.name,
+      url: a.url,
+    })) || [],
+  );
+  const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
 
   const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
     queryKey: ["unpaid-invoices"],
@@ -70,7 +93,7 @@ export function PurchasePaymentForm() {
   });
 
   useEffect(() => {
-    if (formData.purchaseInvoiceId && invoicesData) {
+    if (!initialData && formData.purchaseInvoiceId && invoicesData) {
       const invoice = invoicesData.find(
         (inv) => inv.id === formData.purchaseInvoiceId,
       );
@@ -126,6 +149,7 @@ export function PurchasePaymentForm() {
       const result = await createPurchasePayment({
         ...formData,
         paymentDate: new Date(dateStr),
+        attachmentIds: attachments.map((a) => a.id),
       });
 
       if (!result.success) throw new Error(result.error);
@@ -156,21 +180,31 @@ export function PurchasePaymentForm() {
     <PageFormLayout>
       <form onSubmit={handleSubmit}>
         <PageFormHeader>
-          <PageFormTitle title="New Payment" />
+          <PageFormTitle title={initialData ? "View Payment" : "New Payment"} />
           <PageFormActions>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAttachmentDialogOpen(true)}
+            >
+              <Paperclip className="mr-2 h-4 w-4" />
+              Attachments ({attachments.length})
+            </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
             >
-              Cancel
+              {readonly ? "Back" : "Cancel"}
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Save Payment
-            </Button>
+            {!readonly && (
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Save Payment
+              </Button>
+            )}
           </PageFormActions>
         </PageFormHeader>
         <PageFormContent className="grid gap-6 md:grid-cols-2 pt-6 mt-4">
@@ -181,6 +215,7 @@ export function PurchasePaymentForm() {
               setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
             }
             placeholder="Select invoice to pay"
+            disabled={readonly}
           >
             {invoicesData?.map((invoice) => {
               const totalPaid = invoice.payments.reduce(
@@ -210,19 +245,21 @@ export function PurchasePaymentForm() {
           />
 
           <CustomInput
-            label="Date"
+            label="Payment Date"
             type="date"
             value={dateStr}
             onChange={(e) => setDateStr(e.target.value)}
+            disabled={readonly}
           />
 
           <CustomSelect
-            label="Pay From"
+            label="Cash/Bank Account"
             value={formData.cashAccountId}
             onValueChange={(val) =>
               setFormData((prev) => ({ ...prev, cashAccountId: val }))
             }
             placeholder="Select account"
+            disabled={readonly}
           >
             {cashAccountsData?.map((account) => (
               <SelectItem key={account.id} value={account.id}>
@@ -234,6 +271,7 @@ export function PurchasePaymentForm() {
           <CustomInput
             label="Amount"
             type="number"
+            step="0.01"
             value={formData.amount}
             onChange={(e) =>
               setFormData((prev) => ({
@@ -241,6 +279,7 @@ export function PurchasePaymentForm() {
                 amount: Number(e.target.value),
               }))
             }
+            disabled={readonly}
           />
 
           <CustomInput
@@ -252,6 +291,7 @@ export function PurchasePaymentForm() {
                 reference: e.target.value,
               }))
             }
+            disabled={readonly}
           />
 
           <div className="col-span-2">
@@ -261,10 +301,19 @@ export function PurchasePaymentForm() {
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, notes: e.target.value }))
               }
+              disabled={readonly}
             />
           </div>
         </PageFormContent>
       </form>
+      <AttachmentDialog
+        open={attachmentDialogOpen}
+        onOpenChange={setAttachmentDialogOpen}
+        attachments={attachments}
+        onAttachmentsChange={setAttachments}
+        uploadAction={uploadFile}
+        readonly={readonly}
+      />
     </PageFormLayout>
   );
 }

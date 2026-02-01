@@ -62,6 +62,8 @@ model File {
   uploadedBy     User?         @relation(fields: [uploadedById], references: [id])
   journalEntryId String?
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  purchasePaymentId String?
+  purchasePayment   PurchasePayment? @relation(fields: [purchasePaymentId], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

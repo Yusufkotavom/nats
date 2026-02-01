@@ -43,6 +43,7 @@ export async function getPurchasePayments(
         contact: true,
         purchaseInvoice: true,
         cashAccount: true,
+        journalEntry: true,
       },
       orderBy: { createdAt: "desc" },
       skip,
@@ -72,6 +73,7 @@ export async function getPurchasePayment(id: string) {
           },
         },
       },
+      attachments: true,
     },
   });
   return SuperJSON.serialize(payment);
@@ -121,24 +123,7 @@ export const createPurchasePayment = authorizedAction(
 
       if (!cashAccount) throw new Error("Cash account not found");
 
-      // 2. Find AP Account
-      // Try to find by code 21100 or name "Accounts Payable"
-      const apAccount = await prisma.account.findFirst({
-        where: {
-          OR: [
-            { code: "21100" },
-            { name: { contains: "Accounts Payable", mode: "insensitive" } },
-          ],
-          type: "liability",
-        },
-      });
-
-      if (!apAccount)
-        throw new Error(
-          "Accounts Payable account not found. Please contact admin."
-        );
-
-      // 3. Check if overpaying
+      // 2. Check if overpaying
       // Calculate total paid so far
       const totalPaid = invoice.payments.reduce(
         (sum, p) => sum + Number(p.amount),
@@ -151,61 +136,8 @@ export const createPurchasePayment = authorizedAction(
         throw new Error(`Amount exceeds remaining balance of ${remaining}`);
       }
 
-      // 4. Create Transaction
+      // 3. Create Transaction
       const result = await prisma.$transaction(async (tx) => {
-        // Create Journal Entry
-        const je = await tx.journalEntry.create({
-          data: {
-            userId: session.userId,
-            entryNumber: `PAY-${data.paymentNumber}`,
-            transactionDate: data.paymentDate,
-            description: `Payment for Invoice #${invoice.invoiceNumber}`,
-            status: "posted",
-            postedAt: new Date(),
-            lines: {
-              create: [
-                {
-                  accountId: apAccount.id,
-                  debitAmount: data.amount,
-                  creditAmount: 0,
-                  description: `Payment for Invoice #${invoice.invoiceNumber}`,
-                  lineNumber: 1,
-                  contactId: data.contactId,
-                },
-                {
-                  accountId: cashAccount.glAccountId,
-                  debitAmount: 0,
-                  creditAmount: data.amount,
-                  description: `Payment from ${cashAccount.name}`,
-                  lineNumber: 2,
-                },
-              ],
-            },
-          },
-        });
-
-        // Create Cash Transaction
-        await tx.cashTransaction.create({
-          data: {
-            cashAccountId: data.cashAccountId,
-            type: CashTransactionType.EXPENSE,
-            date: data.paymentDate,
-            reference: data.reference,
-            description: `Payment for Invoice #${invoice.invoiceNumber}`,
-            note: data.notes,
-            journalEntryId: je.id,
-            status: "APPROVED",
-            approvedAt: new Date(),
-            allocations: {
-              create: {
-                accountId: apAccount.id,
-                amount: data.amount,
-                description: `Payment for Invoice #${invoice.invoiceNumber}`,
-              },
-            },
-          },
-        });
-
         // Create Purchase Payment
         const payment = await tx.purchasePayment.create({
           data: {
@@ -217,7 +149,9 @@ export const createPurchasePayment = authorizedAction(
             reference: data.reference,
             notes: data.notes,
             cashAccountId: data.cashAccountId,
-            journalEntryId: je.id,
+            attachments: {
+              connect: data.attachmentIds?.map((id) => ({ id })),
+            },
           },
         });
 
@@ -246,6 +180,120 @@ export const createPurchasePayment = authorizedAction(
       return {
         success: false,
         error: error instanceof Error ? error.message : "Failed to create Payment",
+      };
+    }
+  }
+);
+
+export const postPurchasePayment = authorizedAction(
+  "purchase.create",
+  async (id: string) => {
+    try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
+
+      const payment = await prisma.purchasePayment.findUnique({
+        where: { id },
+        include: {
+          purchaseInvoice: true,
+          cashAccount: true,
+        },
+      });
+
+      if (!payment) throw new Error("Payment not found");
+      if (payment.journalEntryId) throw new Error("Payment already posted");
+
+      const invoice = payment.purchaseInvoice;
+      const cashAccount = payment.cashAccount;
+
+      // Find AP Account
+      const apAccount = await prisma.account.findFirst({
+        where: {
+          OR: [
+            { code: "21100" },
+            { name: { contains: "Accounts Payable", mode: "insensitive" } },
+          ],
+          type: "liability",
+        },
+      });
+
+      if (!apAccount)
+        throw new Error(
+          "Accounts Payable account not found. Please contact admin."
+        );
+
+      await prisma.$transaction(async (tx) => {
+        // Create Journal Entry
+        const je = await tx.journalEntry.create({
+          data: {
+            userId: session.userId,
+            entryNumber: `PAY-${payment.paymentNumber}`,
+            transactionDate: payment.paymentDate,
+            description: `Payment for Invoice #${invoice.invoiceNumber}`,
+            status: "posted",
+            postedAt: new Date(),
+            lines: {
+              create: [
+                {
+                  accountId: apAccount.id,
+                  debitAmount: payment.amount,
+                  creditAmount: 0,
+                  description: `Payment for Invoice #${invoice.invoiceNumber}`,
+                  lineNumber: 1,
+                  contactId: payment.contactId,
+                },
+                {
+                  accountId: cashAccount.glAccountId,
+                  debitAmount: 0,
+                  creditAmount: payment.amount,
+                  description: `Payment from ${cashAccount.name}`,
+                  lineNumber: 2,
+                },
+              ],
+            },
+          },
+        });
+
+        // Create Cash Transaction
+        await tx.cashTransaction.create({
+          data: {
+            cashAccountId: payment.cashAccountId,
+            type: CashTransactionType.EXPENSE,
+            date: payment.paymentDate,
+            reference: payment.reference,
+            description: `Payment for Invoice #${invoice.invoiceNumber}`,
+            note: payment.notes,
+            journalEntryId: je.id,
+            status: "APPROVED",
+            approvedAt: new Date(),
+            allocations: {
+              create: {
+                accountId: apAccount.id,
+                amount: payment.amount,
+                description: `Payment for Invoice #${invoice.invoiceNumber}`,
+              },
+            },
+          },
+        });
+
+        // Update Payment with JE ID
+        await tx.purchasePayment.update({
+          where: { id: payment.id },
+          data: {
+            journalEntryId: je.id,
+          },
+        });
+      });
+
+      revalidatePath("/purchase/payments");
+      revalidatePath("/purchase/invoices");
+      revalidatePath(`/purchase/payments/${id}`);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to post Payment:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to post Payment",
       };
     }
   }
@@ -316,8 +364,8 @@ export const deletePurchasePayment = authorizedAction(
           newTotalPaid >= Number(invoice.totalAmount) - 0.01
             ? "PAID"
             : newTotalPaid > 0
-            ? "PARTIALLY_PAID"
-            : "BILLED"; // Revert to BILLED if 0 paid
+              ? "PARTIALLY_PAID"
+              : "BILLED"; // Revert to BILLED if 0 paid
 
         // If newTotalPaid is 0 and it was previously draft? No, it must be BILLED to have payments.
         // But verify if it could be DRAFT? Unlikely.
