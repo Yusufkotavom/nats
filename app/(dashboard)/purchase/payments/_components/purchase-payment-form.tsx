@@ -186,14 +186,6 @@ export function PurchasePaymentForm({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setAttachmentDialogOpen(true)}
-            >
-              <Paperclip className="mr-2 h-4 w-4" />
-              Attachments ({attachments.length})
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
               onClick={() => router.back()}
             >
               {readonly ? "Back" : "Cancel"}
@@ -305,6 +297,20 @@ export function PurchasePaymentForm({
               disabled={readonly}
             />
           </div>
+
+          <div className="col-span-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAttachmentDialogOpen(true)}
+            >
+              <Paperclip className="mr-2 h-4 w-4" />
+              Attachments ({attachments.length})
+            </Button>
+          </div>
+
+
+
         </PageFormContent>
       </form>
       <AttachmentDialog

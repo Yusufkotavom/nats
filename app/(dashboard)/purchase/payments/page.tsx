@@ -198,14 +198,14 @@ export default function PurchasePaymentsPage() {
                         <DropdownMenuItem asChild>
                           <Link href={`/purchase/payments/${payment.id}`}>
                             <Eye className="mr-2 h-4 w-4" />
-                            View Details
+                            Details
                           </Link>
                         </DropdownMenuItem>
                         {!payment.journalEntryId && (
                           <Protect permission="purchase.create">
                             <DropdownMenuItem onClick={() => handlePost(payment.id)}>
                               <BookOpen className="mr-2 h-4 w-4" />
-                              Post to Ledger
+                              Post
                             </DropdownMenuItem>
                           </Protect>
                         )}
