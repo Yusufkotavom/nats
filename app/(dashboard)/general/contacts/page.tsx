@@ -42,6 +42,7 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { CustomPagination } from "@/components/ui/custom-pagination";
+import Link from "next/link";
 
 type Contact = Awaited<ReturnType<typeof getContacts>>["data"][number];
 
@@ -153,7 +154,14 @@ export default function ContactsPage() {
             ) : (
               contacts.map((contact) => (
                 <TableRow key={contact.id}>
-                  <TableCell className="font-medium">{contact.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/general/contacts/${contact.id}`}
+                      className="hover:underline"
+                    >
+                      {contact.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <Badge
                       className={getTypeBadgeColor(contact.type)}

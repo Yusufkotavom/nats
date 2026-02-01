@@ -10,6 +10,202 @@ import {
 } from "../types";
 import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { SuperJSON } from "@/lib/superjson";
+
+export async function getContact(id: string) {
+  const contact = await prisma.contact.findUnique({
+    where: { id },
+  });
+  return contact;
+}
+
+export async function getContactCashTransactions({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.CashTransactionWhereInput = {
+    contactId,
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.cashTransaction.findMany({
+      where,
+      include: {
+        cashAccount: true,
+        allocations: {
+          include: {
+            account: true,
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.cashTransaction.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getContactPurchaseOrders({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.PurchaseOrderWhereInput = {
+    contactId,
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.purchaseOrder.findMany({
+      where,
+      orderBy: { orderDate: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.purchaseOrder.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getContactPurchaseInvoices({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.PurchaseInvoiceWhereInput = {
+    contactId,
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.purchaseInvoice.findMany({
+      where,
+      orderBy: { invoiceDate: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.purchaseInvoice.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getContactPurchasePayments({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.PurchasePaymentWhereInput = {
+    contactId,
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.purchasePayment.findMany({
+      where,
+      include: {
+        purchaseInvoice: true,
+        cashAccount: true,
+      },
+      orderBy: { paymentDate: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.purchasePayment.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getContactJournalEntries({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.JournalEntryWhereInput = {
+    lines: {
+      some: {
+        contactId,
+      },
+    },
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.journalEntry.findMany({
+      where,
+      include: {
+        lines: {
+          include: {
+            account: true,
+          },
+        },
+      },
+      orderBy: { transactionDate: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.journalEntry.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
 
 /**
  * Fetch contacts with pagination and search.
@@ -37,12 +233,12 @@ export async function getContacts({
     ...(type ? { type } : {}),
     ...(search
       ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-            { phone: { contains: search, mode: "insensitive" } },
-          ],
-        }
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search, mode: "insensitive" } },
+        ],
+      }
       : {}),
   };
 
