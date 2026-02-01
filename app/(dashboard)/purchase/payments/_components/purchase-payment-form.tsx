@@ -173,100 +173,96 @@ export function PurchasePaymentForm() {
             </Button>
           </PageFormActions>
         </PageFormHeader>
-        <PageFormContent>
-          <Card>
-            <CardContent className="grid gap-6 md:grid-cols-2 pt-6">
-              <CustomSelect
-                label="Invoice"
-                value={formData.purchaseInvoiceId}
-                onValueChange={(val) =>
-                  setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
-                }
-                placeholder="Select invoice to pay"
-              >
-                {invoicesData?.map((invoice) => {
-                  const totalPaid = invoice.payments.reduce(
-                    (sum: number, p: any) => sum + Number(p.amount),
-                    0,
-                  );
-                  const remaining = Number(invoice.totalAmount) - totalPaid;
-                  return (
-                    <SelectItem key={invoice.id} value={invoice.id}>
-                      {invoice.invoiceNumber} - {invoice.contact.name} (Due:{" "}
-                      {format(new Date(invoice.dueDate), "MMM d")}) - Rem:{" "}
-                      {remaining.toFixed(2)}
-                    </SelectItem>
-                  );
-                })}
-              </CustomSelect>
+        <PageFormContent className="grid gap-6 md:grid-cols-2 pt-6 mt-4">
+          <CustomSelect
+            label="Invoice"
+            value={formData.purchaseInvoiceId}
+            onValueChange={(val) =>
+              setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
+            }
+            placeholder="Select invoice to pay"
+          >
+            {invoicesData?.map((invoice) => {
+              const totalPaid = invoice.payments.reduce(
+                (sum: number, p: any) => sum + Number(p.amount),
+                0,
+              );
+              const remaining = Number(invoice.totalAmount) - totalPaid;
+              return (
+                <SelectItem key={invoice.id} value={invoice.id}>
+                  {invoice.invoiceNumber} - {invoice.contact.name} (Due:{" "}
+                  {format(new Date(invoice.dueDate), "MMM d")}) - Rem:{" "}
+                  {remaining.toFixed(2)}
+                </SelectItem>
+              );
+            })}
+          </CustomSelect>
 
-              <CustomInput
-                label="Payment Number"
-                value={formData.paymentNumber}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    paymentNumber: e.target.value,
-                  }))
-                }
-              />
+          <CustomInput
+            label="Payment Number"
+            value={formData.paymentNumber}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                paymentNumber: e.target.value,
+              }))
+            }
+          />
 
-              <CustomInput
-                label="Date"
-                type="date"
-                value={dateStr}
-                onChange={(e) => setDateStr(e.target.value)}
-              />
+          <CustomInput
+            label="Date"
+            type="date"
+            value={dateStr}
+            onChange={(e) => setDateStr(e.target.value)}
+          />
 
-              <CustomSelect
-                label="Pay From"
-                value={formData.cashAccountId}
-                onValueChange={(val) =>
-                  setFormData((prev) => ({ ...prev, cashAccountId: val }))
-                }
-                placeholder="Select account"
-              >
-                {cashAccountsData?.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name} ({account.type})
-                  </SelectItem>
-                ))}
-              </CustomSelect>
+          <CustomSelect
+            label="Pay From"
+            value={formData.cashAccountId}
+            onValueChange={(val) =>
+              setFormData((prev) => ({ ...prev, cashAccountId: val }))
+            }
+            placeholder="Select account"
+          >
+            {cashAccountsData?.map((account) => (
+              <SelectItem key={account.id} value={account.id}>
+                {account.name} ({account.type})
+              </SelectItem>
+            ))}
+          </CustomSelect>
 
-              <CustomInput
-                label="Amount"
-                type="number"
-                value={formData.amount}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    amount: Number(e.target.value),
-                  }))
-                }
-              />
+          <CustomInput
+            label="Amount"
+            type="number"
+            value={formData.amount}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                amount: Number(e.target.value),
+              }))
+            }
+          />
 
-              <CustomInput
-                label="Reference"
-                value={formData.reference || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    reference: e.target.value,
-                  }))
-                }
-              />
+          <CustomInput
+            label="Reference"
+            value={formData.reference || ""}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                reference: e.target.value,
+              }))
+            }
+          />
 
-              <div className="col-span-2">
-                <CustomTextarea
-                  label="Notes"
-                  value={formData.notes || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="col-span-2">
+            <CustomTextarea
+              label="Notes"
+              value={formData.notes || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, notes: e.target.value }))
+              }
+            />
+          </div>
         </PageFormContent>
       </form>
     </PageFormLayout>

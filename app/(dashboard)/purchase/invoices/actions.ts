@@ -51,6 +51,7 @@ export async function getPurchaseInvoices(
         contact: true,
         purchaseOrder: true,
         items: true,
+        payments: true,
       },
       orderBy: { createdAt: "desc" },
       skip,

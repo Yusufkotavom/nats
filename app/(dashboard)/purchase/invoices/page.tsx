@@ -113,116 +113,133 @@ export default function PurchaseInvoicesPage() {
         <PurchaseInvoiceFilters />
       </PageListFilter>
 
-      <PageListContent> 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>PO #</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total Amount</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      Loading...
-                    </TableCell>
-                  </TableRow>
-                ) : data?.invoices.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      No purchase invoices found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  data?.invoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">
-                        {invoice.invoiceNumber}
-                      </TableCell>
-                      <TableCell>{invoice.contact.name}</TableCell>
-                      <TableCell>
-                        {invoice.purchaseOrder?.orderNumber || "-"}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(invoice.invoiceDate), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(invoice.dueDate), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(invoice.status)}>
-                          {invoice.status.replace("_", " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(Number(invoice.totalAmount))}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/purchase/invoices/${invoice.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> Details
-                              </Link>
-                            </DropdownMenuItem>
-                            {invoice.status === "DRAFT" && (
-                              <>
-                                <Protect permission="purchase.edit">
-                                  <DropdownMenuItem asChild>
-                                    <Link
-                                      href={`/purchase/invoices/${invoice.id}/edit`}
-                                    >
-                                      <Pencil className="mr-2 h-4 w-4" /> Edit
-                                    </Link>
-                                  </DropdownMenuItem>
-                                </Protect>
-                                <DropdownMenuSeparator />
-                                <Protect permission="purchase.delete">
-                                  <DropdownMenuItem
-                                    className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
-                                    onClick={() =>
-                                      handleDeleteClick(invoice.id)
-                                    }
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
-                                </Protect>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+      <PageListContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Invoice #</TableHead>
+              <TableHead>Vendor</TableHead>
+              <TableHead>PO #</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Due Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Paid Amount</TableHead>
+              <TableHead className="text-right">Remaining Amount</TableHead>
+              <TableHead className="text-right">Total Amount</TableHead>
+              <TableHead className="w-[80px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={10}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : data?.invoices.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={10}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  No purchase invoices found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              data?.invoices.map((invoice) => {
+                const paidAmount = invoice.payments.reduce(
+                  (acc, payment) => acc + Number(payment.amount),
+                  0,
+                );
+                const remainingAmount =
+                  Number(invoice.totalAmount) - paidAmount;
 
-          <CustomPagination
-            currentPage={page}
-            totalEntries={data?.total || 0}
-            pageSize={10}
-          />
+                return (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-medium">
+                      {invoice.invoiceNumber}
+                    </TableCell>
+                    <TableCell>{invoice.contact.name}</TableCell>
+                    <TableCell>
+                      {invoice.purchaseOrder?.orderNumber || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(invoice.invoiceDate), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(invoice.dueDate), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(invoice.status)}>
+                        {invoice.status.replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(paidAmount)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(remainingAmount)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(Number(invoice.totalAmount))}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/purchase/invoices/${invoice.id}`}>
+                              <Eye className="mr-2 h-4 w-4" /> Details
+                            </Link>
+                          </DropdownMenuItem>
+                          {invoice.status === "DRAFT" && (
+                            <>
+                              <Protect permission="purchase.edit">
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/purchase/invoices/${invoice.id}/edit`}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                  </Link>
+                                </DropdownMenuItem>
+                              </Protect>
+                              <DropdownMenuSeparator />
+                              <Protect permission="purchase.delete">
+                                <DropdownMenuItem
+                                  className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
+                                  onClick={() =>
+                                    handleDeleteClick(invoice.id)
+                                  }
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              </Protect>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+
+        <CustomPagination
+          currentPage={page}
+          totalEntries={data?.total || 0}
+          pageSize={10}
+        />
       </PageListContent>
     </PageListLayout>
   );
