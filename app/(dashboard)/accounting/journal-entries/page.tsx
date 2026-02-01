@@ -228,7 +228,7 @@ export default function JournalEntryPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/accounting/journal-entries/${entry.id}`}>
+                <Link href={`/accounting/journal-entries/${entry.id}`} target="_blank">
                   <Eye className="mr-2 h-4 w-4" />
                   Details
                 </Link>

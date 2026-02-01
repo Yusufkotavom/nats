@@ -22,7 +22,6 @@ import {
 import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
 import { UserDialog } from "./user-dialog";
 import { deleteUser, getRoles, getUsers } from "./actions";
-import { format } from "date-fns";
 
 import { useConfirm } from "@/hooks/use-confirm";
 import { Protect } from "@/components/ui/protect";
@@ -34,6 +33,7 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { CustomPagination } from "@/components/ui/custom-pagination";
+import { useFormatDate } from "@/hooks";
 
 type User = Awaited<ReturnType<typeof getUsers>>["data"][number];
 
@@ -47,6 +47,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const confirm = useConfirm();
+  const formatDate = useFormatDate();
 
   const handleAddUser = () => {
     setSelectedUser(undefined);
@@ -121,9 +122,7 @@ export default function UsersPage() {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell className="capitalize">{user.role.name}</TableCell>
-                  <TableCell>
-                    {format(new Date(user.createdAt), "PPP")}
-                  </TableCell>
+                  <TableCell>{formatDate(user.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

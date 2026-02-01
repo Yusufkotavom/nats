@@ -14,7 +14,7 @@ import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react";
 import { Unit } from "@/prisma/generated/prisma/browser";
 import { UomDialog } from "./_components/uom-dialog";
 import { deleteUnit, getUnits } from "./actions";
-import { format } from "date-fns";
+
 import { Protect } from "@/components/ui/protect";
 import { useConfirm } from "@/hooks/use-confirm";
 import { DataTable, Column } from "@/components/ui/data-table";
@@ -31,11 +31,13 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useFormatDate } from "@/hooks";
 
 export default function UomPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const formatDate = useFormatDate();
 
   const page = Number(searchParams.get("page")) || 1;
   const pageSize = 10;
@@ -95,7 +97,7 @@ export default function UomPage() {
     },
     {
       header: "Last Updated",
-      cell: (unit) => format(new Date(unit.updatedAt), "PP"),
+      cell: (unit) => formatDate(unit.updatedAt),
     },
     {
       header: "",

@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
+import { useFormatDate } from "@/hooks";
 
 type BatchWithDetails = Omit<InventoryMovement, "status"> & {
   fromWarehouse: Warehouse | null;
@@ -53,6 +54,7 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
   const confirm = useConfirm();
   const alert = useAlert();
   const queryClient = useQueryClient();
+  const formatDate = useFormatDate();
 
   const handleApprove = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -135,6 +137,7 @@ export function MovementsView() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const formatDate = useFormatDate();
 
   const page = Number(searchParams.get("page")) || 1;
   const pageSize = 10;
@@ -164,8 +167,7 @@ export function MovementsView() {
     },
     {
       header: "Date",
-      cell: (batch) =>
-        format(new Date(batch.transactionDate), "MMM d, yyyy HH:mm"),
+      cell: (batch) => formatDate(batch.transactionDate),
     },
     {
       header: "Type",
@@ -200,11 +202,11 @@ export function MovementsView() {
           }
           className={cn(
             batch.status === "PENDING" &&
-              "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+            "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
             batch.status === "COMPLETED" &&
-              "bg-green-100 text-green-800 hover:bg-green-100",
+            "bg-green-100 text-green-800 hover:bg-green-100",
             batch.status === "REJECTED" &&
-              "bg-red-100 text-red-800 hover:bg-red-100",
+            "bg-red-100 text-red-800 hover:bg-red-100",
           )}
         >
           {batch.status}

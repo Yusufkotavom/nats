@@ -13,7 +13,7 @@ import {
   Warehouse,
 } from "@/prisma/generated/prisma/browser";
 
-type BatchWithDetails = Omit<InventoryMovement, "status"> & {
+export type BatchWithDetails = Omit<InventoryMovement, "status"> & {
   fromWarehouse: Warehouse | null;
   toWarehouse: Warehouse | null;
   details: (InventoryMovementDetail & {

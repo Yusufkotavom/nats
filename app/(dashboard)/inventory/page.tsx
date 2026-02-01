@@ -18,7 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getInventoryDashboardMetrics } from "./actions";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { SuperJSON } from "@/lib/superjson";
 import {
@@ -41,6 +41,7 @@ type MovementWithRelations = InventoryMovement & {
 
 export default function InventoryDashboardPage() {
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data: metrics, isLoading } = useQuery({
     queryKey: ["inventory-dashboard-metrics"],
@@ -183,7 +184,7 @@ export default function InventoryDashboardPage() {
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {movement.type} •{" "}
-                        {format(new Date(movement.createdAt), "PP")}
+                        {formatDate(movement.createdAt)}
                       </p>
                     </div>
                     <div className="ml-auto font-medium">

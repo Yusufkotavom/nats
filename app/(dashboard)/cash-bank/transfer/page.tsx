@@ -16,7 +16,7 @@ import {
 import { CashTransferDialog } from "./_components/transfer-dialog";
 import { CashTransfer } from "../types";
 import { DataTable, Column } from "@/components/ui/data-table";
-import { format } from "date-fns";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -43,7 +43,7 @@ import {
   PageListLayout,
   PageListTitle,
 } from "@/components/layout/page/list-layout";
-import { useFormatCurrency } from "@/hooks";
+import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { SuperJSON } from "@/lib/superjson";
 import Link from "next/link";
 
@@ -58,6 +58,7 @@ export default function TransferPage() {
   const [isPending, startTransition] = useTransition();
   const queryClient = useQueryClient();
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data: transfers = [] } = useQuery({
     queryKey: ["cash-transfers"],
@@ -143,7 +144,7 @@ export default function TransferPage() {
   const columns: Column<CashTransfer>[] = [
     {
       header: "Date",
-      cell: (transfer) => format(new Date(transfer.date), "MMM d, yyyy"),
+      cell: (transfer) => formatDate(transfer.date),
     },
     {
       header: "Reference",

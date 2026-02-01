@@ -1,6 +1,5 @@
 import { getMovementBatchById } from "../actions";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -14,7 +13,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MovementActions } from "./_components/movement-actions";
 import { cn } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
-import { BatchWithDetails } from "../_components/batch-table";
+import { useFormatCurrency, useFormatDate } from "@/hooks";
+import { InventoryMovement, InventoryMovementDetail, Prisma, Product, Warehouse } from "@/prisma/generated/prisma/browser";
+
+export type BatchWithDetails = Prisma.InventoryMovementGetPayload<{
+  include: {
+    fromWarehouse: true;
+    toWarehouse: true;
+    details: {
+      include: {
+        product: true;
+      };
+    };
+    approvedBy: {
+      select: {
+        name: true;
+        email: true;
+        id: true;
+      };
+    };
+  };
+}>;
 
 export default async function MovementDetailsPage({
   params,
@@ -29,6 +48,8 @@ export default async function MovementDetailsPage({
   }
 
   const batch = SuperJSON.deserialize<BatchWithDetails>(serializedBatch);
+  const formatDate = useFormatDate();
+  const formatCurrency = useFormatCurrency();
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4">
@@ -65,11 +86,11 @@ export default async function MovementDetailsPage({
               }
               className={cn(
                 batch.status === "PENDING" &&
-                  "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+                "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
                 batch.status === "COMPLETED" &&
-                  "bg-green-100 text-green-800 hover:bg-green-100",
+                "bg-green-100 text-green-800 hover:bg-green-100",
                 batch.status === "REJECTED" &&
-                  "bg-red-100 text-red-800 hover:bg-red-100",
+                "bg-red-100 text-red-800 hover:bg-red-100",
               )}
             >
               {batch.status}
@@ -112,7 +133,7 @@ export default async function MovementDetailsPage({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {format(new Date(batch.createdAt), "dd MMM yyyy")}
+              {formatDate(batch.createdAt)}
             </div>
           </CardContent>
         </Card>
@@ -147,10 +168,7 @@ export default async function MovementDetailsPage({
                       {item.quantity} {item.product.baseUnit?.symbol}
                     </TableCell>
                     <TableCell>
-                      {new Intl.NumberFormat("id-ID", {
-                        style: "currency",
-                        currency: "IDR",
-                      }).format(Number(item.unitCost))}
+                      {formatCurrency(Number(item.unitCost))}
                     </TableCell>
                     <TableCell>
                       {new Intl.NumberFormat("id-ID", {
