@@ -98,7 +98,15 @@ export async function getDashboardStats() {
       journalEntry: { status: EntryStatus.posted },
     },
     include: {
-      journalEntry: true,
+      journalEntry: {
+        include: {
+          cashTransaction: {
+            include: {
+              contact: true,
+            },
+          },
+        },
+      },
       account: true,
     },
     orderBy: {
@@ -378,8 +386,8 @@ export async function getTransfers() {
 export async function getCashTransfers(accountId?: string) {
   const where = accountId
     ? {
-        OR: [{ fromAccountId: accountId }, { toAccountId: accountId }],
-      }
+      OR: [{ fromAccountId: accountId }, { toAccountId: accountId }],
+    }
     : {};
 
   const transfers = await prisma.cashTransfer.findMany({

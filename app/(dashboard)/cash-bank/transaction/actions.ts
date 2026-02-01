@@ -132,6 +132,7 @@ export async function getCashTransactions(
             account: true,
           },
         },
+        contact: true
       },
       orderBy: {
         date: "desc",

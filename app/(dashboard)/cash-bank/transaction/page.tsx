@@ -33,6 +33,7 @@ import {
   CashAccount,
   CashTransactionAllocation,
   CashTransactionStatus,
+  Contact,
 } from "@/prisma/generated/prisma/browser";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Decimal } from "decimal.js";
@@ -53,6 +54,7 @@ interface TransactionWithDetails extends CashTransaction {
   cashAccount: CashAccount;
   allocations: CashTransactionAllocation[];
   status: CashTransactionStatus;
+  contact?: Contact | null;
 }
 
 export default function CashTransactionListPage() {
@@ -67,11 +69,14 @@ export default function CashTransactionListPage() {
     queryKey: ["cash-transactions", page],
     queryFn: async () => {
       const res = await getCashTransactions(page);
+      console.log({ res });
       return {
         ...res,
         transactions: SuperJSON.deserialize(res.transactions),
       };
     },
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   const transactions = (data?.transactions ||
@@ -156,6 +161,11 @@ export default function CashTransactionListPage() {
           {tx.type}
         </Badge>
       ),
+    },
+    {
+      header: "Contact",
+      accessorKey: "contact",
+      cell: (tx) => tx.contact?.name || "-",
     },
     {
       header: "Cash Account",
