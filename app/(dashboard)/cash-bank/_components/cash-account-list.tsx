@@ -5,7 +5,7 @@ import { CashAccountWithBalance } from "../types";
 import { CashAccountType } from "@/prisma/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, History, Wallet, Building2 } from "lucide-react";
-import { CashAccountDialog } from "./account-dialog";
+import { CashAccountDialog } from "./cash-account-dialog";
 import {
   Card,
   CardContent,
