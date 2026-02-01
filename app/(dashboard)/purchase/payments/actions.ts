@@ -317,8 +317,11 @@ export const deletePurchasePayment = authorizedAction(
 
       if (!payment) throw new Error("Payment not found");
 
+      if (payment.journalEntryId) {
+        throw new Error("Cannot delete a posted payment.");
+      }
+
       const invoice = payment.purchaseInvoice;
-      const journalEntryId = payment.journalEntryId;
 
       await prisma.$transaction(async (tx) => {
         // 1. Delete Purchase Payment
@@ -326,30 +329,7 @@ export const deletePurchasePayment = authorizedAction(
           where: { id },
         });
 
-        if (journalEntryId) {
-          // 2. Find and Delete Cash Transaction
-          const cashTransaction = await tx.cashTransaction.findUnique({
-            where: { journalEntryId },
-          });
-
-          if (cashTransaction) {
-            await tx.cashTransaction.delete({
-              where: { id: cashTransaction.id },
-            });
-          }
-
-          // 3. Delete Journal Entry Lines
-          await tx.journalEntryLine.deleteMany({
-            where: { journalEntryId },
-          });
-
-          // 4. Delete Journal Entry
-          await tx.journalEntry.delete({
-            where: { id: journalEntryId },
-          });
-        }
-
-        // 5. Update Invoice Status
+        // 2. Update Invoice Status
         // Calculate new total paid (excluding the deleted payment)
         // Since we already fetched invoice.payments which includes the current payment,
         // we subtract the current payment amount.

@@ -178,7 +178,9 @@ export default function PurchasePaymentsPage() {
                   </TableCell>
                   <TableCell>{payment.contact.name}</TableCell>
                   <TableCell>
-                    {payment.purchaseInvoice.invoiceNumber}
+                    <Link href={`/purchase/invoices/${payment.purchaseInvoiceId}`}>
+                      <span className="font-medium text-primary">{payment.purchaseInvoice.invoiceNumber}</span>
+                    </Link>
                   </TableCell>
                   <TableCell>{payment.cashAccount.name}</TableCell>
                   <TableCell className="text-right">
@@ -209,15 +211,17 @@ export default function PurchasePaymentsPage() {
                             </DropdownMenuItem>
                           </Protect>
                         )}
-                        <Protect permission="purchase.delete">
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(payment.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </Protect>
+                        {!payment.journalEntryId && (
+                          <Protect permission="purchase.delete">
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(payment.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </Protect>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
