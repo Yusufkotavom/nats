@@ -20,6 +20,10 @@ import { PricingProductWithDetails } from "../types";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { SuperJSON } from "@/lib/superjson";
+import {
+  PageListContent,
+  PageListFilter,
+} from "@/components/layout/page/list-layout";
 
 export function IndividualPricingTable() {
   const searchParams = useSearchParams();

@@ -6,6 +6,11 @@ import { Protect } from "@/components/ui/protect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SuperJSON } from "@/lib/superjson";
 import { PricingProductWithDetails } from "./types";
+import {
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
 
 export default async function PricingPage({
   searchParams,
@@ -43,12 +48,10 @@ export default async function PricingPage({
   ]);
 
   return (
-    <div className="flex-1 space-y-4 px-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">
-          Pricing Configuration
-        </h2>
-      </div>
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Pricing Configuration" />
+      </PageListHeader>
 
       <Tabs defaultValue="individual" className="space-y-4">
         <TabsList>
@@ -72,6 +75,6 @@ export default async function PricingPage({
           </Protect>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageListLayout>
   );
 }
