@@ -114,7 +114,7 @@ export function JournalEntryDetails({
             </div>
           </div>
           {entry.status === "draft" && (
-            <Link href={`/accounting/journal-entries/${entry.id}/edit`}>
+            <Link href={`/accounting/journal-entries/${entry.id}/edit`} target="_blank">
               <Button className="ml-2">
                 <Pencil className="mr-2 h-4 w-4" /> Edit Entry
               </Button>

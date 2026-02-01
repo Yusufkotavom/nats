@@ -177,13 +177,13 @@ export default function PurchaseOrdersPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link href={`/purchase/orders/${order.id}`}>
+              <Link target="_blank" href={`/purchase/orders/${order.id}`}>
                 <Eye className="mr-2 h-4 w-4" /> Details
               </Link>
             </DropdownMenuItem>
             <Protect permission="purchase.edit">
               <DropdownMenuItem asChild>
-                <Link href={`/purchase/orders/${order.id}/edit`}>
+                <Link target="_blank" href={`/purchase/orders/${order.id}/edit`}>
                   <Pencil className="mr-2 h-4 w-4" /> Edit
                 </Link>
               </DropdownMenuItem>

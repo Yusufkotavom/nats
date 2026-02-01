@@ -98,7 +98,7 @@ export default function PurchaseReturnsPage() {
     {
       header: "PO #",
       cell: (item) => (
-        <Link href={`/purchase/orders/${item.purchaseOrderId}`}>
+        <Link target="_blank" href={`/purchase/orders/${item.purchaseOrderId}`}>
           <span className="font-medium text-primary">
             {item.purchaseOrder?.orderNumber || "-"}
           </span>
@@ -108,7 +108,7 @@ export default function PurchaseReturnsPage() {
     {
       header: "Invoice #",
       cell: (item) => (
-        <Link href={`/purchase/invoices/${item.purchaseInvoiceId}`}>
+        <Link target="_blank" href={`/purchase/invoices/${item.purchaseInvoiceId}`}>
           <span className="font-medium text-primary">
             {item.purchaseInvoice?.invoiceNumber || "-"}
           </span>
@@ -150,7 +150,7 @@ export default function PurchaseReturnsPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link href={`/purchase/returns/${returnItem.id}`}>
+              <Link target="_blank" href={`/purchase/returns/${returnItem.id}`}>
                 <Eye className="mr-2 h-4 w-4" /> Details
               </Link>
             </DropdownMenuItem>
@@ -158,7 +158,7 @@ export default function PurchaseReturnsPage() {
               <>
                 <Protect permission="purchase.edit">
                   <DropdownMenuItem asChild>
-                    <Link href={`/purchase/returns/${returnItem.id}/edit`}>
+                    <Link target="_blank" href={`/purchase/returns/${returnItem.id}/edit`}>
                       <Pencil className="mr-2 h-4 w-4" /> Edit
                     </Link>
                   </DropdownMenuItem>

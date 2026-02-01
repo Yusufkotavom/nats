@@ -90,7 +90,7 @@ export default function PurchaseReceivesPage() {
     {
       header: "PO #",
       cell: (item) => (
-        <Link href={`/purchase/orders/${item.purchaseOrderId}`}>
+        <Link target="_blank" href={`/purchase/orders/${item.purchaseOrderId}`}>
           <span className="font-medium text-primary">
             {item.purchaseOrder?.orderNumber || "-"}
           </span>
@@ -129,14 +129,14 @@ export default function PurchaseReceivesPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link href={`/purchase/receives/${receive.id}`}>
+              <Link target="_blank" href={`/purchase/receives/${receive.id}`}>
                 <Eye className="mr-2 h-4 w-4" /> Details
               </Link>
             </DropdownMenuItem>
             {receive.status !== "COMPLETED" && (
               <Protect permission="purchase.edit">
                 <DropdownMenuItem asChild>
-                  <Link href={`/purchase/receives/${receive.id}/edit`}>
+                  <Link target="_blank" href={`/purchase/receives/${receive.id}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" /> Edit
                   </Link>
                 </DropdownMenuItem>

@@ -164,7 +164,7 @@ export default function PurchasePaymentsPage() {
     {
       header: "Invoice #",
       cell: (item) => (
-        <Link href={`/purchase/invoices/${item.purchaseInvoiceId}`}>
+        <Link target="_blank" href={`/purchase/invoices/${item.purchaseInvoiceId}`}>
           <span className="font-medium text-primary">
             {item.purchaseInvoice.invoiceNumber}
           </span>
@@ -197,7 +197,7 @@ export default function PurchasePaymentsPage() {
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/purchase/payments/${payment.id}`}>
+              <Link target="_blank" href={`/purchase/payments/${payment.id}`}>
                 <Eye className="mr-2 h-4 w-4" />
                 Details
               </Link>

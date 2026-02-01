@@ -171,7 +171,7 @@ export default function CashTransactionListPage() {
       header: "Cash Account",
       accessorKey: "cashAccount",
       cell: (tx) => (
-        <Link href={`/accounting/ledger/${tx.cashAccount.glAccountId}`}>
+        <Link href={`/accounting/ledger/${tx.cashAccount.glAccountId}`} target="_blank">
           <span className="font-medium text-primary">{tx.cashAccount.name}</span>
         </Link>
       ),

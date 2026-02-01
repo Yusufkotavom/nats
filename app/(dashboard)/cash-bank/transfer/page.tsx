@@ -11,6 +11,7 @@ import {
   Edit,
   Trash2,
   Eye,
+  ArrowRightIcon,
 } from "lucide-react";
 import { CashTransferDialog } from "./_components/transfer-dialog";
 import { CashTransfer } from "../types";
@@ -44,6 +45,7 @@ import {
 } from "@/components/layout/page/list-layout";
 import { useFormatCurrency } from "@/hooks";
 import { SuperJSON } from "@/lib/superjson";
+import Link from "next/link";
 
 export default function TransferPage() {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -150,7 +152,16 @@ export default function TransferPage() {
     {
       header: "From - To",
       cell: (transfer) =>
-        `${transfer.fromAccount.name} -> ${transfer.toAccount.name}`,
+      (
+        <div className="flex items-center">
+          <Link href={`/accounting/ledger/${transfer.fromAccountId}`} target="_blank">
+            <span className="font-medium text-primary">{transfer.fromAccount.name}</span>
+          </Link>
+          <ArrowRightIcon className="h-4 w-4 mx-2" />
+          <Link href={`/accounting/ledger/${transfer.toAccountId}`} target="_blank">
+            <span className="font-medium text-primary">{transfer.toAccount.name}</span>
+          </Link></div>
+      ),
     },
     {
       header: "Description",
