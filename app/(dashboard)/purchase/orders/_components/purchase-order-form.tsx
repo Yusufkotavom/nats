@@ -66,8 +66,7 @@ import {
 } from "../actions";
 import { PurchaseOrderInput } from "../types";
 import { format } from "date-fns";
-import { cn, formatDate, generateId } from "@/lib/utils";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { cn, generateId } from "@/lib/utils";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { getProducts } from "@/app/(dashboard)/inventory/products/actions";
@@ -77,6 +76,7 @@ import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchaseOrderWithDetails } from "../types";
 import { ProductWithDetails } from "@/app/(dashboard)/inventory/types";
+import { useFormatDate, useFormatCurrency } from "@/hooks";
 
 interface PurchaseOrderFormProps {
   order?: SuperJSONResult;
@@ -100,6 +100,7 @@ export function PurchaseOrderForm({
 
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!order;
   const confirm = useConfirm();

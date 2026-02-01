@@ -34,7 +34,6 @@ import {
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Loader2, Plus, Trash2, GripVertical, PlusIcon } from "lucide-react";
 import {
   createPurchaseInvoice,
@@ -43,7 +42,7 @@ import {
 } from "../actions";
 import { PurchaseInvoiceWithDetails, PurchaseInvoiceInput } from "../types";
 import { PurchaseOrderWithDetails } from "../../orders/types";
-import { format } from "date-fns";
+import { useFormatDate } from "@/hooks";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { generateId } from "@/lib/utils";
@@ -73,6 +72,7 @@ export function PurchaseInvoiceForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!invoice;
+  const formatDate = useFormatDate();
 
   const [formData, setFormData] = useState<
     Omit<PurchaseInvoiceInput, "items"> & {
@@ -375,7 +375,7 @@ export function PurchaseInvoiceForm({
                   type="date"
                   value={
                     formData.invoiceDate
-                      ? format(formData.invoiceDate, "yyyy-MM-dd")
+                      ? formatDate(formData.invoiceDate)
                       : ""
                   }
                   onChange={(e) =>
@@ -394,7 +394,7 @@ export function PurchaseInvoiceForm({
                   type="date"
                   value={
                     formData.dueDate
-                      ? format(formData.dueDate, "yyyy-MM-dd")
+                      ? formatDate(formData.dueDate)
                       : ""
                   }
                   onChange={(e) =>
@@ -622,7 +622,7 @@ export function PurchaseInvoiceForm({
                       <span className="text-sm font-medium">Total Tax</span>
                       <CurrencyInput
                         value={formData.totalTax}
-                        onChange={() => {}}
+                        onChange={() => { }}
                         disabled={true}
                         className="w-24 h-8 bg-muted"
                       />

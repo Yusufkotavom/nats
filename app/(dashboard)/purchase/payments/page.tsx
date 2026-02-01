@@ -33,8 +33,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CustomPagination } from "@/components/ui/custom-pagination";
-import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { format } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,11 +42,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useFormatDate, useFormatCurrency } from "@/hooks";
 
 export default function PurchasePaymentsPage() {
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["purchase-payments", page, search],
@@ -174,7 +174,7 @@ export default function PurchasePaymentsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(payment.paymentDate), "dd/MM/yyyy")}
+                    {formatDate(payment.paymentDate)}
                   </TableCell>
                   <TableCell>{payment.contact.name}</TableCell>
                   <TableCell>

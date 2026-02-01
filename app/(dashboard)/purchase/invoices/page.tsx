@@ -40,6 +40,7 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useFormatDate } from "@/hooks";
 
 export default function PurchaseInvoicesPage() {
   const searchParams = useSearchParams();
@@ -62,6 +63,7 @@ export default function PurchaseInvoicesPage() {
   });
 
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate()
   const confirm = useConfirm();
 
   const handleDeleteClick = async (id: string) => {
@@ -167,10 +169,10 @@ export default function PurchaseInvoicesPage() {
                       {invoice.purchaseOrder?.orderNumber || "-"}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(invoice.invoiceDate), "MMM d, yyyy")}
+                      {formatDate(invoice.invoiceDate)}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(invoice.dueDate), "MMM d, yyyy")}
+                      {formatDate(invoice.dueDate)}
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(invoice.status)}>

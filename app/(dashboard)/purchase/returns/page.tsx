@@ -40,11 +40,13 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useFormatDate } from "@/hooks";
 
 export default function PurchaseReturnsPage() {
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["purchase-returns", page, search],
@@ -110,7 +112,7 @@ export default function PurchaseReturnsPage() {
         <PurchaseReturnFilters />
       </PageListFilter>
 
-      <PageListContent> 
+      <PageListContent>
         <Table>
           <TableHeader>
             <TableRow>
@@ -157,7 +159,7 @@ export default function PurchaseReturnsPage() {
                     {returnItem.purchaseInvoice?.invoiceNumber || "-"}
                   </TableCell>
                   <TableCell>
-                    {format(new Date(returnItem.returnDate), "MMM d, yyyy")}
+                    {formatDate(returnItem.returnDate)}
                   </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(returnItem.status)}>

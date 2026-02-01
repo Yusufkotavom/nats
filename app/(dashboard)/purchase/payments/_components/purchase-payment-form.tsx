@@ -30,9 +30,9 @@ import {
   CashAccount,
 } from "@/prisma/generated/prisma/client";
 import { PurchasePaymentInput, PurchasePaymentWithDetails } from "../types";
-import { Card, CardContent } from "@/components/ui/card";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
+import { useFormatDate } from "@/hooks";
 
 interface PurchasePaymentFormProps {
   initialData?: PurchasePaymentWithDetails;
@@ -46,6 +46,7 @@ export function PurchasePaymentForm({
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formatDate = useFormatDate();
 
   const [formData, setFormData] = useState<PurchasePaymentInput>({
     paymentNumber: initialData?.paymentNumber || "",
@@ -110,11 +111,11 @@ export function PurchasePaymentForm({
           contactId: invoice.contactId,
           paymentNumber:
             prev.paymentNumber ||
-            `PAY-${format(new Date(), "yyyyMMdd")}-${invoice.invoiceNumber}`,
+            `PAY-${invoice.invoiceNumber}`,
         }));
       }
     }
-  }, [formData.purchaseInvoiceId, invoicesData]);
+  }, [formData.purchaseInvoiceId, invoicesData, formatDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,7 +227,7 @@ export function PurchasePaymentForm({
               return (
                 <SelectItem key={invoice.id} value={invoice.id}>
                   {invoice.invoiceNumber} - {invoice.contact.name} (Due:{" "}
-                  {format(new Date(invoice.dueDate), "MMM d")}) - Rem:{" "}
+                  {formatDate(invoice.dueDate)}) - Rem:{" "}
                   {remaining.toFixed(2)}
                 </SelectItem>
               );
