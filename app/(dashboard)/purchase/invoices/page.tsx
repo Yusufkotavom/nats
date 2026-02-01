@@ -166,7 +166,9 @@ export default function PurchaseInvoicesPage() {
                     </TableCell>
                     <TableCell>{invoice.contact.name}</TableCell>
                     <TableCell>
-                      {invoice.purchaseOrder?.orderNumber || "-"}
+                      <Link href={`/purchase/orders/${invoice.purchaseOrderId}`}>
+                        <span className="font-medium text-primary">{invoice.purchaseOrder?.orderNumber || "-"}</span>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       {formatDate(invoice.invoiceDate)}

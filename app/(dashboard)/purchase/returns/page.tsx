@@ -153,10 +153,14 @@ export default function PurchaseReturnsPage() {
                   </TableCell>
                   <TableCell>{returnItem.contact.name}</TableCell>
                   <TableCell>
-                    {returnItem.purchaseOrder?.orderNumber || "-"}
+                    <Link href={`/purchase/orders/${returnItem.purchaseOrderId}`}>
+                      <span className="font-medium text-primary">{returnItem.purchaseOrder?.orderNumber || "-"}</span>
+                    </Link>
                   </TableCell>
                   <TableCell>
-                    {returnItem.purchaseInvoice?.invoiceNumber || "-"}
+                    <Link href={`/purchase/invoices/${returnItem.purchaseInvoiceId}`}>
+                      <span className="font-medium text-primary">{returnItem.purchaseInvoice?.invoiceNumber || "-"}</span>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     {formatDate(returnItem.returnDate)}

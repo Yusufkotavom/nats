@@ -146,7 +146,9 @@ export default function PurchaseReceivesPage() {
                     {receive.receiveNumber}
                   </TableCell>
                   <TableCell>
-                    {receive.purchaseOrder?.orderNumber || "-"}
+                    <Link href={`/purchase/orders/${receive.purchaseOrderId}`}>
+                      <span className="font-medium text-primary">{receive.purchaseOrder?.orderNumber || "-"}</span>
+                    </Link>
                   </TableCell>
                   <TableCell>{receive.contact.name}</TableCell>
                   <TableCell>
