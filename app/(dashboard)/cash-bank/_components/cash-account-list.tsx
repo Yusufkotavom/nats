@@ -4,16 +4,16 @@ import { useState } from "react";
 import { CashAccountWithBalance } from "../types";
 import { CashAccountType } from "@/prisma/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, History, Wallet, Building2 } from "lucide-react";
-import { CashAccountDialog } from "./cash-account-dialog";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Plus,
+  Trash2,
+  History,
+  Wallet,
+  Building2,
+  Pencil,
+  MoreHorizontal,
+} from "lucide-react";
+import { CashAccountDialog } from "./cash-account-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   deleteCashAccount,
@@ -23,6 +23,22 @@ import {
 import { useToast, useConfirm, useFormatCurrency } from "@/hooks";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  PageListActions,
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
+import { DataTable, Column } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface CashAccountListProps {
   accounts: Awaited<ReturnType<typeof getDashboardStats>>["accounts"];
@@ -44,6 +60,9 @@ export function CashAccountList({
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const queryClient = useQueryClient();
+
+  // Get list of currently used GL accounts to filter them out in the dialog
+  const usedGlAccountIds = accounts.map((a) => a.glAccountId);
 
   const handleDelete = async (id: string) => {
     if (
@@ -73,85 +92,120 @@ export function CashAccountList({
     }
   };
 
+  const columns: Column<CashAccountWithBalance>[] = [
+    {
+      header: "Name",
+      cell: (account) => (
+        <div className="flex items-center gap-2">
+          {account.type === CashAccountType.CASH ? (
+            <Wallet className="h-4 w-4 text-primary" />
+          ) : (
+            <Building2 className="h-4 w-4 text-primary" />
+          )}
+          <span className="font-medium">{account.name}</span>
+        </div>
+      ),
+    },
+    {
+      header: "Type",
+      cell: (account) => (
+        <Badge variant="secondary" className="capitalize">
+          {account.type.replace(/_/g, " ")}
+        </Badge>
+      ),
+    },
+    {
+      header: "Bank / Account #",
+      cell: (account) =>
+        account.bankName ? (
+          <div className="flex flex-col">
+            <span>{account.bankName}</span>
+            <span className="text-xs text-muted-foreground">
+              {account.accountNumber}
+            </span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+    },
+    {
+      header: "GL Account",
+      cell: (account) => (
+        <div className="flex flex-col">
+          <span>{account.glAccount.code}</span>
+          <span className="text-xs text-muted-foreground">
+            {account.glAccount.name}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Balance",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (account) => (
+        <span className="font-bold">{formatCurrency(account.balance)}</span>
+      ),
+    },
+    {
+      header: "Actions",
+      cell: (account) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => router.push(`/accounting/cash-bank/${account.id}`)}
+            >
+              <History className="mr-2 h-4 w-4" />
+              History
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setEditingAccount(account);
+                setIsCreateOpen(true);
+              }}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => handleDelete(account.id)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
+    <PageListLayout className="p-0 pt-0">
+      <PageListHeader>
+        <PageListTitle title={title} />
+        <PageListActions>
           <Button onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Account
           </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {accounts.map((account) => (
-          <Card key={account.id} className="relative group space-y-0">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    {account.type === CashAccountType.CASH ? (
-                      <Wallet className="h-5 w-5 text-primary" />
-                    ) : (
-                      <Building2 className="h-5 w-5 text-primary" />
-                    )}
-                    {account.name}
-                  </CardTitle>
-                  <CardDescription>
-                    {account.bankName ? `${account.bankName} - ` : ""}
-                    {account.accountNumber || "No Account #"}
-                  </CardDescription>
-                </div>
-                <div className="text-right">
-                  <div className="text-xl font-bold">
-                    {formatCurrency(account.balance)}
-                  </div>
-                  <Badge variant="secondary" className="capitalize mt-1">
-                    {account.type.replace(/_/g, " ")}
-                  </Badge>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground mb-4">
-                Linked GL: {account.glAccount.code} - {account.glAccount.name}
-              </div>
-              <div className="text-sm line-clamp-2">
-                {account.description || "No description"}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between border-t bg-muted/20 p-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-primary"
-                onClick={() =>
-                  router.push(`/accounting/cash-bank/${account.id}`)
-                }
-              >
-                <History className="mr-2 h-4 w-4" />
-                History
-              </Button>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => handleDelete(account.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
-        ))}
-        {accounts.length === 0 && (
-          <div className="col-span-full text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
-            No accounts found. Create one to get started.
-          </div>
-        )}
-      </div>
+        </PageListActions>
+      </PageListHeader>
+      <PageListContent>
+        <DataTable
+          data={accounts}
+          columns={columns}
+          emptyMessage="No accounts found. Create one to get started."
+        />
+      </PageListContent>
 
       <CashAccountDialog
         key={isCreateOpen ? editingAccount?.id || "create" : "closed"}
@@ -162,12 +216,13 @@ export function CashAccountList({
         }}
         account={editingAccount}
         glAccounts={glAccounts}
+        usedGlAccountIds={usedGlAccountIds}
         onSuccess={() => {
           queryClient.invalidateQueries({
             queryKey: ["cash-bank", "dashboard-stats"],
           });
         }}
       />
-    </div>
+    </PageListLayout>
   );
 }

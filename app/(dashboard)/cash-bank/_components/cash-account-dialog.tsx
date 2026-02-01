@@ -28,6 +28,7 @@ interface CashAccountDialogProps {
   onOpenChange: (open: boolean) => void;
   account?: CashAccount; // If provided, we are editing
   glAccounts: Awaited<ReturnType<typeof getAvailableGLAccounts>>;
+  usedGlAccountIds?: string[];
   onSuccess: () => void;
 }
 
@@ -36,6 +37,7 @@ export function CashAccountDialog({
   onOpenChange,
   account,
   glAccounts,
+  usedGlAccountIds = [],
   onSuccess,
 }: CashAccountDialogProps) {
   const { toast } = useToast();
@@ -104,10 +106,15 @@ export function CashAccountDialog({
     value: type,
   }));
 
-  const glAccountOptions = glAccounts.map((acc) => ({
-    label: `${acc.code} - ${acc.name}`,
-    value: acc.id,
-  }));
+  const glAccountOptions = glAccounts
+    .filter(
+      (acc) =>
+        !usedGlAccountIds.includes(acc.id) || acc.id === account?.glAccountId
+    )
+    .map((acc) => ({
+      label: `${acc.code} - ${acc.name}`,
+      value: acc.id,
+    }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -148,25 +155,25 @@ export function CashAccountDialog({
           />
           {(formData.type === CashAccountType.BANK ||
             formData.type === CashAccountType.EWALLET) && (
-            <>
-              <CustomInput
-                label="Bank/Provider Name"
-                value={formData.bankName || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, bankName: e.target.value })
-                }
-                placeholder="e.g. Chase, PayPal"
-              />
-              <CustomInput
-                label="Account Number"
-                value={formData.accountNumber || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, accountNumber: e.target.value })
-                }
-                placeholder="e.g. 1234567890"
-              />
-            </>
-          )}
+              <>
+                <CustomInput
+                  label="Bank/Provider Name"
+                  value={formData.bankName || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bankName: e.target.value })
+                  }
+                  placeholder="e.g. Chase, PayPal"
+                />
+                <CustomInput
+                  label="Account Number"
+                  value={formData.accountNumber || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, accountNumber: e.target.value })
+                  }
+                  placeholder="e.g. 1234567890"
+                />
+              </>
+            )}
           <CustomTextarea
             label="Description"
             value={formData.description || ""}
