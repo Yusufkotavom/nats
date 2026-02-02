@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -27,10 +27,8 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Plus, Trash2, ArrowLeft, GripVertical } from "lucide-react";
+import { Trash2, ArrowLeft } from "lucide-react";
 import { createPurchaseReturn, updatePurchaseReturn } from "../actions";
 import { PurchaseReturnInput, PurchaseReturnWithDetails } from "../types";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -66,11 +64,19 @@ export function PurchaseReturnForm({
     ? SuperJSON.deserialize<PurchaseReturnWithDetails>(serializedReturnItem)
     : undefined;
 
-  const purchaseOrders = SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
-    serializedPurchaseOrders,
+  const purchaseOrders = useMemo(
+    () =>
+      SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
+        serializedPurchaseOrders,
+      ),
+    [serializedPurchaseOrders],
   );
-  const purchaseInvoices = SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(
-    serializedPurchaseInvoices,
+  const purchaseInvoices = useMemo(
+    () =>
+      SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(
+        serializedPurchaseInvoices,
+      ),
+    [serializedPurchaseInvoices],
   );
 
   const sensors = useSensors(
@@ -103,24 +109,21 @@ export function PurchaseReturnForm({
       })) || [],
   });
 
-  const [filteredPurchaseOrders, setFilteredPurchaseOrders] =
-    useState(purchaseOrders);
-  const [filteredPurchaseInvoices, setFilteredPurchaseInvoices] =
-    useState(purchaseInvoices);
-
-  useEffect(() => {
+  const filteredPurchaseOrders = useMemo(() => {
     if (formData.contactId) {
-      setFilteredPurchaseOrders(
-        purchaseOrders.filter((po) => po.contactId === formData.contactId),
-      );
-      setFilteredPurchaseInvoices(
-        purchaseInvoices.filter((pi) => pi.contactId === formData.contactId),
-      );
-    } else {
-      setFilteredPurchaseOrders([]);
-      setFilteredPurchaseInvoices([]);
+      return purchaseOrders.filter((po) => po.contactId === formData.contactId);
     }
-  }, [formData.contactId, purchaseOrders, purchaseInvoices]);
+    return [];
+  }, [formData.contactId, purchaseOrders]);
+
+  const filteredPurchaseInvoices = useMemo(() => {
+    if (formData.contactId) {
+      return purchaseInvoices.filter(
+        (pi) => pi.contactId === formData.contactId,
+      );
+    }
+    return [];
+  }, [formData.contactId, purchaseInvoices]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -154,11 +157,11 @@ export function PurchaseReturnForm({
       purchaseOrderId: poId,
       items: po
         ? po.items.map((item) => ({
-            id: generateId(),
-            productId: item.productId,
-            quantity: 0, // Default to 0 or 1? Maybe 0 to force user input.
-            unitPrice: Number(item.unitCost),
-          }))
+          id: generateId(),
+          productId: item.productId,
+          quantity: 0, // Default to 0 or 1? Maybe 0 to force user input.
+          unitPrice: Number(item.unitCost),
+        }))
         : [],
     }));
   };
@@ -321,8 +324,7 @@ export function PurchaseReturnForm({
           <div className="space-y-2">
             <Label>Vendor</Label>
             <CustomSelect
-              value={formData.contactId}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              defaultValue={formData.contactId}
               onValueChange={(val: any) => handleContactChange(val)}
               options={vendors.map((v) => ({ label: v.name, value: v.id }))}
               disabled={readonly}
@@ -334,7 +336,6 @@ export function PurchaseReturnForm({
             <Label>Purchase Order (Optional)</Label>
             <CustomSelect
               value={formData.purchaseOrderId || ""}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onValueChange={(val: any) => handlePurchaseOrderChange(val)}
               options={filteredPurchaseOrders.map((po) => ({
                 label: po.orderNumber,
@@ -349,7 +350,6 @@ export function PurchaseReturnForm({
             <Label>Purchase Invoice (Optional)</Label>
             <CustomSelect
               value={formData.purchaseInvoiceId || ""}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onValueChange={(val: any) =>
                 setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
               }
