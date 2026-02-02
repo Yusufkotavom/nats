@@ -121,7 +121,9 @@ export async function getSalesInvoicesForReturn() {
       contact: true,
       items: {
         // Sales Invoice Item has productId in schema 08_sales.prisma
-        product: true
+        include: {
+          product: true
+        },
       },
     },
   });
@@ -142,7 +144,7 @@ export const createSalesReturn = authorizedAction(
   "sales.create",
   async (data: SalesReturnInput) => {
     try {
-      
+
       let returnNumber = data.returnNumber;
       if (!returnNumber) {
         returnNumber = await generateReturnNumber();

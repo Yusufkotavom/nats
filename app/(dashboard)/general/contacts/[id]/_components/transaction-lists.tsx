@@ -7,6 +7,9 @@ import {
   getContactPurchaseOrders,
   getContactPurchaseInvoices,
   getContactPurchasePayments,
+  getContactSalesOrders,
+  getContactSalesInvoices,
+  getContactSalesPayments,
   getContactJournalEntries,
 } from "../../actions";
 import { SuperJSON } from "@/lib/superjson";
@@ -320,6 +323,220 @@ export function PurchasePaymentsList({ contactId }: { contactId: string }) {
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                 No payments found
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      {total > 0 && (
+        <CustomPagination
+          totalEntries={total}
+          pageSize={PAGE_SIZE}
+          currentPage={page}
+          onPageChange={setPage}
+        />
+      )}
+    </div>
+  );
+}
+
+export function SalesOrdersList({ contactId }: { contactId: string }) {
+  const [page, setPage] = useState(1);
+  const formatCurrency = useFormatCurrency();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["contact-sales-orders", contactId, page],
+    queryFn: () =>
+      getContactSalesOrders({ contactId, page, pageSize: PAGE_SIZE }),
+  });
+
+  const orders = data?.data ? (SuperJSON.deserialize(data.data) as any[]) : [];
+  const total = data?.total || 0;
+
+  if (isLoading) return <ListSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Order Date</TableHead>
+            <TableHead>Order #</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Total Amount</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.map((order) => (
+            <TableRow key={order.id}>
+              <TableCell>
+                {format(new Date(order.orderDate), "dd MMM yyyy")}
+              </TableCell>
+              <TableCell>{order.orderNumber}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{order.status}</Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(order.totalAmount)}
+              </TableCell>
+              <TableCell>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/sales/orders/${order.id}`}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          {orders.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                No sales orders found
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      {total > 0 && (
+        <CustomPagination
+          totalEntries={total}
+          pageSize={PAGE_SIZE}
+          currentPage={page}
+          onPageChange={setPage}
+        />
+      )}
+    </div>
+  );
+}
+
+export function SalesInvoicesList({ contactId }: { contactId: string }) {
+  const [page, setPage] = useState(1);
+  const formatCurrency = useFormatCurrency();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["contact-sales-invoices", contactId, page],
+    queryFn: () =>
+      getContactSalesInvoices({ contactId, page, pageSize: PAGE_SIZE }),
+  });
+
+  const invoices: any[] = data?.data ? SuperJSON.deserialize(data.data) : [];
+  const total = data?.total || 0;
+
+  if (isLoading) return <ListSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Invoice Date</TableHead>
+            <TableHead>Due Date</TableHead>
+            <TableHead>Invoice #</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Total Amount</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {invoices.map((invoice: any) => (
+            <TableRow key={invoice.id}>
+              <TableCell>
+                {format(new Date(invoice.invoiceDate), "dd MMM yyyy")}
+              </TableCell>
+              <TableCell>
+                {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+              </TableCell>
+              <TableCell>{invoice.invoiceNumber}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{invoice.status}</Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(invoice.totalAmount)}
+              </TableCell>
+              <TableCell>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/sales/invoices/${invoice.id}`}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          {invoices.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                No sales invoices found
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      {total > 0 && (
+        <CustomPagination
+          totalEntries={total}
+          pageSize={PAGE_SIZE}
+          currentPage={page}
+          onPageChange={setPage}
+        />
+      )}
+    </div>
+  );
+}
+
+export function SalesPaymentsList({ contactId }: { contactId: string }) {
+  const [page, setPage] = useState(1);
+  const formatCurrency = useFormatCurrency();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["contact-sales-payments", contactId, page],
+    queryFn: () =>
+      getContactSalesPayments({ contactId, page, pageSize: PAGE_SIZE }),
+  });
+
+  const payments = data?.data ? (SuperJSON.deserialize(data.data) as any[]) : [];
+  const total = data?.total || 0;
+
+  if (isLoading) return <ListSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Payment Date</TableHead>
+            <TableHead>Payment #</TableHead>
+            <TableHead>Reference</TableHead>
+            <TableHead>Account</TableHead>
+            <TableHead className="text-right">Amount</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {payments.map((payment) => (
+            <TableRow key={payment.id}>
+              <TableCell>
+                {format(new Date(payment.paymentDate), "dd MMM yyyy")}
+              </TableCell>
+              <TableCell>{payment.paymentNumber}</TableCell>
+              <TableCell>{payment.reference || "-"}</TableCell>
+              <TableCell>{payment.cashAccount.name}</TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(payment.amount)}
+              </TableCell>
+              <TableCell>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href={`/sales/payments/${payment.id}`}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          {payments.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                No sales payments found
               </TableCell>
             </TableRow>
           )}

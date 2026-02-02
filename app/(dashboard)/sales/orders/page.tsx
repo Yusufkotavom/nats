@@ -135,6 +135,11 @@ export default function SalesOrdersPage() {
             className: "font-medium",
         },
         {
+            header: "Date",
+            accessorKey: "orderDate",
+            cell: (item) => formatDate(item.orderDate),
+        },
+        {
             header: "Customer",
             cell: (item) =>
                 item.contact ? (
@@ -147,11 +152,6 @@ export default function SalesOrdersPage() {
                 ) : (
                     "-"
                 ),
-        },
-        {
-            header: "Date",
-            accessorKey: "orderDate",
-            cell: (item) => formatDate(item.orderDate),
         },
         {
             header: "Expected",

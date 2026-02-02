@@ -133,6 +133,11 @@ export default function PurchaseOrdersPage() {
       className: "font-medium",
     },
     {
+      header: "Date",
+      accessorKey: "orderDate",
+      cell: (item) => formatDate(item.orderDate),
+    },
+    {
       header: "Vendor",
       cell: (item) =>
         item.contact ? (
@@ -145,11 +150,6 @@ export default function PurchaseOrdersPage() {
         ) : (
           "-"
         ),
-    },
-    {
-      header: "Date",
-      accessorKey: "orderDate",
-      cell: (item) => formatDate(item.orderDate),
     },
     {
       header: "Expected",

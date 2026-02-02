@@ -163,6 +163,109 @@ export async function getContactPurchasePayments({
   };
 }
 
+export async function getContactSalesOrders({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.SalesOrderWhereInput = {
+    contactId,
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.salesOrder.findMany({
+      where,
+      orderBy: { orderDate: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.salesOrder.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getContactSalesInvoices({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.SalesInvoiceWhereInput = {
+    contactId,
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.salesInvoice.findMany({
+      where,
+      orderBy: { invoiceDate: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.salesInvoice.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+export async function getContactSalesPayments({
+  contactId,
+  page = 1,
+  pageSize = 10,
+}: {
+  contactId: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  const skip = (page - 1) * pageSize;
+  const where: Prisma.SalesPaymentWhereInput = {
+    contactId,
+  };
+
+  const [data, total] = await Promise.all([
+    prisma.salesPayment.findMany({
+      where,
+      include: {
+        salesInvoice: true,
+        cashAccount: true,
+      },
+      orderBy: { paymentDate: "desc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.salesPayment.count({ where }),
+  ]);
+
+  return {
+    data: SuperJSON.serialize(data),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
 export async function getContactJournalEntries({
   contactId,
   page = 1,

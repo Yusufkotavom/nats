@@ -19,6 +19,9 @@ import {
   PurchaseOrdersList,
   PurchaseInvoicesList,
   PurchasePaymentsList,
+  SalesOrdersList,
+  SalesInvoicesList,
+  SalesPaymentsList,
   JournalEntriesList,
 } from "./transaction-lists";
 import { ContactType } from "@/prisma/generated/prisma/browser";
@@ -68,9 +71,12 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="cash-transactions">Cash Transactions</TabsTrigger>
+          <TabsTrigger value="sales-orders">Sales Orders</TabsTrigger>
+          <TabsTrigger value="sales-invoices">Sales Invoices</TabsTrigger>
+          <TabsTrigger value="sales-payments">Sales Payments</TabsTrigger>
           <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
-          <TabsTrigger value="invoices">Purchase Invoices</TabsTrigger>
-          <TabsTrigger value="payments">PurchasePayments</TabsTrigger>
+          <TabsTrigger value="purchase-invoices">Purchase Invoices</TabsTrigger>
+          <TabsTrigger value="purchase-payments">Purchase Payments</TabsTrigger>
           <TabsTrigger value="journal-entries">General Entries</TabsTrigger>
         </TabsList>
 
@@ -125,6 +131,30 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
           </Card>
         </TabsContent>
 
+        <TabsContent value="sales-orders">
+          <Card>
+            <CardContent>
+              <SalesOrdersList contactId={contact.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sales-invoices">
+          <Card>
+            <CardContent>
+              <SalesInvoicesList contactId={contact.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sales-payments">
+          <Card>
+            <CardContent>
+              <SalesPaymentsList contactId={contact.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="purchase-orders">
           <Card>
             <CardContent>
@@ -133,7 +163,7 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="invoices">
+        <TabsContent value="purchase-invoices">
           <Card>
             <CardContent>
               <PurchaseInvoicesList contactId={contact.id} />
@@ -141,7 +171,7 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="payments">
+        <TabsContent value="purchase-payments">
           <Card>
             <CardContent>
               <PurchasePaymentsList contactId={contact.id} />
