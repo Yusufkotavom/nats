@@ -157,11 +157,11 @@ const data = {
       items: [
         {
           title: "Sales Order",
-          url: "#",
+          url: "/sales/orders",
         },
         {
           title: "Sales Invoice",
-          url: "#",
+          url: "/sales/invoices",
         },
         {
           title: "Point of Sale (POS)",
@@ -169,7 +169,15 @@ const data = {
         },
         {
           title: "Sales Return",
-          url: "#",
+          url: "/sales/returns",
+        },
+        {
+          title: "Sales Shipments",
+          url: "/sales/shipments",
+        },
+        {
+          title: "Sales Payments",
+          url: "/sales/payments",
         },
       ],
     },

@@ -15,6 +15,7 @@ model Account {
   updatedAt            DateTime              @updatedAt
   journalEntryLines    JournalEntryLine[]
   purchaseInvoiceItems PurchaseInvoiceItem[]
+  salesInvoiceItems    SalesInvoiceItem[]
 
   // Product Accounting Relations
   productInventoryAccounts  Product[] @relation("ProductInventoryAccount")
@@ -51,6 +52,7 @@ model JournalEntry {
   cashTransfer    CashTransfer?
   cashTransaction CashTransaction?
   purchasePayment PurchasePayment?
+  salesPayment    SalesPayment?
 
   @@index([transactionDate])
   @@index([status])

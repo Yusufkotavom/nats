@@ -37,6 +37,13 @@ model User {
   closedPurchaseOrders    PurchaseOrder[] @relation("POClosedBy")
   cancelledPurchaseOrders PurchaseOrder[] @relation("POCancelledBy")
 
+  // Sales Order Relations
+  createdSalesOrders   SalesOrder[] @relation("SOCreatedBy")
+  updatedSalesOrders   SalesOrder[] @relation("SOUpdatedBy")
+  confirmedSalesOrders SalesOrder[] @relation("SOConfirmedBy")
+  closedSalesOrders    SalesOrder[] @relation("SOClosedBy")
+  cancelledSalesOrders SalesOrder[] @relation("SOCancelledBy")
+
   @@index([email])
   @@index([roleId])
 }
@@ -64,6 +71,8 @@ model File {
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
   purchasePaymentId String?
   purchasePayment   PurchasePayment? @relation(fields: [purchasePaymentId], references: [id])
+  salesPaymentId    String?
+  salesPayment      SalesPayment?    @relation(fields: [salesPaymentId], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

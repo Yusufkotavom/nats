@@ -25,4 +25,11 @@ model Contact {
     purchasePayments PurchasePayment[]
     journalEntryLines JournalEntryLine[]
     cashTransactions CashTransaction[]
+
+    // Customer relations
+    salesOrders   SalesOrder[]
+    salesShipments SalesShipment[]
+    salesInvoices SalesInvoice[]
+    salesReturns  SalesReturn[]
+    salesPayments SalesPayment[]
 }

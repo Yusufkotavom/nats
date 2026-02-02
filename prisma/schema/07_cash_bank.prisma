@@ -24,6 +24,7 @@ model CashAccount {
   // Transactions
   transactions CashTransaction[]
   purchasePayments PurchasePayment[]
+  salesPayments SalesPayment[]
 }
 
 enum CashAccountType {
