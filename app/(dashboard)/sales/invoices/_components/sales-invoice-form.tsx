@@ -1,0 +1,642 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
+import { SelectItem } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { Loader2, Trash2, PlusIcon } from "lucide-react";
+import {
+  createSalesInvoice,
+  updateSalesInvoice,
+  getSalesOrder,
+} from "../actions";
+import { SalesInvoiceWithDetails, SalesInvoiceInput } from "../types";
+import { SalesOrderWithDetails } from "../../orders/types";
+import { useFormatDate } from "@/hooks";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { SortableTableRow } from "@/components/ui/sortable-row";
+import { generateId } from "@/lib/utils";
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+interface SalesInvoiceFormProps {
+  invoice?: SuperJSONResult | null;
+  customers: { id: string; name: string }[];
+  salesOrders: SuperJSONResult;
+  readonly?: boolean;
+}
+
+export function SalesInvoiceForm({
+  invoice: serializedInvoice,
+  customers,
+  salesOrders: serializedSalesOrders,
+  readonly = false,
+}: SalesInvoiceFormProps) {
+  const invoice = serializedInvoice
+    ? SuperJSON.deserialize<SalesInvoiceWithDetails>(serializedInvoice)
+    : undefined;
+  const salesOrders = SuperJSON.deserialize<SalesOrderWithDetails[]>(
+    serializedSalesOrders,
+  );
+
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const isEditing = !!invoice;
+  const formatDate = useFormatDate();
+
+  const [formData, setFormData] = useState<
+    Omit<SalesInvoiceInput, "items"> & {
+      items: (SalesInvoiceInput["items"][0] & { id: string })[];
+    }
+  >({
+    invoiceNumber: invoice?.invoiceNumber || "",
+    contactId: invoice?.contactId || "",
+    salesOrderId: invoice?.salesOrderId || undefined,
+    invoiceDate: invoice?.invoiceDate
+      ? new Date(invoice.invoiceDate)
+      : new Date(),
+    dueDate: invoice?.dueDate ? new Date(invoice.dueDate) : new Date(),
+    notes: invoice?.notes || "",
+    status: invoice?.status || "DRAFT",
+
+    globalDiscount: Number(invoice?.globalDiscount) || 0,
+    totalTax: Number(invoice?.totalTax) || 0,
+    shippingCost: Number(invoice?.shippingCost) || 0,
+
+    items:
+      invoice?.items.map((item) => ({
+        id: generateId(),
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        discount: Number(item.discount) || 0,
+        tax: Number(item.tax) || 0,
+        productId: item.productId || undefined,
+        accountId: item.accountId || undefined,
+      })) || [],
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setFormData((prev) => {
+        const oldIndex = prev.items.findIndex((item) => item.id === active.id);
+        const newIndex = prev.items.findIndex((item) => item.id === over.id);
+        return { ...prev, items: arrayMove(prev.items, oldIndex, newIndex) };
+      });
+    }
+  };
+
+  // When Sales Order is selected, populate items
+  const handleSalesOrderChange = async (soId: string) => {
+    setFormData((prev) => ({ ...prev, salesOrderId: soId }));
+
+    if (soId) {
+      try {
+        const serializedFullSo = await getSalesOrder(soId);
+        const fullSo = serializedFullSo
+          ? SuperJSON.deserialize<SalesOrderWithDetails>(serializedFullSo)
+          : null;
+
+        if (fullSo) {
+          // Auto-select customer
+          setFormData((prev) => ({ ...prev, contactId: fullSo.contactId }));
+
+          // Populate items from SO
+          const newItems = fullSo.items.map((item) => ({
+            id: generateId(),
+            description: item.product?.name || "Item",
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice), // Assuming unitPrice exists on SO Item
+            discount: 0,
+            tax: 0,
+          }));
+
+          setFormData((prev) => ({ ...prev, items: newItems }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch SO details", error);
+      }
+    }
+  };
+
+  const handleAddItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        {
+          id: generateId(),
+          description: "",
+          quantity: 1,
+          unitPrice: 0,
+          discount: 0,
+          tax: 0,
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleItemChange = (
+    index: number,
+    field: keyof (typeof formData.items)[0],
+    value: string | number | undefined,
+  ) => {
+    const newItems = [...formData.items];
+    // @ts-ignore
+    newItems[index] = { ...newItems[index], [field]: value };
+    setFormData((prev) => ({ ...prev, items: newItems }));
+  };
+
+  const calculateItemValues = (item: (typeof formData.items)[0]) => {
+    const quantity = item.quantity || 0;
+    const unitPrice = item.unitPrice || 0;
+    const subtotal = quantity * unitPrice;
+    const discountAmount = subtotal * ((item.discount || 0) / 100);
+    const taxableAmount = subtotal - discountAmount;
+    const taxAmount = taxableAmount * ((item.tax || 0) / 100);
+    const total = taxableAmount + taxAmount;
+    return { subtotal, discountAmount, taxableAmount, taxAmount, total };
+  };
+
+  useEffect(() => {
+    const calculatedTotalTax = formData.items.reduce((sum, item) => {
+      const { taxAmount } = calculateItemValues(item);
+      return sum + taxAmount;
+    }, 0);
+
+    if (Math.abs(calculatedTotalTax - formData.totalTax) > 0.001) {
+      setFormData((prev) => ({ ...prev, totalTax: calculatedTotalTax }));
+    }
+  }, [formData.items]);
+
+  const itemsNetTotal = formData.items.reduce(
+    (sum, item) => sum + calculateItemValues(item).taxableAmount,
+    0,
+  );
+
+  const totalAmount =
+    itemsNetTotal -
+    (formData.globalDiscount || 0) +
+    (formData.shippingCost || 0);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Validate
+    if (!formData.contactId) {
+      alert("Please select a customer");
+      return;
+    }
+    // Note: invoiceNumber might be auto-generated by backend if empty, 
+    // but form usually requires it if shown. 
+    // The Purchase form alerts if empty. 
+    // The Sales actions.ts I read allows empty and generates it.
+    // I will make it optional in validation here if the backend handles it, 
+    // but let's stick to the purchase form pattern for now, 
+    // OR allow it to be empty if the user didn't type it (let backend generate).
+    // The purchase form says: if (!formData.invoiceNumber) alert...
+    // I'll assume for Sales it might be auto-generated.
+
+    if (formData.items.length === 0) {
+      alert("Please add at least one item");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const submissionData = {
+        ...formData,
+        items: formData.items.map(({ id, ...item }) => item),
+      };
+      let result;
+      if (isEditing && invoice) {
+        result = await updateSalesInvoice(invoice.id, submissionData);
+      } else {
+        result = await createSalesInvoice(submissionData);
+      }
+
+      if (result.success) {
+        router.push("/sales/invoices");
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredSalesOrders = formData.contactId
+    ? salesOrders.filter((so) => so.contactId === formData.contactId)
+    : salesOrders;
+
+  return (
+    <div className="flex-1 space-y-4 px-4">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-xl font-bold tracking-tight">
+          {isEditing ? "Edit Sales Invoice" : "New Sales Invoice"}
+        </h2>
+        <div className="flex gap-2">
+          {!readonly && (
+            <>
+              <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? "Update" : "Create"}
+              </Button>
+            </>
+          )}
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-4">
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="grid gap-4 md:grid-cols-2 mt-4">
+                <CustomSelect
+                  label="Sales Order (Optional)"
+                  value={formData.salesOrderId || "none"}
+                  onValueChange={(val) =>
+                    handleSalesOrderChange(val === "none" ? "" : val)
+                  }
+                  placeholder="Select Sales Order"
+                  disabled={readonly}
+                >
+                  <SelectItem value="none">None</SelectItem>
+                  {filteredSalesOrders.map((so) => (
+                    <SelectItem key={so.id} value={so.id}>
+                      <div className="flex items-center">
+                        <span>{so.orderNumber}</span>
+                        <span className="text-muted-foreground ml-2">
+                          ({so.contact.name})
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
+
+                <CustomInput
+                  label="Invoice Number"
+                  value={formData.invoiceNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      invoiceNumber: e.target.value,
+                    }))
+                  }
+                  placeholder="Leave empty to auto-generate"
+                  disabled={readonly}
+                />
+
+                <CustomSelect
+                  value={formData.contactId}
+                  label="Customer"
+                  onValueChange={(val) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      contactId: val,
+                      salesOrderId: undefined,
+                    }));
+                  }}
+                  placeholder="Select Customer"
+                  disabled={readonly || !!formData.salesOrderId}
+                >
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
+
+                <CustomInput
+                  label="Invoice Date"
+                  type="date"
+                  value={
+                    formData.invoiceDate
+                      ? formatDate(formData.invoiceDate)
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      invoiceDate: e.target.value
+                        ? new Date(e.target.value)
+                        : new Date(),
+                    }))
+                  }
+                  disabled={readonly}
+                />
+
+                <CustomInput
+                  label="Due Date"
+                  type="date"
+                  value={
+                    formData.dueDate
+                      ? formatDate(formData.dueDate)
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      dueDate: e.target.value
+                        ? new Date(e.target.value)
+                        : new Date(),
+                    }))
+                  }
+                  disabled={readonly}
+                />
+
+                {isEditing && (
+                  <CustomSelect
+                    value={formData.status}
+                    label="Status"
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    onValueChange={(val: any) =>
+                      setFormData((prev) => ({ ...prev, status: val }))
+                    }
+                    disabled={
+                      readonly ||
+                      invoice.status === "PAID" ||
+                      invoice.status === "CANCELLED"
+                    }
+                  >
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="ISSUED">Issued</SelectItem>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="PARTIALLY_PAID">
+                      Partially Paid
+                    </SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  </CustomSelect>
+                )}
+                <CustomTextarea
+                  label="Notes"
+                  value={formData.notes || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      notes: e.target.value,
+                    }))
+                  }
+                  placeholder="Add notes here..."
+                  disabled={readonly}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Products</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]"></TableHead>
+                        <TableHead>Description</TableHead>
+                        {/* Removed Account Header to match cells */}
+                        <TableHead className="w-[100px]">Qty</TableHead>
+                        <TableHead className="w-[120px]">Unit Price</TableHead>
+                        <TableHead className="w-[120px]">
+                          Discount (%)
+                        </TableHead>
+                        <TableHead className="w-[120px]">Tax (%)</TableHead>
+                        <TableHead className="w-[100px]">Total</TableHead>
+                        {!readonly && (
+                          <TableHead className="w-[50px]"></TableHead>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <SortableContext
+                        items={formData.items}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {formData.items.map((item, index) => (
+                          <SortableTableRow key={item.id} id={item.id}>
+                            <TableCell>
+                              <CustomInput
+                                value={item.description}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "description",
+                                    e.target.value,
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <CustomInput
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "quantity",
+                                    parseInt(e.target.value) || 0,
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <CurrencyInput
+                                value={item.unitPrice}
+                                onChange={(val) =>
+                                  handleItemChange(
+                                    index,
+                                    "unitPrice",
+                                    Number(val),
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <CustomInput
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={item.discount}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "discount",
+                                    Number(e.target.value),
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <CustomInput
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={item.tax}
+                                onChange={(e) =>
+                                  handleItemChange(
+                                    index,
+                                    "tax",
+                                    Number(e.target.value),
+                                  )
+                                }
+                                disabled={readonly}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
+                                {calculateItemValues(
+                                  item,
+                                ).total.toLocaleString()}
+                              </div>
+                            </TableCell>
+                            {!readonly && (
+                              <TableCell>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="mb-0.5"
+                                  onClick={() => handleRemoveItem(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </TableCell>
+                            )}
+                          </SortableTableRow>
+                        ))}
+                      </SortableContext>
+                    </TableBody>
+                  </Table>
+                </DndContext>
+                {formData.items.length === 0 && (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No items added.
+                  </div>
+                )}
+                <div className="flex justify-between items-start p-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={readonly}
+                    size="sm"
+                    onClick={handleAddItem}
+                  >
+                    <PlusIcon /> Add Item
+                  </Button>
+                  <div className="w-1/3 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium">
+                        Subtotal (Net)
+                      </span>
+                      <span>{itemsNetTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium">
+                        Global Discount
+                      </span>
+                      <CurrencyInput
+                        value={formData.globalDiscount}
+                        onChange={(val) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            globalDiscount: Number(val),
+                          }))
+                        }
+                        disabled={readonly}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium">Total Tax</span>
+                      <CurrencyInput
+                        value={formData.totalTax}
+                        onChange={() => { }}
+                        disabled={true}
+                        className="w-24 h-8 bg-muted"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium">Shipping</span>
+                      <CurrencyInput
+                        value={formData.shippingCost}
+                        onChange={(val) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            shippingCost: Number(val),
+                          }))
+                        }
+                        disabled={readonly}
+                        className="w-24 h-8"
+                      />
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="font-bold">Total</span>
+                      <span className="font-bold">
+                        {totalAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

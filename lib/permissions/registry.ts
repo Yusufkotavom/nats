@@ -80,6 +80,27 @@ export const register: PermissionType[] = [
   },
 
   // Sales
+  {
+    name: "sales.view",
+    description: "Allows viewing sales module",
+    module: "sales",
+  },
+  {
+    name: "sales.create",
+    description: "Allows creating sales records",
+    module: "sales",
+  },
+  {
+    name: "sales.edit",
+    description: "Allows editing sales records",
+    module: "sales",
+  },
+  {
+    name: "sales.delete",
+    description: "Allows deleting sales records",
+    module: "sales",
+  },
+
   // Customers
   {
     name: "customers.create",
