@@ -4,6 +4,9 @@ import {
   PurchaseOrderStatus,
   PurchaseReceiveStatus,
   PurchaseInvoiceStatus,
+  SalesOrderStatus,
+  SalesShipmentStatus,
+  SalesInvoiceStatus,
   ContactType,
   CashAccountType,
 } from "@/prisma/generated/prisma/client";
@@ -721,7 +724,7 @@ async function main() {
           totalCost,
           receivedQuantity:
             status === PurchaseOrderStatus.CLOSED ||
-            status === PurchaseOrderStatus.PARTIALLY_RECEIVED
+              status === PurchaseOrderStatus.PARTIALLY_RECEIVED
               ? status === PurchaseOrderStatus.CLOSED
                 ? quantity
                 : Math.floor(quantity / 2)
@@ -806,6 +809,159 @@ async function main() {
                   quantity: item.quantity,
                   unitPrice: item.unitCost,
                   totalPrice: item.totalCost,
+                })),
+              },
+            },
+          });
+        }
+      }
+    }
+  }
+
+  // Seed Sales Transactions
+  const allCustomers = await prisma.contact.findMany({
+    where: { type: ContactType.CUSTOMER },
+  });
+
+  if (allCustomers.length > 0 && allProducts.length > 0) {
+    console.log("Seeding Sales Orders...");
+
+    // Create 20 Sales Orders
+    for (let i = 1; i <= 20; i++) {
+      const customer =
+        allCustomers[Math.floor(Math.random() * allCustomers.length)];
+      const orderNumber = `SO-${new Date().getFullYear()}-${i
+        .toString()
+        .padStart(3, "0")}`;
+
+      // Determine Status
+      const statuses = Object.values(SalesOrderStatus);
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+      // Select random products (1-5 items)
+      const numItems = Math.floor(Math.random() * 5) + 1;
+      const orderItems = [];
+      let totalAmount = 0;
+      let subtotal = 0;
+      let taxAmount = 0;
+
+      for (let j = 0; j < numItems; j++) {
+        const product =
+          allProducts[Math.floor(Math.random() * allProducts.length)];
+        const quantity = Math.floor(Math.random() * 20) + 1;
+        const unitPrice = Number(product.price);
+        const totalPrice = quantity * unitPrice;
+
+        // Simple tax calculation (e.g., 10%)
+        const taxRate = 0.1;
+        const itemTax = totalPrice * taxRate;
+
+        orderItems.push({
+          productId: product.id,
+          quantity,
+          unitPrice,
+          totalPrice,
+          taxRate: taxRate * 100, // percentage
+          shippedQuantity:
+            status === SalesOrderStatus.CLOSED ||
+              status === SalesOrderStatus.SHIPPED
+              ? quantity
+              : status === SalesOrderStatus.PARTIALLY_SHIPPED
+                ? Math.floor(quantity / 2)
+                : 0,
+        });
+
+        subtotal += totalPrice;
+        taxAmount += itemTax;
+      }
+
+      totalAmount = subtotal + taxAmount;
+
+      const so = await prisma.salesOrder.upsert({
+        where: { orderNumber },
+        update: {},
+        create: {
+          orderNumber,
+          contactId: customer.id,
+          status,
+          totalAmount,
+          subtotal,
+          taxAmount,
+          orderDate: new Date(),
+          items: {
+            create: orderItems.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.totalPrice,
+              taxRate: item.taxRate,
+              shippedQuantity: item.shippedQuantity,
+            })),
+          },
+        },
+      });
+
+      // Create Shipment for Closed/Shipped/Partially Shipped
+      if (
+        status === SalesOrderStatus.CLOSED ||
+        status === SalesOrderStatus.SHIPPED ||
+        status === SalesOrderStatus.PARTIALLY_SHIPPED
+      ) {
+        const shipmentNumber = `SH-${so.orderNumber}`;
+        const shipmentStatus =
+          status === SalesOrderStatus.CLOSED ||
+            status === SalesOrderStatus.SHIPPED
+            ? SalesShipmentStatus.COMPLETED
+            : SalesShipmentStatus.DRAFT;
+
+        await prisma.salesShipment.upsert({
+          where: { shipmentNumber },
+          update: {},
+          create: {
+            shipmentNumber,
+            salesOrderId: so.id,
+            contactId: customer.id,
+            status: shipmentStatus,
+            shipmentDate: new Date(),
+            items: {
+              create: orderItems.map((item) => ({
+                productId: item.productId,
+                quantity: item.shippedQuantity,
+              })),
+            },
+          },
+        });
+
+        // Create Invoice for Closed/Shipped SOs
+        if (
+          status === SalesOrderStatus.CLOSED ||
+          status === SalesOrderStatus.SHIPPED
+        ) {
+          const invoiceNumber = `SINV-${so.orderNumber}`;
+          await prisma.salesInvoice.upsert({
+            where: {
+              invoiceNumber,
+            },
+            update: {},
+            create: {
+              invoiceNumber,
+              contactId: customer.id,
+              salesOrderId: so.id,
+              invoiceDate: new Date(),
+              dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+              status: SalesInvoiceStatus.ISSUED,
+              totalAmount: so.totalAmount,
+              subtotal: so.subtotal,
+              totalTax: so.taxAmount,
+              balanceDue: so.totalAmount,
+              items: {
+                create: orderItems.map((item) => ({
+                  description: `Item from ${so.orderNumber}`,
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  totalPrice: item.totalPrice,
+                  tax: item.totalPrice * (item.taxRate / 100),
+                  productId: item.productId,
                 })),
               },
             },
