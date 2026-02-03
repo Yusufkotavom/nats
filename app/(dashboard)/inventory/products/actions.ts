@@ -125,11 +125,6 @@ export const createProduct = authorizedAction(
             purchaseConversionFactor: data.purchaseConversionFactor,
             salesUnitId: data.salesUnitId,
             salesConversionFactor: data.salesConversionFactor,
-            inventoryAccountId: data.inventoryAccountId,
-            cogsAccountId: data.cogsAccountId,
-            salesAccountId: data.salesAccountId,
-            payableAccountId: data.payableAccountId,
-            receivableAccountId: data.receivableAccountId,
           },
         });
 
@@ -192,11 +187,6 @@ export const updateProduct = authorizedAction(
             purchaseConversionFactor: data.purchaseConversionFactor,
             salesUnitId: data.salesUnitId,
             salesConversionFactor: data.salesConversionFactor,
-            inventoryAccountId: data.inventoryAccountId,
-            cogsAccountId: data.cogsAccountId,
-            salesAccountId: data.salesAccountId,
-            payableAccountId: data.payableAccountId,
-            receivableAccountId: data.receivableAccountId,
           },
         });
 

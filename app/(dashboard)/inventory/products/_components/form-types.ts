@@ -13,9 +13,4 @@ export type ProductFormState = {
   salesUnitId: string;
   salesConversionFactor: string | number;
   image: string;
-  inventoryAccountId: string;
-  cogsAccountId: string;
-  salesAccountId: string;
-  payableAccountId: string;
-  receivableAccountId: string;
 };

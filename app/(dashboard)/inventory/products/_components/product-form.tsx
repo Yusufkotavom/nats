@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useState } from "react";
 import { createProduct, updateProduct } from "../actions";
 import { ProductFormData } from "../../types";
-import { Category, Unit, Account } from "@/prisma/generated/prisma/browser";
+import { Category, Unit } from "@/prisma/generated/prisma/browser";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { PriceHistory } from "./price-history";
@@ -15,14 +15,12 @@ import { SuperJSON } from "@/lib/superjson";
 import { ProductFormState } from "./form-types";
 import { GeneralSection } from "./form-sections/general-section";
 import { PricingSection } from "./form-sections/pricing-section";
-import { AccountSection } from "./form-sections/account-section";
 import { ImageSection } from "./form-sections/image-section";
 
 interface ProductFormProps {
   product?: ProductFormData | any;
   categories: Category[];
   units: Unit[];
-  accounts?: Account[];
   readonly?: boolean;
 }
 
@@ -30,7 +28,6 @@ export function ProductForm({
   product: initialProduct,
   categories,
   units,
-  accounts = [],
   readonly = false,
 }: ProductFormProps) {
   const product =
@@ -60,11 +57,6 @@ export function ProductForm({
     salesUnitId: product?.salesUnitId || "",
     salesConversionFactor: product?.salesConversionFactor?.toString() || 1,
     image: product?.image || "",
-    inventoryAccountId: product?.inventoryAccountId || "",
-    cogsAccountId: product?.cogsAccountId || "",
-    salesAccountId: product?.salesAccountId || "",
-    payableAccountId: product?.payableAccountId || "",
-    receivableAccountId: product?.receivableAccountId || "",
   });
 
   const handleInputChange = (
@@ -124,11 +116,6 @@ export function ProductForm({
       purchaseConversionFactor: purchaseFactor?.toString() || 1,
       salesUnitId: formData.salesUnitId || null,
       salesConversionFactor: salesFactor?.toString() || 1,
-      inventoryAccountId: formData.inventoryAccountId || null,
-      cogsAccountId: formData.cogsAccountId || null,
-      salesAccountId: formData.salesAccountId || null,
-      payableAccountId: formData.payableAccountId || null,
-      receivableAccountId: formData.receivableAccountId || null,
     };
 
     try {
@@ -173,10 +160,9 @@ export function ProductForm({
 
       <form onSubmit={handleSubmit}>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="pricing">Pricing & Inventory</TabsTrigger>
-            <TabsTrigger value="account">Accounts</TabsTrigger>
             <TabsTrigger value="image">Product Image</TabsTrigger>
           </TabsList>
 
@@ -196,15 +182,6 @@ export function ProductForm({
                   formData={formData}
                   handleInputChange={handleInputChange}
                   units={units}
-                  readonly={readonly}
-                />
-              </TabsContent>
-
-              <TabsContent value="account" className="mt-0">
-                <AccountSection
-                  formData={formData}
-                  handleInputChange={handleInputChange}
-                  accounts={accounts}
                   readonly={readonly}
                 />
               </TabsContent>

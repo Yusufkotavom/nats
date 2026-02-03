@@ -52,10 +52,6 @@ const data = {
           url: "/accounting/accounts",
         },
         {
-          title: "Default Accounts",
-          url: "/accounting/configuration/default-accounts",
-        },
-        {
           title: "Journal Entries",
           url: "/accounting/journal-entries",
         },

@@ -13,10 +13,18 @@ import { SearchableSelect } from "@/components/ui/searchable-select"
 import { saveDefaultAccounts, type DefaultAccountWithAccount } from "../actions"
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, LockIcon, Save, X } from "lucide-react"
+import { ArrowLeftIcon, Loader2, LockIcon, Save, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePermission } from "@/lib/permissions/use-permission"
 import { useConfirm } from "@/hooks/use-confirm"
+import { useRouter } from "next/navigation"
+import {
+  PageListActions,
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout"
 
 interface DefaultAccountsViewProps {
   defaultAccounts: DefaultAccountWithAccount[]
@@ -100,6 +108,7 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
   const { toast } = useToast()
   const canEdit = usePermission("default_accounts.manage")
   const confirm = useConfirm()
+  const router = useRouter()
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -171,15 +180,10 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
   }
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="flex flex-row items-center justify-between">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Default Accounts</h1>
-          <p className="text-muted-foreground">
-            Configure default accounts for automatic transaction posting.
-          </p>
-        </div>
-        <div className="flex gap-2">
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Default Accounts" />
+        <PageListActions className="flex justify-end gap-1">
           {isEditing ? (
             <>
               <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
@@ -196,55 +200,63 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
               </Button>
             </>
           ) : (
-            <Button onClick={handleEdit} disabled={!canEdit}>
-              <LockIcon className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
+            <>
+              <Button onClick={handleEdit} disabled={!canEdit}>
+                <LockIcon className="h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="outline" onClick={() => router.back()} disabled={!canEdit}>
+                <ArrowLeftIcon className="h-4 w-4" />
+                Back
+              </Button>
+            </>
           )}
-        </div>
-      </div>
+        </PageListActions>
+      </PageListHeader>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[20%]">Purpose</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead className="w-[30%]">Default Account</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Object.entries(PURPOSE_CATEGORIES).map(([category, purposes]) => (
-            <Fragment key={category}>
-              <TableRow key={category} className="bg-muted hover:bg-muted">
-                <TableCell colSpan={3} className="font-semibold">
-                  {category}
-                </TableCell>
-              </TableRow>
-              {purposes.map((purpose) => (
-                <TableRow key={purpose}>
-                  <TableCell className="font-medium align-middle">
-                    {PURPOSE_LABELS[purpose]}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground align-middle">
-                    {PURPOSE_DESCRIPTIONS[purpose]}
-                  </TableCell>
-                  <TableCell className="align-top">
-                    <div className="relative">
-                      <SearchableSelect
-                        options={accountOptions}
-                        value={getDefaultAccountId(purpose)}
-                        onValueChange={(val) => handleChange(purpose, val)}
-                        placeholder="Select account..."
-                        disabled={!isEditing || isSaving}
-                      />
-                    </div>
+      <PageListContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[20%]">Purpose</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="w-[30%]">Default Account</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Object.entries(PURPOSE_CATEGORIES).map(([category, purposes]) => (
+              <Fragment key={category}>
+                <TableRow key={category} className="bg-muted hover:bg-muted">
+                  <TableCell colSpan={3} className="font-semibold">
+                    {category}
                   </TableCell>
                 </TableRow>
-              ))}
-            </Fragment>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+                {purposes.map((purpose) => (
+                  <TableRow key={purpose}>
+                    <TableCell className="font-medium align-middle">
+                      {PURPOSE_LABELS[purpose]}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground align-middle">
+                      {PURPOSE_DESCRIPTIONS[purpose]}
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div className="relative">
+                        <SearchableSelect
+                          options={accountOptions}
+                          value={getDefaultAccountId(purpose)}
+                          onValueChange={(val) => handleChange(purpose, val)}
+                          placeholder="Select account..."
+                          disabled={!isEditing || isSaving}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </Fragment>
+            ))}
+          </TableBody>
+        </Table>
+      </PageListContent>
+    </PageListLayout>
   )
 }

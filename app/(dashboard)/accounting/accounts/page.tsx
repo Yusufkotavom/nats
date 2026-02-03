@@ -19,6 +19,7 @@ import {
   Trash2,
   Plus,
   Loader2,
+  CogIcon,
 } from "lucide-react";
 import { updateAccount, deleteAccount, getAccounts } from "./actions";
 import { AccountDialog } from "./_components/account-dialog";
@@ -33,6 +34,7 @@ import {
 import { Account } from "../types";
 import { useConfirm, useToast } from "@/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 export default function AccountListPage() {
   const { toast } = useToast();
@@ -43,6 +45,7 @@ export default function AccountListPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const confirm = useConfirm();
+  const router = useRouter();
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["accounts"],
@@ -270,8 +273,8 @@ export default function AccountListPage() {
     const childrenRows: React.ReactElement[] =
       hasChildren && isOpen
         ? a
-            .children!.sort((x, y) => x.code.localeCompare(y.code))
-            .flatMap((c) => renderRows(c as Account, depth + 1))
+          .children!.sort((x, y) => x.code.localeCompare(y.code))
+          .flatMap((c) => renderRows(c as Account, depth + 1))
         : [];
     return [row, ...childrenRows];
   }
@@ -280,10 +283,14 @@ export default function AccountListPage() {
     <PageListLayout>
       <PageListHeader>
         <PageListTitle title="Chart of Accounts"></PageListTitle>
-        <PageListActions>
-          <Button onClick={() => setIsAdding(true)}>
-            <Plus className="mr-2" /> Add Account
+        <PageListActions className="space-x-1">
+          <Button variant="outline" onClick={() => router.push("/accounting/configuration/default-accounts")}>
+            <CogIcon /> Default Accounts
           </Button>
+          <Button onClick={() => setIsAdding(true)} >
+            <Plus /> Add Account
+          </Button>
+
         </PageListActions>
       </PageListHeader>
 

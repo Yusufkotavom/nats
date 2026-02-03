@@ -49,11 +49,6 @@ export type ProductInput = {
   purchaseConversionFactor?: number | string;
   salesUnitId?: string | null;
   salesConversionFactor?: number | string;
-  inventoryAccountId?: string | null;
-  cogsAccountId?: string | null;
-  salesAccountId?: string | null;
-  payableAccountId?: string | null;
-  receivableAccountId?: string | null;
 };
 
 export type ProductWithDetails = Prisma.ProductGetPayload<{

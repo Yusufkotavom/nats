@@ -18,13 +18,6 @@ model Account {
   salesInvoiceItems    SalesInvoiceItem[]
   defaultAccounts      DefaultAccount[]
 
-  // Product Accounting Relations
-  productInventoryAccounts  Product[] @relation("ProductInventoryAccount")
-  productCOGSAccounts       Product[] @relation("ProductCOGSAccount")
-  productSalesAccounts      Product[] @relation("ProductSalesAccount")
-  productPayableAccounts    Product[] @relation("ProductPayableAccount")
-  productReceivableAccounts Product[] @relation("ProductReceivableAccount")
-
   // Cash & Bank Relations
   cashAccount                CashAccount?
   cashTransactionAllocations CashTransactionAllocation[]

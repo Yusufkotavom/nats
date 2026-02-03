@@ -65,22 +65,6 @@ model Product {
   salesInvoiceItems SalesInvoiceItem[]
   salesReturnItems  SalesReturnItem[]
 
-  // Accounting - Perpetual Inventory
-  inventoryAccountId String?
-  inventoryAccount   Account? @relation("ProductInventoryAccount", fields: [inventoryAccountId], references: [id])
-
-  cogsAccountId String?
-  cogsAccount   Account? @relation("ProductCOGSAccount", fields: [cogsAccountId], references: [id])
-
-  salesAccountId String?
-  salesAccount   Account? @relation("ProductSalesAccount", fields: [salesAccountId], references: [id])
-
-  payableAccountId String?
-  payableAccount   Account? @relation("ProductPayableAccount", fields: [payableAccountId], references: [id])
-
-  receivableAccountId String?
-  receivableAccount   Account? @relation("ProductReceivableAccount", fields: [receivableAccountId], references: [id])
-
   @@index([categoryId])
   @@index([sku])
 }
