@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client"
 import { revalidatePath } from "next/cache"
+import { authorizedAction } from "@/lib/permissions/protected-action"
 
 export type DefaultAccountWithAccount = {
   id: string
@@ -79,3 +80,52 @@ export async function updateDefaultAccount(purpose: DefaultAccountPurpose, accou
     return { success: false, error: "Failed to update default account" }
   }
 }
+
+export const saveDefaultAccounts = authorizedAction(
+  "default_accounts.manage",
+  async (updates: { purpose: DefaultAccountPurpose; accountId: string }[]) => {
+    try {
+      await prisma.$transaction(async (tx) => {
+        for (const update of updates) {
+          const { purpose, accountId } = update
+
+          // Find current active default account for this purpose
+          const current = await tx.defaultAccount.findFirst({
+            where: {
+              purpose,
+              isActive: true,
+            },
+          })
+
+          // If same account, do nothing
+          if (current?.accountId === accountId) {
+            continue
+          }
+
+          // Deactivate current
+          if (current) {
+            await tx.defaultAccount.update({
+              where: { id: current.id },
+              data: { isActive: false },
+            })
+          }
+
+          // Create new
+          await tx.defaultAccount.create({
+            data: {
+              purpose,
+              accountId,
+              isActive: true,
+            },
+          })
+        }
+      })
+
+      revalidatePath("/accounting/configuration/default-accounts")
+      return { success: true }
+    } catch (error) {
+      console.error("Error saving default accounts:", error)
+      return { success: false, error: "Failed to save default accounts" }
+    }
+  }
+)

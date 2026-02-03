@@ -1,7 +1,6 @@
 "use client"
 
 import { Fragment, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -11,10 +10,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { SearchableSelect } from "@/components/ui/searchable-select"
-import { updateDefaultAccount, type DefaultAccountWithAccount } from "../actions"
+import { saveDefaultAccounts, type DefaultAccountWithAccount } from "../actions"
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, LockIcon, Save, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { usePermission } from "@/lib/permissions/use-permission"
+import { useConfirm } from "@/hooks/use-confirm"
 
 interface DefaultAccountsViewProps {
   defaultAccounts: DefaultAccountWithAccount[]
@@ -92,37 +94,70 @@ const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
 }
 
 export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccountsViewProps) {
-  const [updating, setUpdating] = useState<Record<string, boolean>>({})
+  const [isEditing, setIsEditing] = useState(false)
+  const [changes, setChanges] = useState<Record<string, string>>({})
+  const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
+  const canEdit = usePermission("default_accounts.manage")
+  const confirm = useConfirm()
 
-  const handleUpdate = async (purpose: DefaultAccountPurpose, accountId: string | null) => {
-    if (!accountId) return
+  const handleEdit = () => {
+    setIsEditing(true)
+  }
 
-    setUpdating(prev => ({ ...prev, [purpose]: true }))
-    try {
-      const result = await updateDefaultAccount(purpose, accountId)
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: `Updated default account for ${PURPOSE_LABELS[purpose]}`,
-        })
-      } else {
+  const handleCancel = () => {
+    setIsEditing(false)
+    setChanges({})
+  }
+
+  const handleSave = async () => {
+    if (Object.keys(changes).length === 0) {
+      setIsEditing(false)
+      return
+    }
+
+    if (await confirm({
+      title: "Save Changes",
+      description: "Are you sure you want to apply these changes? Previous configuration will be disabled."
+    })) {
+      setIsSaving(true)
+      try {
+        const updates = Object.entries(changes).map(([purpose, accountId]) => ({
+          purpose: purpose as DefaultAccountPurpose,
+          accountId
+        }))
+
+        const result = await saveDefaultAccounts(updates)
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Default accounts updated successfully",
+          })
+          setIsEditing(false)
+          setChanges({})
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Failed to update default accounts",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        console.error(error)
         toast({
           title: "Error",
-          description: "Failed to update default account",
+          description: "An error occurred",
           variant: "destructive",
         })
+      } finally {
+        setIsSaving(false)
       }
-    } catch (error) {
-      console.error(error)
-      toast({
-        title: "Error",
-        description: "An error occurred",
-        variant: "destructive",
-      })
-    } finally {
-      setUpdating(prev => ({ ...prev, [purpose]: false }))
     }
+  }
+
+  const handleChange = (purpose: DefaultAccountPurpose, accountId: string | null) => {
+    if (!accountId) return
+    setChanges(prev => ({ ...prev, [purpose]: accountId }))
   }
 
   const accountOptions = accounts.map(a => ({
@@ -131,16 +166,42 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
   }))
 
   const getDefaultAccountId = (purpose: DefaultAccountPurpose) => {
+    if (isEditing && changes[purpose]) return changes[purpose]
     return defaultAccounts.find(da => da.purpose === purpose)?.accountId || null
   }
 
   return (
     <div className="space-y-6 p-4">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Default Accounts</h1>
-        <p className="text-muted-foreground">
-          Configure default accounts for automatic transaction posting.
-        </p>
+      <div className="flex flex-row items-center justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Default Accounts</h1>
+          <p className="text-muted-foreground">
+            Configure default accounts for automatic transaction posting.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {isEditing ? (
+            <>
+              <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save Changes
+              </Button>
+            </>
+          ) : (
+            <Button onClick={handleEdit} disabled={!canEdit}>
+              <LockIcon className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
 
       <Table>
@@ -172,15 +233,10 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
                       <SearchableSelect
                         options={accountOptions}
                         value={getDefaultAccountId(purpose)}
-                        onValueChange={(val) => handleUpdate(purpose, val)}
+                        onValueChange={(val) => handleChange(purpose, val)}
                         placeholder="Select account..."
-                        disabled={updating[purpose]}
+                        disabled={!isEditing || isSaving}
                       />
-                      {updating[purpose] && (
-                        <div className="absolute right-8 top-2.5">
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        </div>
-                      )}
                     </div>
                   </TableCell>
                 </TableRow>

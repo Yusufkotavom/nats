@@ -247,4 +247,11 @@ export const register: PermissionType[] = [
       "Allows viewing financial reports (Trial Balance, P&L, Balance Sheet, etc.)",
     module: "reports",
   },
+
+  // Default Accounts
+  {
+    name: "default_accounts.manage",
+    description: "Allows configuring default accounts",
+    module: "accounting",
+  },
 ];
