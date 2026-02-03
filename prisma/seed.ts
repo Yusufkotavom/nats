@@ -9,6 +9,7 @@ import {
   SalesInvoiceStatus,
   ContactType,
   CashAccountType,
+  DefaultAccountPurpose,
 } from "@/prisma/generated/prisma/client";
 
 async function main() {
@@ -81,6 +82,33 @@ async function main() {
       parentCode: "11000",
     },
     {
+      code: "11300",
+      name: "Inventory Asset",
+      type: "asset",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "11000",
+    },
+    {
+      code: "11400",
+      name: "Purchase Tax Receivable",
+      type: "asset",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "11000",
+    },
+    {
+      code: "11900",
+      name: "Uncategorized Asset",
+      type: "asset",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "11000",
+    },
+    {
       code: "12000",
       name: "Non-Current Assets",
       type: "asset",
@@ -128,6 +156,15 @@ async function main() {
       parentCode: "21000",
     },
     {
+      code: "21200",
+      name: "Sales Tax Payable",
+      type: "liability",
+      normalBalance: "credit",
+      isPosting: true,
+      level: 2,
+      parentCode: "21000",
+    },
+    {
       code: "22000",
       name: "Long-Term Liabilities",
       type: "liability",
@@ -150,6 +187,24 @@ async function main() {
     {
       code: "31000",
       name: "Capital",
+      type: "equity",
+      normalBalance: "credit",
+      isPosting: true,
+      level: 1,
+      parentCode: "30000",
+    },
+    {
+      code: "32000",
+      name: "Retained Earnings",
+      type: "equity",
+      normalBalance: "credit",
+      isPosting: true,
+      level: 1,
+      parentCode: "30000",
+    },
+    {
+      code: "33000",
+      name: "Opening Balance Equity",
       type: "equity",
       normalBalance: "credit",
       isPosting: true,
@@ -202,6 +257,24 @@ async function main() {
       isPosting: true,
       level: 2,
       parentCode: "41000",
+    },
+    {
+      code: "42000",
+      name: "Sales Discount",
+      type: "revenue",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "40000",
+    },
+    {
+      code: "49000",
+      name: "Uncategorized Income",
+      type: "revenue",
+      normalBalance: "credit",
+      isPosting: true,
+      level: 2,
+      parentCode: "40000",
     },
 
     // 5. EXPENSES
@@ -294,6 +367,42 @@ async function main() {
       isPosting: true,
       level: 2,
       parentCode: "51000",
+    },
+    {
+      code: "52000",
+      name: "Cost of Goods Sold",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "50000",
+    },
+    {
+      code: "59000",
+      name: "Uncategorized Expense",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "50000",
+    },
+    {
+      code: "80000",
+      name: "Other Expenses",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: false,
+      level: 0,
+      parentCode: null,
+    },
+    {
+      code: "81000",
+      name: "Exchange Gain/Loss",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 1,
+      parentCode: "80000",
     },
   ] as const;
 
@@ -1234,6 +1343,55 @@ async function main() {
         },
       },
     });
+  }
+
+  // Seed Default Accounts
+  console.log("Seeding Default Accounts...");
+  const defaultAccountMappings: { purpose: DefaultAccountPurpose; code: string }[] =
+    [
+      { purpose: DefaultAccountPurpose.ACCOUNTS_RECEIVABLE, code: "11200" },
+      { purpose: DefaultAccountPurpose.ACCOUNTS_PAYABLE, code: "21100" },
+      { purpose: DefaultAccountPurpose.INVENTORY_ASSET, code: "11300" },
+      { purpose: DefaultAccountPurpose.COGS, code: "52000" },
+      { purpose: DefaultAccountPurpose.SALES_REVENUE, code: "41200" }, // Product Sales
+      { purpose: DefaultAccountPurpose.SALES_DISCOUNT, code: "42000" },
+      { purpose: DefaultAccountPurpose.SALES_TAX_PAYABLE, code: "21200" },
+      { purpose: DefaultAccountPurpose.PURCHASE_TAX_RECEIVABLE, code: "11400" },
+      { purpose: DefaultAccountPurpose.CASH_ON_HAND, code: "11120" }, // Petty Cash
+      { purpose: DefaultAccountPurpose.BANK, code: "11110" }, // Bank - Main
+      { purpose: DefaultAccountPurpose.OPENING_BALANCE_EQUITY, code: "33000" },
+      { purpose: DefaultAccountPurpose.RETAINED_EARNINGS, code: "32000" },
+      { purpose: DefaultAccountPurpose.UNCATEGORIZED_EXPENSE, code: "59000" },
+      { purpose: DefaultAccountPurpose.UNCATEGORIZED_INCOME, code: "49000" },
+      { purpose: DefaultAccountPurpose.UNCATEGORIZED_ASSET, code: "11900" },
+      { purpose: DefaultAccountPurpose.EXCHANGE_GAIN_LOSS, code: "81000" },
+    ];
+
+  for (const mapping of defaultAccountMappings) {
+    const account = await prisma.account.findUnique({
+      where: { code: mapping.code },
+    });
+
+    if (account) {
+      // Deactivate existing default account for this purpose if any (to ensure only one is active)
+      await prisma.defaultAccount.updateMany({
+        where: { purpose: mapping.purpose, isActive: true },
+        data: { isActive: false },
+      });
+
+      // Create new active default account
+      await prisma.defaultAccount.create({
+        data: {
+          purpose: mapping.purpose,
+          accountId: account.id,
+          isActive: true,
+        },
+      });
+    } else {
+      console.warn(
+        `Account code ${mapping.code} not found for purpose ${mapping.purpose}`
+      );
+    }
   }
 
   console.log("Seeding completed.");

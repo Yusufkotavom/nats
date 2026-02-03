@@ -16,6 +16,7 @@ model Account {
   journalEntryLines    JournalEntryLine[]
   purchaseInvoiceItems PurchaseInvoiceItem[]
   salesInvoiceItems    SalesInvoiceItem[]
+  defaultAccounts      DefaultAccount[]
 
   // Product Accounting Relations
   productInventoryAccounts  Product[] @relation("ProductInventoryAccount")
@@ -77,6 +78,38 @@ model JournalEntryLine {
   @@index([journalEntryId])
   @@index([accountId])
   @@index([contactId])
+}
+
+model DefaultAccount {
+  id        String                @id @default(cuid())
+  accountId String
+  account   Account               @relation(fields: [accountId], references: [id])
+  purpose   DefaultAccountPurpose
+  isActive  Boolean               @default(true)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@index([purpose])
+  @@index([accountId])
+}
+
+enum DefaultAccountPurpose {
+  ACCOUNTS_RECEIVABLE
+  ACCOUNTS_PAYABLE
+  INVENTORY_ASSET
+  COGS
+  SALES_REVENUE
+  SALES_DISCOUNT
+  SALES_TAX_PAYABLE
+  PURCHASE_TAX_RECEIVABLE
+  CASH_ON_HAND
+  BANK
+  OPENING_BALANCE_EQUITY
+  RETAINED_EARNINGS
+  UNCATEGORIZED_EXPENSE
+  UNCATEGORIZED_INCOME
+  UNCATEGORIZED_ASSET
+  EXCHANGE_GAIN_LOSS
 }
 
 enum AccountType {
