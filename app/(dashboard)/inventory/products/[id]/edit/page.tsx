@@ -24,8 +24,6 @@ export default async function EditProductPage({
     notFound();
   }
 
-  const product = SuperJSON.deserialize(productData) as ProductFormData;
-
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <Protect
@@ -33,7 +31,7 @@ export default async function EditProductPage({
         fallback={<div>You do not have permission to edit products.</div>}
       >
         <ProductForm
-          product={product}
+          product={productData}
           categories={categories}
           units={units.data}
           accounts={accounts as any}

@@ -22,8 +22,10 @@ import Image from "next/image";
 
 import { useAlert } from "@/hooks/use-alert";
 
+import { SuperJSON } from "@/lib/superjson";
+
 interface ProductFormProps {
-  product?: ProductFormData;
+  product?: ProductFormData | any;
   categories: Category[];
   units: Unit[];
   accounts?: Account[];
@@ -31,12 +33,17 @@ interface ProductFormProps {
 }
 
 export function ProductForm({
-  product,
+  product: initialProduct,
   categories,
   units,
   accounts = [],
   readonly = false,
 }: ProductFormProps) {
+  const product =
+    initialProduct && (initialProduct as any).json
+      ? (SuperJSON.deserialize(initialProduct) as ProductFormData)
+      : (initialProduct as ProductFormData | undefined);
+
   const router = useRouter();
   const alert = useAlert();
   const [isLoading, setIsLoading] = useState(false);
@@ -225,7 +232,7 @@ export function ProductForm({
       </div>
 
       <form onSubmit={handleSubmit}>
-        <Tabs defaultValue="metadata" className="w-full">
+        <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="pricing">Pricing & Inventory</TabsTrigger>
