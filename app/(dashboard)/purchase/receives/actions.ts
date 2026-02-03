@@ -1,5 +1,7 @@
 "use server";
 
+import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
@@ -272,7 +274,35 @@ export const updatePurchaseReceive = authorizedAction(
             }
           }
 
-          // TODO: Create InventoryMovement
+          // Create InventoryMovement (IN)
+          const movementItems = [];
+          for (const item of data.items) {
+            let unitCost = 0;
+            if (item.purchaseOrderItemId) {
+              const poItem = await tx.purchaseOrderItem.findUnique({
+                where: { id: item.purchaseOrderItemId }
+              });
+              unitCost = poItem ? Number(poItem.unitCost) : 0;
+            } else {
+              const product = await tx.product.findUnique({ where: { id: item.productId } });
+              unitCost = product ? Number(product.cost) : 0;
+            }
+
+            movementItems.push({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitCost,
+              notes: "Purchase Receive Completed"
+            });
+          }
+
+          await InventoryService.createInventoryMovement(tx, {
+            type: "IN",
+            reference: currentReceive.receiveNumber,
+            notes: data.notes || "Purchase Receive Completed",
+            items: movementItems,
+            transactionDate: data.receiveDate
+          });
         }
 
         return updatedReceive;

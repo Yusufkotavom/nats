@@ -126,6 +126,8 @@ async function generateShipmentNumber() {
   return `SHP-${year}${month}-${sequence}`;
 }
 
+import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+
 export const createSalesShipment = authorizedAction(
   "sales.create",
   async (data: SalesShipmentInput) => {
@@ -268,7 +270,18 @@ export const updateSalesShipment = authorizedAction(
             }
           }
 
-          // TODO: Create InventoryMovement (OUT)
+          // Create InventoryMovement (OUT)
+          await InventoryService.createInventoryMovement(tx, {
+            type: "OUT",
+            reference: currentShipment.shipmentNumber,
+            notes: data.notes || "Sales Shipment Completed",
+            items: data.items.map(item => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              notes: "Sales Shipment"
+            })),
+            transactionDate: data.shipmentDate
+          });
         }
 
         return updatedShipment;

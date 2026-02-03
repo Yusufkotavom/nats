@@ -1,5 +1,7 @@
 "use server";
 
+import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
@@ -235,7 +237,7 @@ export const updateSalesReturn = authorizedAction(
           where: { salesReturnId: id },
         });
 
-        return await tx.salesReturn.update({
+        const updatedReturn = await tx.salesReturn.update({
           where: { id },
           data: {
             returnNumber: data.returnNumber,
@@ -260,6 +262,26 @@ export const updateSalesReturn = authorizedAction(
             items: true,
           },
         });
+
+        // Inventory Movement (IN) if COMPLETED
+        if (
+          data.status === "COMPLETED" &&
+          currentReturn.status !== "COMPLETED"
+        ) {
+          await InventoryService.createInventoryMovement(tx, {
+            type: "IN",
+            reference: updatedReturn.returnNumber,
+            notes: data.notes || "Sales Return Completed",
+            items: data.items.map(item => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              notes: "Sales Return"
+            })),
+            transactionDate: data.returnDate
+          });
+        }
+
+        return updatedReturn;
       });
 
       revalidatePath("/sales/returns");
