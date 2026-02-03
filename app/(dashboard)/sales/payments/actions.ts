@@ -359,7 +359,7 @@ export const deleteSalesPayment = authorizedAction(
             ? "PAID"
             : newTotalPaid > 0
               ? "PARTIALLY_PAID"
-              : "ISSUED"; 
+              : "ISSUED";
 
         await tx.salesInvoice.update({
           where: { id: invoice.id },
@@ -377,6 +377,86 @@ export const deleteSalesPayment = authorizedAction(
       return {
         success: false,
         error: error instanceof Error ? error.message : "Failed to delete Payment",
+      };
+    }
+  }
+);
+
+export const updateSalesPayment = authorizedAction(
+  "sales.update",
+  async (id: string, data: SalesPaymentInput) => {
+    try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
+
+      const existingPayment = await prisma.salesPayment.findUnique({
+        where: { id },
+        include: { salesInvoice: { include: { payments: true } } },
+      });
+
+      if (!existingPayment) throw new Error("Payment not found");
+      if (existingPayment.journalEntryId) throw new Error("Cannot edit a posted payment");
+
+      // Check if invoice is changing (usually not allowed in UI but good to check)
+      if (data.salesInvoiceId !== existingPayment.salesInvoiceId) {
+        throw new Error("Cannot change invoice for existing payment");
+      }
+
+      const invoice = existingPayment.salesInvoice;
+
+      // Calculate new totals
+      // Remove old amount from invoice payments calculation
+      const otherPaymentsTotal = invoice.payments
+        .filter(p => p.id !== id)
+        .reduce((sum, p) => sum + Number(p.amount), 0);
+      
+      const remaining = Number(invoice.totalAmount) - otherPaymentsTotal;
+
+      if (data.amount > remaining + 0.01) {
+        throw new Error(`Amount exceeds remaining balance of ${remaining}`);
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Update Payment
+        await tx.salesPayment.update({
+          where: { id },
+          data: {
+            paymentDate: data.paymentDate,
+            amount: data.amount,
+            reference: data.reference,
+            notes: data.notes,
+            method: data.method,
+            cashAccountId: data.cashAccountId,
+            attachments: {
+              set: data.attachmentIds?.map((id) => ({ id })),
+            },
+          },
+        });
+
+        // Update Invoice Status
+        const newTotalPaid = otherPaymentsTotal + Number(data.amount);
+        const newStatus =
+          newTotalPaid >= Number(invoice.totalAmount) - 0.01
+            ? "PAID"
+            : "PARTIALLY_PAID";
+
+        await tx.salesInvoice.update({
+          where: { id: invoice.id },
+          data: {
+            status: newStatus,
+          },
+        });
+      });
+
+      revalidatePath("/sales/payments");
+      revalidatePath("/sales/invoices");
+      revalidatePath(`/sales/payments/${id}`);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to update Payment:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to update Payment",
       };
     }
   }

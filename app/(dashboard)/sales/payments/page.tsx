@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Trash2, Eye, BookOpen } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Eye, BookOpen, Pencil } from "lucide-react";
 import Link from "next/link";
 import {
   getSalesPayments,
@@ -212,6 +212,16 @@ export default function SalesPaymentsPage() {
                 Details
               </Link>
             </DropdownMenuItem>
+            {!payment.journalEntryId && (
+              <Protect permission="sales.update">
+                <DropdownMenuItem asChild>
+                  <Link href={`/sales/payments/${payment.id}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </Link>
+                </DropdownMenuItem>
+              </Protect>
+            )}
             {!payment.journalEntryId && (
               <Protect permission="sales.create">
                 <DropdownMenuItem onClick={() => handlePost(payment.id)}>
