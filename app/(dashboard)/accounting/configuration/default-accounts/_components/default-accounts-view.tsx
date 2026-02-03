@@ -1,8 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { Fragment, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { updateDefaultAccount, type DefaultAccountWithAccount } from "../actions"
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client"
@@ -136,41 +143,52 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {Object.entries(PURPOSE_CATEGORIES).map(([category, purposes]) => (
-          <Card key={category}>
-            <CardHeader>
-              <CardTitle>{category}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {purposes.map(purpose => (
-                <div key={purpose} className="grid gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-base font-medium">{PURPOSE_LABELS[purpose]}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {PURPOSE_DESCRIPTIONS[purpose]}
-                    </p>
-                  </div>
-                  <div className="relative">
-                    <SearchableSelect
-                      options={accountOptions}
-                      value={getDefaultAccountId(purpose)}
-                      onValueChange={(val) => handleUpdate(purpose, val)}
-                      placeholder="Select account..."
-                      disabled={updating[purpose]}
-                    />
-                    {updating[purpose] && (
-                      <div className="absolute right-8 top-2.5">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[20%]">Purpose</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead className="w-[30%]">Default Account</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Object.entries(PURPOSE_CATEGORIES).map(([category, purposes]) => (
+            <Fragment key={category}>
+              <TableRow key={category} className="bg-muted hover:bg-muted">
+                <TableCell colSpan={3} className="font-semibold">
+                  {category}
+                </TableCell>
+              </TableRow>
+              {purposes.map((purpose) => (
+                <TableRow key={purpose}>
+                  <TableCell className="font-medium align-middle">
+                    {PURPOSE_LABELS[purpose]}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground align-middle">
+                    {PURPOSE_DESCRIPTIONS[purpose]}
+                  </TableCell>
+                  <TableCell className="align-top">
+                    <div className="relative">
+                      <SearchableSelect
+                        options={accountOptions}
+                        value={getDefaultAccountId(purpose)}
+                        onValueChange={(val) => handleUpdate(purpose, val)}
+                        placeholder="Select account..."
+                        disabled={updating[purpose]}
+                      />
+                      {updating[purpose] && (
+                        <div className="absolute right-8 top-2.5">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </Fragment>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   )
 }
