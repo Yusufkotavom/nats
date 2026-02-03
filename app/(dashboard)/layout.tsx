@@ -43,19 +43,19 @@ export default async function DashboardLayout({
         permissions: session.permissions,
         companyProfile: companyProfile
           ? {
-              name: companyProfile.name,
-              address: companyProfile.address,
-              phone: companyProfile.phone,
-              email: companyProfile.email,
-              website: companyProfile.website,
-              taxId: companyProfile.taxId,
-              currency: companyProfile.currency,
-              currencySymbol: companyProfile.currencySymbol,
-              dateFormat: companyProfile.dateFormat,
-              currencyFormat: companyProfile.currencyFormat,
-              locale: companyProfile.locale,
-              timezone: companyProfile.timezone,
-            }
+            name: companyProfile.name,
+            address: companyProfile.address,
+            phone: companyProfile.phone,
+            email: companyProfile.email,
+            website: companyProfile.website,
+            taxId: companyProfile.taxId,
+            currency: companyProfile.currency,
+            currencySymbol: companyProfile.currencySymbol,
+            dateFormat: companyProfile.dateFormat,
+            currencyFormat: companyProfile.currencyFormat,
+            locale: companyProfile.locale,
+            timezone: companyProfile.timezone,
+          }
           : null,
       }}
     >
@@ -72,7 +72,7 @@ export default async function DashboardLayout({
           <SiteHeader />
           <div className="flex flex-1 flex-col">
             <div className="@container/main flex flex-1 flex-col gap-2">
-              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+              <div className="flex flex-col gap-4 py-2 md:gap-6 md:py-2">
                 {children}
               </div>
             </div>

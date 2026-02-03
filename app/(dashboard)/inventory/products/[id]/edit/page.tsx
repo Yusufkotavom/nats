@@ -25,18 +25,16 @@ export default async function EditProductPage({
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <Protect
-        permission="products.edit"
-        fallback={<div>You do not have permission to edit products.</div>}
-      >
-        <ProductForm
-          product={productData}
-          categories={categories}
-          units={units.data}
-          accounts={accounts as any}
-        />
-      </Protect>
-    </div>
+    <Protect
+      permission="products.edit"
+      fallback={<div>You do not have permission to edit products.</div>}
+    >
+      <ProductForm
+        product={productData}
+        categories={categories}
+        units={units.data}
+        accounts={accounts as any}
+      />
+    </Protect>
   );
 }

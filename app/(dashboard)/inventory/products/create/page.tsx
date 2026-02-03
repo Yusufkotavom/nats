@@ -12,17 +12,15 @@ export default async function CreateProductPage() {
   ]);
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <Protect
-        permission="products.create"
-        fallback={<div>You do not have permission to create products.</div>}
-      >
-        <ProductForm
-          categories={categories}
-          units={units.data}
-          accounts={accounts as any}
-        />
-      </Protect>
-    </div>
+    <Protect
+      permission="products.create"
+      fallback={<div>You do not have permission to create products.</div>}
+    >
+      <ProductForm
+        categories={categories}
+        units={units.data}
+        accounts={accounts as any}
+      />
+    </Protect>
   );
 }

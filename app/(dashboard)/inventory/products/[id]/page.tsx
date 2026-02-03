@@ -5,6 +5,7 @@ import { ProductForm } from "../_components/product-form";
 import { notFound } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
 import { ProductFormData } from "../../types";
+import { Protect } from "@/components/ui/protect";
 
 export default async function ProductViewPage({
   params,
@@ -26,14 +27,16 @@ export default async function ProductViewPage({
   const product = SuperJSON.deserialize(productData) as ProductFormData;
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <Protect
+      permission="products.view"
+      fallback={<div>You do not have permission to view products.</div>}
+    >
       <ProductForm
         product={product}
         categories={categories}
         units={units.data}
         accounts={accounts as any}
         readonly={true}
-      />
-    </div>
+      /></Protect>
   );
 }
