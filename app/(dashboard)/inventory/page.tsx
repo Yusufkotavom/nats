@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { format } from "date-fns";
 import {
   Activity,
   AlertTriangle,
@@ -24,6 +23,7 @@ import { SuperJSON } from "@/lib/superjson";
 import {
   Inventory,
   InventoryMovement,
+  InventoryMovementDetail,
   Product,
   Warehouse,
 } from "@/prisma/generated/prisma/browser";
@@ -33,10 +33,12 @@ type InventoryWithRelations = Inventory & {
   warehouse: Warehouse;
 };
 
-type MovementWithRelations = InventoryMovement & {
+type MovementDetailWithRelations = InventoryMovementDetail & {
   product: Product;
-  fromWarehouse: Warehouse | null;
-  toWarehouse: Warehouse | null;
+  inventoryMovement: InventoryMovement & {
+    fromWarehouse: Warehouse | null;
+    toWarehouse: Warehouse | null;
+  };
 };
 
 export default function InventoryDashboardPage() {
@@ -52,7 +54,7 @@ export default function InventoryDashboardPage() {
         lowStockItems: SuperJSON.deserialize<InventoryWithRelations[]>(
           data.lowStockItems,
         ),
-        recentMovements: SuperJSON.deserialize<MovementWithRelations[]>(
+        recentMovements: SuperJSON.deserialize<MovementDetailWithRelations[]>(
           data.recentMovements,
         ),
       };
@@ -174,30 +176,42 @@ export default function InventoryDashboardPage() {
             <CardTitle>Recent Movements</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
-              {Array.isArray(recentMovements) &&
-                recentMovements.map((movement) => (
-                  <div key={movement.id} className="flex items-center">
-                    <div className="ml-4 space-y-1">
-                      <p className="text-sm font-medium leading-none">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Quantity</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.isArray(recentMovements) &&
+                  recentMovements.map((movement) => (
+                    <TableRow key={movement.id}>
+                      <TableCell className="font-medium">
                         {movement.product?.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {movement.type} •{" "}
-                        {formatDate(movement.createdAt)}
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium">
-                      {movement.type === "IN" ? "+" : "-"}
-                    </div>
-                  </div>
-                ))}
-              {recentMovements.length === 0 && (
-                <div className="text-sm text-muted-foreground text-center py-4">
-                  No recent movements
-                </div>
-              )}
-            </div>
+                      </TableCell>
+                      <TableCell>{movement.inventoryMovement.type}</TableCell>
+                      <TableCell>{formatDate(movement.createdAt)}</TableCell>
+                      <TableCell className="text-right">
+                        {movement.inventoryMovement.type === "IN" ? "+" : "-"}
+                        {movement.quantity}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                {recentMovements.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-muted-foreground h-24"
+                    >
+                      No recent movements
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>

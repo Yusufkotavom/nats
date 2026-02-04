@@ -19,13 +19,17 @@ export async function getInventoryDashboardMetrics() {
     prisma.$queryRaw<{ id: string }[]>`
         SELECT id FROM "Inventory" WHERE quantity <= "reorderPoint" LIMIT 5
       `,
-    prisma.inventoryMovement.findMany({
+    prisma.inventoryMovementDetail.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
       include: {
         product: true,
-        fromWarehouse: true,
-        toWarehouse: true,
+        inventoryMovement: {
+          include: {
+            fromWarehouse: true,
+            toWarehouse: true,
+          },
+        },
       },
     }),
   ]);
