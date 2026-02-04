@@ -9,12 +9,13 @@ export type SalesReturnWithDetails = Prisma.SalesReturnGetPayload<{
       include: {
         product: {
           include: {
-            baseUnit: true;
-            salesUnit: true;
-          };
-        };
-      };
+            baseUnit: true,
+            salesUnit: true,
+          },
+        },
+      },
     };
+    attachments: true;
   };
 }>;
 
@@ -34,4 +35,5 @@ export interface SalesReturnInput {
   notes?: string;
   status?: "DRAFT" | "APPROVED" | "COMPLETED" | "CANCELLED";
   items: SalesReturnItemInput[];
+  attachmentIds?: string[];
 }

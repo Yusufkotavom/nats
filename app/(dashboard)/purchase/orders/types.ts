@@ -8,6 +8,7 @@ export type PurchaseOrderWithDetails = Prisma.PurchaseOrderGetPayload<{
     issuedBy: { select: { name: true } };
     closedBy: { select: { name: true } };
     cancelledBy: { select: { name: true } };
+    attachments: true;
     items: {
       include: {
         product: {
@@ -34,4 +35,5 @@ export type PurchaseOrderInput = {
   notes?: string | null;
   status?: PurchaseOrderStatus;
   items: PurchaseOrderItemInput[];
+  attachmentIds?: string[];
 };

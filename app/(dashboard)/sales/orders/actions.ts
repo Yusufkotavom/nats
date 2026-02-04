@@ -62,6 +62,7 @@ export async function getSalesOrders(
         confirmedBy: { select: { name: true } },
         closedBy: { select: { name: true } },
         cancelledBy: { select: { name: true } },
+        attachments: true,
         items: {
           include: {
             product: {
@@ -97,6 +98,7 @@ export async function getSalesOrder(id: string) {
       confirmedBy: { select: { name: true } },
       closedBy: { select: { name: true } },
       cancelledBy: { select: { name: true } },
+      attachments: true,
       items: {
         include: {
           product: {
@@ -172,6 +174,9 @@ export const createSalesOrder = authorizedAction(
               totalPrice: item.quantity * item.unitPrice,
             })),
           },
+          attachments: {
+            connect: data.attachmentIds?.map((id) => ({ id })) || [],
+          },
         },
         include: {
           items: true,
@@ -245,6 +250,9 @@ export const updateSalesOrder = authorizedAction(
                 unitPrice: item.unitPrice,
                 totalPrice: item.quantity * item.unitPrice,
               })),
+            },
+            attachments: {
+              set: data.attachmentIds?.map((id) => ({ id })) || [],
             },
           },
         });

@@ -9,12 +9,13 @@ export type PurchaseReturnWithDetails = Prisma.PurchaseReturnGetPayload<{
       include: {
         product: {
           include: {
-            baseUnit: true;
-            purchaseUnit: true;
+            baseUnit: true,
+            purchaseUnit: true,
           };
         };
       };
     };
+    attachments: true;
   };
 }>;
 
@@ -34,4 +35,5 @@ export interface PurchaseReturnInput {
   notes?: string;
   status?: "DRAFT" | "APPROVED" | "COMPLETED" | "CANCELLED";
   items: PurchaseReturnItemInput[];
+  attachmentIds?: string[];
 }

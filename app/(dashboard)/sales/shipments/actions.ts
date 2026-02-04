@@ -45,6 +45,7 @@ export async function getSalesShipments(
             product: true,
           },
         },
+        attachments: true,
       },
       orderBy: { createdAt: "desc" },
       skip,
@@ -71,6 +72,7 @@ export async function getSalesShipment(id: string) {
           product: true,
         },
       },
+      attachments: true,
     },
   });
 
@@ -155,6 +157,11 @@ export const createSalesShipment = authorizedAction(
                 salesOrderItemId: item.salesOrderItemId,
               })),
             },
+            attachments: data.attachmentIds
+              ? {
+                connect: data.attachmentIds.map((id) => ({ id })),
+              }
+              : undefined,
           },
           include: {
             items: true,
@@ -217,6 +224,11 @@ export const updateSalesShipment = authorizedAction(
                 salesOrderItemId: item.salesOrderItemId,
               })),
             },
+            attachments: data.attachmentIds
+              ? {
+                set: data.attachmentIds.map((id) => ({ id })),
+              }
+              : undefined,
           },
           include: {
             items: true,

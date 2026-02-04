@@ -54,6 +54,7 @@ export async function getSalesReturns(
             product: true,
           },
         },
+        attachments: true,
       },
       orderBy: { createdAt: "desc" },
       skip,
@@ -86,6 +87,7 @@ export async function getSalesReturn(id: string) {
           },
         },
       },
+      attachments: true,
     },
   });
 
@@ -183,6 +185,11 @@ export const createSalesReturn = authorizedAction(
               totalPrice: item.quantity * item.unitPrice,
             })),
           },
+          attachments: data.attachmentIds
+            ? {
+              connect: data.attachmentIds.map((id) => ({ id })),
+            }
+            : undefined,
         },
         include: {
           items: true,
@@ -257,6 +264,11 @@ export const updateSalesReturn = authorizedAction(
                 totalPrice: item.quantity * item.unitPrice,
               })),
             },
+            attachments: data.attachmentIds
+              ? {
+                set: data.attachmentIds.map((id) => ({ id })),
+              }
+              : undefined,
           },
           include: {
             items: true,

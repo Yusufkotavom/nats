@@ -86,6 +86,7 @@ export async function getPurchaseReturn(id: string) {
           },
         },
       },
+      attachments: true,
     },
   });
 
@@ -180,6 +181,9 @@ export const createPurchaseReturn = authorizedAction(
               totalPrice: item.quantity * item.unitPrice,
             })),
           },
+          attachments: {
+            connect: data.attachmentIds?.map((id) => ({ id })) || [],
+          },
         },
         include: {
           items: true,
@@ -253,6 +257,9 @@ export const updatePurchaseReturn = authorizedAction(
                 unitPrice: item.unitPrice,
                 totalPrice: item.quantity * item.unitPrice,
               })),
+            },
+            attachments: {
+              set: data.attachmentIds?.map((id) => ({ id })) || [],
             },
           },
           include: {

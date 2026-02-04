@@ -47,6 +47,9 @@ import { generateId } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { useConfirm } from "@/hooks/use-confirm";
+import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
+import { uploadFile } from "@/app/(dashboard)/general/files/actions";
+import { Paperclip } from "lucide-react";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -73,6 +76,15 @@ export function SalesInvoiceForm({
   const isEditing = !!invoice;
   const formatDate = useFormatDate();
   const confirm = useConfirm();
+
+  const [attachments, setAttachments] = useState<Attachment[]>(
+    invoice?.attachments?.map((a) => ({
+      id: a.id,
+      name: a.name,
+      url: a.url,
+    })) || []
+  );
+  const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState<
     Omit<SalesInvoiceInput, "items"> & {
@@ -252,6 +264,7 @@ export function SalesInvoiceForm({
       const submissionData = {
         ...formData,
         items: formData.items.map(({ id, ...item }) => item),
+        attachmentIds: attachments.map((a) => a.id),
       };
       let result;
       if (isEditing && invoice) {
@@ -467,6 +480,36 @@ export function SalesInvoiceForm({
                   placeholder="Add notes here..."
                   disabled={readonly}
                 />
+                <div className="col-span-2">
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsAttachmentDialogOpen(true)}
+                      className="w-fit"
+                    >
+                      <Paperclip className="mr-2 h-4 w-4" />
+                      Attachments ({attachments.length})
+                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {attachments.map((file) => (
+                        <div
+                          key={file.id}
+                          className="flex items-center gap-2 rounded-md border bg-muted px-3 py-1 text-sm"
+                        >
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {file.name}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -678,6 +721,18 @@ export function SalesInvoiceForm({
           </div>
         </div>
       </form>
+
+      <AttachmentDialog
+        open={isAttachmentDialogOpen}
+        onOpenChange={setIsAttachmentDialogOpen}
+        attachments={attachments}
+        onAttachmentsChange={setAttachments}
+        uploadAction={async (formData) => {
+          const res = await uploadFile(formData);
+          return res;
+        }}
+        readonly={readonly}
+      />
     </div>
   );
 }

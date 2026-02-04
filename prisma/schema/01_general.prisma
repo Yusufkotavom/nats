@@ -71,8 +71,24 @@ model File {
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
   purchasePaymentId String?
   purchasePayment   PurchasePayment? @relation(fields: [purchasePaymentId], references: [id])
+  purchaseOrderId   String?
+  purchaseOrder     PurchaseOrder?   @relation(fields: [purchaseOrderId], references: [id])
+  purchaseInvoiceId String?
+  purchaseInvoice   PurchaseInvoice? @relation(fields: [purchaseInvoiceId], references: [id])
+  purchaseReturnId  String?
+  purchaseReturn    PurchaseReturn?  @relation(fields: [purchaseReturnId], references: [id])
+  purchaseReceiveId String?
+  purchaseReceive   PurchaseReceive? @relation(fields: [purchaseReceiveId], references: [id])
   salesPaymentId    String?
   salesPayment      SalesPayment?    @relation(fields: [salesPaymentId], references: [id])
+  salesOrderId      String?
+  salesOrder        SalesOrder?      @relation(fields: [salesOrderId], references: [id])
+  salesInvoiceId    String?
+  salesInvoice      SalesInvoice?    @relation(fields: [salesInvoiceId], references: [id])
+  salesReturnId     String?
+  salesReturn       SalesReturn?     @relation(fields: [salesReturnId], references: [id])
+  salesShipmentId   String?
+  salesShipment     SalesShipment?   @relation(fields: [salesShipmentId], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

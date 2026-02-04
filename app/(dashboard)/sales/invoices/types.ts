@@ -27,6 +27,7 @@ export interface SalesInvoiceInput {
   shippingCost: number;
 
   items: SalesInvoiceItemInput[];
+  attachmentIds?: string[];
 }
 
 export type SalesInvoiceWithDetails = Prisma.SalesInvoiceGetPayload<{
@@ -35,5 +36,6 @@ export type SalesInvoiceWithDetails = Prisma.SalesInvoiceGetPayload<{
     salesOrder: true;
     items: true;
     payments: true;
+    attachments: true;
   };
 }>;

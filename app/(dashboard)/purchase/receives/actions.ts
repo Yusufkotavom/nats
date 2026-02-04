@@ -75,6 +75,7 @@ export async function getPurchaseReceive(id: string) {
           product: true,
         },
       },
+      attachments: true,
     },
   });
 
@@ -153,6 +154,9 @@ export const createPurchaseReceive = authorizedAction(
                 purchaseOrderItemId: item.purchaseOrderItemId,
               })),
             },
+            attachments: {
+              connect: data.attachmentIds?.map((id) => ({ id })) || [],
+            },
           },
           include: {
             items: true,
@@ -220,6 +224,9 @@ export const updatePurchaseReceive = authorizedAction(
                 // The schema:
                 // model PurchaseReceiveItem { ... quantity Float ... }
               })),
+            },
+            attachments: {
+              set: data.attachmentIds?.map((id) => ({ id })) || [],
             },
           },
           include: {

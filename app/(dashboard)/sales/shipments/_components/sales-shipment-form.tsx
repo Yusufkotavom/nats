@@ -29,8 +29,8 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Trash2, ArrowLeft, Paperclip } from "lucide-react";
-import { createSalesReturn, updateSalesReturn } from "../actions";
-import { SalesReturnInput, SalesReturnWithDetails } from "../types";
+import { createSalesShipment, updateSalesShipment } from "../actions";
+import { SalesShipmentInput, SalesShipmentWithDetails } from "../types";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/hooks/use-toast";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
@@ -39,35 +39,32 @@ import { generateId } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { SalesOrderWithDetails } from "../../orders/types";
-import { SalesInvoiceWithDetails } from "../../invoices/types";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 
-interface SalesReturnFormProps {
-    returnItem?: SuperJSONResult;
+interface SalesShipmentFormProps {
+    shipment?: SuperJSONResult;
     customers: { id: string; name: string }[];
     salesOrders: SuperJSONResult;
-    salesInvoices: SuperJSONResult;
     readonly?: boolean;
 }
 
-export function SalesReturnForm({
-    returnItem: serializedReturnItem,
+export function SalesShipmentForm({
+    shipment: serializedShipment,
     customers,
     salesOrders: serializedSalesOrders,
-    salesInvoices: serializedSalesInvoices,
     readonly = false,
-}: SalesReturnFormProps) {
+}: SalesShipmentFormProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
 
-    const returnItem = serializedReturnItem
-        ? SuperJSON.deserialize<SalesReturnWithDetails>(serializedReturnItem)
+    const shipment = serializedShipment
+        ? SuperJSON.deserialize<SalesShipmentWithDetails>(serializedShipment)
         : undefined;
 
     const [attachments, setAttachments] = useState<Attachment[]>(
-        returnItem?.attachments?.map((a) => ({
+        shipment?.attachments?.map((a) => ({
             id: a.id,
             name: a.name,
             url: a.url,
@@ -82,13 +79,6 @@ export function SalesReturnForm({
             ),
         [serializedSalesOrders],
     );
-    const salesInvoices = useMemo(
-        () =>
-            SuperJSON.deserialize<SalesInvoiceWithDetails[]>(
-                serializedSalesInvoices,
-            ),
-        [serializedSalesInvoices],
-    );
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -98,25 +88,24 @@ export function SalesReturnForm({
     );
 
     const [formData, setFormData] = useState<
-        Omit<SalesReturnInput, "items"> & {
-            items: (SalesReturnInput["items"][0] & { id: string })[];
+        Omit<SalesShipmentInput, "items"> & {
+            items: (SalesShipmentInput["items"][0] & { id: string })[];
         }
     >({
-        returnNumber: returnItem?.returnNumber || "",
-        contactId: returnItem?.contactId || "",
-        salesOrderId: returnItem?.salesOrderId || undefined,
-        salesInvoiceId: returnItem?.salesInvoiceId || undefined,
-        returnDate: returnItem?.returnDate
-            ? new Date(returnItem.returnDate)
+        contactId: shipment?.contactId || "",
+        salesOrderId: shipment?.salesOrderId || undefined,
+        shipmentDate: shipment?.shipmentDate
+            ? new Date(shipment.shipmentDate)
             : new Date(),
-        notes: returnItem?.notes || "",
-        status: returnItem?.status || "DRAFT",
+        notes: shipment?.notes || "",
+        trackingNumber: shipment?.trackingNumber || "",
+        carrier: shipment?.carrier || "",
         items:
-            returnItem?.items.map((item) => ({
+            shipment?.items.map((item) => ({
                 id: generateId(),
                 productId: item.productId,
                 quantity: item.quantity,
-                unitPrice: Number(item.unitPrice),
+                salesOrderItemId: item.salesOrderItemId || undefined,
             })) || [],
     });
 
@@ -126,15 +115,6 @@ export function SalesReturnForm({
         }
         return [];
     }, [formData.contactId, salesOrders]);
-
-    const filteredSalesInvoices = useMemo(() => {
-        if (formData.contactId) {
-            return salesInvoices.filter(
-                (si) => si.contactId === formData.contactId,
-            );
-        }
-        return [];
-    }, [formData.contactId, salesInvoices]);
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -156,7 +136,6 @@ export function SalesReturnForm({
             ...prev,
             contactId,
             salesOrderId: undefined,
-            salesInvoiceId: undefined,
             items: [], // Clear items on customer change
         }));
     };
@@ -170,21 +149,22 @@ export function SalesReturnForm({
                 ? so.items.map((item) => ({
                     id: generateId(),
                     productId: item.productId,
-                    quantity: 0,
-                    unitPrice: Number(item.unitPrice),
-                }))
+                    quantity: item.quantity - item.shippedQuantity, // Default to remaining quantity
+                    salesOrderItemId: item.id,
+                })).filter(item => item.quantity > 0) // Only include items with remaining quantity
                 : [],
         }));
     };
 
     const handleItemChange = (
         index: number,
-        field: keyof SalesReturnInput["items"][0],
+        field: keyof SalesShipmentInput["items"][0],
         value: number,
     ) => {
         setFormData((prev) => {
             const newItems = [...prev.items];
-            newItems[index] = { ...newItems[index], [field]: value };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            newItems[index] = { ...newItems[index], [field]: value } as any;
             return { ...prev, items: newItems };
         });
     };
@@ -194,13 +174,6 @@ export function SalesReturnForm({
             ...prev,
             items: prev.items.filter((_, i) => i !== index),
         }));
-    };
-
-    const calculateTotal = () => {
-        return formData.items.reduce(
-            (acc, item) => acc + item.quantity * item.unitPrice,
-            0,
-        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -214,25 +187,25 @@ export function SalesReturnForm({
         };
 
         try {
-            if (returnItem) {
-                const result = await updateSalesReturn(
-                    returnItem.id,
+            if (shipment) {
+                const result = await updateSalesShipment(
+                    shipment.id,
                     submissionData,
                 );
                 if (!result.success) throw new Error(result.error);
                 toast({
                     title: "Success",
-                    description: "Sales return updated successfully",
+                    description: "Sales shipment updated successfully",
                 });
             } else {
-                const result = await createSalesReturn(submissionData);
+                const result = await createSalesShipment(submissionData);
                 if (!result.success) throw new Error(result.error);
                 toast({
                     title: "Success",
-                    description: "Sales return created successfully",
+                    description: "Sales shipment created successfully",
                 });
             }
-            router.push("/sales/returns");
+            router.push("/sales/shipments");
         } catch (error) {
             toast({
                 title: "Error",
@@ -250,8 +223,8 @@ export function SalesReturnForm({
             const item = so.items.find((i) => i.productId === productId);
             if (item) return item.product.name;
         }
-        if (returnItem) {
-            const item = returnItem.items.find((i) => i.productId === productId);
+        if (shipment) {
+            const item = shipment.items.find((i) => i.productId === productId);
             if (item) return item.product.name;
         }
         return "Unknown Product";
@@ -266,8 +239,8 @@ export function SalesReturnForm({
                     item.product.salesUnit?.symbol || item.product.baseUnit?.symbol
                 );
         }
-        if (returnItem) {
-            const item = returnItem.items.find((i) => i.productId === productId);
+        if (shipment) {
+            const item = shipment.items.find((i) => i.productId === productId);
             if (item)
                 return (
                     item.product.salesUnit?.symbol || item.product.baseUnit?.symbol
@@ -280,7 +253,7 @@ export function SalesReturnForm({
         <div className="flex-1 space-y-4 px-4">
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-xl font-bold tracking-tight">
-                    {returnItem ? "Edit Sales Return" : "New Sales Return"}
+                    {shipment ? "Edit Sales Shipment" : "New Sales Shipment"}
                 </h2>
                 <div className="flex">
                     {!readonly && (
@@ -302,7 +275,7 @@ export function SalesReturnForm({
                                 Cancel
                             </Button>
                             <Button type="submit" disabled={loading}>
-                                {loading ? "Saving..." : returnItem ? "Update" : "Create"}
+                                {loading ? "Saving..." : shipment ? "Update" : "Create"}
                             </Button>
                         </div>
                     )}
@@ -322,14 +295,10 @@ export function SalesReturnForm({
             <form onSubmit={handleSubmit} className="space-y-8 w-full">
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                        <Label>Return Number</Label>
+                        <Label>Shipment Number</Label>
                         <CustomInput
-                            value={formData.returnNumber}
-                            onChange={(e) =>
-                                setFormData({ ...formData, returnNumber: e.target.value })
-                            }
-                            placeholder="Leave blank to auto-generate"
-                            disabled={readonly}
+                            value={shipment?.shipmentNumber || "Auto-generated"}
+                            disabled={true}
                         />
                     </div>
 
@@ -359,30 +328,14 @@ export function SalesReturnForm({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Sales Invoice (Optional)</Label>
-                        <CustomSelect
-                            value={formData.salesInvoiceId || ""}
-                            onValueChange={(val: any) =>
-                                setFormData((prev) => ({ ...prev, salesInvoiceId: val }))
-                            }
-                            options={filteredSalesInvoices.map((si) => ({
-                                label: si.invoiceNumber,
-                                value: si.id,
-                            }))}
-                            disabled={readonly || !formData.contactId}
-                            placeholder="Select Invoice..."
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Return Date</Label>
+                        <Label>Shipment Date</Label>
                         <CustomInput
                             type="date"
-                            value={formData.returnDate.toISOString().split("T")[0]}
+                            value={formData.shipmentDate.toISOString().split("T")[0]}
                             onChange={(e) =>
                                 setFormData({
                                     ...formData,
-                                    returnDate: new Date(e.target.value),
+                                    shipmentDate: new Date(e.target.value),
                                 })
                             }
                             disabled={readonly}
@@ -391,24 +344,26 @@ export function SalesReturnForm({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Status</Label>
-                        <CustomSelect
-                            value={formData.status || "DRAFT"}
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            onValueChange={(val: any) =>
-                                setFormData((prev) => ({ ...prev, status: val }))
+                        <Label>Tracking Number</Label>
+                        <CustomInput
+                            value={formData.trackingNumber || ""}
+                            onChange={(e) =>
+                                setFormData({ ...formData, trackingNumber: e.target.value })
                             }
-                            options={[
-                                { label: "Draft", value: "DRAFT" },
-                                { label: "Approved", value: "APPROVED" },
-                                { label: "Completed", value: "COMPLETED" },
-                                { label: "Cancelled", value: "CANCELLED" },
-                            ]}
-                            disabled={
-                                readonly ||
-                                returnItem?.status === "COMPLETED" ||
-                                returnItem?.status === "CANCELLED"
+                            disabled={readonly}
+                            placeholder="Tracking Number"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Carrier</Label>
+                        <CustomInput
+                            value={formData.carrier || ""}
+                            onChange={(e) =>
+                                setFormData({ ...formData, carrier: e.target.value })
                             }
+                            disabled={readonly}
+                            placeholder="Carrier"
                         />
                     </div>
 
@@ -427,7 +382,7 @@ export function SalesReturnForm({
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">Return Items</h3>
+                        <h3 className="text-lg font-medium">Shipment Items</h3>
                     </div>
 
                     <div className="rounded-md border">
@@ -443,10 +398,6 @@ export function SalesReturnForm({
                                         <TableHead>Product</TableHead>
                                         <TableHead className="w-[150px]">Quantity</TableHead>
                                         <TableHead className="w-[80px]">Unit</TableHead>
-                                        <TableHead className="w-[150px]">Unit Price</TableHead>
-                                        <TableHead className="w-[150px] text-right">
-                                            Total
-                                        </TableHead>
                                         {!readonly && <TableHead className="w-[50px]"></TableHead>}
                                     </TableRow>
                                 </TableHeader>
@@ -458,7 +409,7 @@ export function SalesReturnForm({
                                         {formData.items.length === 0 ? (
                                             <TableRow>
                                                 <TableCell
-                                                    colSpan={7}
+                                                    colSpan={5}
                                                     className="text-center h-24 text-muted-foreground"
                                                 >
                                                     No items selected. Select a Sales Order to populate
@@ -489,25 +440,6 @@ export function SalesReturnForm({
                                                     <TableCell className="text-muted-foreground">
                                                         {getProductUnit(item.productId)}
                                                     </TableCell>
-                                                    <TableCell>
-                                                        <CustomInput
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.01"
-                                                            value={item.unitPrice}
-                                                            onChange={(e) =>
-                                                                handleItemChange(
-                                                                    index,
-                                                                    "unitPrice",
-                                                                    Number(e.target.value),
-                                                                )
-                                                            }
-                                                            disabled={readonly}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {(item.quantity * item.unitPrice).toLocaleString()}
-                                                    </TableCell>
                                                     {!readonly && (
                                                         <TableCell>
                                                             <Button
@@ -527,15 +459,6 @@ export function SalesReturnForm({
                                 </TableBody>
                             </Table>
                         </DndContext>
-                    </div>
-
-                    <div className="flex justify-end">
-                        <div className="text-right">
-                            <span className="font-medium mr-4">Total Amount:</span>
-                            <span className="text-xl font-bold">
-                                {calculateTotal().toLocaleString()}
-                            </span>
-                        </div>
                     </div>
                 </div>
             </form>

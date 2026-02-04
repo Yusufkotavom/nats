@@ -76,6 +76,7 @@ export async function getSalesInvoice(id: string) {
       contact: true,
       salesOrder: true,
       items: true,
+      attachments: true,
     },
   });
 
@@ -184,6 +185,9 @@ export const createSalesInvoice = authorizedAction(
           items: {
             create: itemsToCreate,
           },
+          attachments: {
+            connect: data.attachmentIds?.map((id) => ({ id })) || [],
+          },
         },
         include: {
           items: true,
@@ -289,6 +293,9 @@ export const updateSalesInvoice = authorizedAction(
             shippingCost: data.shippingCost,
             items: {
               create: itemsToCreate,
+            },
+            attachments: {
+              set: data.attachmentIds?.map((id) => ({ id })) || [],
             },
           },
           include: {

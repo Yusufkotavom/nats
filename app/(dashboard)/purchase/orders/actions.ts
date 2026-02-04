@@ -97,6 +97,7 @@ export async function getPurchaseOrder(id: string) {
       issuedBy: { select: { name: true } },
       closedBy: { select: { name: true } },
       cancelledBy: { select: { name: true } },
+      attachments: true,
       items: {
         include: {
           product: {
@@ -162,6 +163,9 @@ export const createPurchaseOrder = authorizedAction(
               unitCost: item.unitCost,
               totalCost: item.quantity * item.unitCost,
             })),
+          },
+          attachments: {
+            connect: data.attachmentIds?.map((id) => ({ id })) || [],
           },
         },
         include: {
@@ -229,6 +233,9 @@ export const updatePurchaseOrder = authorizedAction(
                 unitCost: item.unitCost,
                 totalCost: item.quantity * item.unitCost,
               })),
+            },
+            attachments: {
+              set: data.attachmentIds?.map((id) => ({ id })) || [],
             },
           },
         });

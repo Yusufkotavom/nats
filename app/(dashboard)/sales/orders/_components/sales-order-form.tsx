@@ -75,6 +75,9 @@ import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
 import { ProductWithDetails } from "@/app/(dashboard)/inventory/types";
 import { useFormatDate, useFormatCurrency } from "@/hooks";
+import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
+import { uploadFile } from "@/app/(dashboard)/general/files/actions";
+import { Paperclip } from "lucide-react";
 
 interface SalesOrderFormProps {
   order?: SuperJSONResult;
@@ -107,6 +110,15 @@ export function SalesOrderForm({
   // Determine if form should be read-only based on status
   const isDraft = order?.status === "DRAFT" || !order;
   const isReadOnly = readonly || !isDraft;
+
+  const [attachments, setAttachments] = useState<Attachment[]>(
+    order?.attachments?.map((a) => ({
+      id: a.id,
+      name: a.name,
+      url: a.url,
+    })) || []
+  );
+  const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState<
     Omit<SalesOrderInput, "items"> & {
@@ -228,6 +240,7 @@ export function SalesOrderForm({
       const submissionData = {
         ...formData,
         items: formData.items.map(({ id, ...item }) => item),
+        attachmentIds: attachments.map((a) => a.id),
       };
       let result;
       if (isEditing && order) {
@@ -573,6 +586,34 @@ export function SalesOrderForm({
                     }
                     disabled={isReadOnly}
                   />
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsAttachmentDialogOpen(true)}
+                      className="w-fit"
+                    >
+                      <Paperclip className="mr-2 h-4 w-4" />
+                      Attachments ({attachments.length})
+                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {attachments.map((file) => (
+                        <div
+                          key={file.id}
+                          className="flex items-center gap-2 rounded-md border bg-muted px-3 py-1 text-sm"
+                        >
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {file.name}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -718,6 +759,18 @@ export function SalesOrderForm({
           </div>
         </div>
       </form>
+
+      <AttachmentDialog
+        open={isAttachmentDialogOpen}
+        onOpenChange={setIsAttachmentDialogOpen}
+        attachments={attachments}
+        onAttachmentsChange={setAttachments}
+        uploadAction={async (formData) => {
+          const res = await uploadFile(formData);
+          return res;
+        }}
+        readonly={isReadOnly}
+      />
     </div>
   );
 }

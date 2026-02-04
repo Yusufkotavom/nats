@@ -76,6 +76,7 @@ export async function getPurchaseInvoice(id: string) {
       contact: true,
       purchaseOrder: true,
       items: true,
+      attachments: true,
     },
   });
 
@@ -167,6 +168,9 @@ export const createPurchaseInvoice = authorizedAction(
           handlingCost: data.handlingCost,
           items: {
             create: itemsToCreate,
+          },
+          attachments: {
+            connect: data.attachmentIds?.map((id) => ({ id })) || [],
           },
         },
         include: {
@@ -278,6 +282,9 @@ export const updatePurchaseInvoice = authorizedAction(
             handlingCost: data.handlingCost,
             items: {
               create: itemsToCreate,
+            },
+            attachments: {
+              set: data.attachmentIds?.map((id) => ({ id })) || [],
             },
           },
           include: {

@@ -8,6 +8,7 @@ export type SalesOrderWithDetails = Prisma.SalesOrderGetPayload<{
     confirmedBy: { select: { name: true } };
     closedBy: { select: { name: true } };
     cancelledBy: { select: { name: true } };
+    attachments: true;
     items: {
       include: {
         product: {
@@ -36,4 +37,5 @@ export type SalesOrderInput = {
   notes?: string | null;
   status?: SalesOrderStatus;
   items: SalesOrderItemInput[];
+  attachmentIds?: string[];
 };

@@ -30,6 +30,8 @@ model SalesOrder {
   invoices  SalesInvoice[]
   returns   SalesReturn[]
 
+  attachments File[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -98,6 +100,8 @@ model SalesShipment {
 
   inventoryMovementId String?
 
+  attachments File[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -158,6 +162,8 @@ model SalesInvoice {
 
   journalEntryId String?       @unique
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  attachments File[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -244,6 +250,8 @@ model SalesReturn {
   items SalesReturnItem[]
 
   inventoryMovementId String?
+
+  attachments File[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

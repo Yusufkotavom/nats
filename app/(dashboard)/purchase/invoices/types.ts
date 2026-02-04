@@ -27,6 +27,7 @@ export interface PurchaseInvoiceInput {
   handlingCost: number;
 
   items: PurchaseInvoiceItemInput[];
+  attachmentIds?: string[];
 }
 
 export type PurchaseInvoiceWithDetails = Prisma.PurchaseInvoiceGetPayload<{
@@ -35,5 +36,6 @@ export type PurchaseInvoiceWithDetails = Prisma.PurchaseInvoiceGetPayload<{
     purchaseOrder: true;
     items: true;
     payments: true;
+    attachments: true;
   };
 }>;

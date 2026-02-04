@@ -14,6 +14,7 @@ export type SalesShipmentWithDetails = Prisma.SalesShipmentGetPayload<{
         };
       };
     };
+    attachments: true;
   };
 }>;
 
@@ -31,4 +32,5 @@ export interface SalesShipmentInput {
   trackingNumber?: string;
   carrier?: string;
   items: SalesShipmentItemInput[];
+  attachmentIds?: string[];
 }

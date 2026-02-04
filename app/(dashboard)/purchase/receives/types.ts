@@ -9,11 +9,12 @@ export type PurchaseReceiveWithDetails = Prisma.PurchaseReceiveGetPayload<{
         product: {
           include: {
             baseUnit: true;
-            purchaseUnit: true;
+            purchaseUnit: true,
           };
         };
       };
     };
+    attachments: true;
   };
 }>;
 
@@ -29,4 +30,5 @@ export interface PurchaseReceiveInput {
   receiveDate: Date;
   notes?: string;
   items: PurchaseReceiveItemInput[];
+  attachmentIds?: string[];
 }
