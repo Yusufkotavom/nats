@@ -36,6 +36,7 @@ import {
   createSalesInvoice,
   updateSalesInvoice,
   getSalesOrder,
+  postSalesInvoice,
 } from "../actions";
 import { SalesInvoiceWithDetails, SalesInvoiceInput } from "../types";
 import { SalesOrderWithDetails } from "../../orders/types";
@@ -45,6 +46,8 @@ import { SortableTableRow } from "@/components/ui/sortable-row";
 import { generateId } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
+import { useConfirm } from "@/hooks/use-confirm";
+
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
   customers: { id: string; name: string }[];
@@ -69,6 +72,7 @@ export function SalesInvoiceForm({
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!invoice;
   const formatDate = useFormatDate();
+  const confirm = useConfirm();
 
   const [formData, setFormData] = useState<
     Omit<SalesInvoiceInput, "items"> & {
@@ -269,6 +273,33 @@ export function SalesInvoiceForm({
     }
   };
 
+  const handlePost = async () => {
+    if (!invoice) return;
+    if (
+      !(await confirm({
+        title: "Post Invoice",
+        description: "Are you sure you want to post this invoice? This will create a journal entry and cannot be undone.",
+      }))
+    ) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await postSalesInvoice(invoice.id);
+      if (result.success) {
+        router.refresh();
+      } else {
+        alert(result.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredSalesOrders = formData.contactId
     ? salesOrders.filter((so) => so.contactId === formData.contactId)
     : salesOrders;
@@ -280,6 +311,16 @@ export function SalesInvoiceForm({
           {isEditing ? "Edit Sales Invoice" : "New Sales Invoice"}
         </h2>
         <div className="flex gap-2">
+          {invoice?.status === "DRAFT" && (
+            <Button
+              type="button"
+              variant="default"
+              onClick={handlePost}
+              disabled={isLoading}
+            >
+              Post Invoice
+            </Button>
+          )}
           {!readonly && (
             <>
               <Button type="submit" disabled={isLoading} onClick={handleSubmit}>

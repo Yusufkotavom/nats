@@ -39,6 +39,7 @@ interface DefaultAccountsViewProps {
 const PURPOSE_LABELS: Record<DefaultAccountPurpose, string> = {
   ACCOUNTS_RECEIVABLE: "Accounts Receivable",
   ACCOUNTS_PAYABLE: "Accounts Payable",
+  GOODS_RECEIVED_NOT_INVOICED: "Goods Received Not Invoiced",
   INVENTORY_ASSET: "Inventory Asset",
   COGS: "Cost of Goods Sold",
   SALES_REVENUE: "Sales Revenue",
@@ -58,6 +59,7 @@ const PURPOSE_LABELS: Record<DefaultAccountPurpose, string> = {
 const PURPOSE_DESCRIPTIONS: Record<DefaultAccountPurpose, string> = {
   ACCOUNTS_RECEIVABLE: "Tracks money owed to the business by customers for goods or services sold on credit.",
   ACCOUNTS_PAYABLE: "Tracks money owed by the business to suppliers or vendors for goods or services purchased on credit.",
+  GOODS_RECEIVED_NOT_INVOICED: "Liability account for goods received but not yet invoiced by the vendor.",
   INVENTORY_ASSET: "Tracks the value of goods held for sale or materials used in production.",
   COGS: "Tracks the direct costs attributable to the production of the goods sold in a company.",
   SALES_REVENUE: "The default income account for recording revenue from sales of products or services.",
@@ -84,6 +86,7 @@ const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
   "Purchases & Payables": [
     "ACCOUNTS_PAYABLE",
     "PURCHASE_TAX_RECEIVABLE",
+    "GOODS_RECEIVED_NOT_INVOICED",
     "COGS",
     "INVENTORY_ASSET",
   ],

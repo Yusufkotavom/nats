@@ -10,6 +10,8 @@ import {
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseInvoiceInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
+import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
+import { getSession } from "@/lib/auth/auth";
 
 export { getPurchaseOrder };
 
@@ -316,6 +318,149 @@ export const deletePurchaseInvoice = authorizedAction(
     } catch (error) {
       console.error("Failed to delete Invoice:", error);
       return { success: false, error: "Failed to delete Purchase Invoice" };
+    }
+  },
+);
+
+export const postPurchaseInvoice = authorizedAction(
+  "purchase.create",
+  async (id: string) => {
+    try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
+
+      const invoice = await prisma.purchaseInvoice.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+
+      if (!invoice) throw new Error("Invoice not found");
+      if (invoice.status !== "DRAFT") throw new Error("Only draft invoices can be posted");
+      if (invoice.journalEntryId) throw new Error("Invoice already posted");
+
+      // Get Default Accounts
+      const apAccount = await getRequiredDefaultAccount("ACCOUNTS_PAYABLE");
+      const grniAccount = await getRequiredDefaultAccount("GOODS_RECEIVED_NOT_INVOICED");
+      const taxAccount = await getRequiredDefaultAccount("PURCHASE_TAX_RECEIVABLE");
+      const expenseAccount = await getRequiredDefaultAccount("UNCATEGORIZED_EXPENSE");
+
+      // Prepare JE lines
+      const lines: Prisma.JournalEntryLineCreateWithoutJournalEntryInput[] = [];
+      let lineNumber = 1;
+
+      // Credit AP (Total Amount)
+      lines.push({
+        account: { connect: { id: apAccount.accountId } },
+        debitAmount: 0,
+        creditAmount: invoice.totalAmount,
+        description: `Payable for Invoice #${invoice.invoiceNumber}`,
+        lineNumber: lineNumber++,
+        contact: { connect: { id: invoice.contactId } },
+      });
+
+      // Debit Items (Expense/Asset/GRNI)
+      for (const item of invoice.items) {
+        let accountId = item.accountId;
+        if (!accountId) {
+          // Default to GRNI
+          accountId = grniAccount.accountId;
+        }
+
+        const subtotal = Number(item.unitPrice) * item.quantity;
+        const discountAmount = subtotal * (Number(item.discount || 0) / 100);
+        const taxableAmount = subtotal - discountAmount;
+        const taxRate = Number(item.tax || 0) / 100;
+        const taxAmount = taxableAmount * taxRate;
+
+        // Debit Net Amount
+        if (taxableAmount > 0) {
+          lines.push({
+            account: { connect: { id: accountId } },
+            debitAmount: taxableAmount,
+            creditAmount: 0,
+            description: item.description,
+            lineNumber: lineNumber++,
+          });
+        }
+
+        // Debit Tax Amount
+        if (taxAmount > 0) {
+          lines.push({
+            account: { connect: { id: taxAccount.accountId } },
+            debitAmount: taxAmount,
+            creditAmount: 0,
+            description: `Tax on ${item.description}`,
+            lineNumber: lineNumber++,
+          });
+        }
+      }
+
+      // Shipping
+      if (Number(invoice.shippingCost) > 0) {
+        lines.push({
+          account: { connect: { id: expenseAccount.accountId } },
+          debitAmount: invoice.shippingCost,
+          creditAmount: 0,
+          description: "Shipping Cost",
+          lineNumber: lineNumber++,
+        });
+      }
+
+      // Handling
+      if (Number(invoice.handlingCost) > 0) {
+        lines.push({
+          account: { connect: { id: expenseAccount.accountId } },
+          debitAmount: invoice.handlingCost,
+          creditAmount: 0,
+          description: "Handling Cost",
+          lineNumber: lineNumber++,
+        });
+      }
+
+      // Global Discount (Credit)
+      if (Number(invoice.globalDiscount) > 0) {
+        lines.push({
+          account: { connect: { id: expenseAccount.accountId } },
+          debitAmount: 0,
+          creditAmount: invoice.globalDiscount,
+          description: "Global Discount",
+          lineNumber: lineNumber++,
+        });
+      }
+
+      // Transaction
+      await prisma.$transaction(async (tx) => {
+        // Create JE
+        const je = await tx.journalEntry.create({
+          data: {
+            userId: session.userId,
+            entryNumber: `INV-${invoice.invoiceNumber}`,
+            transactionDate: invoice.invoiceDate,
+            description: `Purchase Invoice #${invoice.invoiceNumber}`,
+            status: "posted",
+            postedAt: new Date(),
+            lines: {
+              create: lines,
+            },
+          },
+        });
+
+        // Update Invoice
+        await tx.purchaseInvoice.update({
+          where: { id },
+          data: {
+            status: "BILLED",
+            journalEntryId: je.id,
+          },
+        });
+      });
+
+      revalidatePath("/purchase/invoices");
+      revalidatePath(`/purchase/invoices/${id}`);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to post Invoice:", error);
+      return { success: false, error: "Failed to post Purchase Invoice" };
     }
   },
 );

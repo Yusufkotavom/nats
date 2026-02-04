@@ -47,6 +47,8 @@ model JournalEntry {
   cashTransaction CashTransaction?
   purchasePayment PurchasePayment?
   salesPayment    SalesPayment?
+  purchaseInvoice PurchaseInvoice?
+  salesInvoice    SalesInvoice?
 
   @@index([transactionDate])
   @@index([status])
@@ -89,6 +91,7 @@ model DefaultAccount {
 enum DefaultAccountPurpose {
   ACCOUNTS_RECEIVABLE
   ACCOUNTS_PAYABLE
+  GOODS_RECEIVED_NOT_INVOICED
   INVENTORY_ASSET
   COGS
   SALES_REVENUE

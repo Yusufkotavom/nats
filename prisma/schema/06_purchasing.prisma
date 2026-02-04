@@ -170,6 +170,9 @@ model PurchaseInvoice {
   returns  PurchaseReturn[]
   payments PurchasePayment[]
 
+  journalEntryId String?       @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

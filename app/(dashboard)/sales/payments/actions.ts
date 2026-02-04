@@ -8,6 +8,7 @@ import {
   CashTransactionType,
   SalesInvoiceStatus,
 } from "@/prisma/generated/prisma/client";
+import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesPaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
@@ -223,21 +224,7 @@ export const postSalesPayment = authorizedAction(
       const cashAccount = payment.cashAccount;
 
       // Find AR Account
-      // Typically 11xxx for Assets/Receivables
-      const arAccount = await prisma.account.findFirst({
-        where: {
-          OR: [
-            { code: "11100" }, // Example code
-            { name: { contains: "Accounts Receivable", mode: "insensitive" } },
-          ],
-          type: "asset",
-        },
-      });
-
-      if (!arAccount)
-        throw new Error(
-          "Accounts Receivable account not found. Please contact admin."
-        );
+      const arAccount = await getRequiredDefaultAccount("ACCOUNTS_RECEIVABLE");
 
       await prisma.$transaction(async (tx) => {
         // Create Journal Entry
@@ -260,7 +247,7 @@ export const postSalesPayment = authorizedAction(
                   lineNumber: 1,
                 },
                 {
-                  accountId: arAccount.id,
+                  accountId: arAccount.accountId,
                   debitAmount: 0,
                   creditAmount: payment.amount,
                   description: `Payment for Invoice #${invoice.invoiceNumber}`,
@@ -286,7 +273,7 @@ export const postSalesPayment = authorizedAction(
             approvedAt: new Date(),
             allocations: {
               create: {
-                accountId: arAccount.id,
+                accountId: arAccount.accountId,
                 amount: payment.amount,
                 description: `Payment for Invoice #${invoice.invoiceNumber}`,
               },
@@ -409,7 +396,7 @@ export const updateSalesPayment = authorizedAction(
       const otherPaymentsTotal = invoice.payments
         .filter(p => p.id !== id)
         .reduce((sum, p) => sum + Number(p.amount), 0);
-      
+
       const remaining = Number(invoice.totalAmount) - otherPaymentsTotal;
 
       if (data.amount > remaining + 0.01) {

@@ -156,6 +156,9 @@ model SalesInvoice {
   returns  SalesReturn[]
   payments SalesPayment[]
 
+  journalEntryId String?       @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

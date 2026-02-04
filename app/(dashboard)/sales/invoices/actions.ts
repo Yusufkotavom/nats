@@ -10,6 +10,8 @@ import {
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesInvoiceInput } from "./types";
 import { getSalesOrder } from "../orders/actions";
+import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
+import { getSession } from "@/lib/auth/auth";
 
 export { getSalesOrder };
 
@@ -116,7 +118,7 @@ export const createSalesInvoice = authorizedAction(
       // For now, assume user might provide it or we generate it. 
       // Purchase module allowed user input, but Sales usually auto-generates.
       // Let's use the provided one or generate if empty.
-      
+
       let invoiceNumber = data.invoiceNumber;
       if (!invoiceNumber) {
         invoiceNumber = await generateInvoiceNumber();
@@ -125,7 +127,7 @@ export const createSalesInvoice = authorizedAction(
       // Check for duplicate invoice number
       const existing = await prisma.salesInvoice.findUnique({
         where: {
-            invoiceNumber: invoiceNumber
+          invoiceNumber: invoiceNumber
         },
       });
 
@@ -327,6 +329,139 @@ export const deleteSalesInvoice = authorizedAction(
     } catch (error) {
       console.error("Failed to delete Invoice:", error);
       return { success: false, error: "Failed to delete Sales Invoice" };
+    }
+  },
+);
+
+export const postSalesInvoice = authorizedAction(
+  "sales.create",
+  async (id: string) => {
+    try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
+
+      const invoice = await prisma.salesInvoice.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+
+      if (!invoice) throw new Error("Invoice not found");
+      if (invoice.status !== "DRAFT") throw new Error("Only draft invoices can be posted");
+      if (invoice.journalEntryId) throw new Error("Invoice already posted");
+
+      // Get Default Accounts
+      const arAccount = await getRequiredDefaultAccount("ACCOUNTS_RECEIVABLE");
+      const revenueAccount = await getRequiredDefaultAccount("SALES_REVENUE");
+      const taxAccount = await getRequiredDefaultAccount("SALES_TAX_PAYABLE");
+      const discountAccount = await getRequiredDefaultAccount("SALES_DISCOUNT");
+      const shippingAccount = await getRequiredDefaultAccount("UNCATEGORIZED_INCOME"); // Or Shipping Revenue
+
+      // Prepare JE lines
+      const lines: Prisma.JournalEntryLineCreateWithoutJournalEntryInput[] = [];
+      let lineNumber = 1;
+
+      // Debit AR (Total Amount)
+      lines.push({
+        account: { connect: { id: arAccount.accountId } },
+        debitAmount: invoice.totalAmount,
+        creditAmount: 0,
+        description: `Receivable for Invoice #${invoice.invoiceNumber}`,
+        lineNumber: lineNumber++,
+        contact: { connect: { id: invoice.contactId } },
+      });
+
+      // Credit Items (Revenue/Tax)
+      for (const item of invoice.items) {
+        let accountId = item.accountId;
+        if (!accountId) {
+          // Default to Sales Revenue
+          accountId = revenueAccount.accountId;
+        }
+
+        const subtotal = Number(item.unitPrice) * item.quantity;
+        const discountAmount = subtotal * (Number(item.discount || 0) / 100);
+        const taxableAmount = subtotal - discountAmount;
+        const taxRate = Number(item.tax || 0) / 100;
+        const taxAmount = taxableAmount * taxRate;
+
+        // Credit Revenue (Net)
+        if (taxableAmount > 0) {
+          lines.push({
+            account: { connect: { id: accountId } },
+            debitAmount: 0,
+            creditAmount: taxableAmount,
+            description: item.description,
+            lineNumber: lineNumber++,
+          });
+        }
+
+        // Credit Tax
+        if (taxAmount > 0) {
+          lines.push({
+            account: { connect: { id: taxAccount.accountId } },
+            debitAmount: 0,
+            creditAmount: taxAmount,
+            description: `Tax on ${item.description}`,
+            lineNumber: lineNumber++,
+          });
+        }
+      }
+
+      // Shipping (Credit)
+      if (Number(invoice.shippingCost) > 0) {
+        lines.push({
+          account: { connect: { id: shippingAccount.accountId } },
+          debitAmount: 0,
+          creditAmount: invoice.shippingCost,
+          description: "Shipping Cost",
+          lineNumber: lineNumber++,
+        });
+      }
+
+      // Global Discount (Debit)
+      if (Number(invoice.globalDiscount) > 0) {
+        lines.push({
+          account: { connect: { id: discountAccount.accountId } },
+          debitAmount: invoice.globalDiscount,
+          creditAmount: 0,
+          description: "Global Discount",
+          lineNumber: lineNumber++,
+        });
+      }
+
+      // Transaction
+      await prisma.$transaction(async (tx) => {
+        // Create JE
+        const je = await tx.journalEntry.create({
+          data: {
+            userId: session.userId,
+            entryNumber: `INV-${invoice.invoiceNumber}`,
+            transactionDate: invoice.invoiceDate,
+            description: `Sales Invoice #${invoice.invoiceNumber}`,
+            status: "posted",
+            postedAt: new Date(),
+            lines: {
+              create: lines,
+            },
+          },
+        });
+
+        // Update Invoice
+        await tx.salesInvoice.update({
+          where: { id },
+          data: {
+            status: "ISSUED",
+            journalEntryId: je.id,
+          },
+        });
+      });
+
+      revalidatePath("/sales/invoices");
+      revalidatePath(`/sales/invoices/${id}`);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to post Invoice:", error);
+      return { success: false, error: "Failed to post Sales Invoice" };
     }
   },
 );

@@ -8,6 +8,7 @@ import {
   CashTransactionType,
   PurchaseInvoiceStatus,
 } from "@/prisma/generated/prisma/client";
+import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchasePaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
@@ -207,20 +208,7 @@ export const postPurchasePayment = authorizedAction(
       const cashAccount = payment.cashAccount;
 
       // Find AP Account
-      const apAccount = await prisma.account.findFirst({
-        where: {
-          OR: [
-            { code: "21100" },
-            { name: { contains: "Accounts Payable", mode: "insensitive" } },
-          ],
-          type: "liability",
-        },
-      });
-
-      if (!apAccount)
-        throw new Error(
-          "Accounts Payable account not found. Please contact admin."
-        );
+      const apAccount = await getRequiredDefaultAccount("ACCOUNTS_PAYABLE");
 
       await prisma.$transaction(async (tx) => {
         // Create Journal Entry
@@ -235,7 +223,7 @@ export const postPurchasePayment = authorizedAction(
             lines: {
               create: [
                 {
-                  accountId: apAccount.id,
+                  accountId: apAccount.accountId,
                   debitAmount: payment.amount,
                   creditAmount: 0,
                   description: `Payment for Invoice #${invoice.invoiceNumber}`,
@@ -268,7 +256,7 @@ export const postPurchasePayment = authorizedAction(
             approvedAt: new Date(),
             allocations: {
               create: {
-                accountId: apAccount.id,
+                accountId: apAccount.accountId,
                 amount: payment.amount,
                 description: `Payment for Invoice #${invoice.invoiceNumber}`,
               },

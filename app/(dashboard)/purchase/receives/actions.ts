@@ -1,6 +1,7 @@
 "use server";
 
 import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -9,6 +10,7 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReceiveInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
 
 export { getPurchaseOrder };
 
@@ -276,6 +278,8 @@ export const updatePurchaseReceive = authorizedAction(
 
           // Create InventoryMovement (IN)
           const movementItems = [];
+          let totalValue = 0;
+
           for (const item of data.items) {
             let unitCost = 0;
             if (item.purchaseOrderItemId) {
@@ -294,6 +298,8 @@ export const updatePurchaseReceive = authorizedAction(
               unitCost,
               notes: "Purchase Receive Completed"
             });
+
+            totalValue += item.quantity * unitCost;
           }
 
           await InventoryService.createInventoryMovement(tx, {
@@ -303,6 +309,44 @@ export const updatePurchaseReceive = authorizedAction(
             items: movementItems,
             transactionDate: data.receiveDate
           });
+
+          // Create Journal Entry
+          if (totalValue > 0) {
+            const session = await getSession();
+            if (!session) throw new Error("Unauthorized");
+
+            const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
+            const grniAccount = await getRequiredDefaultAccount("GOODS_RECEIVED_NOT_INVOICED");
+
+            await tx.journalEntry.create({
+              data: {
+                userId: session.userId,
+                entryNumber: `JE-${currentReceive.receiveNumber}`,
+                transactionDate: data.receiveDate,
+                description: `Inventory Receipt #${currentReceive.receiveNumber}`,
+                status: "posted",
+                postedAt: new Date(),
+                lines: {
+                  create: [
+                    {
+                      accountId: inventoryAccount.accountId,
+                      debitAmount: totalValue,
+                      creditAmount: 0,
+                      description: "Inventory Asset",
+                      lineNumber: 1
+                    },
+                    {
+                      accountId: grniAccount.accountId,
+                      debitAmount: 0,
+                      creditAmount: totalValue,
+                      description: "Goods Received Not Invoiced",
+                      lineNumber: 2
+                    }
+                  ]
+                }
+              }
+            });
+          }
         }
 
         return updatedReceive;

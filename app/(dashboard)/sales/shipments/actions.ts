@@ -127,6 +127,8 @@ async function generateShipmentNumber() {
 }
 
 import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
+import { getSession } from "@/lib/auth/auth";
 
 export const createSalesShipment = authorizedAction(
   "sales.create",
@@ -271,17 +273,68 @@ export const updateSalesShipment = authorizedAction(
           }
 
           // Create InventoryMovement (OUT)
+          const movementItems = [];
+          let totalCogs = 0;
+
+          for (const item of data.items) {
+            const product = await tx.product.findUnique({ where: { id: item.productId } });
+            const unitCost = product ? Number(product.averageCost) : 0;
+
+            movementItems.push({
+              productId: item.productId,
+              quantity: item.quantity,
+              notes: "Sales Shipment",
+              unitCost
+            });
+
+            totalCogs += item.quantity * unitCost;
+          }
+
           await InventoryService.createInventoryMovement(tx, {
             type: "OUT",
             reference: currentShipment.shipmentNumber,
             notes: data.notes || "Sales Shipment Completed",
-            items: data.items.map(item => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              notes: "Sales Shipment"
-            })),
+            items: movementItems,
             transactionDate: data.shipmentDate
           });
+
+          // Create Journal Entry for COGS
+          if (totalCogs > 0) {
+            const session = await getSession();
+            if (!session) throw new Error("Unauthorized");
+
+            const cogsAccount = await getRequiredDefaultAccount("COGS");
+            const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
+
+            await tx.journalEntry.create({
+              data: {
+                userId: session.userId,
+                entryNumber: `JE-${currentShipment.shipmentNumber}`,
+                transactionDate: data.shipmentDate,
+                description: `Cost of Goods Sold for Shipment #${currentShipment.shipmentNumber}`,
+                status: "posted",
+                postedAt: new Date(),
+                lines: {
+                  create: [
+                    {
+                      accountId: cogsAccount.accountId,
+                      debitAmount: totalCogs,
+                      creditAmount: 0,
+                      description: "Cost of Goods Sold",
+                      lineNumber: 1
+                    },
+                    {
+                      accountId: inventoryAccount.accountId,
+                      debitAmount: 0,
+                      creditAmount: totalCogs,
+                      description: "Inventory Asset",
+                      lineNumber: 2
+                    }
+                  ]
+                }
+              }
+            });
+          }
         }
 
         return updatedShipment;
