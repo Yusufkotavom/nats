@@ -10,7 +10,11 @@ import {
   ContactType,
   CashAccountType,
   DefaultAccountPurpose,
+  AssetStatus,
+  DepreciationMethod,
 } from "@/prisma/generated/prisma/client";
+import { Decimal } from "decimal.js";
+import { AssetService } from "@/lib/asset-service";
 
 async function main() {
   console.log("Start seeding...");
@@ -122,6 +126,15 @@ async function main() {
       name: "Fixed Assets",
       type: "asset",
       normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "12000",
+    },
+    {
+      code: "12200",
+      name: "Accumulated Depreciation",
+      type: "asset",
+      normalBalance: "credit",
       isPosting: true,
       level: 2,
       parentCode: "12000",
@@ -362,6 +375,15 @@ async function main() {
     {
       code: "51800",
       name: "Insurance Expense",
+      type: "expense",
+      normalBalance: "debit",
+      isPosting: true,
+      level: 2,
+      parentCode: "51000",
+    },
+    {
+      code: "51900",
+      name: "Depreciation Expense",
       type: "expense",
       normalBalance: "debit",
       isPosting: true,
@@ -1391,6 +1413,158 @@ async function main() {
       console.warn(
         `Account code ${mapping.code} not found for purpose ${mapping.purpose}`
       );
+    }
+  }
+
+  // Seed Assets
+  console.log("Seeding Assets...");
+
+  // Get Accounts
+  const fixedAssetAccount = await getAccount("12100");
+  const accumDepAccount = await getAccount("12200");
+  const depExpenseAccount = await getAccount("51900");
+
+  async function createSeedAsset(
+    category: any,
+    code: string,
+    name: string,
+    cost: number,
+    life: number,
+    method: DepreciationMethod
+  ) {
+    const existing = await prisma.asset.findUnique({ where: { code } });
+    if (existing) return;
+
+    // Purchase date a few months ago
+    const purchaseDate = new Date("2024-10-15");
+    const residual = new Decimal(cost).times(0.1); // 10% residual
+
+    const asset = await prisma.asset.create({
+      data: {
+        code,
+        name,
+        categoryId: category.id,
+        purchaseDate,
+        acquisitionCost: new Decimal(cost),
+        residualValue: residual,
+        usefulLife: life,
+        depreciationMethod: method,
+        currentBookValue: new Decimal(cost), // Initially cost
+        status: AssetStatus.ACTIVE,
+        location: "Headquarters",
+      },
+    });
+
+    // Generate Schedule
+    const schedule = AssetService.calculateDepreciationSchedule(
+      new Decimal(cost),
+      residual,
+      life,
+      method,
+      purchaseDate
+    );
+
+    if (schedule.length > 0) {
+      await prisma.depreciationSchedule.createMany({
+        data: schedule.map((s) => ({
+          assetId: asset.id,
+          date: s.date,
+          amount: s.amount,
+          bookValueAfter: s.bookValueAfter,
+          isPosted: false, // Start as unposted
+        })),
+      });
+    }
+  }
+
+  if (fixedAssetAccount && accumDepAccount && depExpenseAccount) {
+    // 1. Asset Categories
+    const assetCategories = [
+      {
+        name: "Computer Equipment",
+        code: "COMP",
+        description: "Laptops, Desktops, Servers",
+        defaultUsefulLife: 36, // 3 years
+        defaultMethod: DepreciationMethod.STRAIGHT_LINE,
+        assetAccountId: fixedAssetAccount.id,
+        accumDepreciationAccountId: accumDepAccount.id,
+        depreciationExpenseAccountId: depExpenseAccount.id,
+      },
+      {
+        name: "Office Furniture",
+        code: "FURN",
+        description: "Chairs, Desks, Tables",
+        defaultUsefulLife: 60, // 5 years
+        defaultMethod: DepreciationMethod.STRAIGHT_LINE,
+        assetAccountId: fixedAssetAccount.id,
+        accumDepreciationAccountId: accumDepAccount.id,
+        depreciationExpenseAccountId: depExpenseAccount.id,
+      },
+      {
+        name: "Vehicles",
+        code: "VEH",
+        description: "Company Cars, Vans",
+        defaultUsefulLife: 60, // 5 years
+        defaultMethod: DepreciationMethod.DECLINING_BALANCE,
+        assetAccountId: fixedAssetAccount.id,
+        accumDepreciationAccountId: accumDepAccount.id,
+        depreciationExpenseAccountId: depExpenseAccount.id,
+      },
+    ];
+
+    for (const cat of assetCategories) {
+      const createdCat = await prisma.assetCategory.upsert({
+        where: { code: cat.code },
+        update: {},
+        create: {
+          name: cat.name,
+          code: cat.code,
+          description: cat.description,
+          defaultUsefulLife: cat.defaultUsefulLife,
+          defaultMethod: cat.defaultMethod,
+          assetAccountId: cat.assetAccountId,
+          accumDepreciationAccountId: cat.accumDepreciationAccountId,
+          depreciationExpenseAccountId: cat.depreciationExpenseAccountId,
+        },
+      });
+
+      // 2. Create Assets for this category
+      if (cat.code === "COMP") {
+        await createSeedAsset(
+          createdCat,
+          "AST-001",
+          "MacBook Pro M3",
+          2500,
+          36,
+          DepreciationMethod.STRAIGHT_LINE
+        );
+        await createSeedAsset(
+          createdCat,
+          "AST-002",
+          "Dell XPS 15",
+          2000,
+          36,
+          DepreciationMethod.STRAIGHT_LINE
+        );
+      } else if (cat.code === "FURN") {
+        await createSeedAsset(
+          createdCat,
+          "AST-003",
+          "Herman Miller Aeron",
+          1200,
+          60,
+          DepreciationMethod.STRAIGHT_LINE
+        );
+      } else if (cat.code === "VEH") {
+        await createSeedAsset(
+          createdCat,
+          "AST-004",
+          "Toyota Tacoma Delivery Van",
+          35000,
+          60,
+          DepreciationMethod.DECLINING_BALANCE
+        );
+      }
     }
   }
 

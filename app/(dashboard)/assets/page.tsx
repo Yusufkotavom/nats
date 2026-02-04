@@ -55,20 +55,14 @@ export default function AssetsPage() {
       <PageListHeader>
         <PageListTitle title="Assets" />
         <PageListActions>
-            <div className="flex gap-2">
-                <Link href="/assets/depreciation">
-                    <Button variant="outline">Depreciation Run</Button>
-                </Link>
-                <Link href="/assets/categories">
-                    <Button variant="outline">Categories</Button>
-                </Link>
-                <Link href="/assets/new">
-                    <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Asset
-                    </Button>
-                </Link>
-            </div>
+          <div className="flex gap-2">
+            <Link href="/assets/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Asset
+              </Button>
+            </Link>
+          </div>
         </PageListActions>
       </PageListHeader>
 
@@ -86,13 +80,13 @@ export default function AssetsPage() {
 
       <PageListContent>
         {isLoading ? (
-        <div className="flex justify-center p-8">
+          <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+          </div>
         ) : (
-        <Table>
+          <Table>
             <TableHeader>
-            <TableRow>
+              <TableRow>
                 <TableHead>Code</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
@@ -101,46 +95,46 @@ export default function AssetsPage() {
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Book Value</TableHead>
                 <TableHead></TableHead>
-            </TableRow>
+              </TableRow>
             </TableHeader>
             <TableBody>
-            {filteredAssets?.length === 0 && (
+              {filteredAssets?.length === 0 && (
                 <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     No assets found.
-                </TableCell>
+                  </TableCell>
                 </TableRow>
-            )}
-            {filteredAssets?.map((asset) => (
+              )}
+              {filteredAssets?.map((asset) => (
                 <TableRow key={asset.id}>
-                <TableCell className="font-medium">{asset.code}</TableCell>
-                <TableCell>
+                  <TableCell className="font-medium">{asset.code}</TableCell>
+                  <TableCell>
                     <Link href={`/assets/${asset.id}`} className="hover:underline">
-                        {asset.name}
+                      {asset.name}
                     </Link>
-                </TableCell>
-                <TableCell>{asset.category.name}</TableCell>
-                <TableCell>
+                  </TableCell>
+                  <TableCell>{asset.category.name}</TableCell>
+                  <TableCell>
                     <Badge variant={asset.status === "ACTIVE" ? "default" : "secondary"}>
-                    {asset.status}
+                      {asset.status}
                     </Badge>
-                </TableCell>
-                <TableCell>{formatDate(asset.purchaseDate)}</TableCell>
-                <TableCell className="text-right">
+                  </TableCell>
+                  <TableCell>{formatDate(asset.purchaseDate)}</TableCell>
+                  <TableCell className="text-right">
                     {formatCurrency(Number(asset.acquisitionCost))}
-                </TableCell>
-                <TableCell className="text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     {formatCurrency(Number(asset.currentBookValue))}
-                </TableCell>
-                <TableCell>
+                  </TableCell>
+                  <TableCell>
                     <Link href={`/assets/${asset.id}`}>
-                        <Button variant="ghost" size="sm">View</Button>
+                      <Button variant="ghost" size="sm">View</Button>
                     </Link>
-                </TableCell>
+                  </TableCell>
                 </TableRow>
-            ))}
+              ))}
             </TableBody>
-        </Table>
+          </Table>
         )}
       </PageListContent>
     </PageListLayout>

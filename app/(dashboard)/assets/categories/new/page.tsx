@@ -28,14 +28,6 @@ export default function NewAssetCategoryPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">New Asset Category</h1>
-        <p className="text-muted-foreground">
-          Define a new asset category and its GL mapping.
-        </p>
-      </div>
-      <CategoryForm accounts={accounts || []} />
-    </div>
+    <CategoryForm accounts={accounts || []} />
   );
 }
