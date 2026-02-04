@@ -18,6 +18,11 @@ model Account {
   salesInvoiceItems    SalesInvoiceItem[]
   defaultAccounts      DefaultAccount[]
 
+  // Asset Module Relations
+  assetCategoryAssets           AssetCategory[] @relation("AssetAccount")
+  assetCategoryAccumDep         AssetCategory[] @relation("AccumDepAccount")
+  assetCategoryDepExpense       AssetCategory[] @relation("DepExpenseAccount")
+
   // Cash & Bank Relations
   cashAccount                CashAccount?
   cashTransactionAllocations CashTransactionAllocation[]
@@ -49,6 +54,10 @@ model JournalEntry {
   salesPayment    SalesPayment?
   purchaseInvoice PurchaseInvoice?
   salesInvoice    SalesInvoice?
+
+  // Asset Module Relations
+  depreciationSchedule DepreciationSchedule?
+  assetDisposal        AssetDisposal?
 
   @@index([transactionDate])
   @@index([status])

@@ -182,25 +182,21 @@ const data = {
       ],
     },
     {
-      title: "Assets",
-      url: "#",
+      title: "Fixed Assets",
+      url: "/assets",
       icon: Building,
       items: [
         {
-          title: "General",
-          url: "#",
+          title: "Asset List",
+          url: "/assets",
         },
         {
-          title: "Team",
-          url: "#",
+          title: "Depreciation Run",
+          url: "/assets/depreciation",
         },
         {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
+          title: "Asset Categories",
+          url: "/assets/categories",
         },
       ],
     },
