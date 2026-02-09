@@ -21,6 +21,7 @@ model POSSession {
   salesOrders SalesOrder[]
   salesInvoices SalesInvoice[]
   salesPayments SalesPayment[]
+  heldOrders    HeldOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -29,4 +30,26 @@ model POSSession {
 enum POSSessionStatus {
   OPEN
   CLOSED
+}
+
+model HeldOrder {
+  id          String   @id @default(cuid())
+  holdId      String   @unique 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  customerId  String?
+  customer    Contact? @relation(fields: [customerId], references: [id])
+  customerName String?
+
+  items       Json     
+  totalAmount Decimal
+  
+  note        String?
+
+  posSessionId String?
+  posSession   POSSession? @relation(fields: [posSessionId], references: [id])
 }

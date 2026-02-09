@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { POSProduct, POSCartItem, closePOSSession } from '../actions';
+import { POSProduct, POSCartItem, closePOSSession, getHeldOrders } from '../actions';
 import { Button } from '@/components/ui/button';
-import { LogOut, History, Search } from 'lucide-react';
+import { LogOut, History, Search, RotateCcw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -21,6 +21,9 @@ import { ProductGrid } from './product-grid';
 
 import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
+import { HeldOrdersDialog } from './held-orders-dialog';
+import { useQuery } from '@tanstack/react-query';
+import { Badge } from '@/components/ui/badge';
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -38,6 +41,14 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+
+  const { data: heldOrders = [] } = useQuery({
+    queryKey: ['heldOrders'],
+    queryFn: async () => {
+      const res = await getHeldOrders();
+      return SuperJSON.deserialize<any[]>(res);
+    },
+  });
 
   const filteredProducts = useMemo(() => {
     return initialProducts.filter((product) => {
@@ -92,6 +103,26 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
     }
   };
 
+  const handleResume = (items: POSCartItem[], customerName?: string, customerId?: string) => {
+    setCart(prev => {
+      const newCart = [...prev];
+      items.forEach(newItem => {
+        const existingIndex = newCart.findIndex(c => c.id === newItem.id);
+        if (existingIndex >= 0) {
+          const existing = newCart[existingIndex];
+          newCart[existingIndex] = {
+            ...existing,
+            quantity: existing.quantity + newItem.quantity
+          };
+        } else {
+          newCart.push(newItem);
+        }
+      });
+      return newCart;
+    });
+    toast({ title: 'Order items added to cart' });
+  };
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -110,6 +141,21 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
         </div>
 
         <div className="flex items-center gap-2">
+          <HeldOrdersDialog
+            onResume={handleResume}
+            trigger={
+              <Button variant="outline" size="sm" className="relative mr-2">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Held Orders
+                {heldOrders.length > 0 && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                    {heldOrders.length}
+                  </Badge>
+                )}
+              </Button>
+            }
+          />
+
           <div className="text-sm text-muted-foreground">
             Session: {session.sessionNumber}
           </div>

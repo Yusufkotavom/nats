@@ -2,6 +2,7 @@ import { SalesShipmentForm } from "../_components/sales-shipment-form";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { getSalesOrdersForSelect, getSalesShipment } from "../actions";
 import { notFound } from "next/navigation";
+import { SuperJSONResult } from "superjson";
 
 interface ViewSalesShipmentPageProps {
   params: Promise<{ id: string }>;
@@ -28,7 +29,7 @@ export default async function ViewSalesShipmentPage({
         id: c.id,
         name: c.name,
       }))}
-      salesOrders={salesOrdersResult}
+      salesOrders={salesOrdersResult as SuperJSONResult}
       readonly
     />
   );

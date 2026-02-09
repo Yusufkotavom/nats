@@ -32,4 +32,5 @@ model Contact {
     salesInvoices SalesInvoice[]
     salesReturns  SalesReturn[]
     salesPayments SalesPayment[]
+    heldOrders    HeldOrder[]
 }

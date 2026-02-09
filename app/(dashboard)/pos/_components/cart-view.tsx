@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { POSCartItem, processPOSTransaction } from '../actions';
+import { POSCartItem, processPOSTransaction, holdOrder } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, PauseCircle } from 'lucide-react';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { CheckoutDialog } from './checkout-dialog';
+import { HoldOrderDialog } from './hold-order-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -19,8 +21,11 @@ interface CartViewProps {
 
 export function CartView({ cart, onUpdateQuantity, onRemove, onClear, session }: CartViewProps) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [holdOpen, setHoldOpen] = useState(false);
+  const [holding, setHolding] = useState(false);
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const tax = 0; // TODO: Implement tax logic
@@ -50,6 +55,22 @@ export function CartView({ cart, onUpdateQuantity, onRemove, onClear, session }:
         description: 'Please try again.',
       });
       throw error; // Re-throw to keep dialog open or handle
+    }
+  };
+
+  const handleHold = async (note: string, customerName: string) => {
+    setHolding(true);
+    try {
+      await holdOrder(cart, total, note, undefined, customerName);
+      toast({ title: 'Order Held Successfully' });
+      onClear();
+      setHoldOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['heldOrders'] });
+    } catch (e) {
+      console.error(e);
+      toast({ variant: 'destructive', title: 'Failed to hold order' });
+    } finally {
+      setHolding(false);
     }
   };
 
@@ -129,14 +150,27 @@ export function CartView({ cart, onUpdateQuantity, onRemove, onClear, session }:
             <span>{formatCurrency(total)}</span>
           </div>
         </div>
-        <Button
-          className="mt-4 w-full"
-          size="lg"
-          disabled={cart.length === 0}
-          onClick={() => setCheckoutOpen(true)}
-        >
-          Checkout
-        </Button>
+
+        <div className="flex gap-2 mt-4">
+          <Button
+            className="flex-1"
+            variant="secondary"
+            size="lg"
+            disabled={cart.length === 0}
+            onClick={() => setHoldOpen(true)}
+          >
+            <PauseCircle className="mr-2 h-4 w-4" />
+            Hold
+          </Button>
+          <Button
+            className="flex-[2]"
+            size="lg"
+            disabled={cart.length === 0}
+            onClick={() => setCheckoutOpen(true)}
+          >
+            Checkout
+          </Button>
+        </div>
       </div>
 
       <CheckoutDialog
@@ -144,6 +178,13 @@ export function CartView({ cart, onUpdateQuantity, onRemove, onClear, session }:
         onOpenChange={setCheckoutOpen}
         totalAmount={total}
         onConfirm={handleCheckout}
+      />
+
+      <HoldOrderDialog
+        open={holdOpen}
+        onOpenChange={setHoldOpen}
+        onConfirm={handleHold}
+        isPending={holding}
       />
     </div>
   );

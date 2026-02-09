@@ -298,7 +298,88 @@ export async function processPOSTransaction(
       notes: `POS Sale ${orderNumber}`,
       transactionDate: new Date(),
     });
-
-    return { success: true, orderId: salesOrder.id, invoiceId: salesInvoice.id };
   });
+}
+
+export async function holdOrder(
+  cart: POSCartItem[],
+  totalAmount: number,
+  note?: string,
+  customerId?: string,
+  customerName?: string
+) {
+  const session = await getSession();
+  const userId = session?.userId;
+  if (!userId) throw new Error('Unauthorized');
+
+  const posSession = await prisma.pOSSession.findFirst({
+    where: { cashierId: userId, status: 'OPEN' },
+  });
+
+  const holdId = `HOLD-${Date.now().toString().slice(-6)}`;
+
+  const heldOrder = await prisma.heldOrder.create({
+    data: {
+      holdId,
+      userId,
+      posSessionId: posSession?.id,
+      items: cart as any,
+      totalAmount: new Decimal(totalAmount),
+      note,
+      customerId,
+      customerName,
+    },
+  });
+
+  revalidatePath('/pos');
+  return SuperJSON.serialize(heldOrder);
+}
+
+export async function getHeldOrders() {
+  const session = await getSession();
+  if (!session?.userId) throw new Error('Unauthorized');
+
+  // Cleanup old held orders (> 24h)
+  const expirationDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  await prisma.heldOrder.deleteMany({
+    where: {
+      createdAt: { lt: expirationDate },
+    },
+  });
+
+  const heldOrders = await prisma.heldOrder.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { customer: true, user: true },
+  });
+
+  return SuperJSON.serialize(heldOrders);
+}
+
+export async function resumeOrder(heldOrderId: string) {
+  const session = await getSession();
+  if (!session?.userId) throw new Error('Unauthorized');
+
+  const heldOrder = await prisma.heldOrder.findUnique({
+    where: { id: heldOrderId },
+  });
+
+  if (!heldOrder) throw new Error('Held order not found');
+
+  await prisma.heldOrder.delete({
+    where: { id: heldOrderId },
+  });
+
+  revalidatePath('/pos');
+  return SuperJSON.serialize(heldOrder);
+}
+
+export async function deleteHeldOrder(heldOrderId: string) {
+  const session = await getSession();
+  if (!session?.userId) throw new Error('Unauthorized');
+
+  await prisma.heldOrder.delete({
+    where: { id: heldOrderId },
+  });
+
+  revalidatePath('/pos');
 }
