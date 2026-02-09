@@ -129,6 +129,10 @@ const data = {
       icon: ShoppingCart,
       items: [
         {
+          title: "Dashboard",
+          url: "/purchase/dashboard",
+        },
+        {
           title: "Purchase Order",
           url: "/purchase/orders",
         },
@@ -155,6 +159,10 @@ const data = {
       url: "#",
       icon: Rocket,
       items: [
+        {
+          title: "Dashboard",
+          url: "/sales/dashboard",
+        },
         {
           title: "Sales Order",
           url: "/sales/orders",
