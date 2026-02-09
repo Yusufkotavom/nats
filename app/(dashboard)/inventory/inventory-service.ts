@@ -108,16 +108,15 @@ export class InventoryService {
   ) {
     const { productId, warehouseId, quantity, type, unitCost, batchNumber } = params;
 
-    console.log({ params })
-
     // Fetch existing inventory record
     const inventory = await tx.inventory.findFirst({
       where: {
         productId,
-        warehouseId,
-        batchNumber: batchNumber || null,
+        warehouseId
       },
     });
+
+    console.log({ inventory })
 
     let currentQty = inventory?.quantity || 0;
     let currentCost = inventory?.unitCost || new Decimal(0);
