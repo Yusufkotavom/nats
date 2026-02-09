@@ -53,6 +53,10 @@ model SalesOrder {
   cancelledAt   DateTime?
   cancelledById String?
   cancelledBy   User?     @relation("SOCancelledBy", fields: [cancelledById], references: [id])
+
+  // POS Relation
+  posSessionId String?
+  posSession   POSSession? @relation(fields: [posSessionId], references: [id])
 }
 
 model SalesOrderItem {
@@ -165,6 +169,10 @@ model SalesInvoice {
 
   attachments File[]
 
+  // POS Relation
+  posSessionId String?
+  posSession   POSSession? @relation(fields: [posSessionId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -197,6 +205,10 @@ model SalesPayment {
   id            String  @id @default(cuid())
   paymentNumber String  @unique
   contactId     String
+
+  // POS Relation
+  posSessionId String?
+  posSession   POSSession? @relation(fields: [posSessionId], references: [id])
   contact       Contact @relation(fields: [contactId], references: [id])
 
   salesInvoiceId String

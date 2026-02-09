@@ -1,0 +1,32 @@
+// POS MODULE
+
+model POSSession {
+  id String @id @default(cuid())
+  sessionNumber String @unique 
+
+  cashierId String
+  cashier   User @relation(fields: [cashierId], references: [id])
+
+  startTime DateTime @default(now())
+  endTime   DateTime?
+  status    POSSessionStatus @default(OPEN)
+
+  openingCash Decimal @default(0)
+  closingCash Decimal? // Calculated system total
+  actualCash  Decimal? // Counted by cashier
+  difference  Decimal?
+
+  notes String?
+
+  salesOrders SalesOrder[]
+  salesInvoices SalesInvoice[]
+  salesPayments SalesPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum POSSessionStatus {
+  OPEN
+  CLOSED
+}

@@ -155,6 +155,17 @@ const data = {
       ],
     },
     {
+      title: "Point of Sale",
+      url: "/pos",
+      icon: ShoppingCart,
+      items: [
+        {
+          title: "Terminal",
+          url: "/pos",
+        },
+      ],
+    },
+    {
       title: "Sales",
       url: "#",
       icon: Rocket,
@@ -170,10 +181,6 @@ const data = {
         {
           title: "Sales Invoice",
           url: "/sales/invoices",
-        },
-        {
-          title: "Point of Sale (POS)",
-          url: "#",
         },
         {
           title: "Sales Return",
