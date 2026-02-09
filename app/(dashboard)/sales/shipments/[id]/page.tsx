@@ -12,7 +12,7 @@ export default async function ViewSalesShipmentPage({
 }: ViewSalesShipmentPageProps) {
   const { id } = await params;
   const [contactsResult, salesOrdersResult, shipmentResult] = await Promise.all([
-    getContacts(1, 1000),
+    getContacts({ page: 1, pageSize: 1000 }),
     getSalesOrdersForSelect(),
     getSalesShipment(id),
   ]);
@@ -24,7 +24,7 @@ export default async function ViewSalesShipmentPage({
   return (
     <SalesShipmentForm
       shipment={shipmentResult}
-      customers={contactsResult.contacts.map((c) => ({
+      customers={contactsResult.data.map((c) => ({
         id: c.id,
         name: c.name,
       }))}
