@@ -52,7 +52,7 @@ export function CartView({ cart, onUpdateQuantity, onRemove, onClear, session }:
       toast({
         variant: 'destructive',
         title: 'Transaction Failed',
-        description: 'Please try again.',
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error; // Re-throw to keep dialog open or handle
     }

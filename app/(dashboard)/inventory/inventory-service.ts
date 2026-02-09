@@ -108,6 +108,8 @@ export class InventoryService {
   ) {
     const { productId, warehouseId, quantity, type, unitCost, batchNumber } = params;
 
+    console.log({ params })
+
     // Fetch existing inventory record
     const inventory = await tx.inventory.findFirst({
       where: {
@@ -127,7 +129,7 @@ export class InventoryService {
     if (type === "IN") {
       // Moving Average Cost Calculation for Product (Global)
       // New Avg Cost = ((Current Total Qty * Current Avg Cost) + (Incoming Qty * Incoming Cost)) / (Current Total Qty + Incoming Qty)
-      
+
       const totalStockAgg = await tx.inventory.aggregate({
         where: { productId },
         _sum: { quantity: true },
@@ -138,15 +140,15 @@ export class InventoryService {
         // totalValue = productAvgCost * totalStock + unitCost * quantity
         const totalValue = productAvgCost.mul(totalStock).plus(unitCost.mul(quantity));
         const newTotalStock = totalStock + quantity;
-        
+
         if (newTotalStock > 0) {
-            productAvgCost = totalValue.div(newTotalStock);
+          productAvgCost = totalValue.div(newTotalStock);
         }
-        
+
         // Update Product Average Cost
         await tx.product.update({
-            where: { id: productId },
-            data: { averageCost: productAvgCost },
+          where: { id: productId },
+          data: { averageCost: productAvgCost },
         });
       }
 
@@ -157,7 +159,7 @@ export class InventoryService {
           data: {
             quantity: { increment: quantity },
             // Update the stored unit cost for this bucket if provided
-            unitCost: unitCost || currentCost, 
+            unitCost: unitCost || currentCost,
           },
         });
       } else {
@@ -176,7 +178,7 @@ export class InventoryService {
     } else if (type === "OUT") {
       // Check for sufficient stock
       if (currentQty < quantity) {
-         throw new Error(`Insufficient stock for product ${product.name} (SKU: ${product.sku}). Available: ${currentQty}, Requested: ${quantity}`);
+        throw new Error(`Insufficient stock for product ${product.name} (SKU: ${product.sku}). Available: ${currentQty}, Requested: ${quantity}`);
       }
 
       // Update Inventory
@@ -188,7 +190,7 @@ export class InventoryService {
           },
         });
       } else {
-          throw new Error(`Inventory record not found for product ${product.name}`);
+        throw new Error(`Inventory record not found for product ${product.name}`);
       }
     }
   }

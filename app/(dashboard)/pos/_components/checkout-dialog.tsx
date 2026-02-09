@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { Loader2, CreditCard, Banknote, QrCode } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 
 interface CheckoutDialogProps {
   open: boolean;

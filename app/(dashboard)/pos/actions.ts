@@ -287,7 +287,7 @@ export async function processPOSTransaction(
       include: { items: true },
     });
 
-    // 7. Inventory Movement
+    // 7. Inventory Movement. Need to fix to use specific warehouse
     await InventoryService.createInventoryMovement(tx, {
       type: MovementType.OUT,
       reference: shipment.shipmentNumber,

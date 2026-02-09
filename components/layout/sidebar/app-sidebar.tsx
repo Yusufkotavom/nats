@@ -10,6 +10,8 @@ import {
   Rocket,
   Settings,
   Landmark,
+  TerminalIcon,
+  StoreIcon,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/sidebar/nav-main";
@@ -157,7 +159,7 @@ const data = {
     {
       title: "Point of Sale",
       url: "/pos",
-      icon: ShoppingCart,
+      icon: StoreIcon,
       items: [
         {
           title: "Terminal",
