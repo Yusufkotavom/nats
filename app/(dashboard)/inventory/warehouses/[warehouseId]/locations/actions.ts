@@ -5,12 +5,22 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { LocationType } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getLocations(
   warehouseId: string,
   page: number = 1,
   limit: number = 10
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return {
+      locations: [],
+      total: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
 
   const [locations, total] = await Promise.all([

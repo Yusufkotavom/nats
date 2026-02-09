@@ -6,8 +6,15 @@ import { Prisma, DiscountType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { BatchPricingInput, PriceCalculationResult } from "./types";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getCategories() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return [];
+  }
+
   const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   });
@@ -20,6 +27,15 @@ export async function getPricingProducts(
   search?: string,
   categoryId?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return {
+      products: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.ProductWhereInput = {
     AND: [],
@@ -84,6 +100,11 @@ export const updateSinglePrice = authorizedAction(
 );
 
 export async function getProductDiscounts(productId: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return [];
+  }
+
   const product = await prisma.product.findUnique({
     where: { id: productId },
     include: {
@@ -186,6 +207,14 @@ export const removeDiscountFromProduct = authorizedAction(
 );
 
 export async function previewPriceChanges(data: BatchPricingInput) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.edit")) {
+    return {
+      totalProducts: 0,
+      changes: [],
+    };
+  }
+
   const where: Prisma.ProductWhereInput = {};
 
   if (data.scope === "CATEGORY" && data.categoryId) {

@@ -3,8 +3,15 @@
 import { prisma } from "@/lib/prisma";
 import { PurchaseOrderStatus, PurchaseInvoiceStatus } from "@/prisma/generated/prisma/client";
 import { startOfMonth, subMonths, format, endOfMonth } from "date-fns";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getDashboardSummary() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     const [
       totalOrders,
@@ -14,7 +21,7 @@ export async function getDashboardSummary() {
     ] = await Promise.all([
       // Total Purchase Orders Count
       prisma.purchaseOrder.count(),
-      
+
       // Total Purchase Invoices Amount (Billed)
       prisma.purchaseInvoice.aggregate({
         _sum: {
@@ -49,7 +56,7 @@ export async function getDashboardSummary() {
       // It DOES NOT have balanceDue in the snippet.
       // So I will calculate Outstanding as: Sum(Total Amount) where status in [DRAFT, BILLED, PARTIALLY_PAID] - Sum(Payments for those invoices).
       // Or simply Sum of all Invoices (except Canceled) - Sum of all Payments.
-      
+
       prisma.purchaseInvoice.aggregate({
         _sum: {
           totalAmount: true,
@@ -64,11 +71,11 @@ export async function getDashboardSummary() {
 
     const totalInvoiceAmount = totalInvoices._sum.totalAmount?.toNumber() || 0;
     const totalPaidAmount = totalPaid._sum.amount?.toNumber() || 0;
-    
+
     // Outstanding is basically what we owe.
     // Simple calc: Total Invoices (excluding draft/canceled) - Total Payments.
     // Draft invoices usually don't count as liability yet.
-    
+
     const committedInvoices = await prisma.purchaseInvoice.aggregate({
       _sum: {
         totalAmount: true
@@ -79,7 +86,7 @@ export async function getDashboardSummary() {
         }
       }
     });
-    
+
     const committedAmount = committedInvoices._sum.totalAmount?.toNumber() || 0;
     const outstandingAmount = Math.max(0, committedAmount - totalPaidAmount);
 
@@ -99,6 +106,11 @@ export async function getDashboardSummary() {
 }
 
 export async function getPurchaseTrends() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     // Get last 6 months
     const today = new Date();
@@ -124,7 +136,7 @@ export async function getPurchaseTrends() {
 
     // Group by month
     const monthlyData = new Map<string, number>();
-    
+
     // Initialize months
     for (let i = 0; i < 6; i++) {
       const date = subMonths(today, i);
@@ -142,15 +154,15 @@ export async function getPurchaseTrends() {
     // Sort by date (reverse the map iteration or reconstruction)
     // Actually we initialized current to past, so keys are "Feb 2026", "Jan 2026"...
     // We want chronological order for chart.
-    
+
     const result = [];
     for (let i = 5; i >= 0; i--) {
-        const date = subMonths(today, i);
-        const key = format(date, "MMM yyyy");
-        result.push({
-            name: key,
-            amount: monthlyData.get(key) || 0
-        });
+      const date = subMonths(today, i);
+      const key = format(date, "MMM yyyy");
+      result.push({
+        name: key,
+        amount: monthlyData.get(key) || 0
+      });
     }
 
     return { success: true, data: result };
@@ -161,6 +173,11 @@ export async function getPurchaseTrends() {
 }
 
 export async function getPurchaseStatusBreakdown() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     const statusCounts = await prisma.purchaseOrder.groupBy({
       by: ["status"],
@@ -182,6 +199,11 @@ export async function getPurchaseStatusBreakdown() {
 }
 
 export async function getRecentPurchases() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     const recentOrders = await prisma.purchaseOrder.findMany({
       take: 5,

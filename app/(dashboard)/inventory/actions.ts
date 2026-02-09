@@ -2,8 +2,20 @@
 
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getInventoryDashboardMetrics() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return {
+      totalProducts: 0,
+      totalValue: 0,
+      lowStockItems: [],
+      recentMovements: [],
+    };
+  }
+
   const [
     totalProducts,
     totalValueResult,

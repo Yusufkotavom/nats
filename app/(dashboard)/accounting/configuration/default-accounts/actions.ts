@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client"
 import { revalidatePath } from "next/cache"
 import { authorizedAction } from "@/lib/permissions/protected-action"
+import { getSession } from "@/lib/auth/auth"
+import { hasPermission } from "@/lib/permissions/utils"
 
 export type DefaultAccountWithAccount = {
   id: string
@@ -17,6 +19,11 @@ export type DefaultAccountWithAccount = {
 }
 
 export async function getDefaultAccounts() {
+  const session = await getSession()
+  if (!session || !hasPermission(session.permissions, "default_accounts.view")) {
+    return []
+  }
+
   const defaultAccounts = await prisma.defaultAccount.findMany({
     where: { isActive: true },
     include: { account: true },
@@ -25,6 +32,11 @@ export async function getDefaultAccounts() {
 }
 
 export async function getAccounts() {
+  const session = await getSession()
+  if (!session || !hasPermission(session.permissions, "accounts.view")) {
+    return []
+  }
+
   const accounts = await prisma.account.findMany({
     where: { isActive: true },
     select: {
@@ -39,6 +51,11 @@ export async function getAccounts() {
 }
 
 export async function updateDefaultAccount(purpose: DefaultAccountPurpose, accountId: string) {
+  const session = await getSession()
+  if (!session || !hasPermission(session.permissions, "default_accounts.manage")) {
+    return { success: false, error: "Unauthorized" }
+  }
+
   try {
     // Find current active default account for this purpose
     const current = await prisma.defaultAccount.findFirst({

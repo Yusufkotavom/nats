@@ -10,6 +10,8 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesReturnInput } from "./types";
 import { getSalesOrder } from "../orders/actions";
 import { getSalesInvoice } from "../invoices/actions";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export { getSalesOrder, getSalesInvoice };
 
@@ -18,6 +20,15 @@ export async function getSalesReturns(
   limit: number = 10,
   search?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return {
+      returns: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.SalesReturnWhereInput = {
     AND: [],
@@ -71,6 +82,11 @@ export async function getSalesReturns(
 }
 
 export async function getSalesReturn(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return null;
+  }
+
   const salesReturn = await prisma.salesReturn.findUnique({
     where: { id },
     include: {
@@ -97,6 +113,11 @@ export async function getSalesReturn(id: string) {
 }
 
 export async function getSalesOrdersForReturn() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return [];
+  }
+
   const orders = await prisma.salesOrder.findMany({
     where: { status: { in: ["CONFIRMED", "SHIPPED", "PARTIALLY_SHIPPED", "CLOSED"] } },
     orderBy: { createdAt: "desc" },
@@ -118,6 +139,11 @@ export async function getSalesOrdersForReturn() {
 }
 
 export async function getSalesInvoicesForReturn() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return [];
+  }
+
   const invoices = await prisma.salesInvoice.findMany({
     where: { status: { in: ["ISSUED", "PAID", "PARTIALLY_PAID"] } },
     orderBy: { createdAt: "desc" },

@@ -12,6 +12,7 @@ import { SalesInvoiceInput } from "./types";
 import { getSalesOrder } from "../orders/actions";
 import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export { getSalesOrder };
 
@@ -21,6 +22,15 @@ export async function getSalesInvoices(
   search?: string,
   status?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return {
+      invoices: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.SalesInvoiceWhereInput = {
     AND: [],
@@ -70,6 +80,11 @@ export async function getSalesInvoices(
 }
 
 export async function getSalesInvoice(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return null;
+  }
+
   const invoice = await prisma.salesInvoice.findUnique({
     where: { id },
     include: {
@@ -84,6 +99,11 @@ export async function getSalesInvoice(id: string) {
 }
 
 export async function getSalesOrdersForSelect() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return [];
+  }
+
   const orders = await prisma.salesOrder.findMany({
     where: {
       status: { in: ["CONFIRMED", "SHIPPED", "PARTIALLY_SHIPPED", "CLOSED"] },
@@ -341,7 +361,7 @@ export const deleteSalesInvoice = authorizedAction(
 );
 
 export const postSalesInvoice = authorizedAction(
-  "sales.create",
+  "sales.edit",
   async (id: string) => {
     try {
       const session = await getSession();

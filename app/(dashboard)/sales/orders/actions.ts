@@ -7,6 +7,7 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { SalesOrderInput } from "./types";
 import { SuperJSON } from "@/lib/superjson";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getSalesOrders(
   page: number = 1,
@@ -16,6 +17,15 @@ export async function getSalesOrders(
   startDate?: string,
   endDate?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return {
+      orders: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.SalesOrderWhereInput = {
     AND: [],
@@ -89,6 +99,11 @@ export async function getSalesOrders(
 }
 
 export async function getSalesOrder(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return null;
+  }
+
   const order = await prisma.salesOrder.findUnique({
     where: { id },
     include: {

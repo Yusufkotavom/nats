@@ -31,7 +31,7 @@ export async function getUnits(page: number = 1, limit: number = 10) {
 }
 
 export const createUnit = authorizedAction(
-  "inventory_products.create", // Reusing product permission for now
+  "products.create", // Reusing product permission for now
   async (data: { name: string; symbol: string }) => {
     try {
       const unit = await prisma.unit.create({

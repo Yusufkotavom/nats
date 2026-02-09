@@ -13,6 +13,8 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { getPaginationMetadata } from "@/lib/pagination";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 /**
  * Fetch accounts for list or tree display.
@@ -25,6 +27,23 @@ import { getPaginationMetadata } from "@/lib/pagination";
  * - With pagination: object containing `data` (same shape) plus `pagination` metadata.
  */
 export async function getAccounts(page?: number, pageSize?: number) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "accounts.view")) {
+    if (!page || !pageSize) {
+      return [];
+    }
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page: page || 1,
+        pageSize: pageSize || 10,
+        totalPages: 0,
+        hasMore: false,
+      },
+    };
+  }
+
   // If no pagination provided, fetch all (for tree view)
   if (!page || !pageSize) {
     return await prisma.account.findMany({
@@ -213,6 +232,11 @@ export async function updateAccount(id: string, data: { name: string }) {
  * @returns  - Object with `success` flag plus descriptive `error` when deletion is blocked
  */
 export async function deleteAccount(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "accounts.delete")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     const usageCount = await prisma.journalEntryLine.count({
       where: { accountId: id },

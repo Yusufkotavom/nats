@@ -7,6 +7,8 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesShipmentInput } from "./types";
 import { getSalesOrder } from "../orders/actions";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export { getSalesOrder };
 
@@ -15,6 +17,15 @@ export async function getSalesShipments(
   limit: number = 10,
   search?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return {
+      shipments: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.SalesShipmentWhereInput = {
     AND: [],
@@ -62,6 +73,11 @@ export async function getSalesShipments(
 }
 
 export async function getSalesShipment(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return null;
+  }
+
   const shipment = await prisma.salesShipment.findUnique({
     where: { id },
     include: {
@@ -82,6 +98,11 @@ export async function getSalesShipment(id: string) {
 }
 
 export async function getProducts() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return [];
+  }
+
   const products = await prisma.product.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -105,6 +126,11 @@ export async function getProducts() {
 }
 
 export async function getSalesOrdersForSelect() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return [];
+  }
+
   const orders = await prisma.salesOrder.findMany({
     where: {
       status: { in: ["CONFIRMED", "PARTIALLY_SHIPPED"] },
@@ -130,7 +156,6 @@ async function generateShipmentNumber() {
 
 import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
 import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
-import { getSession } from "@/lib/auth/auth";
 
 export const createSalesShipment = authorizedAction(
   "sales.create",

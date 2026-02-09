@@ -11,6 +11,7 @@ import { PurchaseReceiveInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
 import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export { getPurchaseOrder };
 
@@ -19,6 +20,15 @@ export async function getPurchaseReceives(
   limit: number = 10,
   search?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return {
+      receives: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseReceiveWhereInput = {
     AND: [],
@@ -65,6 +75,11 @@ export async function getPurchaseReceives(
 }
 
 export async function getPurchaseReceive(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return null;
+  }
+
   const receive = await prisma.purchaseReceive.findUnique({
     where: { id },
     include: {
@@ -85,6 +100,11 @@ export async function getPurchaseReceive(id: string) {
 }
 
 export async function getProducts() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return [];
+  }
+
   const products = await prisma.product.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -108,6 +128,11 @@ export async function getProducts() {
 }
 
 export async function getPurchaseOrdersForSelect() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return [];
+  }
+
   const orders = await prisma.purchaseOrder.findMany({
     where: {
       status: { in: ["ISSUED", "PARTIALLY_RECEIVED"] },

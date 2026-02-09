@@ -10,6 +10,8 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReturnInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
 import { getPurchaseInvoice } from "../invoices/actions";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export { getPurchaseOrder, getPurchaseInvoice };
 
@@ -18,6 +20,15 @@ export async function getPurchaseReturns(
   limit: number = 10,
   search?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return {
+      returns: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseReturnWhereInput = {
     AND: [],
@@ -70,6 +81,11 @@ export async function getPurchaseReturns(
 }
 
 export async function getPurchaseReturn(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return null;
+  }
+
   const purchaseReturn = await prisma.purchaseReturn.findUnique({
     where: { id },
     include: {
@@ -96,6 +112,11 @@ export async function getPurchaseReturn(id: string) {
 }
 
 export async function getPurchaseOrdersForReturn() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return [];
+  }
+
   const orders = await prisma.purchaseOrder.findMany({
     where: { status: { in: ["ISSUED", "PARTIALLY_RECEIVED", "CLOSED"] } },
     orderBy: { createdAt: "desc" },
@@ -117,6 +138,11 @@ export async function getPurchaseOrdersForReturn() {
 }
 
 export async function getPurchaseInvoicesForReturn() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return [];
+  }
+
   const invoices = await prisma.purchaseInvoice.findMany({
     where: { status: { in: ["BILLED", "PAID", "PARTIALLY_PAID"] } },
     orderBy: { createdAt: "desc" },

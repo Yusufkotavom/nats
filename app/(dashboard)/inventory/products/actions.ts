@@ -6,30 +6,40 @@ import { revalidatePath } from "next/cache";
 import { ProductFormData, ProductInput } from "../types";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 // Categories
 
 export async function getCategories() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return [];
+  }
+
   return await prisma.category.findMany({
     orderBy: { name: "asc" },
   });
 }
 
-export async function createCategory(data: {
-  name: string;
-  description?: string;
-}) {
-  try {
-    const category = await prisma.category.create({
-      data,
-    });
-    revalidatePath("/inventory/products");
-    return { success: true, data: category };
-  } catch (error) {
-    console.error("Failed to create category:", error);
-    return { success: false, error: "Failed to create category" };
+export const createCategory = authorizedAction(
+  "categories.create",
+  async (data: {
+    name: string;
+    description?: string;
+  }) => {
+    try {
+      const category = await prisma.category.create({
+        data,
+      });
+      revalidatePath("/inventory/products");
+      return { success: true, data: category };
+    } catch (error) {
+      console.error("Failed to create category:", error);
+      return { success: false, error: "Failed to create category" };
+    }
   }
-}
+);
 
 // Products
 
@@ -39,6 +49,15 @@ export async function getProducts(
   search?: string,
   categoryId?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return {
+      products: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.ProductWhereInput = {
     AND: [],
@@ -86,6 +105,11 @@ export async function getProducts(
 }
 
 export async function getProduct(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return null;
+  }
+
   const product = await prisma.product.findUnique({
     where: { id },
     include: {

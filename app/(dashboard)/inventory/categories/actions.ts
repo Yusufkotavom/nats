@@ -3,12 +3,23 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/prisma/generated/prisma/client";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getCategories(
   page: number = 1,
   limit: number = 10,
   search?: string
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return {
+      categories: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.CategoryWhereInput = {
     AND: [],

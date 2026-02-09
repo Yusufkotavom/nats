@@ -3,8 +3,18 @@
 import { prisma } from "@/lib/prisma";
 import { SalesOrderStatus, SalesInvoiceStatus } from "@/prisma/generated/prisma/client";
 import { startOfMonth, subMonths, format } from "date-fns";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getDashboardSummary() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return {
+      success: false,
+      error: "Unauthorized",
+    };
+  }
+
   try {
     const [
       totalOrders,
@@ -14,7 +24,7 @@ export async function getDashboardSummary() {
     ] = await Promise.all([
       // Total Sales Orders Count
       prisma.salesOrder.count(),
-      
+
       // Total Sales (Invoiced Amount)
       prisma.salesInvoice.aggregate({
         _sum: {
@@ -67,6 +77,11 @@ export async function getDashboardSummary() {
 }
 
 export async function getSalesTrends() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     // Get last 6 months
     const today = new Date();
@@ -92,7 +107,7 @@ export async function getSalesTrends() {
 
     // Group by month
     const monthlyData = new Map<string, number>();
-    
+
     // Initialize months
     for (let i = 0; i < 6; i++) {
       const date = subMonths(today, i);
@@ -109,12 +124,12 @@ export async function getSalesTrends() {
 
     const result = [];
     for (let i = 5; i >= 0; i--) {
-        const date = subMonths(today, i);
-        const key = format(date, "MMM yyyy");
-        result.push({
-            name: key,
-            amount: monthlyData.get(key) || 0
-        });
+      const date = subMonths(today, i);
+      const key = format(date, "MMM yyyy");
+      result.push({
+        name: key,
+        amount: monthlyData.get(key) || 0
+      });
     }
 
     return { success: true, data: result };
@@ -125,6 +140,11 @@ export async function getSalesTrends() {
 }
 
 export async function getRecentSales() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     const recentOrders = await prisma.salesOrder.findMany({
       take: 5,

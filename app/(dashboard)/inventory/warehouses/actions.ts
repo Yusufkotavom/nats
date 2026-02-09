@@ -3,8 +3,19 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getWarehouses(page: number = 1, limit: number = 10) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return {
+      warehouses: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
 
   const [warehouses, total] = await Promise.all([
@@ -82,6 +93,11 @@ export const deleteWarehouse = authorizedAction(
 );
 
 export async function getInventoryLevels(warehouseId?: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return [];
+  }
+
   const where = warehouseId ? { warehouseId } : {};
 
   const inventory = await prisma.inventory.findMany({

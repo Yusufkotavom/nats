@@ -91,6 +91,11 @@ export const register: PermissionType[] = [
     module: "sales",
   },
   {
+    name: "sales.payments",
+    description: "Allows managing sales payments",
+    module: "sales",
+  },
+  {
     name: "sales.edit",
     description: "Allows editing sales records",
     module: "sales",
@@ -181,7 +186,12 @@ export const register: PermissionType[] = [
     module: "categories",
   },
 
-  // Inventory Movements
+  // Inventory
+  {
+    name: "inventory.view",
+    description: "Allows viewing inventory levels and movements",
+    module: "inventory",
+  },
   {
     name: "inventory_movements.create",
     description:
@@ -190,6 +200,11 @@ export const register: PermissionType[] = [
   },
 
   // Accounts
+  {
+    name: "accounts.view",
+    description: "Allows viewing chart of accounts",
+    module: "accounts",
+  },
   {
     name: "accounts.create",
     description: "Allows creating new chart of accounts",
@@ -210,48 +225,74 @@ export const register: PermissionType[] = [
   {
     name: "journal_entries.view",
     description: "Allows viewing journal entries",
-    module: "journal_entries",
+    module: "accounting",
   },
   {
     name: "journal_entries.create",
-    description: "Allows creating new journal entries",
-    module: "journal_entries",
-  },
-  {
-    name: "journal_entries.edit",
-    description: "Allows editing draft journal entries",
-    module: "journal_entries",
-  },
-  {
-    name: "journal_entries.delete",
-    description: "Allows deleting draft journal entries",
-    module: "journal_entries",
-  },
-  {
-    name: "journal_entries.post",
-    description: "Allows posting journal entries",
-    module: "journal_entries",
+    description: "Allows creating journal entries",
+    module: "accounting",
   },
 
-  // Ledger
+  // Assets
   {
-    name: "ledger.view",
-    description: "Allows viewing general ledger",
-    module: "ledger",
+    name: "assets.view",
+    description: "Allows viewing assets",
+    module: "assets",
+  },
+  {
+    name: "assets.create",
+    description: "Allows creating assets",
+    module: "assets",
+  },
+  {
+    name: "assets.edit",
+    description: "Allows editing assets",
+    module: "assets",
+  },
+  {
+    name: "assets.delete",
+    description: "Allows deleting assets",
+    module: "assets",
+  },
+
+  // Cash & Bank
+  {
+    name: "cash_bank.view",
+    description: "Allows viewing cash and bank transactions",
+    module: "cash_bank",
+  },
+  {
+    name: "cash_bank.create",
+    description: "Allows creating cash and bank transactions",
+    module: "cash_bank",
+  },
+  {
+    name: "cash_bank.edit",
+    description: "Allows editing cash and bank transactions",
+    module: "cash_bank",
+  },
+  {
+    name: "cash_bank.delete",
+    description: "Allows deleting cash and bank transactions",
+    module: "cash_bank",
   },
 
   // Reports
   {
     name: "reports.view",
-    description:
-      "Allows viewing financial reports (Trial Balance, P&L, Balance Sheet, etc.)",
+    description: "Allows viewing financial reports",
     module: "reports",
   },
 
-  // Default Accounts
+  // Files
   {
-    name: "default_accounts.manage",
-    description: "Allows configuring default accounts",
-    module: "accounting",
+    name: "files.upload",
+    description: "Allows uploading files",
+    module: "files",
+  },
+  {
+    name: "files.delete",
+    description: "Allows deleting files",
+    module: "files",
   },
 ];

@@ -8,13 +8,28 @@ import { SuperJSON } from "@/lib/superjson";
 
 import { getSession } from "@/lib/auth/auth";
 import { executeInventoryUpdate, processMovement } from "./logic";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getCompanyProfile() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return null;
+  }
+
   const companyProfile = await prisma.companyProfile.findFirst();
   return SuperJSON.serialize(companyProfile);
 }
 
 export async function getMovementBatches(page: number = 1, limit: number = 10) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return {
+      batches: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
 
   const [batches, total] = await Promise.all([
@@ -49,6 +64,11 @@ export async function getMovementBatches(page: number = 1, limit: number = 10) {
 }
 
 export async function getMovementBatchById(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return null;
+  }
+
   const batch = await prisma.inventoryMovement.findUnique({
     where: { id },
     include: {
@@ -79,6 +99,11 @@ export async function getMovementBatchById(id: string) {
 }
 
 export async function getMovements() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return [];
+  }
+
   const movements = await prisma.inventoryMovementDetail.findMany({
     include: {
       product: true,

@@ -12,6 +12,7 @@ import { PurchaseInvoiceInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
 import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export { getPurchaseOrder };
 
@@ -21,6 +22,15 @@ export async function getPurchaseInvoices(
   search?: string,
   status?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return {
+      invoices: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseInvoiceWhereInput = {
     AND: [],
@@ -70,6 +80,11 @@ export async function getPurchaseInvoices(
 }
 
 export async function getPurchaseInvoice(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return null;
+  }
+
   const invoice = await prisma.purchaseInvoice.findUnique({
     where: { id },
     include: {
@@ -84,6 +99,11 @@ export async function getPurchaseInvoice(id: string) {
 }
 
 export async function getPurchaseOrdersForSelect() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return [];
+  }
+
   const orders = await prisma.purchaseOrder.findMany({
     where: {
       // Invoices can be created for any active PO ideally, but usually Issued/Received.
@@ -330,7 +350,7 @@ export const deletePurchaseInvoice = authorizedAction(
 );
 
 export const postPurchaseInvoice = authorizedAction(
-  "purchase.create",
+  "purchase.edit",
   async (id: string) => {
     try {
       const session = await getSession();

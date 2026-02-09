@@ -12,12 +12,22 @@ import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounti
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchasePaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getPurchasePayments(
   page: number = 1,
   limit: number = 10,
   search?: string
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return {
+      payments: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.PurchasePaymentWhereInput = {
     AND: [],
@@ -61,6 +71,11 @@ export async function getPurchasePayments(
 }
 
 export async function getPurchasePayment(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return null;
+  }
+
   const payment = await prisma.purchasePayment.findUnique({
     where: { id },
     include: {
@@ -81,6 +96,11 @@ export async function getPurchasePayment(id: string) {
 }
 
 export async function getUnpaidInvoices() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return [];
+  }
+
   const invoices = await prisma.purchaseInvoice.findMany({
     where: {
       status: { in: ["BILLED", "PARTIALLY_PAID"] },
@@ -96,6 +116,11 @@ export async function getUnpaidInvoices() {
 }
 
 export async function getCashAccounts() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return [];
+  }
+
   const accounts = await prisma.cashAccount.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -104,7 +129,7 @@ export async function getCashAccounts() {
 }
 
 export const createPurchasePayment = authorizedAction(
-  "purchase.create",
+  "purchase.payments",
   async (data: PurchasePaymentInput) => {
     try {
       const session = await getSession();

@@ -12,12 +12,22 @@ import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounti
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesPaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getSalesPayments(
   page: number = 1,
   limit: number = 10,
   search?: string
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return {
+      payments: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
   const where: Prisma.SalesPaymentWhereInput = {
     AND: [],
@@ -62,6 +72,11 @@ export async function getSalesPayments(
 }
 
 export async function getSalesPayment(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return null;
+  }
+
   const payment = await prisma.salesPayment.findUnique({
     where: { id },
     include: {
@@ -82,6 +97,11 @@ export async function getSalesPayment(id: string) {
 }
 
 export async function getUnpaidSalesInvoices() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return [];
+  }
+
   const invoices = await prisma.salesInvoice.findMany({
     where: {
       status: { in: ["ISSUED", "PARTIALLY_PAID", "OVERDUE"] },
@@ -97,6 +117,11 @@ export async function getUnpaidSalesInvoices() {
 }
 
 export async function getCashAccounts() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "sales.view")) {
+    return [];
+  }
+
   const accounts = await prisma.cashAccount.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -115,7 +140,7 @@ async function generatePaymentNumber() {
 }
 
 export const createSalesPayment = authorizedAction(
-  "sales.create",
+  "sales.payments",
   async (data: SalesPaymentInput) => {
     try {
       const session = await getSession();
@@ -203,7 +228,7 @@ export const createSalesPayment = authorizedAction(
 );
 
 export const postSalesPayment = authorizedAction(
-  "sales.create",
+  "sales.payments",
   async (id: string) => {
     try {
       const session = await getSession();
@@ -305,7 +330,7 @@ export const postSalesPayment = authorizedAction(
 );
 
 export const deleteSalesPayment = authorizedAction(
-  "sales.delete",
+  "sales.payments",
   async (id: string) => {
     try {
       const session = await getSession();
@@ -370,7 +395,7 @@ export const deleteSalesPayment = authorizedAction(
 );
 
 export const updateSalesPayment = authorizedAction(
-  "sales.update",
+  "sales.payments",
   async (id: string, data: SalesPaymentInput) => {
     try {
       const session = await getSession();

@@ -3,8 +3,15 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getWarehouse(warehouseId: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return null;
+  }
+
   const warehouse = await prisma.warehouse.findUnique({
     where: { id: warehouseId },
   });
@@ -12,6 +19,11 @@ export async function getWarehouse(warehouseId: string) {
 }
 
 export async function getCategories() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return [];
+  }
+
   const categories = await prisma.category.findMany({
     orderBy: { name: "asc" },
   });
@@ -25,6 +37,15 @@ export async function getWarehouseInventory(
   search?: string,
   categoryId?: string,
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+    return {
+      inventory: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
+
   const skip = (page - 1) * limit;
 
   const where: Prisma.InventoryWhereInput = {
