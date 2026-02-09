@@ -32,13 +32,13 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
           className="cursor-pointer overflow-hidden transition-all hover:shadow-md"
           onClick={() => onAddToCart(product)}
         >
-          <div className="relative aspect-square w-full bg-muted">
+          <div className="flex relative aspect-square w-full bg-muted">
             {product.image ? (
               <Image
                 src={product.image}
                 alt={product.name}
                 fill
-                className="object-cover"
+                className="flex-1 object-cover"
               />
             ) : (
               <div className="flex h-full items-center justify-center text-4xl font-bold text-muted-foreground/20">
@@ -51,13 +51,13 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
               </Badge>
             </div>
           </div>
-          <CardContent className="p-3">
+          <CardContent className="p-3 grow">
             <h3 className="line-clamp-2 text-sm font-medium leading-tight">
               {product.name}
             </h3>
             <p className="mt-1 text-xs text-muted-foreground">{product.sku}</p>
           </CardContent>
-          <CardFooter className="flex items-center justify-between p-3 pt-0">
+          <CardFooter className="flex-1 flex items-center justify-between p-3 pt-0">
             <span className="font-bold text-primary">
               {formatCurrency(product.price)}
             </span>

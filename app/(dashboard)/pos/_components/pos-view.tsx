@@ -19,13 +19,20 @@ import { useRouter } from 'next/navigation';
 import { CartView } from './cart-view';
 import { ProductGrid } from './product-grid';
 
+import { SuperJSONResult } from "superjson";
+import { SuperJSON } from "@/lib/superjson";
+
 interface POSViewProps {
-  initialProducts: POSProduct[];
-  categories: any[];
-  session: any;
+  initialProducts: SuperJSONResult;
+  categories: SuperJSONResult;
+  session: SuperJSONResult;
 }
 
-export function POSView({ initialProducts, categories, session }: POSViewProps) {
+export function POSView({ initialProducts: serializedProducts, categories: serializedCategories, session: serializedSession }: POSViewProps) {
+  const initialProducts = SuperJSON.deserialize<POSProduct[]>(serializedProducts);
+  const categories = SuperJSON.deserialize<any[]>(serializedCategories);
+  const session = SuperJSON.deserialize<any>(serializedSession);
+
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

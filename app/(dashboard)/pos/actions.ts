@@ -7,6 +7,8 @@ import { getSession } from '@/lib/auth/auth';
 import { MovementType } from "@/prisma/generated/prisma/client";
 import { Decimal } from '@/prisma/generated/prisma/internal/prismaNamespace';
 
+import { SuperJSON } from "@/lib/superjson";
+
 // Types
 export type POSProduct = {
   id: string;
@@ -53,7 +55,7 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
     orderBy: { name: 'asc' },
   });
 
-  return products.map((p) => {
+  const mapped = products.map((p) => {
     const totalStock = p.inventory.reduce((acc, inv) => acc + inv.quantity, 0);
     return {
       id: p.id,
@@ -66,12 +68,15 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
       stock: totalStock,
     };
   });
+
+  return SuperJSON.serialize(mapped);
 }
 
 export async function getPOSCategories() {
-  return await prisma.category.findMany({
+  const categories = await prisma.category.findMany({
     orderBy: { name: 'asc' },
   });
+  return SuperJSON.serialize(categories);
 }
 
 export async function getOpenPOSSession() {
@@ -90,7 +95,9 @@ export async function getOpenPOSSession() {
     },
   });
 
-  return posSession;
+  if (!posSession) return null;
+
+  return SuperJSON.serialize(posSession);
 }
 
 export async function openPOSSession(openingCash: number) {
@@ -117,7 +124,7 @@ export async function openPOSSession(openingCash: number) {
   });
 
   revalidatePath('/pos');
-  return newSession;
+  return SuperJSON.serialize(newSession);
 }
 
 export async function closePOSSession(sessionId: string, actualCash: number, notes?: string) {
