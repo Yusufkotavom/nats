@@ -159,6 +159,11 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
           <div className="text-sm text-muted-foreground">
             Session: {session.sessionNumber}
           </div>
+          {session.warehouse && (
+            <Badge variant="outline" className="text-sm font-normal">
+              Warehouse: {session.warehouse.name}
+            </Badge>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">

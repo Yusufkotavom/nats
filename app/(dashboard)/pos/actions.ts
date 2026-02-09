@@ -79,6 +79,13 @@ export async function getPOSCategories() {
   return SuperJSON.serialize(categories);
 }
 
+export async function getWarehouses() {
+  const warehouses = await prisma.warehouse.findMany({
+    orderBy: { name: 'asc' },
+  });
+  return SuperJSON.serialize(warehouses);
+}
+
 export async function getOpenPOSSession() {
   const session = await getSession();
   const userId = session?.userId;
@@ -92,6 +99,7 @@ export async function getOpenPOSSession() {
     },
     include: {
       cashier: true,
+      warehouse: true,
     },
   });
 
@@ -100,7 +108,7 @@ export async function getOpenPOSSession() {
   return SuperJSON.serialize(posSession);
 }
 
-export async function openPOSSession(openingCash: number) {
+export async function openPOSSession(openingCash: number, warehouseId: string) {
   const session = await getSession();
   const userId = session?.userId;
   if (!userId) throw new Error('Unauthorized');
@@ -120,6 +128,7 @@ export async function openPOSSession(openingCash: number) {
       openingCash: new Decimal(openingCash),
       status: 'OPEN',
       startTime: new Date(),
+      warehouseId,
     },
   });
 
@@ -297,6 +306,7 @@ export async function processPOSTransaction(
       })),
       notes: `POS Sale ${orderNumber}`,
       transactionDate: new Date(),
+      warehouseId: session.warehouseId || undefined,
     });
   });
 }

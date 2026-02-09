@@ -1,5 +1,5 @@
 
-import { getOpenPOSSession, getPOSProducts, getPOSCategories } from './actions';
+import { getOpenPOSSession, getPOSProducts, getPOSCategories, getWarehouses } from './actions';
 import { POSSessionDialog } from './_components/pos-session-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
@@ -9,6 +9,7 @@ export default async function POSPage() {
   const session = await getOpenPOSSession();
   const products = await getPOSProducts();
   const categories = await getPOSCategories();
+  const warehouses = await getWarehouses();
 
   if (!session) {
     return (
@@ -25,7 +26,7 @@ export default async function POSPage() {
               <p className="text-center text-muted-foreground">
                 You need to open a new POS session to start processing transactions.
               </p>
-              <POSSessionDialog />
+              <POSSessionDialog warehouses={warehouses} />
             </div>
           </CardContent>
         </Card>
@@ -35,10 +36,10 @@ export default async function POSPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)] overflow-hidden bg-muted/20">
-      <POSView 
-        initialProducts={products} 
-        categories={categories} 
-        session={session} 
+      <POSView
+        initialProducts={products}
+        categories={categories}
+        session={session}
       />
     </div>
   );

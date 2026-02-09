@@ -111,6 +111,8 @@ model Warehouse {
   fromMovements InventoryMovement[] @relation("FromWarehouse")
   toMovements   InventoryMovement[] @relation("ToWarehouse")
 
+  posSessions   POSSession[]
+
   locations Location[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt

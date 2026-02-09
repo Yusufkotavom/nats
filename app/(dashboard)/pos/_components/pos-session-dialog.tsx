@@ -17,10 +17,25 @@ import { Label } from '@/components/ui/label';
 import { openPOSSession } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
-export function POSSessionDialog() {
+interface POSSessionDialogProps {
+  warehouses: SuperJSONResult;
+}
+
+export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessionDialogProps) {
+  const warehouses = SuperJSON.deserialize<any[]>(serializedWarehouses);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [warehouseId, setWarehouseId] = useState<string>("");
   const { toast } = useToast();
   const router = useRouter();
 
@@ -28,6 +43,8 @@ export function POSSessionDialog() {
     setLoading(true);
     try {
       const openingCash = parseFloat(formData.get('openingCash') as string);
+      const selectedWarehouseId = formData.get('warehouseId') as string;
+
       if (isNaN(openingCash) || openingCash < 0) {
         toast({
           variant: 'destructive',
@@ -38,7 +55,17 @@ export function POSSessionDialog() {
         return;
       }
 
-      await openPOSSession(openingCash);
+      if (!selectedWarehouseId) {
+        toast({
+          variant: 'destructive',
+          title: 'Warehouse Required',
+          description: 'Please select a warehouse to start the session.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      await openPOSSession(openingCash, selectedWarehouseId);
 
       toast({
         title: 'Session Opened',
@@ -67,11 +94,31 @@ export function POSSessionDialog() {
         <DialogHeader>
           <DialogTitle>Start POS Session</DialogTitle>
           <DialogDescription>
-            Enter the opening cash amount in the drawer to start your shift.
+            Select a warehouse and enter the opening cash amount.
           </DialogDescription>
         </DialogHeader>
         <form action={handleOpenSession}>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="warehouse" className="text-right">
+                Warehouse
+              </Label>
+              <div className="col-span-3">
+                <input type="hidden" name="warehouseId" value={warehouseId} />
+                <Select onValueChange={setWarehouseId} value={warehouseId}>
+                  <SelectTrigger id="warehouse">
+                    <SelectValue placeholder="Select warehouse" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="openingCash" className="text-right">
                 Opening Cash

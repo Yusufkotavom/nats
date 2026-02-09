@@ -11,6 +11,9 @@ model POSSession {
   endTime   DateTime?
   status    POSSessionStatus @default(OPEN)
 
+  warehouseId String?
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
+
   openingCash Decimal @default(0)
   closingCash Decimal? // Calculated system total
   actualCash  Decimal? // Counted by cashier
