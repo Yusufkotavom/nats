@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { openPOSSession } from '../actions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { DoorClosedIcon, Link, Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -86,62 +86,71 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="lg" className="w-full">Start Shift</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Start POS Session</DialogTitle>
-          <DialogDescription>
-            Select a location and enter the opening cash amount.
-          </DialogDescription>
-        </DialogHeader>
-        <form action={handleOpenSession}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="warehouse" className="text-right">
-                Location
-              </Label>
-              <div className="col-span-3">
-                <input type="hidden" name="warehouseId" value={warehouseId} />
-                <Select onValueChange={setWarehouseId} value={warehouseId}>
-                  <SelectTrigger id="warehouse">
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button size="lg" className="w-full">Start Shift</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Start POS Session</DialogTitle>
+            <DialogDescription>
+              Select a location and enter the opening cash amount.
+            </DialogDescription>
+          </DialogHeader>
+          <form action={handleOpenSession}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="warehouse" className="text-right">
+                  Location
+                </Label>
+                <div className="col-span-3">
+                  <input type="hidden" name="warehouseId" value={warehouseId} />
+                  <Select onValueChange={setWarehouseId} value={warehouseId}>
+                    <SelectTrigger id="warehouse">
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="openingCash" className="text-right">
+                  Opening Cash
+                </Label>
+                <Input
+                  id="openingCash"
+                  name="openingCash"
+                  type="number"
+                  step="0.01"
+                  defaultValue="0.00"
+                  className="col-span-3"
+                  required
+                />
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="openingCash" className="text-right">
-                Opening Cash
-              </Label>
-              <Input
-                id="openingCash"
-                name="openingCash"
-                type="number"
-                step="0.01"
-                defaultValue="0.00"
-                className="col-span-3"
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Open Session
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <DialogFooter>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Open Session
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <div className='w-full'>
+        <Button variant="outline" size="lg" className="w-full" onClick={() => router.push('/')}>
+          <DoorClosedIcon className="mr-2 h-4 w-4" />
+          Return to Dashboard
+        </Button>
+      </div>
+    </>
   );
 }
