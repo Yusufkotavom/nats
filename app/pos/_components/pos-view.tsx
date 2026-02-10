@@ -178,6 +178,11 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
           />
 
           <div className="text-sm text-muted-foreground">
+            {session.cashier?.name && (
+              <span className="mr-3 font-medium text-foreground">
+                {session.cashier.name}
+              </span>
+            )}
             Session: {session.sessionNumber}
           </div>
           {session.warehouse && (
