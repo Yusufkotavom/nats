@@ -19,6 +19,11 @@ export type POSProduct = {
   categoryId: string | null;
   stock: number;
   categoryName: string | null;
+  availableDiscounts: {
+    code: string;
+    type: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    value: number;
+  }[];
 };
 
 export type POSCartItem = POSProduct & {
@@ -42,6 +47,8 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
     where.categoryId = categoryId;
   }
 
+  const now = new Date();
+
   const products = await prisma.product.findMany({
     where,
     include: {
@@ -51,6 +58,16 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
           warehouse: true,
         },
       },
+      discounts: {
+        where: {
+          isActive: true,
+          startDate: { lte: now },
+          OR: [
+            { endDate: null },
+            { endDate: { gte: now } }
+          ]
+        }
+      }
     },
     orderBy: { name: 'asc' },
   });
@@ -66,6 +83,11 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
       categoryId: p.categoryId,
       categoryName: p.category?.name || null,
       stock: totalStock,
+      availableDiscounts: p.discounts.map(d => ({
+        code: d.code,
+        type: d.type,
+        value: d.value.toNumber()
+      }))
     };
   });
 
@@ -356,6 +378,28 @@ export async function holdOrder(
 
   revalidatePath('/pos');
   return SuperJSON.serialize(heldOrder);
+}
+
+export async function validateDiscountCode(code: string) {
+  const discount = await prisma.discount.findUnique({
+    where: { code, isActive: true },
+    include: {
+      products: {
+        select: { id: true }
+      }
+    }
+  });
+
+  if (!discount) {
+    throw new Error('Invalid discount code');
+  }
+
+  const now = new Date();
+  if (discount.startDate > now || (discount.endDate && discount.endDate < now)) {
+    throw new Error('Discount code is expired or not yet active');
+  }
+
+  return SuperJSON.serialize(discount);
 }
 
 export async function getHeldOrders() {

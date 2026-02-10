@@ -298,12 +298,14 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         onOpenChange={setDiscountOpen}
         onApply={handleApplyDiscount}
         title={selectedItemId ? "Item Discount" : "Global Discount"}
+        productId={selectedItemId}
         initialValue={getActiveDiscountValue()}
         initialType="FIXED" // Default to fixed, or we could track type if needed
-        maxAmount={selectedItemId ?
-          (cart.find(c => c.id === selectedItemId)?.price || 0) * (cart.find(c => c.id === selectedItemId)?.quantity || 0)
+        maxAmount={selectedItemId ? 
+          (cart.find(c => c.id === selectedItemId)?.price || 0) * (cart.find(c => c.id === selectedItemId)?.quantity || 0) 
           : subtotal - totalItemDiscounts
         }
+        availableDiscounts={selectedItemId ? cart.find(c => c.id === selectedItemId)?.availableDiscounts : []}
       />
     </div>
   );

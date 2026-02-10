@@ -8,61 +8,92 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Percent, DollarSign } from 'lucide-react';
-import { useFormatCurrency } from '@/hooks/use-format-currency';
+import { useToast } from '@/hooks/use-toast';
+import { validateDiscountCode } from '../actions';
+import { SuperJSON } from "@/lib/superjson";
+import { Loader2 } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
 
 interface DiscountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onApply: (value: number, type: 'PERCENTAGE' | 'FIXED') => void;
   title?: string;
+  productId?: string | null;
+  // Kept for interface compatibility but not used in code mode
   initialValue?: number;
   initialType?: 'PERCENTAGE' | 'FIXED';
-  maxAmount?: number; // Price of the item to cap fixed discount
+  maxAmount?: number;
+  availableDiscounts?: {
+    code: string;
+    type: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    value: number;
+  }[];
 }
 
 export function DiscountDialog({
   open,
   onOpenChange,
   onApply,
-  title = 'Apply Discount',
+  title = 'Apply Discount Code',
+  productId,
   initialValue = 0,
-  initialType = 'FIXED',
-  maxAmount,
+  availableDiscounts = [],
 }: DiscountDialogProps) {
-  const [value, setValue] = useState(initialValue.toString());
-  const [type, setType] = useState<'PERCENTAGE' | 'FIXED'>(initialType);
-  const formatCurrency = useFormatCurrency();
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
-      setValue(initialValue.toString());
-      setType(initialType);
+      setCode('');
     }
-  }, [open, initialValue, initialType]);
+  }, [open]);
 
-  const handleApply = () => {
-    const numValue = parseFloat(value);
-    if (isNaN(numValue) || numValue < 0) return;
+  const handleApply = async (codeToApply?: string) => {
+    const finalCode = codeToApply || code;
+    if (!finalCode.trim()) return;
 
-    // Validation
-    if (type === 'PERCENTAGE' && numValue > 100) {
-      // Allow > 100? Probably not.
-      return;
+    setLoading(true);
+    try {
+      const res = await validateDiscountCode(finalCode);
+      const discount = SuperJSON.deserialize<any>(res);
+
+      // Validate Applicability
+      const productIds = discount.products?.map((p: any) => p.id) || [];
+      const isGlobal = productIds.length === 0;
+
+      if (productId) {
+        // Item Discount Mode
+        if (!isGlobal && !productIds.includes(productId)) {
+          throw new Error('This discount code does not apply to this product.');
+        }
+      } else {
+        // Global Discount Mode
+        if (!isGlobal) {
+          throw new Error('This code is for specific products, not a global discount.');
+        }
+      }
+
+      onApply(Number(discount.value), discount.type === 'FIXED_AMOUNT' ? 'FIXED' : 'PERCENTAGE');
+      onOpenChange(false);
+      setCode('');
+      toast({ title: 'Discount Applied', description: `${discount.type === 'PERCENTAGE' ? `${discount.value}%` : `Amount ${discount.value}`} off` });
+
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Discount Code',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    if (type === 'FIXED' && maxAmount && numValue > maxAmount) {
-      // Don't allow discount > price
-      // But let's just let the parent handle logic or just warn?
-      // Better to clamp or validate.
-    }
-
-    onApply(numValue, type);
-    onOpenChange(false);
   };
 
   return (
@@ -70,51 +101,58 @@ export function DiscountDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            Enter a valid discount code to apply.
+          </DialogDescription>
         </DialogHeader>
-        
-        <Tabs value={type} onValueChange={(v) => setType(v as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="FIXED">Amount ({formatCurrency(0).charAt(0)})</TabsTrigger>
-            <TabsTrigger value="PERCENTAGE">Percentage (%)</TabsTrigger>
-          </TabsList>
-          
-          <div className="py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="discount-value">
-                {type === 'FIXED' ? 'Discount Amount' : 'Discount Percentage'}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="discount-value"
-                  type="number"
-                  min="0"
-                  step={type === 'FIXED' ? '0.01' : '1'}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  className="pl-9"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleApply();
-                  }}
-                />
-                <div className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground">
-                  {type === 'FIXED' ? <DollarSign className="h-4 w-4" /> : <Percent className="h-4 w-4" />}
-                </div>
-              </div>
-              {maxAmount && type === 'FIXED' && (
-                <p className="text-xs text-muted-foreground">
-                  Max discount: {formatCurrency(maxAmount)}
-                </p>
-              )}
-            </div>
+
+        <div className="py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="discount-code">Discount Code</Label>
+            <Input
+              id="discount-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="e.g. SUMMER2025"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleApply();
+              }}
+            />
           </div>
-        </Tabs>
+
+          {availableDiscounts.length > 0 && (
+            <div className="mt-4">
+              <Label className="text-xs text-muted-foreground mb-2 block">Available Coupons:</Label>
+              <div className="flex flex-wrap gap-2">
+                {availableDiscounts.map((d) => (
+                  <Badge
+                    key={d.code}
+                    variant="secondary"
+                    className="cursor-pointer hover:bg-primary/20"
+                    onClick={() => handleApply(d.code)}
+                  >
+                    {d.code} ({d.type === 'PERCENTAGE' ? `${d.value}%` : d.value})
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleApply}>Apply Discount</Button>
+          {initialValue > 0 && (
+            <Button variant="destructive" onClick={() => { onApply(0, 'FIXED'); onOpenChange(false); }}>
+              Remove Discount
+            </Button>
+          )}
+          <Button onClick={() => handleApply()} disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Apply
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
