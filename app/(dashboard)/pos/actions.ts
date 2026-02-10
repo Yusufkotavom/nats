@@ -173,6 +173,7 @@ export async function processPOSTransaction(
   items: { productId: string; quantity: number; price: number; discount: number }[],
   paymentMethod: 'CASH' | 'CARD' | 'QRIS',
   amountPaid: number,
+  globalDiscount: number = 0,
   customerId?: string
 ) {
   return await prisma.$transaction(async (tx) => {
@@ -204,7 +205,9 @@ export async function processPOSTransaction(
     // 3. Create Sales Order
     const orderNumber = `SO-POS-${Date.now()}`;
     const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const totalAmount = subtotal; // Assuming tax inclusive or 0 tax for now
+    const totalItemDiscounts = items.reduce((acc, item) => acc + item.discount, 0);
+    const totalDiscount = new Decimal(totalItemDiscounts).add(globalDiscount);
+    const totalAmount = new Decimal(subtotal).sub(totalDiscount);
 
     const salesOrder = await tx.salesOrder.create({
       data: {
@@ -213,22 +216,23 @@ export async function processPOSTransaction(
         status: 'CONFIRMED', // Direct confirmation
         orderDate: new Date(),
         subtotal: new Decimal(subtotal),
-        totalAmount: new Decimal(totalAmount),
+        discountAmount: totalDiscount,
+        totalAmount: totalAmount,
         posSessionId: sessionId,
         items: {
           create: items.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: new Decimal(item.price),
-            totalPrice: new Decimal(item.price * item.quantity),
-            discountRate: new Decimal(item.discount || 0),
+            totalPrice: new Decimal(item.price * item.quantity - item.discount),
+            discountRate: new Decimal(0), // We don't have rate calculated, storing net in totalPrice
           })),
         },
       },
       include: { items: true },
     });
 
-    // 4. Create Invoice
+    // 4. Create Sales Invoice
     const invoiceNumber = `INV-POS-${Date.now()}`;
     const salesInvoice = await tx.salesInvoice.create({
       data: {
@@ -236,19 +240,21 @@ export async function processPOSTransaction(
         contactId: contactId!,
         salesOrderId: salesOrder.id,
         invoiceDate: new Date(),
-        dueDate: new Date(),
+        dueDate: new Date(), // Immediate payment
         status: 'PAID',
-        totalAmount: new Decimal(totalAmount),
         subtotal: new Decimal(subtotal),
+        globalDiscount: new Decimal(globalDiscount),
+        totalAmount: totalAmount,
         balanceDue: new Decimal(0),
         posSessionId: sessionId,
         items: {
           create: items.map(item => ({
-            description: `Product ${item.productId}`, // We don't have name here easily without fetching, using generic
+            description: 'POS Item', // We should probably fetch product name or pass it, but generic is fine for now or fetch in map
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: new Decimal(item.price),
-            totalPrice: new Decimal(item.price * item.quantity),
+            totalPrice: new Decimal(item.price * item.quantity - item.discount),
+            discount: new Decimal(item.discount),
           })),
         },
       },
@@ -316,7 +322,8 @@ export async function holdOrder(
   totalAmount: number,
   note?: string,
   customerId?: string,
-  customerName?: string
+  customerName?: string,
+  globalDiscount: number = 0
 ) {
   const session = await getSession();
   const userId = session?.userId;
@@ -328,12 +335,18 @@ export async function holdOrder(
 
   const holdId = `HOLD-${Date.now().toString().slice(-6)}`;
 
+  // Store structured data to include globalDiscount
+  const orderData = {
+    cart,
+    globalDiscount
+  };
+
   const heldOrder = await prisma.heldOrder.create({
     data: {
       holdId,
       userId,
       posSessionId: posSession?.id,
-      items: cart as any,
+      items: orderData as any,
       totalAmount: new Decimal(totalAmount),
       note,
       customerId,

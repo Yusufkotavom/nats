@@ -37,6 +37,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
   const session = SuperJSON.deserialize<any>(serializedSession);
 
   const [cart, setCart] = useState<POSCartItem[]>([]);
+  const [globalDiscount, setGlobalDiscount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { toast } = useToast();
@@ -83,12 +84,24 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
     );
   };
 
+  const updateDiscount = (productId: string, discount: number) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.id === productId) {
+          return { ...item, discount };
+        }
+        return item;
+      })
+    );
+  };
+
   const removeFromCart = (productId: string) => {
     setCart((prev) => prev.filter((item) => item.id !== productId));
   };
 
   const clearCart = () => {
     setCart([]);
+    setGlobalDiscount(0);
   };
 
   const handleCloseSession = async () => {
@@ -103,7 +116,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
     }
   };
 
-  const handleResume = (items: POSCartItem[], customerName?: string, customerId?: string) => {
+  const handleResume = (items: POSCartItem[], customerName?: string, customerId?: string, resumedGlobalDiscount?: number) => {
     setCart(prev => {
       const newCart = [...prev];
       items.forEach(newItem => {
@@ -120,6 +133,9 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
       });
       return newCart;
     });
+    if (resumedGlobalDiscount !== undefined) {
+      setGlobalDiscount(resumedGlobalDiscount);
+    }
     toast({ title: 'Order items added to cart' });
   };
 
@@ -222,7 +238,10 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
         <div className="w-[400px] border-l bg-background shadow-xl">
           <CartView
             cart={cart}
+            globalDiscount={globalDiscount}
+            onUpdateGlobalDiscount={setGlobalDiscount}
             onUpdateQuantity={updateQuantity}
+            onUpdateDiscount={updateDiscount}
             onRemove={removeFromCart}
             onClear={clearCart}
             session={session}

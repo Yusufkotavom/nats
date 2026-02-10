@@ -14,7 +14,7 @@ import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { useToast } from '@/hooks/use-toast';
 
 interface HeldOrdersDialogProps {
-  onResume: (items: POSCartItem[], customerName?: string, customerId?: string) => void;
+  onResume: (items: POSCartItem[], customerName?: string, customerId?: string, globalDiscount?: number) => void;
   trigger?: React.ReactNode;
 }
 
@@ -40,8 +40,18 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
       return SuperJSON.deserialize<any>(res);
     },
     onSuccess: (data) => {
-      const items = data.items as POSCartItem[];
-      onResume(items, data.customerName, data.customerId);
+      let items: POSCartItem[] = [];
+      let globalDiscount = 0;
+
+      // Handle both array and object formats for backward compatibility
+      if (Array.isArray(data.items)) {
+        items = data.items as POSCartItem[];
+      } else if (data.items && typeof data.items === 'object') {
+        items = (data.items as any).cart || [];
+        globalDiscount = (data.items as any).globalDiscount || 0;
+      }
+
+      onResume(items, data.customerName, data.customerId, globalDiscount);
       setOpen(false);
       toast({ title: 'Order Resumed' });
       queryClient.invalidateQueries({ queryKey: ['heldOrders'] });
@@ -109,7 +119,7 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-lg">{formatCurrency(order.totalAmount)}</div>
-                      <div className="text-xs text-muted-foreground">{order.items.length} items</div>
+                      <div className="text-xs text-muted-foreground">{Array.isArray(order.items) ? order.items.length : (order.items as any).cart?.length || 0} items</div>
                     </div>
                   </div>
 
