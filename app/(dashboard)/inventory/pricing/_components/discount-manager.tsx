@@ -20,6 +20,7 @@ import { createAndAssignDiscount, removeDiscountFromProduct } from "../actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
+import { useQueryClient } from "@tanstack/react-query";
 
 type DiscountProps = PricingProductWithDetails["discounts"][number];
 
@@ -40,6 +41,7 @@ export function DiscountManager({
   const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
   const alert = useAlert();
+  const queryClient = useQueryClient();
 
   // Form state
   const [code, setCode] = useState("");
@@ -79,6 +81,7 @@ export function DiscountManager({
 
       if (result.success) {
         resetForm();
+        queryClient.invalidateQueries({ queryKey: ["pricing-products"] });
       } else {
         await alert({ title: "Error", description: result.error });
       }
@@ -100,6 +103,7 @@ export function DiscountManager({
     setIsLoading(true);
     try {
       await removeDiscountFromProduct({ productId, discountId });
+      queryClient.invalidateQueries({ queryKey: ["pricing-products"] });
     } catch (error) {
       console.error(error);
     } finally {

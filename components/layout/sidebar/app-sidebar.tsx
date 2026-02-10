@@ -108,27 +108,27 @@ const data = {
           url: "/inventory",
         },
         {
-          title: "Products",
+          title: "Products List",
           url: "/inventory/products",
         },
         {
-          title: "Pricing",
+          title: "Pricing and Discount",
           url: "/inventory/pricing",
         },
         {
-          title: "Locations",
+          title: "Locations/Warehouses",
           url: "/inventory/warehouses",
         },
         {
-          title: "Movements",
+          title: "Stock Movements",
           url: "/inventory/movements",
         },
         {
-          title: "Categories",
+          title: "Product Categories",
           url: "/inventory/categories",
         },
         {
-          title: "Units (UOM)",
+          title: "Products Units (UOM)",
           url: "/inventory/uom",
         },
       ],

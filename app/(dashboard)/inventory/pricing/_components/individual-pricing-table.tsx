@@ -24,6 +24,7 @@ import {
   PageListContent,
   PageListFilter,
 } from "@/components/layout/page/list-layout";
+import { SuperJSONResult } from "superjson";
 
 export function IndividualPricingTable() {
   const searchParams = useSearchParams();
@@ -65,7 +66,7 @@ export function IndividualPricingTable() {
       return {
         ...res,
         products: SuperJSON.deserialize<PricingProductWithDetails[]>(
-          res.products,
+          res.products as SuperJSONResult,
         ),
       };
     },
