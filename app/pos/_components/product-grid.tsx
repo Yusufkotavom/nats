@@ -29,7 +29,7 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
       {products.map((product) => (
         <Card
           key={product.id}
-          className="cursor-pointer overflow-hidden transition-all hover:shadow-md"
+          className="p-0 cursor-pointer overflow-hidden transition-all hover:shadow-md"
           onClick={() => onAddToCart(product)}
         >
           <div className="flex relative aspect-square w-full bg-muted">
