@@ -24,6 +24,9 @@ import { SuperJSON } from "@/lib/superjson";
 import { HeldOrdersDialog } from './held-orders-dialog';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
+import { useSession } from '@/components/session-provider';
+import Link from 'next/link';
+import { LayoutDashboard } from 'lucide-react';
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -42,6 +45,8 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const sessionData = useSession();
+  const isCashier = sessionData?.role === 'Cashier';
 
   const { data: heldOrders = [] } = useQuery({
     queryKey: ['heldOrders'],
@@ -180,6 +185,16 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
               Location: {session.warehouse.name}
             </Badge>
           )}
+
+          {!isCashier && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/accounting/dashboard">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">

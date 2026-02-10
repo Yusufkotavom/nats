@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
 import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/session-provider";
+import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +12,10 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await verifySession();
+
+  if (session.role === "Cashier") {
+    redirect("/pos");
+  }
 
   let userData = {
     name: "User",

@@ -536,6 +536,25 @@ async function main() {
     },
   });
 
+  const cashierRole = await prisma.role.upsert({
+    where: { name: "Cashier" },
+    update: {},
+    create: {
+      name: "Cashier",
+      description: "POS Cashier",
+      permissions: [
+        "pos.access",
+        "sales.create",
+        "sales.view",
+        "sales.payments",
+        "products.view",
+        "customers.create",
+        "customers.view",
+        "inventory.view"
+      ],
+    },
+  });
+
   const user = await prisma.user.upsert({
     where: { email: "admin@example.com" },
     update: {

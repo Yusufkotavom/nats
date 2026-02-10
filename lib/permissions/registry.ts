@@ -295,4 +295,11 @@ export const register: PermissionType[] = [
     description: "Allows deleting files",
     module: "files",
   },
+
+  // POS
+  {
+    name: "pos.access",
+    description: "Allows access to POS module",
+    module: "pos",
+  },
 ];

@@ -60,6 +60,11 @@ export async function login(prevState: unknown, formData: FormData) {
   }
 
   await createSession(user.id, user.role);
+
+  if (user.role.name === "Cashier") {
+    redirect("/pos");
+  }
+
   redirect("/");
 }
 
