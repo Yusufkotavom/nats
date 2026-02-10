@@ -31,6 +31,30 @@ export type POSCartItem = POSProduct & {
   discount: number;
 };
 
+export async function getPOSSessions() {
+  const sessions = await prisma.pOSSession.findMany({
+    orderBy: { startTime: 'desc' },
+    include: {
+      cashier: {
+        select: {
+          name: true,
+        },
+      },
+      warehouse: {
+        select: {
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          salesOrders: true,
+        },
+      },
+    },
+  });
+  return SuperJSON.serialize(sessions);
+}
+
 export async function getPOSProducts(query?: string, categoryId?: string) {
   const where: any = {
     isActive: true,

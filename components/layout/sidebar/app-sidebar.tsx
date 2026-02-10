@@ -173,6 +173,10 @@ const data = {
           title: "Terminal",
           url: "/pos",
         },
+        {
+          title: "Session History",
+          url: "/pos/sessions",
+        },
       ],
     },
     {
