@@ -49,6 +49,7 @@ export type ProductInput = {
   purchaseConversionFactor?: number | string;
   salesUnitId?: string | null;
   salesConversionFactor?: number | string;
+  taxRateId?: string | null;
 };
 
 export type ProductWithDetails = Prisma.ProductGetPayload<{

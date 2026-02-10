@@ -9,6 +9,7 @@ export interface SalesInvoiceItemInput {
   unitPrice: number;
   discount: number;
   tax: number;
+  taxRateId?: string;
   productId?: string;
   accountId?: string;
 }

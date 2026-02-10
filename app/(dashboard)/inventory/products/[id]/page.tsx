@@ -1,5 +1,6 @@
 import { getCategories, getProduct } from "../actions";
 import { getUnits } from "../../uom/actions";
+import { getTaxRates } from "@/app/(dashboard)/accounting/configuration/taxes/actions";
 import { ProductForm } from "../_components/product-form";
 import { notFound } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
@@ -12,10 +13,11 @@ export default async function ProductViewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [productData, categories, units] = await Promise.all([
+  const [productData, categories, units, taxRates] = await Promise.all([
     getProduct(id),
     getCategories(),
     getUnits(),
+    getTaxRates(),
   ]);
 
   if (!productData) {
@@ -33,6 +35,7 @@ export default async function ProductViewPage({
         product={product}
         categories={categories}
         units={units.data}
+        taxRates={taxRates}
         readonly={true}
       /></Protect>
   );

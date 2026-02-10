@@ -1,0 +1,21 @@
+
+model TaxRate {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  rate        Decimal  // Percentage, e.g. 10.0
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  products             Product[]
+  
+  // Transaction Items
+  purchaseInvoiceItems PurchaseInvoiceItem[]
+  salesInvoiceItems    SalesInvoiceItem[]
+  salesOrderItems      SalesOrderItem[]
+  purchaseOrderItems   PurchaseOrderItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

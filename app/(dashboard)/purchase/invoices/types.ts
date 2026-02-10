@@ -9,6 +9,7 @@ export interface PurchaseInvoiceItemInput {
   unitPrice: number;
   discount: number;
   tax: number;
+  taxRateId?: string;
   accountId?: string;
 }
 

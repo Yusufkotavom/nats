@@ -69,6 +69,14 @@ const data = {
           title: "Reports",
           url: "/accounting/reports",
         },
+        {
+          title: "Default Accounts",
+          url: "/accounting/configuration/default-accounts",
+        },
+        {
+          title: "Tax Rates",
+          url: "/accounting/configuration/taxes",
+        },
       ],
     },
     {

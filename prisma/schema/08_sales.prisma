@@ -72,6 +72,9 @@ model SalesOrderItem {
   totalPrice      Decimal
   
   taxRate      Decimal @default(0)
+  taxRateId    String?
+  taxRule      TaxRate? @relation(fields: [taxRateId], references: [id])
+
   discountRate Decimal @default(0)
 
   shipmentItems SalesShipmentItem[]
@@ -190,6 +193,10 @@ model SalesInvoiceItem {
   // Additional financials
   discount Decimal @default(0)
   tax      Decimal @default(0)
+  
+  taxRateId       String?
+  taxRule         TaxRate? @relation(fields: [taxRateId], references: [id])
+  taxRateSnapshot Decimal?
   
   productId String?
   product   Product? @relation(fields: [productId], references: [id])

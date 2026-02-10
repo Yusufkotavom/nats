@@ -13,4 +13,5 @@ export type ProductFormState = {
   salesUnitId: string;
   salesConversionFactor: string | number;
   image: string;
+  taxRateId?: string;
 };

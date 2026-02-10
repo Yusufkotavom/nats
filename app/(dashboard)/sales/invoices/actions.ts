@@ -159,14 +159,31 @@ export const createSalesInvoice = authorizedAction(
         };
       }
 
+      // Fetch tax rates
+      const taxRates = await prisma.taxRate.findMany();
+
       let itemsTotal = 0;
       let totalTaxCalculated = 0;
 
       const itemsToCreate = data.items.map((item) => {
         const subtotal = item.quantity * item.unitPrice;
         const discountAmount = subtotal * ((item.discount || 0) / 100);
-        const taxableAmount = subtotal - discountAmount;
-        const taxAmount = taxableAmount * ((item.tax || 0) / 100);
+        const taxableAmount = Math.max(0, subtotal - discountAmount);
+
+        let taxAmount = 0;
+        let taxRateSnapshot: number | undefined = undefined;
+
+        if (item.taxRateId) {
+          const rateObj = taxRates.find(r => r.id === item.taxRateId);
+          if (rateObj) {
+            taxAmount = taxableAmount * (Number(rateObj.rate) / 100);
+            taxRateSnapshot = Number(rateObj.rate);
+          }
+        } else {
+          taxAmount = item.tax || 0;
+        }
+
+        taxAmount = Number(taxAmount.toFixed(2));
         const total = taxableAmount + taxAmount;
 
         itemsTotal += total;
@@ -178,7 +195,9 @@ export const createSalesInvoice = authorizedAction(
           unitPrice: item.unitPrice,
           totalPrice: total,
           discount: item.discount,
-          tax: item.tax,
+          tax: taxAmount,
+          taxRateId: item.taxRateId,
+          taxRateSnapshot: taxRateSnapshot,
           productId: item.productId,
           accountId: item.accountId,
         };
@@ -260,14 +279,31 @@ export const updateSalesInvoice = authorizedAction(
         }
       }
 
+      // Fetch tax rates
+      const taxRates = await prisma.taxRate.findMany();
+
       let itemsTotal = 0;
       let totalTaxCalculated = 0;
 
       const itemsToCreate = data.items.map((item) => {
         const subtotal = item.quantity * item.unitPrice;
         const discountAmount = subtotal * ((item.discount || 0) / 100);
-        const taxableAmount = subtotal - discountAmount;
-        const taxAmount = taxableAmount * ((item.tax || 0) / 100);
+        const taxableAmount = Math.max(0, subtotal - discountAmount);
+
+        let taxAmount = 0;
+        let taxRateSnapshot: number | undefined = undefined;
+
+        if (item.taxRateId) {
+          const rateObj = taxRates.find(r => r.id === item.taxRateId);
+          if (rateObj) {
+            taxAmount = taxableAmount * (Number(rateObj.rate) / 100);
+            taxRateSnapshot = Number(rateObj.rate);
+          }
+        } else {
+          taxAmount = item.tax || 0;
+        }
+
+        taxAmount = Number(taxAmount.toFixed(2));
         const total = taxableAmount + taxAmount;
 
         itemsTotal += total;
@@ -279,7 +315,9 @@ export const updateSalesInvoice = authorizedAction(
           unitPrice: item.unitPrice,
           totalPrice: total,
           discount: item.discount,
-          tax: item.tax,
+          tax: taxAmount,
+          taxRateId: item.taxRateId,
+          taxRateSnapshot: taxRateSnapshot,
           productId: item.productId,
           accountId: item.accountId,
         };
@@ -408,8 +446,7 @@ export const postSalesInvoice = authorizedAction(
         const subtotal = Number(item.unitPrice) * item.quantity;
         const discountAmount = subtotal * (Number(item.discount || 0) / 100);
         const taxableAmount = subtotal - discountAmount;
-        const taxRate = Number(item.tax || 0) / 100;
-        const taxAmount = taxableAmount * taxRate;
+        const taxAmount = Number(item.tax || 0);
 
         // Credit Revenue (Net)
         if (taxableAmount > 0) {

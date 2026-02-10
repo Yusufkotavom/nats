@@ -712,6 +712,28 @@ async function main() {
     });
   }
 
+  // SEED TAX RATES
+  console.log("Seeding Tax Rates...");
+  const taxRates = [
+    { code: "VAT-S", name: "Standard VAT", rate: new Decimal(10.0), description: "Standard Rate 10%" },
+    { code: "VAT-R", name: "Reduced VAT", rate: new Decimal(5.0), description: "Reduced Rate 5%" },
+    { code: "VAT-Z", name: "Zero Rated", rate: new Decimal(0.0), description: "Zero Rated 0%" },
+    { code: "EXEMPT", name: "Exempt", rate: new Decimal(0.0), description: "Tax Exempt" },
+  ];
+
+  for (const tax of taxRates) {
+    await prisma.taxRate.upsert({
+      where: { code: tax.code },
+      update: {},
+      create: {
+        code: tax.code,
+        name: tax.name,
+        rate: tax.rate,
+        description: tax.description,
+      },
+    });
+  }
+
   // Helper to get ID
   const getCategory = async (name: string) =>
     prisma.category.findUnique({ where: { name } });

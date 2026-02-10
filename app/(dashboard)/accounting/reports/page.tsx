@@ -12,6 +12,7 @@ import {
   Landmark,
   ArrowLeftRight,
   TrendingUp,
+  Percent,
 } from "lucide-react";
 
 export default function ReportsPage() {
@@ -43,6 +44,13 @@ export default function ReportsPage() {
         "See how your equity has changed over a period due to income and distributions.",
       href: "/accounting/reports/equity",
       icon: BarChart3,
+    },
+    {
+      title: "Tax Summary",
+      description:
+        "View comprehensive VAT/Tax input and output summary and net liability.",
+      href: "/accounting/reports/tax-summary",
+      icon: Percent,
     },
   ];
 

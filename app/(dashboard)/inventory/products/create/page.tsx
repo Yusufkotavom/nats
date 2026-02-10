@@ -1,12 +1,14 @@
 import { getCategories } from "../actions";
 import { getUnits } from "../../uom/actions";
+import { getTaxRates } from "@/app/(dashboard)/accounting/configuration/taxes/actions";
 import { ProductForm } from "../_components/product-form";
 import { Protect } from "@/components/ui/protect";
 
 export default async function CreateProductPage() {
-  const [categories, units] = await Promise.all([
+  const [categories, units, taxRates] = await Promise.all([
     getCategories(),
     getUnits(),
+    getTaxRates(),
   ]);
 
   return (
@@ -17,6 +19,7 @@ export default async function CreateProductPage() {
       <ProductForm
         categories={categories}
         units={units.data}
+        taxRates={taxRates}
       />
     </Protect>
   );

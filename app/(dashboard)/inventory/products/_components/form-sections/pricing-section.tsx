@@ -3,7 +3,7 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { SelectItem } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Unit } from "@/prisma/generated/prisma/browser";
+import { Unit, TaxRate } from "@/prisma/generated/prisma/browser";
 import { ProductFormState } from "../form-types";
 
 interface PricingSectionProps {
@@ -13,6 +13,7 @@ interface PricingSectionProps {
     value: string | number | boolean | null
   ) => void;
   units: Unit[];
+  taxRates: TaxRate[];
   readonly?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function PricingSection({
   formData,
   handleInputChange,
   units,
+  taxRates,
   readonly = false,
 }: PricingSectionProps) {
   return (
@@ -159,6 +161,25 @@ export function PricingSection({
           disabled={readonly}
           containerClassName="grid gap-2"
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <CustomSelect
+          label="Default Tax Rate"
+          name="taxRateId"
+          value={formData.taxRateId || "none"}
+          onValueChange={(val) => handleInputChange("taxRateId", val === "none" ? null : val)}
+          disabled={readonly}
+          placeholder="Select tax rate"
+          containerClassName="grid gap-2"
+        >
+          <SelectItem value="none">None</SelectItem>
+          {taxRates?.map((r) => (
+            <SelectItem key={r.id} value={r.id}>
+              {r.name} ({Number(r.rate)}%)
+            </SelectItem>
+          ))}
+        </CustomSelect>
       </div>
     </div>
   );

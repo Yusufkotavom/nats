@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useState } from "react";
 import { createProduct, updateProduct } from "../actions";
 import { ProductFormData } from "../../types";
-import { Category, Unit } from "@/prisma/generated/prisma/browser";
+import { Category, Unit, TaxRate } from "@/prisma/generated/prisma/browser";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { PriceHistory } from "./price-history";
@@ -21,6 +21,7 @@ interface ProductFormProps {
   product?: ProductFormData | any;
   categories: Category[];
   units: Unit[];
+  taxRates: TaxRate[];
   readonly?: boolean;
 }
 
@@ -28,6 +29,7 @@ export function ProductForm({
   product: initialProduct,
   categories,
   units,
+  taxRates,
   readonly = false,
 }: ProductFormProps) {
   const product =
@@ -57,6 +59,7 @@ export function ProductForm({
     salesUnitId: product?.salesUnitId || "",
     salesConversionFactor: product?.salesConversionFactor?.toString() || 1,
     image: product?.image || "",
+    taxRateId: product?.taxRateId || "",
   });
 
   const handleInputChange = (
@@ -116,6 +119,7 @@ export function ProductForm({
       purchaseConversionFactor: purchaseFactor?.toString() || 1,
       salesUnitId: formData.salesUnitId || null,
       salesConversionFactor: salesFactor?.toString() || 1,
+      taxRateId: formData.taxRateId || null,
     };
 
     try {
@@ -182,6 +186,7 @@ export function ProductForm({
                   formData={formData}
                   handleInputChange={handleInputChange}
                   units={units}
+                  taxRates={taxRates}
                   readonly={readonly}
                 />
               </TabsContent>

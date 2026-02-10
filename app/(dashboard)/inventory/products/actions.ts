@@ -149,6 +149,7 @@ export const createProduct = authorizedAction(
             purchaseConversionFactor: data.purchaseConversionFactor,
             salesUnitId: data.salesUnitId,
             salesConversionFactor: data.salesConversionFactor,
+            taxRateId: data.taxRateId,
           },
         });
 
@@ -211,6 +212,7 @@ export const updateProduct = authorizedAction(
             purchaseConversionFactor: data.purchaseConversionFactor,
             salesUnitId: data.salesUnitId,
             salesConversionFactor: data.salesConversionFactor,
+            taxRateId: data.taxRateId,
           },
         });
 

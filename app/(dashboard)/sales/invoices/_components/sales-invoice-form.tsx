@@ -38,6 +38,7 @@ import {
   getSalesOrder,
   postSalesInvoice,
 } from "../actions";
+import { TaxRate } from "@/prisma/generated/prisma/client";
 import { SalesInvoiceWithDetails, SalesInvoiceInput } from "../types";
 import { SalesOrderWithDetails } from "../../orders/types";
 import { useFormatDate } from "@/hooks";
@@ -55,6 +56,7 @@ interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
   customers: { id: string; name: string }[];
   salesOrders: SuperJSONResult;
+  taxRates: TaxRate[];
   readonly?: boolean;
 }
 
@@ -62,6 +64,7 @@ export function SalesInvoiceForm({
   invoice: serializedInvoice,
   customers,
   salesOrders: serializedSalesOrders,
+  taxRates,
   readonly = false,
 }: SalesInvoiceFormProps) {
   const invoice = serializedInvoice
@@ -113,6 +116,7 @@ export function SalesInvoiceForm({
         unitPrice: Number(item.unitPrice),
         discount: Number(item.discount) || 0,
         tax: Number(item.tax) || 0,
+        taxRateId: item.taxRateId || undefined,
         productId: item.productId || undefined,
         accountId: item.accountId || undefined,
       })) || [],
@@ -160,6 +164,7 @@ export function SalesInvoiceForm({
             unitPrice: Number(item.unitPrice), // Assuming unitPrice exists on SO Item
             discount: 0,
             tax: 0,
+            taxRateId: (item as any).taxRateId || taxRates.find(r => r.code === "VAT-S")?.id,
           }));
 
           setFormData((prev) => ({ ...prev, items: newItems }));
@@ -182,6 +187,7 @@ export function SalesInvoiceForm({
           unitPrice: 0,
           discount: 0,
           tax: 0,
+          taxRateId: taxRates.find(r => r.code === "VAT-S")?.id,
         },
       ],
     }));
@@ -210,8 +216,18 @@ export function SalesInvoiceForm({
     const unitPrice = item.unitPrice || 0;
     const subtotal = quantity * unitPrice;
     const discountAmount = subtotal * ((item.discount || 0) / 100);
-    const taxableAmount = subtotal - discountAmount;
-    const taxAmount = taxableAmount * ((item.tax || 0) / 100);
+    const taxableAmount = Math.max(0, subtotal - discountAmount);
+
+    let taxAmount = 0;
+    if (item.taxRateId) {
+      const rateObj = taxRates.find(r => r.id === item.taxRateId);
+      if (rateObj) {
+        taxAmount = taxableAmount * (Number(rateObj.rate) / 100);
+      }
+    } else {
+      taxAmount = item.tax || 0;
+    }
+
     const total = taxableAmount + taxAmount;
     return { subtotal, discountAmount, taxableAmount, taxAmount, total };
   };
@@ -534,7 +550,7 @@ export function SalesInvoiceForm({
                         <TableHead className="w-[120px]">
                           Discount (%)
                         </TableHead>
-                        <TableHead className="w-[120px]">Tax (%)</TableHead>
+                        <TableHead className="w-[180px]">Tax Rate</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
                         {!readonly && (
                           <TableHead className="w-[50px]"></TableHead>
@@ -606,20 +622,42 @@ export function SalesInvoiceForm({
                               />
                             </TableCell>
                             <TableCell>
-                              <CustomInput
-                                type="number"
-                                min="0"
-                                max="100"
-                                value={item.tax}
+                              <select
+                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={item.taxRateId || ""}
                                 onChange={(e) =>
                                   handleItemChange(
                                     index,
-                                    "tax",
-                                    Number(e.target.value),
+                                    "taxRateId",
+                                    e.target.value === "" ? undefined : e.target.value
                                   )
                                 }
                                 disabled={readonly}
-                              />
+                              >
+                                <option value="">Manual</option>
+                                {taxRates.map((rate) => (
+                                  <option key={rate.id} value={rate.id}>
+                                    {rate.name} ({Number(rate.rate)}%)
+                                  </option>
+                                ))}
+                              </select>
+                              {!item.taxRateId && (
+                                <CustomInput
+                                  type="number"
+                                  min="0"
+                                  value={item.tax}
+                                  onChange={(e) =>
+                                    handleItemChange(
+                                      index,
+                                      "tax",
+                                      Number(e.target.value),
+                                    )
+                                  }
+                                  disabled={readonly}
+                                  className="mt-1"
+                                  placeholder="Amount"
+                                />
+                              )}
                             </TableCell>
                             <TableCell>
                               <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
