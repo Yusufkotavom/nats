@@ -36,6 +36,7 @@ import {
 } from "@tanstack/react-query";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
 type WarehouseWithInventory = Warehouse & {
   inventory: (Inventory & {
@@ -66,7 +67,7 @@ export default function WarehousesPage() {
       return {
         ...res,
         warehouses: SuperJSON.deserialize<WarehouseWithInventory[]>(
-          res.warehouses,
+          res.warehouses as SuperJSONResult,
         ),
       };
     },

@@ -27,6 +27,7 @@ import {
   Product,
   Warehouse,
 } from "@/prisma/generated/prisma/browser";
+import { SuperJSONResult } from "superjson";
 
 type InventoryWithRelations = Inventory & {
   product: Product;
@@ -52,10 +53,10 @@ export default function InventoryDashboardPage() {
       return {
         ...data,
         lowStockItems: SuperJSON.deserialize<InventoryWithRelations[]>(
-          data.lowStockItems,
+          data.lowStockItems as SuperJSONResult,
         ),
         recentMovements: SuperJSON.deserialize<MovementDetailWithRelations[]>(
-          data.recentMovements,
+          data.recentMovements as SuperJSONResult,
         ),
       };
     },

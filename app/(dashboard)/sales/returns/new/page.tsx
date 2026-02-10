@@ -6,6 +6,8 @@ import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { SalesReturnForm } from "../_components/sales-return-form";
 import { Metadata } from "next";
+import SuperJSON from "superjson";
+import { SuperJSONResult } from "superjson";
 
 export const metadata: Metadata = {
   title: "New Sales Return | Pasak",
@@ -22,8 +24,12 @@ export default async function NewSalesReturnPage() {
   return (
     <SalesReturnForm
       customers={customers.data}
-      salesOrders={salesOrders}
-      salesInvoices={salesInvoices}
+      salesOrders={SuperJSON.deserialize(
+        salesOrders as SuperJSONResult,
+      )}
+      salesInvoices={SuperJSON.deserialize(
+        salesInvoices as SuperJSONResult,
+      )}
     />
   );
 }
