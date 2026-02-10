@@ -116,8 +116,6 @@ export class InventoryService {
       },
     });
 
-    console.log({ inventory })
-
     let currentQty = inventory?.quantity || 0;
     let currentCost = inventory?.unitCost || new Decimal(0);
 

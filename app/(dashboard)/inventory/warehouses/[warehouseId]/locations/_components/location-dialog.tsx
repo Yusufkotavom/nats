@@ -73,19 +73,19 @@ export function LocationDialog({
         {trigger || (
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Add Location
+            Add Storage Bin
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {location ? "Edit Location" : "Add Location"}
+            {location ? "Edit Storage Bin" : "Add Storage Bin"}
           </DialogTitle>
           <DialogDescription>
             {location
-              ? "Make changes to the location here."
-              : "Add a new location to your warehouse."}
+              ? "Make changes to the storage bin here."
+              : "Add a new storage bin to your location."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>

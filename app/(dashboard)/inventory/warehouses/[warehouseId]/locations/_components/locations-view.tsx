@@ -35,10 +35,10 @@ export function LocationsView({ warehouseId }: LocationsViewProps) {
         </Button>
         <div className="flex-1">
           <h2 className="text-2xl font-bold tracking-tight">
-            {warehouse?.name} - Locations
+            {warehouse?.name} - Storage Bins
           </h2>
           <p className="text-sm text-muted-foreground">
-            Manage locations/bins for this warehouse
+            Manage storage bins for this location
           </p>
         </div>
         <Protect permission="warehouses.edit">

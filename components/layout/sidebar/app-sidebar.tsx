@@ -108,7 +108,7 @@ const data = {
           url: "/inventory/pricing",
         },
         {
-          title: "Warehouses",
+          title: "Locations",
           url: "/inventory/warehouses",
         },
         {

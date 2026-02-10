@@ -103,7 +103,7 @@ export default function WarehousesPage() {
       className: "font-medium",
     },
     {
-      header: "Location",
+      header: "Address",
       accessorKey: "location",
       cell: (item) => item.location || "-",
     },
@@ -168,11 +168,11 @@ export default function WarehousesPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Warehouses" />
+        <PageListTitle title="Locations" />
         <PageListActions>
           <Protect permission="warehouses.create">
             <Button onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" /> Add Warehouse
+              <Plus className="mr-2 h-4 w-4" /> Add Location
             </Button>
           </Protect>
         </PageListActions>
@@ -183,7 +183,7 @@ export default function WarehousesPage() {
           data={data?.warehouses || []}
           columns={columns}
           isLoading={isLoading}
-          emptyMessage="No warehouses found."
+          emptyMessage="No locations found."
           pagination={{
             totalEntries: data?.total || 0,
             pageSize,

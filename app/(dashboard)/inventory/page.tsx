@@ -146,7 +146,7 @@ export default function InventoryDashboardPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
-                  <TableHead>Warehouse</TableHead>
+                  <TableHead>Location</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
                   <TableHead className="text-right">Reorder Point</TableHead>
                 </TableRow>

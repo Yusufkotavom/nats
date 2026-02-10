@@ -217,7 +217,7 @@ export default function MovementDetailsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <span className="text-sm font-medium text-muted-foreground">
-                From Warehouse
+                From Location
               </span>
               <div className="flex items-center rounded-md border p-3">
                 {batch.fromWarehouse ? (
@@ -239,7 +239,7 @@ export default function MovementDetailsPage() {
 
             <div className="space-y-2">
               <span className="text-sm font-medium text-muted-foreground">
-                To Warehouse
+                To Location
               </span>
               <div className="flex items-center rounded-md border p-3">
                 {batch.toWarehouse ? (

@@ -161,7 +161,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
           </div>
           {session.warehouse && (
             <Badge variant="outline" className="text-sm font-normal">
-              Warehouse: {session.warehouse.name}
+              Location: {session.warehouse.name}
             </Badge>
           )}
           <DropdownMenu>

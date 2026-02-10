@@ -166,7 +166,7 @@ export function BatchMovementForm({
 
     // Validation
     if ((type === "OUT" || type === "TRANSFER") && !fromWarehouseId) {
-      setError("Source warehouse is required for OUT and TRANSFER");
+      setError("Source location is required for OUT and TRANSFER");
       return;
     }
     if (
@@ -174,12 +174,12 @@ export function BatchMovementForm({
       !toWarehouseId
     ) {
       setError(
-        "Destination warehouse is required for IN, TRANSFER and ADJUSTMENT"
+        "Destination location is required for IN, TRANSFER and ADJUSTMENT"
       );
       return;
     }
     if (type === "TRANSFER" && fromWarehouseId === toWarehouseId) {
-      setError("Source and destination warehouses cannot be the same");
+      setError("Source and destination locations cannot be the same");
       return;
     }
 
@@ -251,10 +251,10 @@ export function BatchMovementForm({
           <div className="grid grid-cols-2 gap-4">
             {(type === "OUT" || type === "TRANSFER") && (
               <CustomSelect
-                label="From Warehouse"
+                label="From Location"
                 value={fromWarehouseId}
                 onValueChange={setFromWarehouseId}
-                placeholder="Select source warehouse"
+                placeholder="Select source location"
                 containerClassName="space-y-2"
               >
                 {warehouses?.map((w) => (
@@ -268,20 +268,20 @@ export function BatchMovementForm({
             {(type === "IN" ||
               type === "TRANSFER" ||
               type === "ADJUSTMENT") && (
-              <CustomSelect
-                label={type === "TRANSFER" ? "To Warehouse" : "Warehouse"}
-                value={toWarehouseId}
-                onValueChange={setToWarehouseId}
-                placeholder="Select destination warehouse"
-                containerClassName="space-y-2"
-              >
-                {warehouses?.map((w) => (
-                  <SelectItem key={w.id} value={w.id}>
-                    {w.name}
-                  </SelectItem>
-                ))}
-              </CustomSelect>
-            )}
+                <CustomSelect
+                  label={type === "TRANSFER" ? "To Location" : "Location"}
+                  value={toWarehouseId}
+                  onValueChange={setToWarehouseId}
+                  placeholder="Select destination location"
+                  containerClassName="space-y-2"
+                >
+                  {warehouses?.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.name}
+                    </SelectItem>
+                  ))}
+                </CustomSelect>
+              )}
           </div>
 
           <CustomTextarea

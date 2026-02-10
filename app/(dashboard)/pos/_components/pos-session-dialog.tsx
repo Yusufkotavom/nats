@@ -94,20 +94,20 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
         <DialogHeader>
           <DialogTitle>Start POS Session</DialogTitle>
           <DialogDescription>
-            Select a warehouse and enter the opening cash amount.
+            Select a location and enter the opening cash amount.
           </DialogDescription>
         </DialogHeader>
         <form action={handleOpenSession}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="warehouse" className="text-right">
-                Warehouse
+                Location
               </Label>
               <div className="col-span-3">
                 <input type="hidden" name="warehouseId" value={warehouseId} />
                 <Select onValueChange={setWarehouseId} value={warehouseId}>
                   <SelectTrigger id="warehouse">
-                    <SelectValue placeholder="Select warehouse" />
+                    <SelectValue placeholder="Select location" />
                   </SelectTrigger>
                   <SelectContent>
                     {warehouses.map((w) => (

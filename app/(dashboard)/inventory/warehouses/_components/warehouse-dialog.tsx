@@ -71,12 +71,12 @@ export function WarehouseDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Edit Warehouse" : "Add Warehouse"}
+            {isEditing ? "Edit Location" : "Add Location"}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Make changes to the warehouse here."
-              : "Add a new warehouse to your network."}
+              ? "Make changes to the location here."
+              : "Add a new location to your network."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -94,7 +94,7 @@ export function WarehouseDialog({
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="location" className="text-right">
-              Location
+              Address
             </Label>
             <CustomInput
               id="location"
