@@ -1,6 +1,7 @@
 import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/session-provider";
+import { POSClickSound } from "./_components/pos-click-sound";
 
 export default async function POSLayout({
   children,
@@ -34,6 +35,7 @@ export default async function POSLayout({
           : null,
       }}
     >
+      <POSClickSound />
       <div className="min-h-screen bg-background">
         {children}
       </div>
