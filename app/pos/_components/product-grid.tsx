@@ -5,8 +5,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus } from 'lucide-react';
-import Image from 'next/image';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
+import { ProductImage } from './product-image';
 
 interface ProductGridProps {
   products: POSProduct[];
@@ -33,18 +33,12 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
           onClick={() => onAddToCart(product)}
         >
           <div className="flex relative aspect-square w-full bg-muted">
-            {product.image ? (
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                className="flex-1 object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-4xl font-bold text-muted-foreground/20">
-                {product.name.charAt(0)}
-              </div>
-            )}
+            <ProductImage
+              src={product.image}
+              alt={product.name}
+              category={product.categoryName}
+              productId={product.id}
+            />
             <div className="absolute right-2 top-2">
               <Badge variant={product.stock > 0 ? "secondary" : "destructive"}>
                 {product.stock} in stock

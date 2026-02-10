@@ -12,6 +12,7 @@ import { DiscountDialog } from './discount-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { ProductImage } from './product-image';
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -163,9 +164,17 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
           <div className="space-y-4">
             {cart.map((item) => (
               <div key={item.id} className="relative flex flex-col gap-2 rounded-lg border p-3 shadow-sm transition-all hover:bg-accent/5">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border">
+                    <ProductImage
+                      src={item.image}
+                      alt={item.name}
+                      category={item.categoryName}
+                      productId={item.id}
+                    />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-medium">{item.name}</h4>
+                    <h4 className="font-medium line-clamp-2">{item.name}</h4>
                     <p className="text-xs text-muted-foreground">{item.sku}</p>
                     <div className="mt-1 font-bold text-primary">
                       {formatCurrency(item.price)}
@@ -301,8 +310,8 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         productId={selectedItemId}
         initialValue={getActiveDiscountValue()}
         initialType="FIXED" // Default to fixed, or we could track type if needed
-        maxAmount={selectedItemId ? 
-          (cart.find(c => c.id === selectedItemId)?.price || 0) * (cart.find(c => c.id === selectedItemId)?.quantity || 0) 
+        maxAmount={selectedItemId ?
+          (cart.find(c => c.id === selectedItemId)?.price || 0) * (cart.find(c => c.id === selectedItemId)?.quantity || 0)
           : subtotal - totalItemDiscounts
         }
         availableDiscounts={selectedItemId ? cart.find(c => c.id === selectedItemId)?.availableDiscounts : []}
