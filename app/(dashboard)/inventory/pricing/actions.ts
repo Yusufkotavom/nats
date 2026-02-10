@@ -67,7 +67,6 @@ export async function getPricingProducts(
           select: { name: true },
         },
         discounts: {
-          where: { isActive: true },
           orderBy: { priority: "desc" },
         },
       },
@@ -137,7 +136,21 @@ export const createAndAssignDiscount = authorizedAction(
       });
 
       if (existingDiscount) {
-        // Connect existing
+        // Update existing discount and connect
+        const updatedDiscount = await prisma.discount.update({
+          where: { id: existingDiscount.id },
+          data: {
+            description: data.description,
+            type: data.type,
+            value: data.value,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            minQuantity: data.minQuantity,
+            priority: data.priority || 0,
+            isActive: true, // Reactivate if it was inactive
+          },
+        });
+
         await prisma.product.update({
           where: { id: data.productId },
           data: {
@@ -149,8 +162,8 @@ export const createAndAssignDiscount = authorizedAction(
         return {
           success: true,
           discount: {
-            ...existingDiscount,
-            value: existingDiscount.value.toNumber(),
+            ...updatedDiscount,
+            value: updatedDiscount.value.toNumber(),
           },
         };
       }
@@ -181,6 +194,23 @@ export const createAndAssignDiscount = authorizedAction(
     } catch (error) {
       console.error("Create discount error:", error);
       return { success: false, error: "Failed to create/assign discount" };
+    }
+  },
+);
+
+export const toggleDiscountStatus = authorizedAction(
+  "products.edit",
+  async (data: { discountId: string; isActive: boolean }) => {
+    try {
+      await prisma.discount.update({
+        where: { id: data.discountId },
+        data: { isActive: data.isActive },
+      });
+      revalidatePath("/inventory/pricing");
+      return { success: true };
+    } catch (error) {
+      console.error("Toggle discount status error:", error);
+      return { success: false, error: "Failed to update discount status" };
     }
   },
 );

@@ -13,10 +13,10 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, Tag } from "lucide-react";
+import { Loader2, Plus, Tag, Eye, EyeOff } from "lucide-react";
 import { DiscountType } from "@/prisma/generated/prisma/client";
 import { PricingProductWithDetails } from "../types";
-import { createAndAssignDiscount, removeDiscountFromProduct } from "../actions";
+import { createAndAssignDiscount, toggleDiscountStatus } from "../actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
@@ -92,17 +92,10 @@ export function DiscountManager({
     }
   };
 
-  const handleRemove = async (discountId: string) => {
-    if (
-      !(await confirm({
-        title: "Remove Discount",
-        description: "Are you sure you want to remove this discount?",
-      }))
-    )
-      return;
+  const handleToggleStatus = async (discountId: string, isActive: boolean) => {
     setIsLoading(true);
     try {
-      await removeDiscountFromProduct({ productId, discountId });
+      await toggleDiscountStatus({ discountId, isActive: !isActive });
       queryClient.invalidateQueries({ queryKey: ["pricing-products"] });
     } catch (error) {
       console.error(error);
@@ -141,11 +134,20 @@ export function DiscountManager({
                 {discounts.map((discount) => (
                   <div
                     key={discount.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className={`flex items-center justify-between p-4 border rounded-lg ${!discount.isActive ? "bg-muted/50 opacity-75" : ""
+                      }`}
                   >
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{discount.code}</span>
+                        {!discount.isActive && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-gray-200 text-gray-600"
+                          >
+                            Inactive
+                          </Badge>
+                        )}
                         <Badge variant="outline">{discount.type}</Badge>
                         <Badge>
                           {discount.type === "PERCENTAGE"
@@ -167,10 +169,17 @@ export function DiscountManager({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleRemove(discount.id)}
+                      onClick={() =>
+                        handleToggleStatus(discount.id, discount.isActive)
+                      }
                       disabled={isLoading}
+                      title={discount.isActive ? "Deactivate" : "Activate"}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      {discount.isActive ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </Button>
                   </div>
                 ))}
