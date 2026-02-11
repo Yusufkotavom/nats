@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { POSProduct, POSCartItem, closePOSSession, getHeldOrders } from '../actions';
+import { POSProduct, POSCartItem, closePOSSession, getHeldOrders, holdOrder } from '../actions';
 import { Button } from '@/components/ui/button';
 import { LogOut, History, Search, RotateCcw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import { ProductGrid } from './product-grid';
 import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
 import { HeldOrdersDialog } from './held-orders-dialog';
+import { POSHistoryDialog } from './pos-history-dialog';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/session-provider';
@@ -43,6 +44,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
   const [globalDiscount, setGlobalDiscount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const sessionData = useSession();
@@ -121,6 +123,29 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
     }
   };
 
+  const handleViewHistoryItem = async (invoiceId: string) => {
+    if (cart.length > 0) {
+      try {
+        await holdOrder(
+          cart,
+          cart.reduce((acc, item) => acc + item.price * item.quantity, 0) - globalDiscount, // Approx total
+          "Auto-held for history view",
+          undefined,
+          "Walk-in Customer",
+          globalDiscount
+        );
+        toast({ title: 'Current order auto-held' });
+        setCart([]);
+        setGlobalDiscount(0);
+      } catch (e) {
+        console.error(e);
+        toast({ variant: 'destructive', title: 'Failed to auto-hold order' });
+        return; // Don't navigate if hold fails
+      }
+    }
+    router.push(`/pos/invoices/${invoiceId}`);
+  };
+
   const handleResume = (items: POSCartItem[], customerName?: string, customerId?: string, resumedGlobalDiscount?: number) => {
     setCart(prev => {
       const newCart = [...prev];
@@ -176,6 +201,11 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
               </Button>
             }
           />
+
+          <Button variant="outline" size="sm" className="mr-2" onClick={() => setHistoryOpen(true)}>
+            <History className="mr-2 h-4 w-4" />
+            History
+          </Button>
 
           <div className="text-sm text-muted-foreground">
             {session.cashier?.name && (
@@ -268,6 +298,13 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
           />
         </div>
       </div>
+
+      <POSHistoryDialog
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        sessionId={session.id}
+        onRowClick={handleViewHistoryItem}
+      />
     </div>
   );
 }

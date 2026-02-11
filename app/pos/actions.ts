@@ -215,6 +215,26 @@ export async function closePOSSession(sessionId: string, actualCash: number, not
   revalidatePath('/pos');
 }
 
+export async function getPOSSessionTransactions(sessionId: string) {
+  const transactions = await prisma.salesInvoice.findMany({
+    where: { posSessionId: sessionId },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      contact: {
+        select: {
+          name: true,
+        },
+      },
+      items: {
+        include: {
+          product: true,
+        },
+      },
+    },
+  });
+  return SuperJSON.serialize(transactions);
+}
+
 export async function processPOSTransaction(
   sessionId: string,
   items: { productId: string; quantity: number; price: number; discount: number }[],
@@ -575,6 +595,40 @@ export async function getHeldOrders() {
   });
 
   return SuperJSON.serialize(heldOrders);
+}
+
+export async function getPOSInvoice(id: string) {
+  const session = await getSession();
+  if (!session?.userId) throw new Error('Unauthorized');
+
+  const invoice = await prisma.salesInvoice.findUnique({
+    where: { id },
+    include: {
+      contact: true,
+      items: {
+        include: {
+          product: true,
+        },
+      },
+      payments: {
+        include: {
+          cashAccount: true,
+        },
+      },
+      salesOrder: true,
+      posSession: {
+        include: {
+          cashier: {
+            select: { name: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!invoice) return null;
+
+  return SuperJSON.serialize(invoice);
 }
 
 export async function resumeOrder(heldOrderId: string) {
