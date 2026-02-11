@@ -35,6 +35,7 @@ import { useFormatDate } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { SuperJSONResult } from "superjson";
 
 export default function SalesReturnsPage() {
   const searchParams = useSearchParams();
@@ -51,7 +52,7 @@ export default function SalesReturnsPage() {
       const result = await getSalesReturns(page, 10, search);
       return {
         returns: SuperJSON.deserialize<SalesReturnWithDetails[]>(
-          result.returns,
+          result.returns as SuperJSONResult,
         ),
         total: result.total,
         totalPages: result.totalPages,
