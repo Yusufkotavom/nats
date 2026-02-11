@@ -1629,6 +1629,57 @@ async function main() {
     },
   });
 
+  await prisma.reportTemplate.upsert({
+    where: { code: "PURCHASE_ORDER" },
+    update: {},
+    create: {
+      code: "PURCHASE_ORDER",
+      name: "Purchase Order (Default)",
+      module: "PURCHASE",
+      description: "Standard Purchase Order document",
+      isSystem: true,
+      config: {
+        pageSize: "A4",
+        orientation: "portrait",
+        showLogo: true,
+      },
+    },
+  });
+
+  await prisma.reportTemplate.upsert({
+    where: { code: "SALES_INVOICE" },
+    update: {},
+    create: {
+      code: "SALES_INVOICE",
+      name: "Sales Invoice (Default)",
+      module: "SALES",
+      description: "Standard Sales Invoice document",
+      isSystem: true,
+      config: {
+        pageSize: "A4",
+        orientation: "portrait",
+        showLogo: true,
+      },
+    },
+  });
+
+  await prisma.reportTemplate.upsert({
+    where: { code: "JOURNAL_ENTRY" },
+    update: {},
+    create: {
+      code: "JOURNAL_ENTRY",
+      name: "Journal Entry (Default)",
+      module: "ACCOUNTING",
+      description: "Standard Journal Entry document",
+      isSystem: true,
+      config: {
+        pageSize: "A4",
+        orientation: "portrait",
+        showLogo: true,
+      },
+    },
+  });
+
   console.log("Seeding completed.");
 }
 

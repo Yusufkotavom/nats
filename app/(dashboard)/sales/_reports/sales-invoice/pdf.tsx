@@ -1,0 +1,113 @@
+import React from 'react';
+import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
+import { ReportContext } from '@/lib/reporting/types';
+import { SalesInvoiceReportData } from './data';
+import { format } from 'date-fns';
+
+const styles = StyleSheet.create({
+  page: { flexDirection: 'column', backgroundColor: '#FFFFFF', padding: 30, fontSize: 10, fontFamily: 'Helvetica' },
+  header: { marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#112233', paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between' },
+  headerLeft: { flexDirection: 'column' },
+  headerRight: { flexDirection: 'column', alignItems: 'flex-end' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#112233', marginBottom: 5 },
+  subtitle: { fontSize: 12, color: '#666' },
+  companyName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  companyInfo: { fontSize: 10, color: '#444', marginBottom: 2 },
+  row: { flexDirection: 'row', marginBottom: 20 },
+  column: { flexDirection: 'column', flexGrow: 1 },
+  label: { fontSize: 8, color: '#888', marginBottom: 2, textTransform: 'uppercase' },
+  value: { fontSize: 10, color: '#000', marginBottom: 8 },
+  table: { width: '100%', borderWidth: 1, borderColor: '#eee', marginBottom: 20 },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#f8f9fa', borderBottomWidth: 1, borderBottomColor: '#eee', padding: 8 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee', padding: 8 },
+  colDesc: { width: '40%' },
+  colQty: { width: '15%', textAlign: 'right' },
+  colPrice: { width: '20%', textAlign: 'right' },
+  colTotal: { width: '25%', textAlign: 'right' },
+  totalSection: { flexDirection: 'column', alignItems: 'flex-end', marginTop: 10 },
+  totalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 5, width: '50%' },
+  totalLabel: { width: '50%', textAlign: 'right', paddingRight: 10, color: '#666' },
+  totalValue: { width: '50%', textAlign: 'right', fontWeight: 'bold' },
+  footer: { position: 'absolute', bottom: 30, left: 30, right: 30, textAlign: 'center', color: '#888', fontSize: 8, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 10 },
+});
+
+export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesInvoiceReportData>) => {
+  const { invoice } = data;
+
+  return (
+    <Document>
+      <Page size={config.pageSize || "A4"} orientation={config.orientation || "portrait"} style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.companyName}>{company.name}</Text>
+            <Text style={styles.companyInfo}>{company.address}</Text>
+            <Text style={styles.companyInfo}>{company.email}</Text>
+            <Text style={styles.companyInfo}>{company.phone}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <Text style={styles.title}>INVOICE</Text>
+            <Text style={styles.subtitle}>#{invoice.invoiceNumber}</Text>
+            <Text style={styles.value}>{format(new Date(invoice.invoiceDate), 'MMM dd, yyyy')}</Text>
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.column}>
+            <Text style={styles.label}>BILL TO</Text>
+            <Text style={[styles.value, { fontWeight: 'bold' }]}>{invoice.contact.name}</Text>
+            <Text style={styles.value}>{invoice.contact.email}</Text>
+            <Text style={styles.value}>{invoice.contact.phone}</Text>
+            <Text style={styles.value}>{invoice.contact.billingAddress}</Text>
+          </View>
+          <View style={styles.column}>
+            <Text style={styles.label}>DETAILS</Text>
+            <Text style={styles.label}>Due Date</Text>
+            <Text style={styles.value}>{format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</Text>
+            <Text style={styles.label}>Status</Text>
+            <Text style={styles.value}>{invoice.status}</Text>
+          </View>
+        </View>
+
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.label, styles.colDesc]}>ITEM DESCRIPTION</Text>
+            <Text style={[styles.label, styles.colQty]}>QTY</Text>
+            <Text style={[styles.label, styles.colPrice]}>UNIT PRICE</Text>
+            <Text style={[styles.label, styles.colTotal]}>AMOUNT</Text>
+          </View>
+          {invoice.items.map((item: any) => (
+            <View key={item.id} style={styles.tableRow}>
+              <Text style={[styles.value, styles.colDesc]}>{item.product?.name || item.description}</Text>
+              <Text style={[styles.value, styles.colQty]}>{item.quantity}</Text>
+              <Text style={[styles.value, styles.colPrice]}>{Number(item.unitPrice).toFixed(2)}</Text>
+              <Text style={[styles.value, styles.colTotal]}>{Number(item.totalPrice).toFixed(2)}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.totalSection}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Subtotal:</Text>
+            <Text style={styles.totalValue}>{Number(invoice.subtotal).toFixed(2)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Tax:</Text>
+            <Text style={styles.totalValue}>{Number(invoice.totalTax).toFixed(2)}</Text>
+          </View>
+          <View style={[styles.totalRow, { borderTopWidth: 1, borderTopColor: '#000', paddingTop: 5 }]}>
+            <Text style={[styles.totalLabel, { color: '#000', fontWeight: 'bold' }]}>TOTAL:</Text>
+            <Text style={[styles.totalValue, { fontSize: 12 }]}>{Number(invoice.totalAmount).toFixed(2)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Balance Due:</Text>
+            <Text style={[styles.totalValue, { color: 'red' }]}>{Number(invoice.balanceDue).toFixed(2)}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.footer}>
+          {company.name} | {company.website || 'www.company.com'} | Generated on {format(new Date(), 'PPpp')}
+        </Text>
+      </Page>
+    </Document>
+  );
+};

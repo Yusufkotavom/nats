@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { TableFooter, TableRow, TableCell } from "@/components/ui/table";
 import Link from "next/link";
-import { Pencil, Paperclip, ArrowLeft } from "lucide-react";
+import { Pencil, Paperclip, ArrowLeft, PrinterIcon } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatCurrency } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { getJournalEntry } from "../actions";
 import { Decimal } from "decimal.js";
 import { JournalEntryWithDetails } from "../../types";
+import { useState } from "react";
+import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
 
 export function JournalEntryDetails({
   entry,
@@ -18,6 +20,7 @@ export function JournalEntryDetails({
   entry: JournalEntryWithDetails;
 }) {
   const router = useRouter();
+  const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
 
   const totalDebit = entry?.lines.reduce(
     (sum: number, line: any) =>
@@ -113,6 +116,14 @@ export function JournalEntryDetails({
               </div>
             </div>
             <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsReportPreviewOpen(true)}
+              >
+                <PrinterIcon className="mr-2 h-4 w-4" />
+                Print
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -212,6 +223,13 @@ export function JournalEntryDetails({
             )}
           </div>
         </div>
+        <ReportPreviewDialog
+          isOpen={isReportPreviewOpen}
+          onOpenChange={setIsReportPreviewOpen}
+          code="JOURNAL_ENTRY"
+          input={{ entryId: entry.id }}
+          title={`Journal Entry #${entry.entryNumber}`}
+        />
       </div>
     )
   );

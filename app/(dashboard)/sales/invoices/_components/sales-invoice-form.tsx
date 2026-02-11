@@ -50,7 +50,8 @@ import { SuperJSONResult } from "superjson";
 import { useConfirm } from "@/hooks/use-confirm";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
-import { Paperclip } from "lucide-react";
+import { Paperclip, PrinterIcon } from "lucide-react";
+import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -88,6 +89,7 @@ export function SalesInvoiceForm({
     })) || []
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
 
   const [formData, setFormData] = useState<
     Omit<SalesInvoiceInput, "items"> & {
@@ -340,6 +342,17 @@ export function SalesInvoiceForm({
           {isEditing ? "Edit Sales Invoice" : "New Sales Invoice"}
         </h2>
         <div className="flex gap-2">
+          {invoice && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReportPreviewOpen(true)}
+            >
+              <PrinterIcon className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+          )}
           {invoice?.status === "DRAFT" && (
             <Button
               type="button"
@@ -771,6 +784,16 @@ export function SalesInvoiceForm({
         }}
         readonly={readonly}
       />
+
+      {invoice && (
+        <ReportPreviewDialog
+          isOpen={isReportPreviewOpen}
+          onOpenChange={setIsReportPreviewOpen}
+          code="SALES_INVOICE"
+          input={{ invoiceId: invoice.id }}
+          title={`Invoice #${invoice.invoiceNumber}`}
+        />
+      )}
     </div>
   );
 }

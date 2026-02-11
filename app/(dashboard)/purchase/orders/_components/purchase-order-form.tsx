@@ -79,7 +79,8 @@ import { ProductWithDetails } from "@/app/(dashboard)/inventory/types";
 import { useFormatDate, useFormatCurrency } from "@/hooks";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
-import { Paperclip } from "lucide-react";
+import { Paperclip, PrinterIcon } from "lucide-react";
+import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
 
 interface PurchaseOrderFormProps {
   order?: SuperJSONResult;
@@ -97,9 +98,10 @@ export function PurchaseOrderForm({
   const order = serializedOrder
     ? SuperJSON.deserialize<PurchaseOrderWithDetails>(serializedOrder)
     : undefined;
-  const products = serializedProducts
-    ? SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts)
-    : [];
+  const products =
+    serializedProducts && "json" in serializedProducts
+      ? SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts)
+      : [];
 
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
@@ -121,6 +123,7 @@ export function PurchaseOrderForm({
     })) || []
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
 
   const [formData, setFormData] = useState<
     Omit<PurchaseOrderInput, "items"> & {
@@ -500,6 +503,27 @@ export function PurchaseOrderForm({
               <Trash2Icon />
               Discard
             </Button>
+          )}
+
+          {order && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsReportPreviewOpen(true)}
+              >
+                <PrinterIcon className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+              <ReportPreviewDialog
+                isOpen={isReportPreviewOpen}
+                onOpenChange={setIsReportPreviewOpen}
+                code="PURCHASE_ORDER"
+                input={{ orderId: order.id }}
+                title={`Purchase Order #${order.orderNumber}`}
+              />
+            </>
           )}
 
           <Button
