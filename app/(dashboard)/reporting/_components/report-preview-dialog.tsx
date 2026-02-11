@@ -35,6 +35,7 @@ export function ReportPreviewDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
+        showCloseButton={false}
         className={cn(
           "flex flex-col gap-0 p-0 sm:max-w-4xl transition-all duration-300",
           isFullscreen ? "h-[100vh] max-w-[100vw] w-screen rounded-none border-0" : "h-[90vh] w-[90vw]"
