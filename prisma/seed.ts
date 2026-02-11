@@ -1609,6 +1609,26 @@ async function main() {
     }
   }
 
+  // Seed Report Templates
+  console.log("Seeding Report Templates...");
+
+  await prisma.reportTemplate.upsert({
+    where: { code: "SALES_ORDER" },
+    update: {},
+    create: {
+      code: "SALES_ORDER",
+      name: "Sales Order (Default)",
+      module: "SALES",
+      description: "Standard Sales Order document",
+      isSystem: true,
+      config: {
+        pageSize: "A4",
+        orientation: "portrait",
+        showLogo: true,
+      },
+    },
+  });
+
   console.log("Seeding completed.");
 }
 

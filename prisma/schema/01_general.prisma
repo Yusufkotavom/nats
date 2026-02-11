@@ -47,6 +47,7 @@ model User {
   // POS Relations
   posSessions POSSession[]
   heldOrders  HeldOrder[]
+  reportLogs  ReportLog[]
 
   @@index([email])
   @@index([roleId])

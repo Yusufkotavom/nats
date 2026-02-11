@@ -1,0 +1,39 @@
+// REPORTING MODULE
+
+model ReportTemplate {
+  id          String   @id @default(cuid())
+  code        String   @unique // Unique identifier for the template registry
+  name        String
+  module      String   // e.g., "SALES", "PURCHASE", "ACCOUNTING"
+  description String?
+  
+  // Configuration for the renderer (JSON schema depends on the report type)
+  // e.g., { "showLogo": true, "pageSize": "A4", "orientation": "portrait" }
+  config      Json?    
+  
+  isSystem    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logs        ReportLog[]
+}
+
+model ReportLog {
+  id          String   @id @default(cuid())
+  
+  templateId  String?
+  template    ReportTemplate? @relation(fields: [templateId], references: [id])
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  generatedAt DateTime @default(now())
+  status      String   // SUCCESS, FAILED
+  format      String   // PDF, HTML, EXCEL, CSV
+  parameters  Json?    // The parameters passed to generate the report
+  
+  executionTimeMs Int? // Performance monitoring
+  errorMessage    String?
+}

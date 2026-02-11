@@ -55,6 +55,7 @@ import {
   Trash2Icon,
   ArrowLeftSquare,
   InfoIcon,
+  PrinterIcon,
 } from "lucide-react";
 import {
   createSalesOrder,
@@ -78,6 +79,7 @@ import { useFormatDate, useFormatCurrency } from "@/hooks";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { Paperclip } from "lucide-react";
+import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
 
 interface SalesOrderFormProps {
   order?: SuperJSONResult;
@@ -95,9 +97,10 @@ export function SalesOrderForm({
   const order = serializedOrder
     ? SuperJSON.deserialize<SalesOrderWithDetails>(serializedOrder)
     : undefined;
-  const products = serializedProducts
-    ? SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts)
-    : [];
+  const products =
+    serializedProducts && "json" in serializedProducts
+      ? SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts)
+      : [];
 
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
@@ -119,6 +122,7 @@ export function SalesOrderForm({
     })) || []
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
 
   const [formData, setFormData] = useState<
     Omit<SalesOrderInput, "items"> & {
@@ -498,6 +502,27 @@ export function SalesOrderForm({
               <Trash2Icon />
               Discard
             </Button>
+          )}
+
+          {order && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsReportPreviewOpen(true)}
+              >
+                <PrinterIcon className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+              <ReportPreviewDialog
+                isOpen={isReportPreviewOpen}
+                onOpenChange={setIsReportPreviewOpen}
+                code="SALES_ORDER"
+                input={{ orderId: order.id }}
+                title={`Sales Order #${order.orderNumber}`}
+              />
+            </>
           )}
 
           <Button
