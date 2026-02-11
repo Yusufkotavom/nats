@@ -24,25 +24,25 @@ interface CheckoutDialogProps {
 
 export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: CheckoutDialogProps) {
   const [method, setMethod] = useState<'CASH' | 'CARD' | 'QRIS'>('CASH');
-  const [amountPaid, setAmountPaid] = useState<string>('');
+  const [amountPaid, setAmountPaid] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const formatCurrency = useFormatCurrency();
 
   // Reset amount paid when dialog opens or total changes
   useEffect(() => {
     if (open) {
-      setAmountPaid('');
+      setAmountPaid(0);
     }
   }, [open]);
 
-  const change = Math.max(0, (parseFloat(amountPaid) || 0) - totalAmount);
-  const isValid = method !== 'CASH' || (parseFloat(amountPaid) || 0) >= totalAmount;
+  const change = Math.max(0, amountPaid - totalAmount);
+  const isValid = method !== 'CASH' || amountPaid >= totalAmount;
 
   const handleConfirm = async () => {
     if (!isValid) return;
     setLoading(true);
     try {
-      await onConfirm(method, method === 'CASH' ? parseFloat(amountPaid) : totalAmount);
+      await onConfirm(method, method === 'CASH' ? amountPaid : totalAmount);
       onOpenChange(false);
     } catch (e) {
       console.error(e);
@@ -102,7 +102,7 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
                   type="number"
                   placeholder="Enter amount..."
                   value={amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
+                  onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
                   className="text-lg"
                   autoFocus
                 />
@@ -119,7 +119,7 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
                     key={amt}
                     variant="outline"
                     size="sm"
-                    onClick={() => setAmountPaid(amt.toString())}
+                    onClick={() => setAmountPaid(amountPaid + amt)}
                   >
                     {formatCurrency(amt)}
                   </Button>
@@ -127,7 +127,7 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setAmountPaid(totalAmount.toString())}
+                  onClick={() => setAmountPaid(totalAmount)}
                 >
                   Exact
                 </Button>

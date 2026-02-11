@@ -489,6 +489,8 @@ export async function processPOSTransaction(
       transactionDate: new Date(),
       warehouseId: session.warehouseId || undefined,
     });
+
+    return { invoiceId: salesInvoice.id };
   });
 }
 

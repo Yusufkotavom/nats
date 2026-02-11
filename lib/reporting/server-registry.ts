@@ -2,6 +2,7 @@ import { getSalesOrderData } from "@/app/(dashboard)/sales/_reports/sales-order/
 import { getPurchaseOrderData } from "@/app/(dashboard)/purchase/_reports/purchase-order/data";
 import { getSalesInvoiceData } from "@/app/(dashboard)/sales/_reports/sales-invoice/data";
 import { getJournalEntryData } from "@/app/(dashboard)/accounting/_reports/journal-entry/data";
+import { getPOSReceiptData } from "@/app/pos/_reports/receipt/data";
 
 export const serverRegistry = {
   "SALES_ORDER": {
@@ -15,6 +16,9 @@ export const serverRegistry = {
   },
   "JOURNAL_ENTRY": {
     fetchData: getJournalEntryData
+  },
+  "POS_RECEIPT": {
+    fetchData: getPOSReceiptData
   }
 } as const;
 

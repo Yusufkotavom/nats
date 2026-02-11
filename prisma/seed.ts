@@ -1680,6 +1680,23 @@ async function main() {
     },
   });
 
+  await prisma.reportTemplate.upsert({
+    where: { code: "POS_RECEIPT" },
+    update: {},
+    create: {
+      code: "POS_RECEIPT",
+      name: "POS Receipt (Thermal)",
+      module: "POS",
+      description: "Standard POS Receipt for thermal printers",
+      isSystem: true,
+      config: {
+        pageSize: [226, 800], // 80mm approx
+        orientation: "portrait",
+        showLogo: true,
+      },
+    },
+  });
+
   console.log("Seeding completed.");
 }
 

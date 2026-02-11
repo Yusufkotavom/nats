@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { POSCartItem, processPOSTransaction, holdOrder } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Minus, Plus, Trash2, ShoppingCart, PauseCircle, Tag } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, PauseCircle, Tag, PrinterIcon } from 'lucide-react';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { CheckoutDialog } from './checkout-dialog';
 import { HoldOrderDialog } from './hold-order-dialog';
@@ -13,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { ProductImage } from './product-image';
+import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
+import { useRouter } from "next/navigation";
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -35,28 +37,54 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const router = useRouter();
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const totalItemDiscounts = cart.reduce((acc, item) => acc + (item.discount || 0), 0);
   const tax = 0; // TODO: Implement tax logic
   const total = Math.max(0, subtotal - totalItemDiscounts - globalDiscount + tax);
 
-  const handleCheckout = async (method: 'CASH' | 'CARD' | 'QRIS', amountPaid: number) => {
+  const handleCheckout = async (
+    method: 'CASH' | 'CARD' | 'QRIS',
+    amount: number,
+    customerId?: string
+  ) => {
+    console.log('Processing checkout:', { method, amount });
+    setIsProcessing(true);
     try {
-      const items = cart.map(item => ({
+      // Pass simple objects to server action
+      const cartItems = cart.map(item => ({
         productId: item.id,
         quantity: item.quantity,
         price: item.price,
-        discount: item.discount || 0
+        discount: item.discount,
       }));
 
-      await processPOSTransaction(session.id, items, method, amountPaid, globalDiscount);
+      const result = await processPOSTransaction(
+        session.id,
+        cartItems,
+        method,
+        amount,
+        globalDiscount,
+        customerId
+      );
 
       toast({
         title: 'Transaction Successful',
-        description: 'Receipt generated.',
+        description: `Paid ${formatCurrency(amount)} via ${method}`,
       });
+
+      // Store invoice ID for receipt
+      if (result?.invoiceId) {
+        setLastInvoiceId(result.invoiceId);
+        setIsReceiptOpen(true);
+      }
+
       onClear();
+      router.refresh();
     } catch (error) {
       console.error(error);
       toast({
@@ -64,7 +92,8 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         title: 'Transaction Failed',
         description: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw error;
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -292,7 +321,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         totalAmount={total}
-        onConfirm={handleCheckout}
+        onConfirm={(method, amount) => handleCheckout(method, amount)}
       />
 
       <HoldOrderDialog
@@ -315,6 +344,13 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
           : subtotal - totalItemDiscounts
         }
         availableDiscounts={selectedItemId ? cart.find(c => c.id === selectedItemId)?.availableDiscounts : []}
+      />
+      <ReportPreviewDialog
+        isOpen={isReceiptOpen}
+        onOpenChange={setIsReceiptOpen}
+        code="POS_RECEIPT"
+        input={{ invoiceId: lastInvoiceId }}
+        title="POS Receipt"
       />
     </div>
   );
