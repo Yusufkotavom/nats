@@ -4,8 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { InventoryService } from '@/app/(dashboard)/inventory/inventory-service';
 import { getSession } from '@/lib/auth/auth';
-import { MovementType } from "@/prisma/generated/prisma/client";
+import { MovementType, CashTransactionType } from "@/prisma/generated/prisma/client";
 import { Decimal } from '@/prisma/generated/prisma/internal/prismaNamespace';
+import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 
 import { SuperJSON } from "@/lib/superjson";
 
@@ -259,7 +260,7 @@ export async function processPOSTransaction(
       data: {
         orderNumber,
         contactId: contactId!,
-        status: 'CONFIRMED', // Direct confirmation
+        status: 'SHIPPED', // Direct shipped for POS
         orderDate: new Date(),
         subtotal: new Decimal(subtotal),
         discountAmount: totalDiscount,
@@ -278,6 +279,13 @@ export async function processPOSTransaction(
       include: { items: true },
     });
 
+    // 3.5. Prepare Accounting Accounts
+    const arAccount = await getRequiredDefaultAccount("ACCOUNTS_RECEIVABLE");
+    const revenueAccount = await getRequiredDefaultAccount("SALES_REVENUE");
+    const taxAccount = await getRequiredDefaultAccount("SALES_TAX_PAYABLE");
+    const discountAccount = await getRequiredDefaultAccount("SALES_DISCOUNT");
+    const shippingAccount = await getRequiredDefaultAccount("UNCATEGORIZED_INCOME");
+
     // 4. Create Sales Invoice
     const invoiceNumber = `INV-POS-${Date.now()}`;
     const salesInvoice = await tx.salesInvoice.create({
@@ -295,7 +303,7 @@ export async function processPOSTransaction(
         posSessionId: sessionId,
         items: {
           create: items.map(item => ({
-            description: 'POS Item', // We should probably fetch product name or pass it, but generic is fine for now or fetch in map
+            description: 'POS Item',
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: new Decimal(item.price),
@@ -304,7 +312,72 @@ export async function processPOSTransaction(
           })),
         },
       },
+      include: { items: true },
     });
+
+    // 4.5. Create Invoice Journal Entry (Revenue Recognition)
+    const invoiceJeLines: any[] = [];
+    let lineNum = 1;
+
+    // Debit AR
+    invoiceJeLines.push({
+      accountId: arAccount.accountId,
+      debitAmount: totalAmount,
+      creditAmount: 0,
+      description: `Receivable for Invoice #${invoiceNumber}`,
+      lineNumber: lineNum++,
+      contactId: contactId,
+    });
+
+    // Credit Revenue & Tax
+    for (const item of items) {
+      // Ideally we fetch product income account, but using default revenue for now
+      const itemTotal = item.price * item.quantity;
+      const itemDiscount = item.discount;
+      const netAmount = itemTotal - itemDiscount;
+
+      // Assuming no tax calculation in POS for now (as per current logic)
+      // If tax is added later, it should be split here
+
+      invoiceJeLines.push({
+        accountId: revenueAccount.accountId,
+        debitAmount: 0,
+        creditAmount: netAmount,
+        description: `POS Item - ${item.productId}`, // We should probably improve description
+        lineNumber: lineNum++,
+      });
+    }
+
+    // Debit Global Discount
+    if (globalDiscount > 0) {
+      invoiceJeLines.push({
+        accountId: discountAccount.accountId,
+        debitAmount: globalDiscount,
+        creditAmount: 0,
+        description: "Global Discount",
+        lineNumber: lineNum++,
+      });
+    }
+
+    const invoiceJe = await tx.journalEntry.create({
+      data: {
+        userId: session.cashierId,
+        entryNumber: `INV-POS-${Date.now()}`, // Or match invoice?
+        transactionDate: new Date(),
+        description: `Invoice #${invoiceNumber}`,
+        status: "posted",
+        postedAt: new Date(),
+        lines: {
+          create: invoiceJeLines
+        }
+      }
+    });
+
+    await tx.salesInvoice.update({
+      where: { id: salesInvoice.id },
+      data: { journalEntryId: invoiceJe.id }
+    });
+
 
     // 5. Create Payment
     const paymentNumber = `PAY-POS-${Date.now()}`;
@@ -314,7 +387,7 @@ export async function processPOSTransaction(
 
     if (!cashAccount) throw new Error('No Cash/Bank account configured');
 
-    await tx.salesPayment.create({
+    const payment = await tx.salesPayment.create({
       data: {
         paymentNumber,
         contactId: contactId!,
@@ -326,6 +399,62 @@ export async function processPOSTransaction(
         posSessionId: sessionId,
         salesInvoiceId: salesInvoice.id,
       },
+    });
+
+    // 5.5 Create Payment Journal Entry & Cash Transaction
+    const paymentJe = await tx.journalEntry.create({
+      data: {
+        userId: session.cashierId,
+        entryNumber: `PAY-POS-${Date.now()}`,
+        transactionDate: new Date(),
+        description: `Payment for Invoice #${invoiceNumber}`,
+        status: "posted",
+        postedAt: new Date(),
+        lines: {
+          create: [
+            {
+              accountId: cashAccount.glAccountId,
+              debitAmount: new Decimal(totalAmount),
+              creditAmount: 0,
+              description: `Payment to ${cashAccount.name}`,
+              lineNumber: 1,
+            },
+            {
+              accountId: arAccount.accountId,
+              debitAmount: 0,
+              creditAmount: new Decimal(totalAmount),
+              description: `Payment for Invoice #${invoiceNumber}`,
+              lineNumber: 2,
+              contactId: contactId,
+            },
+          ],
+        },
+      },
+    });
+
+    await tx.cashTransaction.create({
+      data: {
+        cashAccountId: cashAccount.id,
+        type: CashTransactionType.INCOME,
+        date: new Date(),
+        reference: invoiceNumber,
+        description: `Payment for Invoice #${invoiceNumber}`,
+        journalEntryId: paymentJe.id,
+        status: "APPROVED",
+        approvedAt: new Date(),
+        allocations: {
+          create: {
+            accountId: arAccount.accountId,
+            amount: new Decimal(totalAmount),
+            description: `Payment for Invoice #${invoiceNumber}`,
+          },
+        },
+      },
+    });
+
+    await tx.salesPayment.update({
+      where: { id: payment.id },
+      data: { journalEntryId: paymentJe.id }
     });
 
     // 6. Create Shipment
