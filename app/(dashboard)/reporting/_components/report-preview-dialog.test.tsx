@@ -61,14 +61,16 @@ describe('ReportPreviewDialog', () => {
 
   it('calls onOpenChange when close button is clicked', () => {
     render(<ReportPreviewDialog {...defaultProps} />)
-    const closeButton = screen.getByTitle('Close')
-    fireEvent.click(closeButton)
+    // There might be multiple close buttons (one built-in, one custom). 
+    // We can target by accessible name "Close".
+    const closeButtons = screen.getAllByRole('button', { name: /close/i })
+    fireEvent.click(closeButtons[0])
     expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false)
   })
 
   it('toggles fullscreen mode', () => {
     render(<ReportPreviewDialog {...defaultProps} />)
-    const fullscreenButton = screen.getByTitle('Fullscreen')
+    const fullscreenButton = screen.getByTitle(/Fullscreen/i)
 
     // Initial state check (we can't easily check class names on DialogContent since it's portal-ed 
     // and we might need to look for specific elements. 

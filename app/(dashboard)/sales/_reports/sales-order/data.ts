@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { ReportContext } from "../../types";
+import { ReportContext } from "@/lib/reporting/types";
 
 export interface SalesOrderReportData {
   order: any; // Using any for now to avoid strict type matching with Prisma payload

@@ -1,4 +1,4 @@
-import { SalesOrderPdf } from "./reports/sales-order/pdf";
+import { SalesOrderPdf } from "@/app/(dashboard)/sales/_reports/sales-order/pdf";
 
 export const clientRegistry = {
   "SALES_ORDER": SalesOrderPdf

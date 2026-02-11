@@ -1,4 +1,4 @@
-import { getSalesOrderData } from "./reports/sales-order/data";
+import { getSalesOrderData } from "@/app/(dashboard)/sales/_reports/sales-order/data";
 
 export const serverRegistry = {
   "SALES_ORDER": {

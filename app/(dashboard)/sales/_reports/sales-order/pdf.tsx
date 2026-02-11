@@ -1,5 +1,5 @@
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
-import { ReportContext } from '../../types';
+import { ReportContext } from '@/lib/reporting/types';
 import { SalesOrderReportData } from './data';
 import { format } from 'date-fns';
 
