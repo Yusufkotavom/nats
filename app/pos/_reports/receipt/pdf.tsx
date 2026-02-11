@@ -35,9 +35,57 @@ const styles = StyleSheet.create({
 export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceiptData>) => {
     const { invoice, payment, cashier } = data;
 
+    // --- Dynamic Height Calculation ---
+    // Approximate heights in points (pt)
+    const PADDING_V = 20; // 10 top + 10 bottom
+
+    // Header: Name(14) + Info(10*2) + Title(17) + Meta(10*2) + Padding(15) ~ 86
+    // We add a bit of buffer for wrapping text in address
+    const HEADER_H = 100;
+
+    // Cashier/Customer: 2 rows(11*2) + margin(5) ~ 27
+    const META_H = 30;
+
+    // Divider: 11 * 3 dividers = 33
+    const DIVIDER_H = 11;
+
+    // Totals: Subtotal(11) + Total(14) + Margin ~ 30. Optional Discount(11).
+    const TOTALS_H = 30 + (Number(invoice.globalDiscount) > 0 ? 11 : 0);
+
+    // Payment: 1 row(11) ~ 11
+    const PAYMENT_H = 15;
+
+    // Footer: ~40
+    const FOOTER_H = 40;
+
+    // Items calculation
+    // Each item: Description + Details line + margin
+    // We estimate description wrapping. 80mm width ~ 45 chars per line for 9pt font.
+    const CHARS_PER_LINE = 45;
+    const ITEM_BASE_H = 15; // Details line + margins
+    const LINE_H = 10; // Description line height
+
+    const itemsHeight = invoice.items.reduce((acc: number, item: any) => {
+        const text = item.description || item.product?.name || "";
+        const lines = Math.ceil((text.length || 1) / CHARS_PER_LINE);
+        return acc + (lines * LINE_H) + ITEM_BASE_H;
+    }, 0);
+
+    const dynamicHeight =
+        PADDING_V +
+        HEADER_H +
+        META_H +
+        (DIVIDER_H * 3) +
+        itemsHeight +
+        TOTALS_H +
+        PAYMENT_H +
+        FOOTER_H +
+        20; // Extra buffer
+
     // Default to 80mm width if not specified
-    // Cast config.pageSize to any because custom array [width, height] might conflict with strict PageSize types in some versions
-    const pageSize = (config.pageSize === "A4" || !config.pageSize) ? [226, 800] : config.pageSize;
+    const pageSize = (config.pageSize === "A4" || !config.pageSize)
+        ? [226, dynamicHeight]
+        : [config.pageSize[0], dynamicHeight];
 
     return (
         <Document>
