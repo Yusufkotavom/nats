@@ -101,19 +101,63 @@ export const createAccount = authorizedAction(
     parentId?: string;
   }) => {
     try {
-      const account = await prisma.account.create({
-        data: {
-          code: data.code,
-          name: data.name,
-          type: data.type,
-          parentId: data.parentId || null,
-        },
+      const result = await prisma.$transaction(async (tx) => {
+        let level = 0;
+
+        if (data.parentId) {
+          const parent = await tx.account.findUnique({
+            where: { id: data.parentId },
+            include: {
+              _count: {
+                select: { journalEntryLines: true },
+              },
+            },
+          });
+
+          if (!parent) {
+            throw new Error("Parent account not found");
+          }
+
+          // Validation: Cannot add child if parent has transactions
+          if (parent._count.journalEntryLines > 0) {
+            throw new Error(
+              "Cannot add child account: Parent account has existing transactions."
+            );
+          }
+
+          // Update parent isPosting to false if it was true
+          if (parent.isPosting) {
+            await tx.account.update({
+              where: { id: data.parentId },
+              data: { isPosting: false },
+            });
+          }
+
+          level = parent.level + 1;
+        }
+
+        const account = await tx.account.create({
+          data: {
+            code: data.code,
+            name: data.name,
+            type: data.type,
+            parentId: data.parentId || null,
+            level,
+            isPosting: true, // New accounts are always posting (leaf) initially
+          },
+        });
+
+        return account;
       });
+
       revalidatePath("/accounting/accounts");
-      return { success: true, data: account };
-    } catch (error) {
+      return { success: true, data: result };
+    } catch (error: any) {
       console.error(error);
-      return { success: false, error: "Failed to create account" };
+      return {
+        success: false,
+        error: error.message || "Failed to create account",
+      };
     }
   }
 );

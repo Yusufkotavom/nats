@@ -66,6 +66,11 @@ export function AccountDialog({
       return;
     }
 
+    if (parent._count.journalEntryLines > 0) {
+      setError("Cannot add child to an account with existing transactions");
+      return;
+    }
+
     if (addForm.code.length !== 6) {
       setError("Account code must be exactly 6 digits");
       return;
