@@ -46,7 +46,6 @@ export async function getAccounts() {
   return await prisma.account.findMany({
     where: { isActive: true },
     orderBy: { code: "asc" },
-    include: { children: { select: { id: true } } },
   });
 }
 

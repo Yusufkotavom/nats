@@ -61,7 +61,7 @@ interface BudgetFormData {
 interface BudgetFormProps {
   departments: Department[];
   projects: Project[];
-  accounts: (Account & { children?: { id: string }[] })[];
+  accounts: Account[];
   initialData?: any;
   isEdit?: boolean;
 }
@@ -193,9 +193,7 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
 
   const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
-  const postingAccounts = accounts.filter(
-    (a) => !a.children || a.children.length === 0,
-  );
+  const postingAccounts = accounts.filter((acc) => acc.isPosting);
 
   return (
     <PageFormLayout>
