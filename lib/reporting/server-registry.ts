@@ -3,6 +3,13 @@ import { getPurchaseOrderData } from "@/app/(dashboard)/purchase/_reports/purcha
 import { getSalesInvoiceData } from "@/app/(dashboard)/sales/_reports/sales-invoice/data";
 import { getJournalEntryData } from "@/app/(dashboard)/accounting/_reports/journal-entry/data";
 import { getPOSReceiptData } from "@/app/pos/_reports/receipt/data";
+import {
+  fetchProfitLossData,
+  fetchBalanceSheetData,
+  fetchCashFlowData,
+  fetchEquityData,
+  fetchRatiosData,
+} from "@/app/(dashboard)/accounting/reports/data";
 
 export const serverRegistry = {
   "SALES_ORDER": {
@@ -19,6 +26,21 @@ export const serverRegistry = {
   },
   "POS_RECEIPT": {
     fetchData: getPOSReceiptData
+  },
+  "PROFIT_LOSS": {
+    fetchData: fetchProfitLossData
+  },
+  "BALANCE_SHEET": {
+    fetchData: fetchBalanceSheetData
+  },
+  "CASH_FLOW": {
+    fetchData: fetchCashFlowData
+  },
+  "EQUITY_CHANGE": {
+    fetchData: fetchEquityData
+  },
+  "FINANCIAL_RATIOS": {
+    fetchData: fetchRatiosData
   }
 } as const;
 

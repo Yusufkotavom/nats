@@ -13,6 +13,8 @@ import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
+import { ExportButton, downloadCSV } from "../_components/export-button";
+import { ReportAccountLine } from "../actions";
 
 import {
   Table,
@@ -105,6 +107,44 @@ export default function BalanceSheetPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-bold">Balance Sheet</h1>
           <div className="flex items-center gap-4">
+            <ExportButton
+              onExportCSV={() => {
+                if (!report) return;
+                const flatten = (nodes: ReportAccountLine[], type: string): any[] => {
+                  let rows: any[] = [];
+                  for (const node of nodes) {
+                    rows.push({
+                      Type: type,
+                      Code: node.code,
+                      Account: node.name,
+                      Amount: node.amount,
+                      Previous: node.previousAmount || 0,
+                      Change: node.change || 0,
+                      ChangePercent: node.changePercentage ? node.changePercentage.toFixed(1) + "%" : "0%",
+                    });
+                    if (node.children) {
+                      rows = rows.concat(flatten(node.children, type));
+                    }
+                  }
+                  return rows;
+                };
+
+                const data = [
+                  ...flatten(report.assets, "Asset"),
+                  ...flatten(report.liabilities, "Liability"),
+                  ...flatten(report.equity, "Equity"),
+                  { Type: "Total", Account: "Total Liabilities and Equity", Amount: report.totalLiabilitiesAndEquity }
+                ];
+                downloadCSV(data, `balance-sheet-${asOfDate}`);
+              }}
+              isLoading={loading}
+              reportCode="BALANCE_SHEET"
+              reportInput={{
+                date: asOfDate,
+                comparativeDate: showComparative ? comparativeDate : undefined,
+              }}
+              reportTitle="Balance Sheet"
+            />
             <Button onClick={() => refetch()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -269,7 +309,7 @@ export default function BalanceSheetPage() {
                       <TableCell className="text-right text-muted-foreground">
                         {formatCurrency(
                           report.totalLiabilitiesAndEquity -
-                            (report.previousTotalLiabilitiesAndEquity || 0)
+                          (report.previousTotalLiabilitiesAndEquity || 0)
                         )}
                       </TableCell>
                       <TableCell
@@ -278,10 +318,10 @@ export default function BalanceSheetPage() {
                           report.previousTotalLiabilitiesAndEquity &&
                             report.previousTotalLiabilitiesAndEquity !== 0
                             ? (report.totalLiabilitiesAndEquity -
-                                report.previousTotalLiabilitiesAndEquity) /
-                                Math.abs(
-                                  report.previousTotalLiabilitiesAndEquity
-                                ) <
+                              report.previousTotalLiabilitiesAndEquity) /
+                              Math.abs(
+                                report.previousTotalLiabilitiesAndEquity
+                              ) <
                               0
                               ? "text-red-500"
                               : "text-green-500"
@@ -289,15 +329,15 @@ export default function BalanceSheetPage() {
                         )}
                       >
                         {report.previousTotalLiabilitiesAndEquity &&
-                        report.previousTotalLiabilitiesAndEquity !== 0
+                          report.previousTotalLiabilitiesAndEquity !== 0
                           ? (
-                              ((report.totalLiabilitiesAndEquity -
-                                report.previousTotalLiabilitiesAndEquity) /
-                                Math.abs(
-                                  report.previousTotalLiabilitiesAndEquity
-                                )) *
-                              100
-                            ).toFixed(1) + "%"
+                            ((report.totalLiabilitiesAndEquity -
+                              report.previousTotalLiabilitiesAndEquity) /
+                              Math.abs(
+                                report.previousTotalLiabilitiesAndEquity
+                              )) *
+                            100
+                          ).toFixed(1) + "%"
                           : "-"}
                       </TableCell>
                     </>

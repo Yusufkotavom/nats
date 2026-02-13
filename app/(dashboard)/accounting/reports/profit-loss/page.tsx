@@ -16,6 +16,7 @@ import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
+import { ExportButton, downloadCSV } from "../_components/export-button";
 
 import {
   Table,
@@ -156,12 +157,55 @@ export default function ProfitLossPage() {
     return `${val.toFixed(1)}%`;
   };
 
+  const handleExportCSV = () => {
+    if (!report) return;
+
+    const flatten = (nodes: ReportAccountLine[], type: string): any[] => {
+      let rows: any[] = [];
+      for (const node of nodes) {
+        rows.push({
+          Type: type,
+          Code: node.code,
+          Account: node.name,
+          Amount: node.amount,
+          Previous: node.previousAmount || 0,
+          Change: node.change || 0,
+          ChangePercent: node.changePercentage ? node.changePercentage.toFixed(1) + "%" : "0%",
+        });
+        if (node.children) {
+          rows = rows.concat(flatten(node.children, type));
+        }
+      }
+      return rows;
+    };
+
+    const data = [
+      ...flatten(report.revenue, "Revenue"),
+      ...flatten(report.expenses, "Expense"),
+      { Type: "Total", Account: "Net Income", Amount: report.netIncome, Previous: report.previousNetIncome || 0, Change: netIncomeChange, ChangePercent: netIncomePercent.toFixed(1) + "%" }
+    ];
+
+    downloadCSV(data, `profit-loss-${startDate}-${endDate}`);
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-bold">Profit and Loss</h1>
           <div className="flex items-center gap-4">
+            <ExportButton
+              onExportCSV={handleExportCSV}
+              isLoading={loading}
+              reportCode="PROFIT_LOSS"
+              reportInput={{
+                startDate,
+                endDate,
+                comparativeStartDate: showComparative ? comparativeStartDate : undefined,
+                comparativeEndDate: showComparative ? comparativeEndDate : undefined,
+              }}
+              reportTitle="Profit & Loss Statement"
+            />
             <Button onClick={() => refetch()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

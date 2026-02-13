@@ -240,7 +240,47 @@ function buildAccountHierarchy(
   return roots.map(mapToLine);
 }
 
+// --- Log Helper ---
+async function logReportGeneration(
+  userId: string,
+  reportName: string,
+  format: string,
+  status: "SUCCESS" | "FAILED",
+  parameters?: any,
+  executionTimeMs?: number,
+  errorMessage?: string
+) {
+  try {
+    // Find or create a template for tracking
+    const template = await prisma.reportTemplate.upsert({
+      where: { code: reportName },
+      update: {},
+      create: {
+        code: reportName,
+        name: reportName,
+        module: "ACCOUNTING",
+        isSystem: true,
+      },
+    });
+
+    await prisma.reportLog.create({
+      data: {
+        userId,
+        templateId: template.id,
+        status,
+        format,
+        parameters: parameters ? JSON.stringify(parameters) : undefined,
+        executionTimeMs,
+        errorMessage,
+      },
+    });
+  } catch (e) {
+    console.error("Failed to log report generation:", e);
+  }
+}
+
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { getSession } from "@/lib/auth/auth";
 
 /**
  * Generate Profit & Loss (Income Statement) report.
@@ -260,6 +300,9 @@ export async function getProfitAndLoss(
   comparativeStartDate?: string,
   comparativeEndDate?: string
 ) {
+  const start = Date.now();
+  const session = await getSession();
+
   return authorizedAction(
     "reports.view",
     async (
@@ -275,9 +318,32 @@ export async function getProfitAndLoss(
           comparativeStartDate,
           comparativeEndDate
         );
+
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "PROFIT_AND_LOSS",
+            "JSON",
+            "SUCCESS",
+            { startDate, endDate, comparativeStartDate, comparativeEndDate },
+            Date.now() - start
+          );
+        }
+
         return { success: true, data };
       } catch (error) {
         console.error(error);
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "PROFIT_AND_LOSS",
+            "JSON",
+            "FAILED",
+            { startDate, endDate },
+            Date.now() - start,
+            error instanceof Error ? error.message : "Unknown error"
+          );
+        }
         return {
           success: false,
           error: "Failed to generate Profit & Loss report",
@@ -364,14 +430,38 @@ async function _getProfitAndLoss(
 }
 
 export async function getBalanceSheet(date: string, comparativeDate?: string) {
+  const start = Date.now();
+  const session = await getSession();
+
   return authorizedAction(
     "reports.view",
     async (date: string, comparativeDate?: string) => {
       try {
         const data = await _getBalanceSheet(date, comparativeDate);
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "BALANCE_SHEET",
+            "JSON",
+            "SUCCESS",
+            { date, comparativeDate },
+            Date.now() - start
+          );
+        }
         return { success: true, data };
       } catch (error) {
         console.error(error);
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "BALANCE_SHEET",
+            "JSON",
+            "FAILED",
+            { date },
+            Date.now() - start,
+            error instanceof Error ? error.message : "Unknown error"
+          );
+        }
         return { success: false, error: "Failed to generate Balance Sheet" };
       }
     }
@@ -494,7 +584,7 @@ async function _getBalanceSheet(
     retainedEarningsLine.changePercentage =
       previousRetainedEarnings !== 0
         ? (retainedEarningsLine.change / Math.abs(previousRetainedEarnings)) *
-          100
+        100
         : 0;
   }
 
@@ -517,7 +607,7 @@ async function _getBalanceSheet(
     previousTotalEquity,
     previousTotalLiabilitiesAndEquity:
       previousTotalLiabilities !== undefined &&
-      previousTotalEquity !== undefined
+        previousTotalEquity !== undefined
         ? previousTotalLiabilities + previousTotalEquity
         : undefined,
   };
@@ -529,6 +619,9 @@ export async function getCashFlowStatement(
   comparativeStartDate?: string,
   comparativeEndDate?: string
 ) {
+  const start = Date.now();
+  const session = await getSession();
+
   return authorizedAction(
     "reports.view",
     async (
@@ -544,9 +637,30 @@ export async function getCashFlowStatement(
           comparativeStartDate,
           comparativeEndDate
         );
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "CASH_FLOW",
+            "JSON",
+            "SUCCESS",
+            { startDate, endDate, comparativeStartDate, comparativeEndDate },
+            Date.now() - start
+          );
+        }
         return { success: true, data };
       } catch (error) {
         console.error(error);
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "CASH_FLOW",
+            "JSON",
+            "FAILED",
+            { startDate, endDate },
+            Date.now() - start,
+            error instanceof Error ? error.message : "Unknown error"
+          );
+        }
         return {
           success: false,
           error: "Failed to generate Cash Flow Statement",
@@ -689,6 +803,8 @@ async function calculateCashFlowForPeriod(
   const endAssets = flatten(balanceSheetEnd.assets);
   const startLiabilities = flatten(balanceSheetStart.liabilities);
   const endLiabilities = flatten(balanceSheetEnd.liabilities);
+  const startEquity = flatten(balanceSheetStart.equity);
+  const endEquity = flatten(balanceSheetEnd.equity);
 
   // Receivables
   const arAccounts = endAssets.filter((a) =>
@@ -714,7 +830,7 @@ async function calculateCashFlowForPeriod(
 
   // Payables
   const apAccounts = endLiabilities.filter((a) =>
-    a.name.toLowerCase().includes("payable")
+    a.name.toLowerCase().includes("payable") || a.code.startsWith("2")
   );
   apAccounts.forEach((endAcc) => {
     const startAcc = startLiabilities.find(
@@ -722,18 +838,133 @@ async function calculateCashFlowForPeriod(
     );
     const startVal = startAcc ? startAcc.amount : 0;
     const change = endAcc.amount - startVal;
-    changeInPayables += change;
+
+    // Check if it is a current liability (starts with 20-24)
+    if (endAcc.code.startsWith("20") || endAcc.code.startsWith("21") || endAcc.code.startsWith("22") || endAcc.code.startsWith("23") || endAcc.code.startsWith("24")) {
+      changeInPayables += change;
+    }
   });
 
   if (changeInPayables !== 0) {
     operatingActivities.push({
       accountId: "change-ap",
       code: "",
-      name: "Change in Accounts Payable",
+      name: "Change in Accounts Payable & Accruals",
       amount: changeInPayables,
       level: 0,
       type: "operating",
     });
+  }
+
+  // Inventory (Current Assets 113xx)
+  let changeInInventory = 0;
+  const inventoryAccounts = endAssets.filter(a => a.code.startsWith("113"));
+  inventoryAccounts.forEach((endAcc) => {
+    const startAcc = startAssets.find(a => a.accountId === endAcc.accountId);
+    const startVal = startAcc ? startAcc.amount : 0;
+    // Increase in inventory is a use of cash (negative)
+    const change = endAcc.amount - startVal;
+    changeInInventory -= change;
+  });
+
+  if (changeInInventory !== 0) {
+    operatingActivities.push({
+      accountId: "change-inventory",
+      code: "",
+      name: "Change in Inventory",
+      amount: changeInInventory,
+      level: 0,
+      type: "operating",
+    });
+  }
+
+  // Investing Activities (Fixed Assets 15xxx - 19xxx)
+  // Increase in Fixed Assets = Purchase (Negative Cash)
+  // Decrease = Sale (Positive Cash - simplified)
+  const investingActivities: ReportAccountLine[] = [];
+  let netCashProvidedByInvesting = 0;
+
+  const fixedAssetAccounts = endAssets.filter(a =>
+    a.code.startsWith("15") || a.code.startsWith("16") || a.code.startsWith("17") || a.code.startsWith("18") || a.code.startsWith("19")
+  );
+
+  let changeInFixedAssets = 0;
+  fixedAssetAccounts.forEach((endAcc) => {
+    const startAcc = startAssets.find(a => a.accountId === endAcc.accountId);
+    const startVal = startAcc ? startAcc.amount : 0;
+    // Increase in assets is use of cash
+    const change = endAcc.amount - startVal;
+    changeInFixedAssets -= change;
+  });
+
+  if (changeInFixedAssets !== 0) {
+    investingActivities.push({
+      accountId: "capex",
+      code: "",
+      name: "Net Purchase of Fixed Assets",
+      amount: changeInFixedAssets,
+      level: 0,
+      type: "investing",
+    });
+    netCashProvidedByInvesting += changeInFixedAssets;
+  }
+
+  // Financing Activities
+  // Long Term Liabilities (25xxx+)
+  // Equity (3xxxx) excluding Retained Earnings
+  const financingActivities: ReportAccountLine[] = [];
+  let netCashProvidedByFinancing = 0;
+
+  // Long Term Debt
+  let changeInDebt = 0;
+  const debtAccounts = endLiabilities.filter(a =>
+    a.code.startsWith("25") || a.code.startsWith("26") || a.code.startsWith("27") || a.code.startsWith("28") || a.code.startsWith("29")
+  );
+  debtAccounts.forEach((endAcc) => {
+    const startAcc = startLiabilities.find(a => a.accountId === endAcc.accountId);
+    const startVal = startAcc ? startAcc.amount : 0;
+    const change = endAcc.amount - startVal;
+    changeInDebt += change;
+  });
+
+  if (changeInDebt !== 0) {
+    financingActivities.push({
+      accountId: "change-debt",
+      code: "",
+      name: "Change in Long-Term Debt",
+      amount: changeInDebt,
+      level: 0,
+      type: "financing",
+    });
+    netCashProvidedByFinancing += changeInDebt;
+  }
+
+  // Equity Capital (excluding RE)
+  let changeInCapital = 0;
+  // Exclude RE (99999 or code starting with 3 but not RE if identified differently)
+  // Our calculated RE has code 99999
+  const capitalAccounts = endEquity.filter(a => a.code.startsWith("3") && !a.name.toLowerCase().includes("retained earnings"));
+  capitalAccounts.forEach((endAcc) => {
+    const startAcc = flatten(balanceSheetStart.equity).find(a => a.accountId === endAcc.accountId); // Use flatten from BS logic if accessible, but here we flatten below or use what we have
+    // Actually we flattened above into endEquity? No, we need to flatten startEquity too properly.
+    // Re-flatten logic for equity
+    const startEquityFlat = flatten(balanceSheetStart.equity);
+    const startAccFound = startEquityFlat.find(a => a.accountId === endAcc.accountId);
+    const startVal = startAccFound ? startAccFound.amount : 0;
+    const change = endAcc.amount - startVal;
+    changeInCapital += change;
+  });
+
+  if (changeInCapital !== 0) {
+    financingActivities.push({
+      accountId: "change-capital",
+      code: "",
+      name: "Change in Share Capital",
+      amount: changeInCapital,
+      level: 0,
+      type: "financing",
+    });
+    netCashProvidedByFinancing += changeInCapital;
   }
 
   const netCashProvidedByOperating = operatingActivities.reduce(
@@ -754,12 +985,12 @@ async function calculateCashFlowForPeriod(
 
   return {
     operatingActivities,
-    investingActivities: [],
-    financingActivities: [],
+    investingActivities,
+    financingActivities,
     netCashProvidedByOperating,
-    netCashProvidedByInvesting: 0,
-    netCashProvidedByFinancing: 0,
-    netIncreaseInCash: netCashProvidedByOperating,
+    netCashProvidedByInvesting,
+    netCashProvidedByFinancing,
+    netIncreaseInCash: netCashProvidedByOperating + netCashProvidedByInvesting + netCashProvidedByFinancing,
     cashAtBeginning,
     cashAtEnd,
   };
@@ -782,6 +1013,9 @@ export async function getStatementOfChangesInEquity(
   comparativeStartDate?: string,
   comparativeEndDate?: string
 ) {
+  const start = Date.now();
+  const session = await getSession();
+
   return authorizedAction(
     "reports.view",
     async (
@@ -797,9 +1031,30 @@ export async function getStatementOfChangesInEquity(
           comparativeStartDate,
           comparativeEndDate
         );
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "EQUITY_CHANGE",
+            "JSON",
+            "SUCCESS",
+            { startDate, endDate, comparativeStartDate, comparativeEndDate },
+            Date.now() - start
+          );
+        }
         return { success: true, data };
       } catch (error) {
         console.error(error);
+        if (session) {
+          await logReportGeneration(
+            session.userId,
+            "EQUITY_CHANGE",
+            "JSON",
+            "FAILED",
+            { startDate, endDate },
+            Date.now() - start,
+            error instanceof Error ? error.message : "Unknown error"
+          );
+        }
         return {
           success: false,
           error: "Failed to generate Statement of Changes in Equity",
@@ -808,6 +1063,155 @@ export async function getStatementOfChangesInEquity(
     }
   )(startDate, endDate, comparativeStartDate, comparativeEndDate);
 }
+
+// --- Validation & Ratios ---
+
+export type FinancialRatios = {
+  currentRatio: number;
+  quickRatio: number;
+  debtToEquity: number;
+  grossProfitMargin: number;
+  netProfitMargin: number;
+  returnOnAssets: number;
+  returnOnEquity: number;
+};
+
+export async function getFinancialRatios(date: string): Promise<{ success: boolean; data?: FinancialRatios; error?: string }> {
+  const start = Date.now();
+  const session = await getSession();
+
+  return authorizedAction("reports.view", async (date: string) => {
+    try {
+      const bs = await _getBalanceSheet(date);
+      // Need P&L for a period. Ratios usually use TTM (Trailing Twelve Months) or YTD.
+      // Let's use YTD for simplicity or allow passing a period. 
+      // For now, let's assume YTD (Jan 1 to date)
+      const yearStart = new Date(date).getFullYear();
+      const pl = await _getProfitAndLoss(`${yearStart}-01-01`, date);
+
+      // Flatten helpers
+      const flatten = (nodes: ReportAccountLine[]): ReportAccountLine[] => {
+        let res: ReportAccountLine[] = [];
+        for (const node of nodes) {
+          res.push(node);
+          if (node.children) res = res.concat(flatten(node.children));
+        }
+        return res;
+      };
+
+      const assets = flatten(bs.assets);
+      const liabilities = flatten(bs.liabilities);
+
+      // 1. Current Ratio = Current Assets / Current Liabilities
+      // Approx Current Assets: Cash (111xx), AR (112xx), Inventory (113xx), Prepaids (114xx) -> Code starts with 11, 12, 13, 14
+      const currentAssets = assets
+        .filter(a => a.code.startsWith("11") || a.code.startsWith("12") || a.code.startsWith("13") || a.code.startsWith("14"))
+        .reduce((sum, a) => sum + a.amount, 0);
+
+      const currentLiabilities = liabilities
+        .filter(a => a.code.startsWith("20") || a.code.startsWith("21") || a.code.startsWith("22") || a.code.startsWith("23") || a.code.startsWith("24"))
+        .reduce((sum, a) => sum + a.amount, 0);
+
+      const currentRatio = currentLiabilities !== 0 ? currentAssets / currentLiabilities : 0;
+
+      // 2. Quick Ratio = (Cash + AR) / Current Liabilities
+      const cash = assets.filter(a => a.code.startsWith("111")).reduce((sum, a) => sum + a.amount, 0);
+      const ar = assets.filter(a => a.code.startsWith("112")).reduce((sum, a) => sum + a.amount, 0);
+      const quickRatio = currentLiabilities !== 0 ? (cash + ar) / currentLiabilities : 0;
+
+      // 3. Debt to Equity = Total Liabilities / Total Equity
+      const debtToEquity = bs.totalEquity !== 0 ? bs.totalLiabilities / bs.totalEquity : 0;
+
+      // 4. Gross Profit Margin = (Revenue - COGS) / Revenue
+      const revenue = pl.totalRevenue;
+      const cogs = pl.expenses.filter(a => a.code.startsWith("51") || a.code.startsWith("52")).reduce((sum, a) => sum + a.amount, 0); // Assuming 51/52 are COGS-like
+      // Better way: Look for specific COGS account type or name if possible. 
+      // Seed says COGS is 52000.
+      const grossProfit = revenue - cogs;
+      const grossProfitMargin = revenue !== 0 ? (grossProfit / revenue) * 100 : 0;
+
+      // 5. Net Profit Margin = Net Income / Revenue
+      const netProfitMargin = revenue !== 0 ? (pl.netIncome / revenue) * 100 : 0;
+
+      // 6. Return on Assets = Net Income / Total Assets
+      const returnOnAssets = bs.totalAssets !== 0 ? (pl.netIncome / bs.totalAssets) * 100 : 0;
+
+      // 7. Return on Equity = Net Income / Total Equity
+      const returnOnEquity = bs.totalEquity !== 0 ? (pl.netIncome / bs.totalEquity) * 100 : 0;
+
+      const ratios: FinancialRatios = {
+        currentRatio,
+        quickRatio,
+        debtToEquity,
+        grossProfitMargin,
+        netProfitMargin,
+        returnOnAssets,
+        returnOnEquity,
+      };
+
+      if (session) {
+        await logReportGeneration(session.userId, "FINANCIAL_RATIOS", "JSON", "SUCCESS", { date }, Date.now() - start);
+      }
+
+      return { success: true, data: ratios };
+    } catch (error) {
+      console.error(error);
+      if (session) {
+        await logReportGeneration(session.userId, "FINANCIAL_RATIOS", "JSON", "FAILED", { date }, Date.now() - start, error instanceof Error ? error.message : "Unknown error");
+      }
+      return { success: false, error: "Failed to calculate ratios" };
+    }
+  })(date);
+}
+
+export async function validateJournalEntries(startDate: string, endDate: string) {
+  const session = await getSession();
+  return authorizedAction("reports.view", async (startDate: string, endDate: string) => {
+    // 1. Find entries where sum(debit) != sum(credit)
+    // This requires grouping by journalEntryId and summing
+
+    const entries = await prisma.journalEntry.findMany({
+      where: {
+        transactionDate: {
+          gte: new Date(startDate),
+          lte: new Date(endDate),
+        },
+        status: "posted"
+      },
+      include: {
+        lines: true
+      }
+    });
+
+    const unbalancedEntries = [];
+
+    for (const entry of entries) {
+      let totalDebit = 0;
+      let totalCredit = 0;
+      for (const line of entry.lines) {
+        totalDebit += line.debitAmount.toNumber();
+        totalCredit += line.creditAmount.toNumber();
+      }
+
+      // Use a small epsilon for floating point comparison
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        unbalancedEntries.push({
+          id: entry.id,
+          entryNumber: entry.entryNumber,
+          date: entry.transactionDate,
+          difference: totalDebit - totalCredit
+        });
+      }
+    }
+
+    if (session) {
+      await logReportGeneration(session.userId, "VALIDATION_REPORT", "JSON", "SUCCESS", { startDate, endDate, unbalancedCount: unbalancedEntries.length });
+    }
+
+    return { success: true, data: { unbalancedEntries } };
+  })(startDate, endDate);
+}
+
 
 async function _getStatementOfChangesInEquity(
   startDate: string,
@@ -906,7 +1310,7 @@ async function _getStatementOfChangesInEquity(
 
   const prevEndRE = bsPrevEnd
     ? prevEndEquity.find((a) => a.accountId === "calculated-retained-earnings")
-        ?.amount
+      ?.amount
     : undefined;
 
   const netIncome = pl.netIncome;

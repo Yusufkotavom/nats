@@ -15,6 +15,7 @@ import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
+import { ExportButton, downloadCSV } from "../_components/export-button";
 
 import {
   Table,
@@ -145,6 +146,41 @@ export default function CashFlowPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-bold">Statement of Cash Flows</h1>
           <div className="flex items-center gap-4">
+            <ExportButton
+              onExportCSV={() => {
+                if (!report) return;
+                const mapSection = (nodes: ReportAccountLine[], type: string) => nodes.map(node => ({
+                  Section: type,
+                  Item: node.name,
+                  Amount: node.amount,
+                  Previous: node.previousAmount || 0,
+                  Change: node.change || 0,
+                  ChangePercent: node.changePercentage ? node.changePercentage.toFixed(1) + "%" : "0%"
+                }));
+
+                const data = [
+                  ...mapSection(report.operatingActivities, "Operating"),
+                  { Section: "Operating", Item: "Net Cash from Operating", Amount: report.netCashProvidedByOperating },
+                  ...mapSection(report.investingActivities, "Investing"),
+                  { Section: "Investing", Item: "Net Cash from Investing", Amount: report.netCashProvidedByInvesting },
+                  ...mapSection(report.financingActivities, "Financing"),
+                  { Section: "Financing", Item: "Net Cash from Financing", Amount: report.netCashProvidedByFinancing },
+                  { Section: "Summary", Item: "Net Increase in Cash", Amount: report.netIncreaseInCash },
+                  { Section: "Summary", Item: "Cash at Beginning", Amount: report.cashAtBeginning },
+                  { Section: "Summary", Item: "Cash at End", Amount: report.cashAtEnd },
+                ];
+                downloadCSV(data, `cash-flow-${startDate}-${endDate}`);
+              }}
+              isLoading={loading}
+              reportCode="CASH_FLOW"
+              reportInput={{
+                startDate,
+                endDate,
+                comparativeStartDate: showComparative ? comparativeStartDate : undefined,
+                comparativeEndDate: showComparative ? comparativeEndDate : undefined,
+              }}
+              reportTitle="Cash Flow Statement"
+            />
             <Button onClick={() => refetch()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

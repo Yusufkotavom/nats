@@ -52,6 +52,20 @@ export default function ReportsPage() {
       href: "/accounting/reports/tax-summary",
       icon: Percent,
     },
+    {
+      title: "Financial Ratios",
+      description:
+        "Analyze key financial ratios including liquidity, profitability, and solvency metrics.",
+      href: "/accounting/reports/ratios",
+      icon: BarChart3,
+    },
+    {
+      title: "Data Validation",
+      description:
+        "Check for data integrity issues such as unbalanced journal entries.",
+      href: "/accounting/reports/validation",
+      icon: TrendingUp, // Using generic icon for now, maybe AlertTriangle if available
+    },
   ];
 
   return (

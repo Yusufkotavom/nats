@@ -19,6 +19,7 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { ExportButton, downloadCSV } from "../_components/export-button";
 
 export default function EquityPage() {
   const formatCurrency = useFormatCurrency();
@@ -79,6 +80,43 @@ export default function EquityPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-lg font-bold">Statement of Changes in Equity</h1>
           <div className="flex items-center gap-4">
+            <ExportButton
+              onExportCSV={() => {
+                if (!report) return;
+                const data = report.items.map(item => ({
+                  Account: item.name,
+                  BalanceBeginning: item.balanceBeginning,
+                  NetIncome: item.netIncome,
+                  Additions: item.additions,
+                  Deductions: item.deductions,
+                  BalanceEnding: item.balanceEnding,
+                  PreviousEnding: item.previousBalanceEnding || 0,
+                  Change: item.change || 0,
+                  ChangePercent: item.changePercentage ? item.changePercentage.toFixed(1) + "%" : "0%"
+                }));
+                data.push({
+                  Account: "TOTAL",
+                  BalanceBeginning: report.totalBeginning,
+                  NetIncome: report.totalNetIncome,
+                  Additions: report.totalAdditions,
+                  Deductions: report.totalDeductions,
+                  BalanceEnding: report.totalEnding,
+                  PreviousEnding: report.previousTotalEnding || 0,
+                  Change: report.change || 0,
+                  ChangePercent: report.changePercentage ? report.changePercentage.toFixed(1) + "%" : "0%"
+                });
+                downloadCSV(data, `equity-change-${startDate}-${endDate}`);
+              }}
+              isLoading={loading}
+              reportCode="EQUITY_CHANGE"
+              reportInput={{
+                startDate,
+                endDate,
+                comparativeStartDate: showComparative ? comparativeStartDate : undefined,
+                comparativeEndDate: showComparative ? comparativeEndDate : undefined,
+              }}
+              reportTitle="Statement of Changes in Equity"
+            />
             <Button onClick={() => fetchReport()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
