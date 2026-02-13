@@ -54,9 +54,12 @@ export class AIService {
           // Note: Ideally we should recursively call generateResponse here to get the final answer
           // incorporating the tool result. For this MVP, we return the tool result.
           
+          // Format the tool result as Markdown code block for better readability
+          const formattedResult = "```json\n" + JSON.stringify(toolResult, null, 2) + "\n```";
+
           return {
              ...response,
-             content: `[Tool Result]: ${JSON.stringify(toolResult)}`, 
+             content: `**Tool Output (${toolName}):**\n${formattedResult}`, 
           }
         } catch (error: any) {
           console.error(`Error executing tool ${toolName}:`, error);
