@@ -20,6 +20,7 @@ import {
   Plus,
   Loader2,
   CogIcon,
+  CalculatorIcon,
 } from "lucide-react";
 import { updateAccount, deleteAccount, getAccounts } from "./actions";
 import { AccountDialog } from "./_components/account-dialog";
@@ -286,6 +287,9 @@ export default function AccountListPage() {
         <PageListActions className="space-x-1">
           <Button variant="outline" onClick={() => router.push("/accounting/configuration/default-accounts")}>
             <CogIcon /> Default Accounts
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/accounting/configuration/beginning-balance")}>
+            <CalculatorIcon /> Opening Balance
           </Button>
           <Button onClick={() => setIsAdding(true)} >
             <Plus /> Add Account
