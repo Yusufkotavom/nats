@@ -75,9 +75,7 @@ export function JournalEntryForm({
   onCancel,
 }: JournalEntryFormProps) {
   const formatCurrency = useFormatCurrency();
-  const leafAccounts = accounts.filter(
-    (a) => !a.children || a.children.length === 0,
-  );
+  const leafAccounts = accounts.filter((a) => a.isPosting);
   const [formData, setFormData] = useState<CreateJournalEntryData>(
     initialData as unknown as CreateJournalEntryData,
   );
