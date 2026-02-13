@@ -1,0 +1,141 @@
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  managerId   String?
+  manager     User?    @relation("DepartmentManager", fields: [managerId], references: [id])
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  budgets     Budget[]
+  journalLines JournalEntryLine[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  managerId   String?
+  manager     User?    @relation("ProjectManager", fields: [managerId], references: [id])
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  budgets     Budget[]
+  journalLines JournalEntryLine[]
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  name        String
+  fiscalYear  Int
+  description String?
+  status      BudgetStatus @default(DRAFT)
+  
+  // Dimensions
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  projectId    String?
+  project      Project?    @relation(fields: [projectId], references: [id])
+
+  createdBy   String
+  createdByUser User @relation("BudgetCreator", fields: [createdBy], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       BudgetItem[]
+  revisions   BudgetRevision[]
+  approvals   BudgetApproval[]
+}
+
+enum BudgetStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+model BudgetItem {
+  id          String   @id @default(cuid())
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id])
+
+  // Amounts
+  totalAmount Decimal  @default(0)
+  
+  // Monthly breakdown
+  january     Decimal  @default(0)
+  february    Decimal  @default(0)
+  march       Decimal  @default(0)
+  april       Decimal  @default(0)
+  may         Decimal  @default(0)
+  june        Decimal  @default(0)
+  july        Decimal  @default(0)
+  august      Decimal  @default(0)
+  september   Decimal  @default(0)
+  october     Decimal  @default(0)
+  november    Decimal  @default(0)
+  december    Decimal  @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([budgetId, accountId])
+}
+
+model BudgetRevision {
+  id          String   @id @default(cuid())
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  revisionNumber Int
+  description String?
+  changes     Json     // Snapshot of changes
+  
+  createdBy   String
+  createdByUser User @relation("BudgetReviser", fields: [createdBy], references: [id])
+  
+  createdAt   DateTime @default(now())
+}
+
+model BudgetApproval {
+  id          String   @id @default(cuid())
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  stage       Int      // 1: Dept Head, 2: Finance, 3: CFO
+  role        String   // Role required
+  status      ApprovalStatus @default(PENDING)
+  
+  approverId  String?
+  approver    User?    @relation("BudgetApprover", fields: [approverId], references: [id])
+  
+  comments    String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

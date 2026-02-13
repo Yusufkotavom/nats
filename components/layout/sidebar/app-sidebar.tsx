@@ -12,6 +12,7 @@ import {
   Landmark,
   StoreIcon,
   Bot,
+  PieChart,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/sidebar/nav-main";
@@ -154,6 +155,25 @@ const data = {
     },
   ],
   navFinance: [
+    {
+      title: "Budgeting",
+      url: "#",
+      icon: PieChart,
+      items: [
+        {
+          title: "Dashboard",
+          url: "/budgeting",
+        },
+        {
+          title: "All Budgets",
+          url: "/budgeting/budgets",
+        },
+        {
+          title: "Configuration",
+          url: "/budgeting/configuration",
+        },
+      ],
+    },
     {
       title: "General Ledger",
       url: "#",
