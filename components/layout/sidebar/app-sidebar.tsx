@@ -155,25 +155,7 @@ const data = {
     },
   ],
   navFinance: [
-    {
-      title: "Budgeting",
-      url: "#",
-      icon: PieChart,
-      items: [
-        {
-          title: "Dashboard",
-          url: "/budgeting",
-        },
-        {
-          title: "All Budgets",
-          url: "/budgeting/budgets",
-        },
-        {
-          title: "Configuration",
-          url: "/budgeting/configuration",
-        },
-      ],
-    },
+
     {
       title: "General Ledger",
       url: "#",
@@ -210,6 +192,25 @@ const data = {
         {
           title: "Tax Rates",
           url: "/accounting/configuration/taxes",
+        },
+      ],
+    },
+    {
+      title: "Budgeting",
+      url: "#",
+      icon: PieChart,
+      items: [
+        {
+          title: "Dashboard",
+          url: "/budgeting",
+        },
+        {
+          title: "All Budgets",
+          url: "/budgeting/budgets",
+        },
+        {
+          title: "Configuration",
+          url: "/budgeting/configuration",
         },
       ],
     },

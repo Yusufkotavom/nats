@@ -11,6 +11,15 @@ import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from "@/components/ui/table";
+import {
   PageFormLayout,
   PageFormHeader,
   PageFormTitle,
@@ -130,8 +139,11 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
   };
 
   const updateItem = (index: number, field: keyof BudgetItemData, value: any) => {
+    // Handle NaN from CurrencyInput when field is empty
+    const safeValue = (typeof value === 'number' && isNaN(value)) ? 0 : value;
+
     const newItems = [...formData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
+    newItems[index] = { ...newItems[index], [field]: safeValue };
 
     // Recalculate total if a month changed
     if (field !== "accountId" && field !== "totalAmount" && field !== "id") {
@@ -176,6 +188,10 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
     newItems.splice(index, 1);
     setFormData({ ...formData, items: newItems });
   };
+
+  const totalBudget = formData.items.reduce((sum, item) => sum + (Number(item.totalAmount) || 0), 0);
+
+  const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
   return (
     <PageFormLayout>
@@ -260,53 +276,88 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
               </Button>
             </div>
 
-            <div className="space-y-4">
-              {formData.items.length === 0 ? (
-                <div className="text-center text-muted-foreground py-12 border rounded-md border-dashed">
-                  No items added. Click "Add Item" to start planning.
-                </div>
-              ) : (
-                formData.items.map((item, index) => (
-                  <div key={item.id || index} className="border rounded-md p-4 space-y-4 relative bg-card text-card-foreground shadow-sm">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 text-destructive"
-                      onClick={() => removeItem(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium">Account</label>
-                        <SearchableSelect
-                          value={item.accountId}
-                          onValueChange={(val) => updateItem(index, "accountId", val || "")}
-                          options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
-                          placeholder="Select Account"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium">Total</label>
-                        <div className="text-lg font-bold py-2">{formatCurrency(item.totalAmount)}</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'].map((month) => (
-                        <div key={month} className="space-y-1">
-                          <label className="text-xs font-medium capitalize">{month.substring(0, 3)}</label>
-                          <CurrencyInput
-                            value={item[month as keyof BudgetItemData] as number}
-                            onChange={(val) => updateItem(index, month as keyof BudgetItemData, val)}
-                            className="h-8 text-sm"
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[250px] sticky left-0 z-10 bg-background shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Account</TableHead>
+                    <TableHead className="min-w-[120px] text-right">Total</TableHead>
+                    {months.map((month) => (
+                      <TableHead key={month} className="min-w-[100px] capitalize text-right">
+                        {month.substring(0, 3)}
+                      </TableHead>
+                    ))}
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {formData.items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={15} className="text-center text-muted-foreground h-24">
+                        No items added. Click "Add Item" to start planning.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    formData.items.map((item, index) => (
+                      <TableRow key={item.id || index}>
+                        <TableCell className="sticky left-0 z-10 bg-background p-2 min-w-[250px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                          <SearchableSelect
+                            value={item.accountId}
+                            onValueChange={(val) => updateItem(index, "accountId", val || "")}
+                            options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
+                            placeholder="Select Account"
+                            className="w-full border-0 shadow-none bg-transparent focus:ring-0"
                           />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
+                        </TableCell>
+                        <TableCell className="p-2 min-w-[120px]">
+                          <div className="font-bold text-right px-3 py-2 text-sm">
+                            {formatCurrency(item.totalAmount)}
+                          </div>
+                        </TableCell>
+                        {months.map((month) => (
+                          <TableCell key={month} className="p-0 min-w-[100px] border-r border-dashed last:border-r-0">
+                            <CurrencyInput
+                              value={item[month as keyof BudgetItemData] as number}
+                              onChange={(val) => updateItem(index, month as keyof BudgetItemData, val)}
+                              className="w-full h-full min-h-[40px] border-0 rounded-none shadow-none text-right px-2 focus-visible:ring-0 focus-visible:bg-accent/10 transition-colors"
+                              placeholder="0.00"
+                              onFocus={(e) => e.target.select()}
+                            />
+                          </TableCell>
+                        ))}
+                        <TableCell className="p-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeItem(index)}
+                            className="h-8 w-8"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell className="sticky left-0 z-10 bg-muted/50 font-bold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Total Budget</TableCell>
+                    <TableCell className="font-bold text-right px-4">
+                      {formatCurrency(totalBudget)}
+                    </TableCell>
+                    {months.map((month) => {
+                      const monthTotal = formData.items.reduce((sum, item) => sum + (Number(item[month as keyof BudgetItemData]) || 0), 0);
+                      return (
+                        <TableCell key={month} className="font-bold text-right px-2">
+                          {formatCurrency(monthTotal)}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell></TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
             </div>
           </div>
         </form>

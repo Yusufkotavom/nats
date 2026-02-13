@@ -1,9 +1,14 @@
 
 import { getDepartments, getProjects } from "@/app/(dashboard)/budgeting/actions";
 import { CreateDepartmentForm, CreateProjectForm } from "@/components/budgeting/config-forms";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  PageListContent,
+  PageListHeader,
+  PageListLayout,
+  PageListTitle,
+} from "@/components/layout/page/list-layout";
 
 export default async function ConfigurationPage() {
   const [departments, projects] = await Promise.all([
@@ -12,10 +17,10 @@ export default async function ConfigurationPage() {
   ]);
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Configuration</h2>
-      </div>
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Configuration" />
+      </PageListHeader>
 
       <Tabs defaultValue="departments" className="space-y-4">
         <TabsList>
@@ -26,81 +31,71 @@ export default async function ConfigurationPage() {
           <div className="flex justify-end">
             <CreateDepartmentForm />
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Departments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
+          <PageListContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Manager</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {departments.length === 0 ? (
                   <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Manager</TableHead>
+                    <TableCell colSpan={4} className="text-center">No departments found</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {departments.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center">No departments found</TableCell>
+                ) : (
+                  departments.map((dept) => (
+                    <TableRow key={dept.id}>
+                      <TableCell>{dept.code}</TableCell>
+                      <TableCell className="font-medium">{dept.name}</TableCell>
+                      <TableCell>{dept.description}</TableCell>
+                      <TableCell>{dept.manager?.name || "-"}</TableCell>
                     </TableRow>
-                  ) : (
-                    departments.map((dept) => (
-                      <TableRow key={dept.id}>
-                        <TableCell>{dept.code}</TableCell>
-                        <TableCell className="font-medium">{dept.name}</TableCell>
-                        <TableCell>{dept.description}</TableCell>
-                        <TableCell>{dept.manager?.name || "-"}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </PageListContent>
         </TabsContent>
         <TabsContent value="projects" className="space-y-4">
           <div className="flex justify-end">
             <CreateProjectForm />
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
+          <PageListContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Manager</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projects.length === 0 ? (
                   <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Manager</TableHead>
+                    <TableCell colSpan={5} className="text-center">No projects found</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {projects.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center">No projects found</TableCell>
+                ) : (
+                  projects.map((proj) => (
+                    <TableRow key={proj.id}>
+                      <TableCell>{proj.code}</TableCell>
+                      <TableCell className="font-medium">{proj.name}</TableCell>
+                      <TableCell>{proj.description}</TableCell>
+                      <TableCell>{proj.status}</TableCell>
+                      <TableCell>{proj.manager?.name || "-"}</TableCell>
                     </TableRow>
-                  ) : (
-                    projects.map((proj) => (
-                      <TableRow key={proj.id}>
-                        <TableCell>{proj.code}</TableCell>
-                        <TableCell className="font-medium">{proj.name}</TableCell>
-                        <TableCell>{proj.description}</TableCell>
-                        <TableCell>{proj.status}</TableCell>
-                        <TableCell>{proj.manager?.name || "-"}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </PageListContent>
         </TabsContent>
       </Tabs>
-    </div>
+    </PageListLayout>
   );
 }
