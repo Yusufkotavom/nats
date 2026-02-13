@@ -48,6 +48,8 @@ model User {
   posSessions POSSession[]
   heldOrders  HeldOrder[]
   reportLogs  ReportLog[]
+  aiSessions  AISession[]
+  aiUsages    AIUsage[]
 
   @@index([email])
   @@index([roleId])

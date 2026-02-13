@@ -12,6 +12,7 @@ import {
   Landmark,
   TerminalIcon,
   StoreIcon,
+  Bot,
 } from "lucide-react";
 
 import { NavMain } from "@/components/layout/sidebar/nav-main";
@@ -177,6 +178,17 @@ const data = {
           title: "Sessions",
           url: "/pos/sessions",
         }
+      ],
+    },
+    {
+      title: "AI Assistant",
+      url: "/ai/chat",
+      icon: Bot,
+      items: [
+        {
+          title: "Chat",
+          url: "/ai/chat",
+        },
       ],
     },
     {
