@@ -28,23 +28,28 @@ export const getRecentTransactionsTool: AITool = {
       },
     });
 
-    return transactions.map((t) => {
+    const data = transactions.map((t) => {
       // Calculate total amount (sum of debits)
       const totalAmount = t.lines.reduce((sum, line) => sum.add(line.debitAmount), new Prisma.Decimal(0));
 
       return {
-        date: t.transactionDate,
-        description: t.description,
-        amount: totalAmount.toNumber(),
-        reference: t.entryNumber,
-        status: t.status,
-        lines: t.lines.map((l) => ({
-          account: l.account.name,
-          debit: l.debitAmount.toNumber(),
-          credit: l.creditAmount.toNumber(),
-        })),
+        Date: t.transactionDate.toISOString().split('T')[0],
+        Description: t.description,
+        Reference: t.entryNumber,
+        Amount: totalAmount.toNumber().toFixed(2),
+        Status: t.status,
       };
     });
+
+    if (data.length === 0) return "No transactions found.";
+
+    // Convert to Markdown Table
+    const headers = Object.keys(data[0]);
+    const headerRow = `| ${headers.join(" | ")} |`;
+    const separatorRow = `| ${headers.map(() => "---").join(" | ")} |`;
+    const rows = data.map(row => `| ${Object.values(row).join(" | ")} |`).join("\n");
+
+    return `${headerRow}\n${separatorRow}\n${rows}`;
   },
 };
 
@@ -88,18 +93,28 @@ export const getInventoryStatusTool: AITool = {
       },
     });
 
-    return products.map((p) => {
+    const data = products.map((p) => {
       const totalQuantity = p.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
       const estimatedValue = p.averageCost.mul(totalQuantity).toNumber();
 
       return {
-        name: p.name,
-        sku: p.sku,
-        inventoryQuantity: totalQuantity,
-        inventoryValue: estimatedValue,
-        sellingPrice: p.price.toNumber(),
+        "Product Name": p.name,
+        SKU: p.sku,
+        "Stock Level": totalQuantity,
+        "Price": p.price.toNumber().toFixed(2),
+        "Value": estimatedValue.toFixed(2),
       };
     });
+
+    if (data.length === 0) return "No products found.";
+
+    // Convert to Markdown Table
+    const headers = Object.keys(data[0]);
+    const headerRow = `| ${headers.join(" | ")} |`;
+    const separatorRow = `| ${headers.map(() => "---").join(" | ")} |`;
+    const rows = data.map(row => `| ${Object.values(row).join(" | ")} |`).join("\n");
+
+    return `${headerRow}\n${separatorRow}\n${rows}`;
   },
 };
 
@@ -130,16 +145,31 @@ export const getSalesSummaryTool: AITool = {
       },
     });
 
-    return {
-      totalSales: totalSales._sum.totalAmount?.toNumber() || 0,
-      recentOrders: recentOrders.map((o) => ({
-        id: o.id,
-        customer: o.contact.name,
-        status: o.status,
-        total: o.totalAmount.toNumber(),
-        date: o.createdAt,
-      })),
-    };
+    const totalSalesAmount = totalSales._sum.totalAmount?.toNumber() || 0;
+
+    const data = recentOrders.map((o) => ({
+      "Order ID": o.id.substring(0, 8) + "...",
+      Customer: o.contact.name,
+      Status: o.status,
+      Total: o.totalAmount.toNumber().toFixed(2),
+      Date: o.createdAt.toISOString().split('T')[0],
+    }));
+
+    let markdown = `**Total Sales Revenue:** $${totalSalesAmount.toFixed(2)}\n\n`;
+
+    if (data.length > 0) {
+      // Convert to Markdown Table
+      const headers = Object.keys(data[0]);
+      const headerRow = `| ${headers.join(" | ")} |`;
+      const separatorRow = `| ${headers.map(() => "---").join(" | ")} |`;
+      const rows = data.map(row => `| ${Object.values(row).join(" | ")} |`).join("\n");
+
+      markdown += `**Recent Orders:**\n${headerRow}\n${separatorRow}\n${rows}`;
+    } else {
+      markdown += "No recent orders found.";
+    }
+
+    return markdown;
   },
 };
 
