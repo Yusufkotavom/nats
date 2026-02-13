@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSession } from '@/components/session-provider';
 import Link from 'next/link';
 import { LayoutDashboard } from 'lucide-react';
+import { Clock } from './clock';
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -230,12 +231,15 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             </Button>
           )}
 
+          <Clock startTime={session.startTime} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/avatars/01.png" alt="Cashier" />
-                  <AvatarFallback>C</AvatarFallback>
+                  <AvatarFallback>
+                    {session.cashier?.name?.slice(0, 2).toUpperCase() || 'CA'}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
