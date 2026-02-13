@@ -52,7 +52,7 @@ export default function SalesReturnsPage() {
       const result = await getSalesReturns(page, 10, search);
       return {
         returns: SuperJSON.deserialize<SalesReturnWithDetails[]>(
-          result.returns as SuperJSONResult,
+          result.returns as unknown as SuperJSONResult,
         ),
         total: result.total,
         totalPages: result.totalPages,

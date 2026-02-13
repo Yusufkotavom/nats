@@ -135,7 +135,7 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
       setIsSaving(true)
       try {
         const updates = Object.entries(changes).map(([purpose, accountId]) => ({
-          purpose: purpose as DefaultAccountPurpose,
+          purpose: purpose as unknown as DefaultAccountPurpose,
           accountId
         }))
 

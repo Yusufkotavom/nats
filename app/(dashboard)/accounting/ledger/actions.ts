@@ -111,14 +111,14 @@ export const getAccountHistory = authorizedAction(
 
         if (startDate) {
           journalEntryWhere.postedAt = {
-            ...(journalEntryWhere.postedAt as Prisma.DateTimeFilter),
+            ...(journalEntryWhere.postedAt as unknown as Prisma.DateTimeFilter),
             gte: new Date(startDate),
           };
         }
 
         if (endDate) {
           journalEntryWhere.postedAt = {
-            ...(journalEntryWhere.postedAt as Prisma.DateTimeFilter),
+            ...(journalEntryWhere.postedAt as unknown as Prisma.DateTimeFilter),
             lte: new Date(endDate),
           };
         }

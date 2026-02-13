@@ -53,10 +53,10 @@ export default function InventoryDashboardPage() {
       return {
         ...data,
         lowStockItems: SuperJSON.deserialize<InventoryWithRelations[]>(
-          data.lowStockItems as SuperJSONResult,
+          data.lowStockItems as unknown as SuperJSONResult,
         ),
         recentMovements: SuperJSON.deserialize<MovementDetailWithRelations[]>(
-          data.recentMovements as SuperJSONResult,
+          data.recentMovements as unknown as SuperJSONResult,
         ),
       };
     },

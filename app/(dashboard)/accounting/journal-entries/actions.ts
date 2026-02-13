@@ -44,17 +44,17 @@ export const getJournalEntries = authorizedAction(
   }) => {
     const where: Prisma.JournalEntryWhereInput = {};
     if (status && status !== "all") {
-      where.status = status as EntryStatus;
+      where.status = status as unknown as EntryStatus;
     }
     if (startDate) {
       where.transactionDate = {
-        ...((where.transactionDate as Prisma.DateTimeFilter) || {}),
+        ...((where.transactionDate as unknown as Prisma.DateTimeFilter) || {}),
         gte: new Date(startDate),
       };
     }
     if (endDate) {
       where.transactionDate = {
-        ...((where.transactionDate as Prisma.DateTimeFilter) || {}),
+        ...((where.transactionDate as unknown as Prisma.DateTimeFilter) || {}),
         lte: new Date(endDate),
       };
     }
@@ -143,8 +143,8 @@ export const createJournalEntry = authorizedAction(
   async (data: SuperJSONResult) => {
     try {
       const data2 = SuperJSON.deserialize(
-        data as SuperJSONResult,
-      ) as CreateJournalEntryData;
+        data as unknown as unknown as SuperJSONResult,
+      ) as unknown as CreateJournalEntryData;
       const user = await getSession();
 
       if (!user?.userId) {
@@ -211,8 +211,8 @@ export const createJournalEntry = authorizedAction(
           },
           attachments: data2?.attachments?.length
             ? {
-                connect: data2.attachments.map((a) => ({ id: a.id })),
-              }
+              connect: data2.attachments.map((a) => ({ id: a.id })),
+            }
             : undefined,
         },
       });
@@ -268,7 +268,7 @@ export async function updateJournalEntry(
 
     // Validate debit = credit
     const data2 = SuperJSON.deserialize(
-      data as SuperJSONResult,
+      data as unknown as SuperJSONResult,
     ) as CreateJournalEntryData;
     const totalDebit =
       data2?.lines.reduce(

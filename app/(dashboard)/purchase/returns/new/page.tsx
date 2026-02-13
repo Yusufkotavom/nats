@@ -27,10 +27,10 @@ export default async function NewPurchaseReturnPage() {
     <PurchaseReturnForm
       vendors={vendors.data}
       purchaseOrders={SuperJSON.deserialize(
-        purchaseOrders as SuperJSONResult,
+        purchaseOrders as unknown as SuperJSONResult,
       )}
       purchaseInvoices={SuperJSON.deserialize(
-        purchaseInvoices as SuperJSONResult,
+        purchaseInvoices as unknown as SuperJSONResult,
       )}
     />
   );

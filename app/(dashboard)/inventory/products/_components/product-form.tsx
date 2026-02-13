@@ -34,8 +34,8 @@ export function ProductForm({
 }: ProductFormProps) {
   const product =
     initialProduct && (initialProduct as any).json
-      ? (SuperJSON.deserialize(initialProduct) as ProductFormData)
-      : (initialProduct as ProductFormData | undefined);
+      ? (SuperJSON.deserialize(initialProduct) as unknown as ProductFormData)
+      : (initialProduct as unknown as ProductFormData | undefined);
 
   const router = useRouter();
   const alert = useAlert();

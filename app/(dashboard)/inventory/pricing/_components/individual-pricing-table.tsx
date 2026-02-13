@@ -66,7 +66,7 @@ export function IndividualPricingTable() {
       return {
         ...res,
         products: SuperJSON.deserialize<PricingProductWithDetails[]>(
-          res.products as SuperJSONResult,
+          res.products as unknown as SuperJSONResult,
         ),
       };
     },

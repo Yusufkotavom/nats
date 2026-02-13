@@ -20,7 +20,7 @@ export async function createCashTransaction(
 
   // Validation
   const data2 = SuperJSON.deserialize(
-    data as SuperJSONResult,
+    data as unknown as SuperJSONResult,
   ) as CashTransactionFormData;
   console.log({ data, data2 });
   if (!data2.allocations.length) {
@@ -178,7 +178,7 @@ export async function updateCashTransaction(
   // const session = await verifySession(); // Not strictly needed for update if we don't track updatedBy, but good practice if we did.
 
   const data2 = SuperJSON.deserialize(
-    data as SuperJSONResult,
+    data as unknown as SuperJSONResult,
   ) as CashTransactionFormData;
   // Validation
   if (!data2.allocations.length) {

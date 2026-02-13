@@ -25,10 +25,10 @@ export default async function NewSalesReturnPage() {
     <SalesReturnForm
       customers={customers.data}
       salesOrders={SuperJSON.deserialize(
-        salesOrders as SuperJSONResult,
+        salesOrders as unknown as SuperJSONResult,
       )}
       salesInvoices={SuperJSON.deserialize(
-        salesInvoices as SuperJSONResult,
+        salesInvoices as unknown as SuperJSONResult,
       )}
     />
   );

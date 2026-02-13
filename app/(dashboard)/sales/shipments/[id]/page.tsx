@@ -29,7 +29,7 @@ export default async function ViewSalesShipmentPage({
         id: c.id,
         name: c.name,
       }))}
-      salesOrders={salesOrdersResult as SuperJSONResult}
+      salesOrders={salesOrdersResult as unknown as SuperJSONResult}
       readonly
     />
   );

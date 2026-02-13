@@ -67,7 +67,7 @@ export default function WarehousesPage() {
       return {
         ...res,
         warehouses: SuperJSON.deserialize<WarehouseWithInventory[]>(
-          res.warehouses as SuperJSONResult,
+          res.warehouses as unknown as SuperJSONResult,
         ),
       };
     },

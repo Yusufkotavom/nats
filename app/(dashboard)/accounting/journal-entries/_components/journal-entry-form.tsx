@@ -79,7 +79,7 @@ export function JournalEntryForm({
     (a) => !a.children || a.children.length === 0,
   );
   const [formData, setFormData] = useState<CreateJournalEntryData>(
-    initialData as CreateJournalEntryData,
+    initialData as unknown as CreateJournalEntryData,
   );
 
   const [activeMention, setActiveMention] = useState<{

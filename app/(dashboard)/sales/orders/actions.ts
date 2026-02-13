@@ -32,7 +32,7 @@ export async function getSalesOrders(
   };
 
   if (search) {
-    (where.AND as Prisma.SalesOrderWhereInput[]).push({
+    (where.AND as unknown as Prisma.SalesOrderWhereInput[]).push({
       OR: [
         { orderNumber: { contains: search, mode: "insensitive" } },
         { contact: { name: { contains: search, mode: "insensitive" } } },
@@ -41,8 +41,8 @@ export async function getSalesOrders(
   }
 
   if (status && status !== "ALL") {
-    (where.AND as Prisma.SalesOrderWhereInput[]).push({
-      status: status as Prisma.EnumSalesOrderStatusFilter,
+    (where.AND as unknown as Prisma.SalesOrderWhereInput[]).push({
+      status: status as unknown as Prisma.EnumSalesOrderStatusFilter,
     });
   }
 
@@ -57,7 +57,7 @@ export async function getSalesOrders(
       end.setHours(23, 59, 59, 999);
       dateFilter.lte = end;
     }
-    (where.AND as Prisma.SalesOrderWhereInput[]).push({
+    (where.AND as unknown as Prisma.SalesOrderWhereInput[]).push({
       orderDate: dateFilter,
     });
   }

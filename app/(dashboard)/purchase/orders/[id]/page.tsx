@@ -24,7 +24,7 @@ export default async function Page({
 
   return (
     <PurchaseOrderForm
-      order={orderResult as SuperJSONResult}
+      order={orderResult as unknown as SuperJSONResult}
       vendors={vendors.data}
       products={products.products}
       readonly

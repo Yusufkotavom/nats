@@ -206,7 +206,7 @@ export async function createCashTransfer(
   const userId = session.userId;
 
   const data2 = SuperJSON.deserialize(
-    data as SuperJSONResult,
+    data as unknown as SuperJSONResult,
   ) as CashTransferFormData;
   // 1. Validate accounts
   const fromAccount = await prisma.cashAccount.findUnique({
@@ -253,7 +253,7 @@ export async function updateCashTransfer(
   }
 
   const data2 = SuperJSON.deserialize(
-    data as SuperJSONResult,
+    data as unknown as SuperJSONResult,
   ) as CashTransferFormData;
 
   // Validate accounts

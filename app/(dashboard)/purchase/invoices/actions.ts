@@ -37,13 +37,13 @@ export async function getPurchaseInvoices(
   };
 
   if (status && status !== "ALL") {
-    (where.AND as Prisma.PurchaseInvoiceWhereInput[]).push({
-      status: status as PurchaseInvoiceStatus,
+    (where.AND as unknown as Prisma.PurchaseInvoiceWhereInput[]).push({
+      status: status as unknown as PurchaseInvoiceStatus,
     });
   }
 
   if (search) {
-    (where.AND as Prisma.PurchaseInvoiceWhereInput[]).push({
+    (where.AND as unknown as Prisma.PurchaseInvoiceWhereInput[]).push({
       OR: [
         { invoiceNumber: { contains: search, mode: "insensitive" } },
         { contact: { name: { contains: search, mode: "insensitive" } } },

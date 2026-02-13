@@ -42,7 +42,7 @@ export async function getPricingProducts(
   };
 
   if (search) {
-    (where.AND as Prisma.ProductWhereInput[]).push({
+    (where.AND as unknown as Prisma.ProductWhereInput[]).push({
       OR: [
         { name: { contains: search, mode: 'insensitive' } },
         { sku: { contains: search, mode: 'insensitive' } },
@@ -51,7 +51,7 @@ export async function getPricingProducts(
   }
 
   if (categoryId && categoryId !== 'ALL') {
-    (where.AND as Prisma.ProductWhereInput[]).push({ categoryId });
+    (where.AND as unknown as Prisma.ProductWhereInput[]).push({ categoryId });
   }
 
   const [products, total] = await Promise.all([
