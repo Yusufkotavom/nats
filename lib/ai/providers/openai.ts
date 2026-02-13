@@ -88,4 +88,69 @@ export class OpenAIProvider implements AIProvider {
       throw error;
     }
   }
+
+  async streamChatCompletion(request: AICompletionRequest): Promise<ReadableStream<Uint8Array>> {
+    const config = request.config;
+    const model = config?.model || "gpt-4o-mini";
+    const temperature = config?.temperature ?? 0.7;
+    const apiKey = config?.apiKey || this.apiKey;
+
+    const tools = request.tools?.map((tool) => ({
+      type: "function",
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+      },
+    }));
+
+    const body: any = {
+      model,
+      messages: request.messages.map((msg) => {
+        if (msg.role === "function") {
+          return {
+            role: "tool",
+            tool_call_id: msg.name,
+            content: msg.content,
+          };
+        }
+        return {
+          role: msg.role,
+          content: msg.content,
+        };
+      }),
+      temperature,
+      stream: true,
+    };
+
+    if (tools && tools.length > 0) {
+      body.tools = tools;
+      body.tool_choice = "auto";
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`OpenAI API Error: ${error.error?.message || response.statusText}`);
+      }
+
+      if (!response.body) {
+        throw new Error("No response body received from OpenAI");
+      }
+
+      return response.body;
+    } catch (error) {
+      console.error("AI Service Streaming Error:", error);
+      throw error;
+    }
+  }
 }

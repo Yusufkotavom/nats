@@ -76,6 +76,20 @@ export class AIService {
 
     return response;
   }
+
+  async streamResponse(request: AICompletionRequest): Promise<ReadableStream<Uint8Array>> {
+    let activeProvider = this.provider;
+    if (request.config?.provider && request.config.provider !== "openai") {
+      if (request.config.provider === "openrouter") {
+        activeProvider = new OpenRouterProvider(request.config.apiKey || "");
+      }
+    }
+
+    return activeProvider.streamChatCompletion({
+      ...request,
+      tools: Array.from(this.tools.values()),
+    });
+  }
 }
 
 // Singleton instance management

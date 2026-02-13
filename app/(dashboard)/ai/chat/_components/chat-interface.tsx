@@ -36,6 +36,10 @@ export function ChatInterface() {
     setInput("");
     setIsLoading(true);
 
+    // Placeholder for assistant response
+    const assistantMessage: Message = { role: "assistant", content: "" };
+    setMessages((prev) => [...prev, assistantMessage]);
+
     try {
       const response = await fetch("/api/ai/chat", {
         method: "POST",
@@ -50,18 +54,34 @@ export function ChatInterface() {
         throw new Error("Failed to send message");
       }
 
-      const data = await response.json();
-
-      if (data.sessionId && !sessionId) {
-        setSessionId(data.sessionId);
+      const newSessionId = response.headers.get("X-Session-Id");
+      if (newSessionId && !sessionId) {
+        setSessionId(newSessionId);
       }
 
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.content,
-      };
+      if (!response.body) return;
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value, { stream: true });
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMsg = newMessages[newMessages.length - 1];
+          if (lastMsg.role === "assistant") {
+            // Create a new object to trigger re-render
+            newMessages[newMessages.length - 1] = {
+              ...lastMsg,
+              content: lastMsg.content + text,
+            };
+          }
+          return newMessages;
+        });
+      }
     } catch (error) {
       console.error(error);
       toast({
@@ -69,6 +89,8 @@ export function ChatInterface() {
         description: "Failed to get response from AI service.",
         variant: "destructive",
       });
+      // Remove the failed message placeholder
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }

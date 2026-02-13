@@ -69,47 +69,93 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Generate response
-    // For now, we only pass the last few messages to keep context window manageable
-    // In a real app, we'd have smarter context management
-    const completion = await aiService.generateResponse({
+    // Generate response with streaming
+    const stream = await aiService.streamResponse({
       messages: messages as AIChatMessage[],
       config: aiConfig,
       tools: businessTools,
     });
 
-    // Save assistant response
-    if (completion.content) {
-      await prisma.aIMessage.create({
-        data: {
-          sessionId: currentSessionId,
-          role: "assistant",
-          content: completion.content,
-        },
-      });
-    } else if (completion.functionCall) {
-      // Save function call if strictly needed, but usually we save the result after the tool runs
-      // For this MVP, we might skip saving intermediate tool calls to DB to keep it simple
-    }
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    let accumulatedContent = "";
+    let buffer = "";
 
-    // Track usage (simplified)
-    if (completion.usage) {
-      await prisma.aIUsage.create({
-        data: {
-          userId: session.userId,
-          model: aiConfig.model,
-          tokensPrompt: completion.usage.promptTokens,
-          tokensCompletion: completion.usage.completionTokens,
-          tokensTotal: completion.usage.totalTokens,
-        },
-      });
-    }
+    const transformStream = new TransformStream({
+      async transform(chunk, controller) {
+        const text = decoder.decode(chunk, { stream: true });
+        buffer += text;
 
-    return NextResponse.json({
-      role: "assistant",
-      content: completion.content,
-      sessionId: currentSessionId,
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ""; // Keep the last partial line in buffer
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine || trimmedLine === 'data: [DONE]') continue;
+
+          if (trimmedLine.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(trimmedLine.slice(6));
+              const content = data.choices?.[0]?.delta?.content || "";
+              if (content) {
+                accumulatedContent += content;
+                controller.enqueue(encoder.encode(content));
+              }
+            } catch (e) {
+              console.error("Error parsing SSE chunk:", e);
+            }
+          }
+        }
+      },
+      async flush(controller) {
+        // Process any remaining buffer
+        if (buffer) {
+          const trimmedLine = buffer.trim();
+          if (trimmedLine && trimmedLine !== 'data: [DONE]' && trimmedLine.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(trimmedLine.slice(6));
+              const content = data.choices?.[0]?.delta?.content || "";
+              if (content) {
+                accumulatedContent += content;
+                controller.enqueue(encoder.encode(content));
+              }
+            } catch (e) {
+              // ignore partial json at end
+            }
+          }
+        }
+
+        if (accumulatedContent) {
+          await prisma.aIMessage.create({
+            data: {
+              sessionId: currentSessionId,
+              role: "assistant",
+              content: accumulatedContent,
+            }
+          });
+
+          // Track usage (simplified estimation: 1 token ~= 4 chars)
+          // Ideally we should use a tokenizer or get usage from API if available
+          await prisma.aIUsage.create({
+            data: {
+              userId: session.userId,
+              model: aiConfig.model,
+              tokensPrompt: 0, // Cannot calculate easily without tokenizer
+              tokensCompletion: Math.ceil(accumulatedContent.length / 4),
+              tokensTotal: Math.ceil(accumulatedContent.length / 4),
+            },
+          });
+        }
+      }
     });
+
+    return new NextResponse(stream.pipeThrough(transformStream), {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Session-Id': currentSessionId
+      }
+    });
+
   } catch (error: any) {
     console.error("Chat API Error:", error);
     return NextResponse.json(

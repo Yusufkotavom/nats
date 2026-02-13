@@ -48,4 +48,5 @@ export interface AITool {
 
 export interface AIProvider {
     chatCompletion(request: AICompletionRequest): Promise<AICompletionResponse>;
+    streamChatCompletion(request: AICompletionRequest): Promise<ReadableStream<Uint8Array>>;
 }
