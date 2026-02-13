@@ -1,8 +1,8 @@
 import { AICompletionRequest, AICompletionResponse, AIProvider } from "../types";
 
-export class OpenAIProvider implements AIProvider {
+export class OpenRouterProvider implements AIProvider {
   private apiKey: string;
-  private baseUrl = "https://api.openai.com/v1";
+  private baseUrl = "https://openrouter.ai/api/v1";
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -10,7 +10,7 @@ export class OpenAIProvider implements AIProvider {
 
   async chatCompletion(request: AICompletionRequest): Promise<AICompletionResponse> {
     const config = request.config;
-    const model = config?.model || "gpt-4o-mini";
+    const model = config?.model || "openai/gpt-3.5-turbo"; // OpenRouter uses prefixed models usually, but handles mapping too
     const temperature = config?.temperature ?? 0.7;
     const apiKey = config?.apiKey || this.apiKey;
 
@@ -29,7 +29,7 @@ export class OpenAIProvider implements AIProvider {
         if (msg.role === "function") {
           return {
             role: "tool",
-            tool_call_id: msg.name, // Using name as tool_call_id for simplicity mapping
+            tool_call_id: msg.name,
             content: msg.content,
           };
         }
@@ -52,13 +52,15 @@ export class OpenAIProvider implements AIProvider {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://pasak.app", // Required by OpenRouter
+          "X-Title": "Pasak ERP", // Optional but recommended
         },
         body: JSON.stringify(body),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(`OpenAI API Error: ${error.error?.message || response.statusText}`);
+        throw new Error(`OpenRouter API Error: ${error.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
@@ -84,7 +86,7 @@ export class OpenAIProvider implements AIProvider {
         },
       };
     } catch (error) {
-      console.error("AI Service Error:", error);
+      console.error("AI Service Error (OpenRouter):", error);
       throw error;
     }
   }

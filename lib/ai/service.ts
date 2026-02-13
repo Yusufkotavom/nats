@@ -1,13 +1,21 @@
 import { AICompletionRequest, AICompletionResponse, AIProvider, AITool } from "./types";
 import { OpenAIProvider } from "./providers/openai";
+import { OpenRouterProvider } from "./providers/openrouter";
 
 export class AIService {
   private provider: AIProvider;
   private tools: Map<string, AITool> = new Map();
 
-  constructor(apiKey: string, providerType: "openai" | "anthropic" | "google" = "openai") {
-    // For now, we default to OpenAI. In a real scenario, we'd switch based on providerType.
-    this.provider = new OpenAIProvider(apiKey);
+  constructor(apiKey: string, providerType: "openai" | "anthropic" | "google" | "openrouter" = "openai") {
+    switch (providerType) {
+      case "openrouter":
+        this.provider = new OpenRouterProvider(apiKey);
+        break;
+      case "openai":
+      default:
+        this.provider = new OpenAIProvider(apiKey);
+        break;
+    }
   }
 
   registerTool(tool: AITool) {
@@ -15,7 +23,19 @@ export class AIService {
   }
 
   async generateResponse(request: AICompletionRequest): Promise<AICompletionResponse> {
-    const response = await this.provider.chatCompletion({
+    // If request config specifies a different provider, we might need to instantiate a temporary provider
+    // For now, we assume the service is initialized with the correct provider or defaults to OpenAI
+    // However, since we support switching providers per request via config in the UI, we should handle that.
+    
+    let activeProvider = this.provider;
+    if (request.config?.provider && request.config.provider !== "openai") { // Simplified check
+       if (request.config.provider === "openrouter") {
+           activeProvider = new OpenRouterProvider(request.config.apiKey || "");
+       }
+       // Add other providers here when implemented
+    }
+
+    const response = await activeProvider.chatCompletion({
       ...request,
       tools: Array.from(this.tools.values()),
     });
@@ -31,34 +51,12 @@ export class AIService {
           const toolResult = await tool.handler(args);
 
           // Append the assistant's tool call and the tool's result to history
-          const newMessages = [
-            ...request.messages,
-            {
-              role: "assistant" as const,
-              content: null as any, // Content is null for tool calls
-              function_call: { // This structure might need adjustment depending on how we normalize
-                 name: toolName,
-                 arguments: response.functionCall.arguments
-              }
-            },
-            {
-              role: "function" as const,
-              name: toolName, // In OpenAI strict mode this should be tool_call_id, but for our simple abstraction name helps
-              content: JSON.stringify(toolResult),
-            },
-          ];
-          
-          // Re-call the service with the new history
-          // Note: In a real implementation we need to handle the tool_call_id properly for OpenAI.
-          // For this MVP, we are simplifying. 
-          // Actually, let's just return the tool result if we are in a simple "analyze" mode,
-          // or let the client handle the recursion for chat mode.
-          // For simplicity in this service wrapper, let's just return the response and let the caller handle recursion
-          // OR handle one level of recursion.
+          // Note: Ideally we should recursively call generateResponse here to get the final answer
+          // incorporating the tool result. For this MVP, we return the tool result.
           
           return {
              ...response,
-             content: `[Tool Result]: ${JSON.stringify(toolResult)}`, // Fallback content
+             content: `[Tool Result]: ${JSON.stringify(toolResult)}`, 
           }
         } catch (error: any) {
           console.error(`Error executing tool ${toolName}:`, error);
@@ -74,13 +72,19 @@ export class AIService {
   }
 }
 
-// Singleton instance management if needed
+// Singleton instance management
 let instance: AIService | null = null;
 
-export function getAIService(): AIService {
-  const apiKey = process.env.OPENAI_API_KEY || "mock-key";
+export function getAIService(apiKey?: string, provider?: "openai" | "anthropic" | "google" | "openrouter"): AIService {
+  const key = apiKey || process.env.OPENAI_API_KEY || "mock-key";
+  // We create a new instance if params are provided to support dynamic switching, 
+  // or return the singleton if no params.
+  if (apiKey || provider) {
+      return new AIService(key, provider);
+  }
+
   if (!instance) {
-    instance = new AIService(apiKey);
+    instance = new AIService(key);
   }
   return instance;
 }

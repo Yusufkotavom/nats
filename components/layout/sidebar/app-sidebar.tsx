@@ -10,7 +10,6 @@ import {
   Rocket,
   Settings,
   Landmark,
-  TerminalIcon,
   StoreIcon,
   Bot,
 } from "lucide-react";
@@ -40,7 +39,121 @@ const data = {
       plan: "Community Version",
     },
   ],
-  navMain: [
+  navOperations: [
+    {
+      title: "Purchase",
+      url: "#",
+      icon: ShoppingCart,
+      items: [
+        {
+          title: "Dashboard",
+          url: "/purchase/dashboard",
+        },
+        {
+          title: "Purchase Order",
+          url: "/purchase/orders",
+        },
+        {
+          title: "Purchase Invoice",
+          url: "/purchase/invoices",
+        },
+        {
+          title: "Receive Items",
+          url: "/purchase/receives",
+        },
+        {
+          title: "Purchase Return",
+          url: "/purchase/returns",
+        },
+        {
+          title: "Purchase Payments",
+          url: "/purchase/payments",
+        },
+      ],
+    },
+    {
+      title: "Sales",
+      url: "#",
+      icon: Rocket,
+      items: [
+        {
+          title: "Dashboard",
+          url: "/sales/dashboard",
+        },
+        {
+          title: "Sales Order",
+          url: "/sales/orders",
+        },
+        {
+          title: "Sales Invoice",
+          url: "/sales/invoices",
+        },
+        {
+          title: "Sales Return",
+          url: "/sales/returns",
+        },
+        {
+          title: "Sales Shipments",
+          url: "/sales/shipments",
+        },
+        {
+          title: "Sales Payments",
+          url: "/sales/payments",
+        },
+      ],
+    },
+    {
+      title: "Inventory",
+      url: "#",
+      icon: BoxIcon,
+      items: [
+        {
+          title: "Overview",
+          url: "/inventory",
+        },
+        {
+          title: "Products List",
+          url: "/inventory/products",
+        },
+        {
+          title: "Pricing and Discount",
+          url: "/inventory/pricing",
+        },
+        {
+          title: "Locations/Warehouses",
+          url: "/inventory/warehouses",
+        },
+        {
+          title: "Stock Movements",
+          url: "/inventory/movements",
+        },
+        {
+          title: "Product Categories",
+          url: "/inventory/categories",
+        },
+        {
+          title: "Products Units (UOM)",
+          url: "/inventory/uom",
+        },
+      ],
+    },
+    {
+      title: "Point of Sale",
+      url: "/pos",
+      icon: StoreIcon,
+      items: [
+        {
+          title: "Terminal",
+          url: "/pos",
+        },
+        {
+          title: "Sessions",
+          url: "/pos/sessions",
+        }
+      ],
+    },
+  ],
+  navFinance: [
     {
       title: "General Ledger",
       url: "#",
@@ -100,129 +213,6 @@ const data = {
       ],
     },
     {
-      title: "Inventory",
-      url: "#",
-      icon: BoxIcon,
-      items: [
-        {
-          title: "Overview",
-          url: "/inventory",
-        },
-        {
-          title: "Products List",
-          url: "/inventory/products",
-        },
-        {
-          title: "Pricing and Discount",
-          url: "/inventory/pricing",
-        },
-        {
-          title: "Locations/Warehouses",
-          url: "/inventory/warehouses",
-        },
-        {
-          title: "Stock Movements",
-          url: "/inventory/movements",
-        },
-        {
-          title: "Product Categories",
-          url: "/inventory/categories",
-        },
-        {
-          title: "Products Units (UOM)",
-          url: "/inventory/uom",
-        },
-      ],
-    },
-    {
-      title: "Purchase",
-      url: "#",
-      icon: ShoppingCart,
-      items: [
-        {
-          title: "Dashboard",
-          url: "/purchase/dashboard",
-        },
-        {
-          title: "Purchase Order",
-          url: "/purchase/orders",
-        },
-        {
-          title: "Purchase Invoice",
-          url: "/purchase/invoices",
-        },
-        {
-          title: "Receive Items",
-          url: "/purchase/receives",
-        },
-        {
-          title: "Purchase Return",
-          url: "/purchase/returns",
-        },
-        {
-          title: "Purchase Payments",
-          url: "/purchase/payments",
-        },
-      ],
-    },
-    {
-      title: "Point of Sale",
-      url: "/pos",
-      icon: StoreIcon,
-      items: [
-        {
-          title: "Terminal",
-          url: "/pos",
-        },
-        {
-          title: "Sessions",
-          url: "/pos/sessions",
-        }
-      ],
-    },
-    {
-      title: "AI Assistant",
-      url: "/ai/chat",
-      icon: Bot,
-      items: [
-        {
-          title: "Chat",
-          url: "/ai/chat",
-        },
-      ],
-    },
-    {
-      title: "Sales",
-      url: "#",
-      icon: Rocket,
-      items: [
-        {
-          title: "Dashboard",
-          url: "/sales/dashboard",
-        },
-        {
-          title: "Sales Order",
-          url: "/sales/orders",
-        },
-        {
-          title: "Sales Invoice",
-          url: "/sales/invoices",
-        },
-        {
-          title: "Sales Return",
-          url: "/sales/returns",
-        },
-        {
-          title: "Sales Shipments",
-          url: "/sales/shipments",
-        },
-        {
-          title: "Sales Payments",
-          url: "/sales/payments",
-        },
-      ],
-    },
-    {
       title: "Fixed Assets",
       url: "/assets",
       icon: Building,
@@ -241,6 +231,21 @@ const data = {
         },
       ],
     },
+  ],
+  navIntelligence: [
+    {
+      title: "AI Assistant",
+      url: "/ai/chat",
+      icon: Bot,
+      items: [
+        {
+          title: "Chat",
+          url: "/ai/chat",
+        },
+      ],
+    },
+  ],
+  navAdmin: [
     {
       title: "General",
       url: "#",
@@ -263,8 +268,12 @@ const data = {
           url: "/general/files",
         },
         {
-          title: "Settings",
+          title: "Company Settings",
           url: "/admin/settings",
+        },
+        {
+          title: "AI Configuration",
+          url: "/admin/settings/ai",
         },
       ],
     },
@@ -288,7 +297,10 @@ export function AppSidebar({
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain label="Operations" items={data.navOperations} />
+        <NavMain label="Finance & Accounting" items={data.navFinance} />
+        <NavMain label="Intelligence" items={data.navIntelligence} />
+        <NavMain label="Administration" items={data.navAdmin} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

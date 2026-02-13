@@ -1,4 +1,5 @@
-import { AIConfig } from "./types";
+import { AIConfig, AIModel } from "./types";
+import { prisma } from "@/lib/prisma";
 
 export const DEFAULT_AI_CONFIG: AIConfig = {
   provider: "openai",
@@ -9,11 +10,27 @@ export const DEFAULT_AI_CONFIG: AIConfig = {
 };
 
 export async function getAIConfig(userId?: string): Promise<AIConfig> {
-  // In the future, we can fetch user-specific or tenant-specific settings from the DB
-  // For now, return default config
-  // Example:
-  // const userSettings = await db.userSettings.findUnique({ where: { userId } });
-  // if (userSettings?.aiConfig) return userSettings.aiConfig;
-  
+  try {
+    // Fetch global AI settings
+    // We use findFirst to get the single configuration record
+    // In a real multi-tenant app, we might filter by tenantId or userId
+    const settings = await prisma.aISettings.findFirst({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (settings && settings.isActive) {
+      return {
+        provider: settings.provider as "openai" | "anthropic" | "google" | "openrouter",
+        apiKey: settings.apiKey || process.env.OPENAI_API_KEY || "",
+        model: settings.model as AIModel,
+        temperature: settings.temperature,
+        maxTokens: settings.maxTokens,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch AI config from DB:", error);
+    // Fallback to default
+  }
+
   return DEFAULT_AI_CONFIG;
 }

@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/sidebar";
 
 export function NavMain({
+  label,
   items,
 }: {
+  label?: string;
   items: {
     title: string;
     url: string;
@@ -38,6 +40,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
+      {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => {
           const isActive =
