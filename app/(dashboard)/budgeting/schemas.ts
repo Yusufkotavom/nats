@@ -2,24 +2,6 @@
 import { z } from "zod";
 import { BudgetStatus, ApprovalStatus } from "@/prisma/generated/prisma/client";
 
-export const departmentSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  code: z.string().min(1, "Code is required"),
-  description: z.string().optional(),
-  managerId: z.string().optional(),
-  isActive: z.boolean().default(true),
-});
-
-export const projectSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  code: z.string().min(1, "Code is required"),
-  description: z.string().optional(),
-  managerId: z.string().optional(),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
-  status: z.enum(["ACTIVE", "COMPLETED", "ON_HOLD", "CANCELLED"]).default("ACTIVE"),
-});
-
 export const budgetItemSchema = z.object({
   accountId: z.string().min(1, "Account is required"),
   totalAmount: z.number().min(0),

@@ -208,10 +208,6 @@ const data = {
           title: "All Budgets",
           url: "/budgeting/budgets",
         },
-        {
-          title: "Configuration",
-          url: "/budgeting/configuration",
-        },
       ],
     },
     {
@@ -283,6 +279,14 @@ const data = {
         {
           title: "Contacts",
           url: "/general/contacts",
+        },
+        {
+          title: "Departments",
+          url: "/general/departments",
+        },
+        {
+          title: "Projects",
+          url: "/general/projects",
         },
         {
           title: "File Manager",

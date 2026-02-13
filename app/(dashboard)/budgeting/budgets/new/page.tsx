@@ -1,5 +1,6 @@
 
-import { getDepartments, getProjects, getAccounts } from "@/app/(dashboard)/budgeting/actions";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
+import { getAccounts } from "@/app/(dashboard)/budgeting/actions";
 import { BudgetForm } from "@/components/budgeting/budget-form";
 
 export default async function NewBudgetPage() {

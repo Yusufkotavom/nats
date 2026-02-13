@@ -4,8 +4,6 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
-  departmentSchema,
-  projectSchema,
   budgetSchema,
   budgetRevisionSchema,
   budgetApprovalSchema
@@ -15,47 +13,13 @@ import { BudgetStatus, ApprovalStatus } from "@/prisma/generated/prisma/client";
 import { getSession } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
 
-// --- Departments ---
-
-export async function getDepartments() {
-  return await prisma.department.findMany({
-    orderBy: { name: "asc" },
-    include: { manager: true },
-  });
-}
-
-export async function createDepartment(data: z.infer<typeof departmentSchema>) {
-  const parsed = departmentSchema.parse(data);
-  const department = await prisma.department.create({
-    data: parsed,
-  });
-  revalidatePath("/budgeting/configuration");
-  return department;
-}
-
-// --- Projects ---
-
-export async function getProjects() {
-  return await prisma.project.findMany({
-    orderBy: { name: "asc" },
-    include: { manager: true },
-  });
-}
+// --- Accounts ---
 
 export async function getAccounts() {
   return await prisma.account.findMany({
     where: { isActive: true },
     orderBy: { code: "asc" },
   });
-}
-
-export async function createProject(data: z.infer<typeof projectSchema>) {
-  const parsed = projectSchema.parse(data);
-  const project = await prisma.project.create({
-    data: parsed,
-  });
-  revalidatePath("/budgeting/configuration");
-  return project;
 }
 
 // --- Budgets ---
