@@ -21,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Category } from "@/prisma/generated/prisma/browser";
 import { applyBatchPricing, previewPriceChanges, getCategories } from "../actions";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -80,7 +79,19 @@ export function BatchPricingForm() {
         value: Number(value),
       };
       const preview = await previewPriceChanges(data);
-      setPreviewData(preview);
+      setPreviewData({
+        totalProducts: preview.changes.length,
+        changes: preview.changes.map((c: any) => ({
+          id: c.id,
+          sku: c.sku,
+          name: c.name,
+          currentPrice: c.currentPrice,
+          newPrice: c.newPrice,
+          difference: c.difference,
+          cost: c.cost,
+          margin: c.margin,
+        })),
+      });
     } catch (error) {
       console.error(error);
     } finally {
@@ -229,7 +240,7 @@ export function BatchPricingForm() {
           <CardHeader>
             <CardTitle>Preview Changes</CardTitle>
             <CardDescription>
-              {previewData.changes.length} products will be affected.
+              {previewData.totalProducts} products will be affected.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -269,11 +280,10 @@ export function BatchPricingForm() {
                           {formatCurrency(change.newPrice)}
                         </TableCell>
                         <TableCell
-                          className={`text-right ${
-                            change.difference > 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
+                          className={`text-right ${change.difference > 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                            }`}
                         >
                           {change.difference > 0 ? "+" : ""}
                           {formatCurrency(change.difference)}

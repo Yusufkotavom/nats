@@ -80,7 +80,7 @@ export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceip
         TOTALS_H +
         PAYMENT_H +
         FOOTER_H +
-        20; // Extra buffer
+        5; // Extra buffer
 
     // Default to 80mm width if not specified
     const pageSize = (config.pageSize === "A4" || !config.pageSize)

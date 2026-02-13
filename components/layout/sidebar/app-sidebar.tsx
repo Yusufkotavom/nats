@@ -172,6 +172,10 @@ const data = {
         {
           title: "Terminal",
           url: "/pos",
+        },
+        {
+          title: "Sessions",
+          url: "/pos/sessions",
         }
       ],
     },

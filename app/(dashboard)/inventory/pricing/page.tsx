@@ -1,7 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
-import { getCategories, getPricingProducts } from "./actions";
+import { getCategories, getPricingProducts, getGlobalDiscounts } from "./actions";
 import { BatchPricingForm } from "./_components/batch-pricing-form";
 import { IndividualPricingTable } from "./_components/individual-pricing-table";
+import { GlobalDiscountManager } from "./_components/global-discount-manager";
 import { Protect } from "@/components/ui/protect";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SuperJSON } from "@/lib/superjson";
@@ -45,6 +46,13 @@ export default async function PricingPage({
         };
       },
     }),
+    queryClient.prefetchQuery({
+      queryKey: ["global-discounts"],
+      queryFn: async () => {
+        const res = await getGlobalDiscounts();
+        return SuperJSON.deserialize<any[]>(res);
+      },
+    }),
   ]);
 
   return (
@@ -57,6 +65,7 @@ export default async function PricingPage({
         <TabsList>
           <TabsTrigger value="individual">Individual Pricing</TabsTrigger>
           <TabsTrigger value="batch">Batch Pricing</TabsTrigger>
+          <TabsTrigger value="global">Global Discounts</TabsTrigger>
         </TabsList>
         <TabsContent value="batch" className="space-y-4">
           <Protect
@@ -72,6 +81,14 @@ export default async function PricingPage({
             fallback={<div>You do not have permission to manage pricing.</div>}
           >
             <IndividualPricingTable />
+          </Protect>
+        </TabsContent>
+        <TabsContent value="global" className="space-y-4">
+          <Protect
+            permission="products.edit"
+            fallback={<div>You do not have permission to manage pricing.</div>}
+          >
+            <GlobalDiscountManager />
           </Protect>
         </TabsContent>
       </Tabs>

@@ -1,22 +1,22 @@
-"use server";
+'use server';
 
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { Prisma, DiscountType } from "@/prisma/generated/prisma/client";
-import { authorizedAction } from "@/lib/permissions/protected-action";
-import { BatchPricingInput, PriceCalculationResult } from "./types";
-import { SuperJSON } from "@/lib/superjson";
-import { getSession } from "@/lib/auth/auth";
-import { hasPermission } from "@/lib/permissions/utils";
+import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+import { Prisma, DiscountType } from '@/prisma/generated/prisma/client';
+import { authorizedAction } from '@/lib/permissions/protected-action';
+import { BatchPricingInput, PriceCalculationResult } from './types';
+import { SuperJSON } from '@/lib/superjson';
+import { getSession } from '@/lib/auth/auth';
+import { hasPermission } from '@/lib/permissions/utils';
 
 export async function getCategories() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
+  if (!session || !hasPermission(session.permissions, 'products.view')) {
     return [];
   }
 
   const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
+    orderBy: { name: 'asc' },
   });
   return categories;
 }
@@ -25,12 +25,12 @@ export async function getPricingProducts(
   page: number = 1,
   limit: number = 10,
   search?: string,
-  categoryId?: string,
+  categoryId?: string
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
+  if (!session || !hasPermission(session.permissions, 'products.view')) {
     return {
-      products: [],
+      products: SuperJSON.serialize([]),
       total: 0,
       totalPages: 0,
     };
@@ -44,13 +44,13 @@ export async function getPricingProducts(
   if (search) {
     (where.AND as Prisma.ProductWhereInput[]).push({
       OR: [
-        { name: { contains: search, mode: "insensitive" } },
-        { sku: { contains: search, mode: "insensitive" } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { sku: { contains: search, mode: 'insensitive' } },
       ],
     });
   }
 
-  if (categoryId && categoryId !== "ALL") {
+  if (categoryId && categoryId !== 'ALL') {
     (where.AND as Prisma.ProductWhereInput[]).push({ categoryId });
   }
 
@@ -67,10 +67,10 @@ export async function getPricingProducts(
           select: { name: true },
         },
         discounts: {
-          orderBy: { priority: "desc" },
+          orderBy: { priority: 'desc' },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { name: 'asc' },
       skip,
       take: limit,
     }),
@@ -85,38 +85,38 @@ export async function getPricingProducts(
 }
 
 export const updateSinglePrice = authorizedAction(
-  "products.edit",
+  'products.edit',
   async (data: { id: string; price: number }) => {
     try {
       await updateProductPrice(data.id, data.price);
-      revalidatePath("/inventory/pricing");
+      revalidatePath('/inventory/pricing');
       return { success: true };
     } catch (error) {
-      console.error("Update price error:", error);
-      return { success: false, error: "Failed to update price" };
+      console.error('Update price error:', error);
+      return { success: false, error: 'Failed to update price' };
     }
-  },
+  }
 );
 
 export async function getProductDiscounts(productId: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
-    return [];
+  if (!session || !hasPermission(session.permissions, 'products.view')) {
+    return SuperJSON.serialize([]);
   }
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
     include: {
       discounts: {
-        orderBy: { priority: "desc" },
+        orderBy: { priority: 'desc' },
       },
     },
   });
-  return product?.discounts || [];
+  return SuperJSON.serialize(product?.discounts || []);
 }
 
 export const createAndAssignDiscount = authorizedAction(
-  "products.edit",
+  'products.edit',
   async (data: {
     productId: string;
     code: string;
@@ -183,7 +183,7 @@ export const createAndAssignDiscount = authorizedAction(
           },
         },
       });
-      revalidatePath("/inventory/pricing");
+      revalidatePath('/inventory/pricing');
       return {
         success: true,
         discount: {
@@ -192,31 +192,31 @@ export const createAndAssignDiscount = authorizedAction(
         },
       };
     } catch (error) {
-      console.error("Create discount error:", error);
-      return { success: false, error: "Failed to create/assign discount" };
+      console.error('Create discount error:', error);
+      return { success: false, error: 'Failed to create/assign discount' };
     }
-  },
+  }
 );
 
 export const toggleDiscountStatus = authorizedAction(
-  "products.edit",
+  'products.edit',
   async (data: { discountId: string; isActive: boolean }) => {
     try {
       await prisma.discount.update({
         where: { id: data.discountId },
         data: { isActive: data.isActive },
       });
-      revalidatePath("/inventory/pricing");
+      revalidatePath('/inventory/pricing');
       return { success: true };
     } catch (error) {
-      console.error("Toggle discount status error:", error);
-      return { success: false, error: "Failed to update discount status" };
+      console.error('Toggle discount status error:', error);
+      return { success: false, error: 'Failed to update discount status' };
     }
-  },
+  }
 );
 
 export const removeDiscountFromProduct = authorizedAction(
-  "products.edit",
+  'products.edit',
   async (data: { productId: string; discountId: string }) => {
     try {
       await prisma.product.update({
@@ -227,98 +227,223 @@ export const removeDiscountFromProduct = authorizedAction(
           },
         },
       });
-      revalidatePath("/inventory/pricing");
+      revalidatePath('/inventory/pricing');
       return { success: true };
     } catch (error) {
-      console.error("Remove discount error:", error);
-      return { success: false, error: "Failed to remove discount" };
+      console.error('Remove discount error:', error);
+      return { success: false, error: 'Failed to remove discount' };
     }
-  },
+  }
 );
 
-export async function previewPriceChanges(data: BatchPricingInput) {
+// --- Global Discounts ---
+
+export async function getGlobalDiscounts() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.edit")) {
-    return {
-      totalProducts: 0,
-      changes: [],
-    };
+  if (!session || !hasPermission(session.permissions, 'products.view')) {
+    return SuperJSON.serialize([]);
   }
 
+  const discounts = await prisma.discount.findMany({
+    where: {
+      products: {
+        none: {},
+      },
+    },
+    orderBy: { priority: 'desc' },
+  });
+
+  return SuperJSON.serialize(discounts);
+}
+
+export const createGlobalDiscount = authorizedAction(
+  'products.edit',
+  async (data: {
+    code: string;
+    description?: string;
+    type: DiscountType;
+    value: number;
+    startDate: Date;
+    endDate?: Date;
+    minQuantity?: number;
+    priority?: number;
+  }) => {
+    try {
+      const existing = await prisma.discount.findUnique({
+        where: { code: data.code },
+      });
+      if (existing) {
+        return { success: false, error: 'Discount code already exists' };
+      }
+
+      const discount = await prisma.discount.create({
+        data: {
+          code: data.code,
+          description: data.description,
+          type: data.type,
+          value: data.value,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          minQuantity: data.minQuantity,
+          priority: data.priority || 0,
+        },
+      });
+      revalidatePath('/inventory/pricing');
+      return { success: true, discount: SuperJSON.serialize(discount) };
+    } catch (error) {
+      console.error('Create global discount error:', error);
+      return { success: false, error: 'Failed to create global discount' };
+    }
+  }
+);
+
+export const updateGlobalDiscount = authorizedAction(
+  'products.edit',
+  async (data: {
+    id: string;
+    code: string;
+    description?: string;
+    type: DiscountType;
+    value: number;
+    startDate: Date;
+    endDate?: Date;
+    minQuantity?: number;
+    priority?: number;
+    isActive: boolean;
+  }) => {
+    try {
+      const discount = await prisma.discount.update({
+        where: { id: data.id },
+        data: {
+          code: data.code,
+          description: data.description,
+          type: data.type,
+          value: data.value,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          minQuantity: data.minQuantity,
+          priority: data.priority,
+          isActive: data.isActive,
+        },
+      });
+      revalidatePath('/inventory/pricing');
+      return { success: true, discount: SuperJSON.serialize(discount) };
+    } catch (error) {
+      console.error('Update global discount error:', error);
+      return { success: false, error: 'Failed to update discount' };
+    }
+  }
+);
+
+export const deleteGlobalDiscount = authorizedAction(
+  'products.edit',
+  async (id: string) => {
+    try {
+      await prisma.discount.delete({
+        where: { id },
+      });
+      revalidatePath('/inventory/pricing');
+      return { success: true };
+    } catch (error) {
+      console.error('Delete global discount error:', error);
+      return { success: false, error: 'Failed to delete discount' };
+    }
+  }
+);
+
+// --- Internal Helpers ---
+
+export async function previewPriceChanges(input: BatchPricingInput) {
   const where: Prisma.ProductWhereInput = {};
 
-  if (data.scope === "CATEGORY" && data.categoryId) {
-    where.categoryId = data.categoryId;
+  if (input.scope === 'CATEGORY' && input.categoryId) {
+    where.categoryId = input.categoryId;
   }
 
   const products = await prisma.product.findMany({
     where,
     select: {
       id: true,
-      name: true,
       price: true,
       cost: true,
-      sku: true,
     },
   });
 
-  const changes = products.map((p) => {
-    const currentPrice = p.price.toNumber();
-    const cost = p.cost.toNumber();
-    let newPrice = currentPrice;
+  const changes = products
+    .map((p) => {
+      let newPrice = p.price.toNumber();
+      const currentPrice = newPrice;
+      const cost = p.cost.toNumber();
 
-    switch (data.action) {
-      case "PERCENTAGE_INC":
-        newPrice = currentPrice * (1 + data.value / 100);
-        break;
-      case "PERCENTAGE_DEC":
-        newPrice = currentPrice * (1 - data.value / 100);
-        break;
-      case "COST_MARGIN":
-        newPrice = cost + cost * (data.value / 100);
-        break;
-      case "FIXED_AMOUNT_INC":
-        newPrice = currentPrice + data.value;
-        break;
-      case "FIXED_AMOUNT_DEC":
-        newPrice = currentPrice - data.value;
-        break;
-    }
+      switch (input.action) {
+        case 'PERCENTAGE_INC':
+          newPrice = currentPrice * (1 + input.value / 100);
+          break;
+        case 'PERCENTAGE_DEC':
+          newPrice = currentPrice * (1 - input.value / 100);
+          break;
+        case 'FIXED_AMOUNT_INC':
+          newPrice = currentPrice + input.value;
+          break;
+        case 'FIXED_AMOUNT_DEC':
+          newPrice = currentPrice - input.value;
+          break;
+        case 'COST_MARGIN':
+          if (cost > 0) {
+            newPrice = cost * (1 + input.value / 100);
+          }
+          break;
+      }
 
-    // Round to 2 decimals
-    newPrice = Math.round(newPrice * 100) / 100;
+      // Round to 2 decimal places
+      newPrice = Math.round(newPrice * 100) / 100;
 
-    // Ensure not negative
-    if (newPrice < 0) newPrice = 0;
+      if (newPrice !== currentPrice) {
+        return {
+          id: p.id,
+          currentPrice,
+          newPrice,
+        };
+      }
+      return null;
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 
-    const margin = ((newPrice - cost) / cost) * 100;
+  return { changes };
+}
 
-    return {
-      id: p.id,
-      sku: p.sku,
-      name: p.name,
-      currentPrice,
-      newPrice,
-      difference: newPrice - currentPrice,
-      cost,
-      margin,
-    };
+async function batchUpdateProductPrices(
+  updates: { id: string; price: number }[]
+) {
+  // Prisma doesn't support bulk update with different values efficiently yet
+  // We'll use a transaction of updates
+  await prisma.$transaction(
+    updates.map((u) =>
+      prisma.product.update({
+        where: { id: u.id },
+        data: { price: u.price },
+      })
+    )
+  );
+
+  return updates.length;
+}
+
+async function updateProductPrice(id: string, price: number) {
+  await prisma.product.update({
+    where: { id },
+    data: { price },
   });
-
-  return {
-    totalProducts: products.length,
-    changes: changes.filter((c) => c.difference !== 0), // Only show actual changes
-  };
 }
 
 export const applyBatchPricing = authorizedAction(
-  "products.edit",
+  'products.edit',
   async (data: BatchPricingInput) => {
     try {
       const preview = await previewPriceChanges(data);
 
       if (preview.changes.length === 0) {
-        return { success: true, message: "No prices to update." };
+        return { success: true, message: 'No prices to update.' };
       }
 
       const updates = preview.changes.map((c) => ({
@@ -328,24 +453,24 @@ export const applyBatchPricing = authorizedAction(
 
       const count = await batchUpdateProductPrices(updates);
 
-      revalidatePath("/inventory/products");
+      revalidatePath('/inventory/products');
 
-      return { success: true, count, error: "" };
+      return { success: true, count, error: '' };
     } catch (error) {
-      console.error("Batch pricing error:", error);
+      console.error('Batch pricing error:', error);
       return {
         success: false,
         count: undefined,
-        error: "Failed to apply batch pricing.",
+        error: 'Failed to apply batch pricing.',
       };
     }
-  },
+  }
 );
 
 export async function calculateProductPrice(
   productId: string,
   quantity: number = 1,
-  date: Date = new Date(),
+  date: Date = new Date()
 ): Promise<PriceCalculationResult> {
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -364,7 +489,7 @@ export async function calculateProductPrice(
           ],
         },
         orderBy: {
-          priority: "desc",
+          priority: 'desc',
         },
       },
     },
@@ -412,75 +537,4 @@ export async function calculateProductPrice(
     discountAmount,
     appliedDiscount,
   };
-}
-
-export async function updateProductPrice(productId: string, newPrice: number) {
-  return await prisma.$transaction(async (tx) => {
-    const product = await tx.product.findUnique({
-      where: { id: productId },
-    });
-
-    if (!product) {
-      throw new Error("Product not found");
-    }
-
-    // Update product price
-    const updatedProduct = await tx.product.update({
-      where: { id: productId },
-      data: {
-        price: newPrice,
-      },
-    });
-
-    // Add to history
-    await tx.priceHistory.create({
-      data: {
-        productId: productId,
-        price: newPrice,
-        effectiveDate: new Date(),
-      },
-    });
-
-    return updatedProduct;
-  });
-}
-
-export async function batchUpdateProductPrices(
-  updates: { id: string; price: number }[],
-) {
-  if (updates.length === 0) return 0;
-
-  return await prisma.$transaction(async (tx) => {
-    let count = 0;
-    const now = new Date();
-
-    for (const update of updates) {
-      const product = await tx.product.findUnique({
-        where: { id: update.id },
-        select: { price: true },
-      });
-
-      if (!product) continue;
-
-      const oldPrice = product.price.toNumber();
-      const newPrice = update.price;
-
-      if (oldPrice !== newPrice) {
-        await tx.product.update({
-          where: { id: update.id },
-          data: { price: newPrice },
-        });
-
-        await tx.priceHistory.create({
-          data: {
-            productId: update.id,
-            price: newPrice,
-            effectiveDate: now,
-          },
-        });
-        count++;
-      }
-    }
-    return count;
-  });
 }
