@@ -61,7 +61,7 @@ interface BudgetFormData {
 interface BudgetFormProps {
   departments: Department[];
   projects: Project[];
-  accounts: Account[];
+  accounts: (Account & { children?: { id: string }[] })[];
   initialData?: any;
   isEdit?: boolean;
 }
@@ -193,6 +193,10 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
 
   const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
+  const postingAccounts = accounts.filter(
+    (a) => !a.children || a.children.length === 0,
+  );
+
   return (
     <PageFormLayout>
       <PageFormHeader>
@@ -304,7 +308,7 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
                           <SearchableSelect
                             value={item.accountId}
                             onValueChange={(val) => updateItem(index, "accountId", val || "")}
-                            options={accounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
+                            options={postingAccounts.map(acc => ({ value: acc.id, label: `${acc.code} - ${acc.name}` }))}
                             placeholder="Select Account"
                             className="w-full border-0 shadow-none bg-transparent focus:ring-0"
                           />
