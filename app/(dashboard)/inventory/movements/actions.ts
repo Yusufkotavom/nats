@@ -126,24 +126,17 @@ export async function getMovements() {
   return SuperJSON.serialize(movements);
 }
 
+import { inventoryMovementSchema } from "@/lib/validation/schemas";
+
 export const createBatchMovement = authorizedAction(
   "inventory_movements.create",
-  async (data: {
-    type: MovementType;
-    fromWarehouseId?: string;
-    toWarehouseId?: string;
-    items: {
-      productId: string;
-      quantity: number;
-      uomType?: "base" | "purchase" | "sales";
-      unitCost?: number;
-      locationId?: string;
-      batchNumber?: string;
-      notes?: string;
-    }[];
-    reference?: string;
-    notes?: string;
-  }) => {
+  async (rawData: unknown) => {
+    const parseResult = inventoryMovementSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      return { success: false, error: parseResult.error.message };
+    }
+    const data = parseResult.data;
+
     const { type, fromWarehouseId, toWarehouseId, items, reference, notes } =
       data;
 

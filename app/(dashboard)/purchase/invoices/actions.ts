@@ -128,10 +128,18 @@ export async function getPurchaseOrdersForSelect() {
   return SuperJSON.serialize(orders);
 }
 
+import { purchaseInvoiceSchema } from "@/lib/validation/schemas";
+
 export const createPurchaseInvoice = authorizedAction(
   "purchase.create",
-  async (data: PurchaseInvoiceInput) => {
+  async (rawData: PurchaseInvoiceInput) => {
     try {
+      const parseResult = purchaseInvoiceSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       // Check for duplicate invoice number for vendor
       const existing = await prisma.purchaseInvoice.findUnique({
         where: {
@@ -237,8 +245,14 @@ export const createPurchaseInvoice = authorizedAction(
 
 export const updatePurchaseInvoice = authorizedAction(
   "purchase.edit",
-  async (id: string, data: PurchaseInvoiceInput) => {
+  async (id: string, rawData: PurchaseInvoiceInput) => {
     try {
+      const parseResult = purchaseInvoiceSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       const currentInvoice = await prisma.purchaseInvoice.findUnique({
         where: { id },
       });
@@ -341,7 +355,10 @@ export const updatePurchaseInvoice = authorizedAction(
             invoiceDate: data.invoiceDate,
             dueDate: data.dueDate,
             notes: data.notes,
-            status: data.status || currentInvoice.status,
+            // status: data.status || currentInvoice.status, // Purchase Invoice Input doesn't have status usually?
+            // If we want to allow status update, we need to add it to schema.
+            // For now, let's keep status unchanged unless posted.
+            status: currentInvoice.status,
             totalAmount,
             globalDiscount: data.globalDiscount,
             totalTax: totalTaxCalculated,

@@ -137,10 +137,18 @@ async function generateInvoiceNumber() {
   return `INV-${year}${month}-${sequence}`;
 }
 
+import { salesInvoiceSchema } from "@/lib/validation/schemas";
+
 export const createSalesInvoice = authorizedAction(
   "sales.create",
-  async (data: SalesInvoiceInput) => {
+  async (rawData: SalesInvoiceInput) => {
     try {
+      const parseResult = salesInvoiceSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       // Generate Invoice Number if not provided or if auto-generated logic is preferred
       // For now, assume user might provide it or we generate it. 
       // Purchase module allowed user input, but Sales usually auto-generates.
@@ -252,8 +260,14 @@ export const createSalesInvoice = authorizedAction(
 
 export const updateSalesInvoice = authorizedAction(
   "sales.edit",
-  async (id: string, data: SalesInvoiceInput) => {
+  async (id: string, rawData: SalesInvoiceInput) => {
     try {
+      const parseResult = salesInvoiceSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       const currentInvoice = await prisma.salesInvoice.findUnique({
         where: { id },
       });

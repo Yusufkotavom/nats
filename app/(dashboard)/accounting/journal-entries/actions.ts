@@ -142,13 +142,22 @@ export const getJournalEntry = authorizedAction(
  * @param data - The journal entry data including lines and attachments
  * @returns - Object containing the created entry or error
  */
+import { createJournalEntrySchema } from "@/lib/validation/schemas";
+
 export const createJournalEntry = authorizedAction(
   "journal_entries.create",
-  async (data: SuperJSONResult) => {
+  async (rawData: SuperJSONResult) => {
     try {
       const data2 = SuperJSON.deserialize(
-        data as unknown as unknown as SuperJSONResult,
+        rawData as unknown as unknown as SuperJSONResult,
       ) as unknown as CreateJournalEntryData;
+
+      const parseResult = createJournalEntrySchema.safeParse(data2);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       const user = await getSession();
 
       if (!user?.userId) {
@@ -157,21 +166,17 @@ export const createJournalEntry = authorizedAction(
 
       // Validate debit = credit
       const totalDebit =
-        data2?.lines.reduce(
+        data.lines.reduce(
           (sum, line) =>
             sum +
-            (line?.debitAmount instanceof Decimal
-              ? line.debitAmount.toNumber()
-              : Number(line?.debitAmount || 0)),
+            (line?.debitAmount || 0),
           0,
         ) || 0;
       const totalCredit =
-        data2?.lines.reduce(
+        data.lines.reduce(
           (sum, line) =>
             sum +
-            (line?.creditAmount instanceof Decimal
-              ? line.creditAmount.toNumber()
-              : Number(line?.creditAmount || 0)),
+            (line?.creditAmount || 0),
           0,
         ) || 0;
 
@@ -180,7 +185,7 @@ export const createJournalEntry = authorizedAction(
         return { success: false, error: "Debits must equal credits" };
       }
 
-      const dateStr = data2?.transactionDate
+      const dateStr = data.transactionDate
         .toISOString()
         .slice(0, 10)
         .replace(/-/g, "");
@@ -199,12 +204,12 @@ export const createJournalEntry = authorizedAction(
         data: {
           userId: user?.userId,
           entryNumber,
-          transactionDate: data2?.transactionDate || new Date(),
-          description: data2?.description,
-          notes: data2?.notes,
+          transactionDate: data.transactionDate || new Date(),
+          description: data.description,
+          notes: data.notes,
           status: "draft",
           lines: {
-            create: data2?.lines.map((line, index) => ({
+            create: data.lines.map((line, index) => ({
               accountId: line.accountId,
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
@@ -215,9 +220,9 @@ export const createJournalEntry = authorizedAction(
               lineNumber: index + 1,
             })),
           },
-          attachments: data2?.attachments?.length
+          attachments: data.attachments?.length
             ? {
-              connect: data2.attachments.map((a) => ({ id: a.id })),
+              connect: data.attachments.map((a) => ({ id: a.id })),
             }
             : undefined,
         },

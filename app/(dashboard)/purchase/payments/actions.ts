@@ -130,10 +130,18 @@ export async function getCashAccounts() {
   return SuperJSON.serialize(accounts);
 }
 
+import { purchasePaymentSchema } from "@/lib/validation/schemas";
+
 export const createPurchasePayment = authorizedAction(
   "purchase.payments",
-  async (data: PurchasePaymentInput) => {
+  async (rawData: PurchasePaymentInput) => {
     try {
+      const parseResult = purchasePaymentSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
 
@@ -167,9 +175,10 @@ export const createPurchasePayment = authorizedAction(
       // 3. Create Transaction
       const result = await prisma.$transaction(async (tx) => {
         // Create Purchase Payment
+        const paymentNumber = data.paymentNumber || `PAY-${Date.now()}`;
         const payment = await tx.purchasePayment.create({
           data: {
-            paymentNumber: data.paymentNumber,
+            paymentNumber,
             contactId: data.contactId,
             purchaseInvoiceId: data.purchaseInvoiceId,
             paymentDate: data.paymentDate,

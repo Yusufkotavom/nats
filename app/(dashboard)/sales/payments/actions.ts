@@ -141,10 +141,18 @@ async function generatePaymentNumber() {
   return `PAY-IN-${year}${month}-${sequence}`;
 }
 
+import { salesPaymentSchema } from "@/lib/validation/schemas";
+
 export const createSalesPayment = authorizedAction(
   "sales.payments",
-  async (data: SalesPaymentInput) => {
+  async (rawData: SalesPaymentInput) => {
     try {
+      const parseResult = salesPaymentSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
 
@@ -396,8 +404,14 @@ export const deleteSalesPayment = authorizedAction(
 
 export const updateSalesPayment = authorizedAction(
   "sales.payments",
-  async (id: string, data: SalesPaymentInput) => {
+  async (id: string, rawData: SalesPaymentInput) => {
     try {
+      const parseResult = salesPaymentSchema.safeParse(rawData);
+      if (!parseResult.success) {
+        return { success: false, error: parseResult.error.message };
+      }
+      const data = parseResult.data;
+
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
 
