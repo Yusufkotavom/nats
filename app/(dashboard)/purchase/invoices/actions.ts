@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { JournalService } from "@/lib/accounting/journal-service";
 import { Decimal } from "decimal.js";
+import { CalculationService } from "@/lib/utils/calculation-service";
 
 export { getPurchaseOrder };
 
@@ -160,51 +161,52 @@ export const createPurchaseInvoice = authorizedAction(
       // Fetch tax rates
       const taxRates = await prisma.taxRate.findMany();
 
-      let itemsTotal = 0;
-      let totalTaxCalculated = 0;
-
       const itemsToCreate = data.items.map((item) => {
-        const subtotal = item.quantity * item.unitPrice;
-        const discountAmount = subtotal * ((item.discount || 0) / 100);
-        const taxableAmount = Math.max(0, subtotal - discountAmount);
-
-        let taxAmount = 0;
         let taxRateSnapshot: number | undefined = undefined;
+        let taxAmount = item.tax || 0;
 
         if (item.taxRateId) {
           const rateObj = taxRates.find(r => r.id === item.taxRateId);
           if (rateObj) {
-            taxAmount = taxableAmount * (Number(rateObj.rate) / 100);
             taxRateSnapshot = Number(rateObj.rate);
           }
-        } else {
-          taxAmount = item.tax || 0;
         }
 
-        taxAmount = Number(taxAmount.toFixed(2));
-        const total = taxableAmount + taxAmount;
-
-        itemsTotal += total;
-        totalTaxCalculated += taxAmount;
+        const calculated = CalculationService.calculateLineItem(
+          {
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+            tax: taxAmount,
+          },
+          taxRateSnapshot
+        );
 
         return {
           description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          totalPrice: total,
+          totalPrice: calculated.total.toNumber(),
           discount: item.discount,
-          tax: taxAmount,
+          tax: calculated.taxAmount.toNumber(),
           taxRateId: item.taxRateId,
           taxRateSnapshot: taxRateSnapshot,
+          productId: item.productId,
           accountId: item.accountId,
+          purchaseOrderItemId: item.purchaseOrderItemId,
+          _calculated: calculated
         };
       });
 
-      const totalAmount =
-        itemsTotal -
-        (data.globalDiscount || 0) +
-        (data.shippingCost || 0) +
-        (data.handlingCost || 0);
+      const totals = CalculationService.calculateInvoiceTotals(
+        itemsToCreate.map(i => i._calculated),
+        data.globalDiscount,
+        data.shippingCost,
+        data.handlingCost
+      );
+
+      // Remove internal field before creating
+      const itemsData = itemsToCreate.map(({ _calculated, ...rest }) => rest);
 
       const result = await prisma.purchaseInvoice.create({
         data: {
@@ -215,15 +217,15 @@ export const createPurchaseInvoice = authorizedAction(
           dueDate: data.dueDate,
           notes: data.notes,
           status: "DRAFT", // Default to DRAFT
-          totalAmount,
+          totalAmount: totals.totalAmount.toNumber(),
           globalDiscount: data.globalDiscount,
-          totalTax: totalTaxCalculated,
+          totalTax: totals.totalTax.toNumber(),
           shippingCost: data.shippingCost,
           handlingCost: data.handlingCost,
           departmentId: data.departmentId,
           projectId: data.projectId,
           items: {
-            create: itemsToCreate,
+            create: itemsData,
           },
           attachments: {
             connect: data.attachmentIds?.map((id) => ({ id })) || [],
@@ -293,51 +295,52 @@ export const updatePurchaseInvoice = authorizedAction(
       // Fetch tax rates
       const taxRates = await prisma.taxRate.findMany();
 
-      let itemsTotal = 0;
-      let totalTaxCalculated = 0;
-
       const itemsToCreate = data.items.map((item) => {
-        const subtotal = item.quantity * item.unitPrice;
-        const discountAmount = subtotal * ((item.discount || 0) / 100);
-        const taxableAmount = Math.max(0, subtotal - discountAmount);
-
-        let taxAmount = 0;
         let taxRateSnapshot: number | undefined = undefined;
+        let taxAmount = item.tax || 0;
 
         if (item.taxRateId) {
           const rateObj = taxRates.find(r => r.id === item.taxRateId);
           if (rateObj) {
-            taxAmount = taxableAmount * (Number(rateObj.rate) / 100);
             taxRateSnapshot = Number(rateObj.rate);
           }
-        } else {
-          taxAmount = item.tax || 0;
         }
 
-        taxAmount = Number(taxAmount.toFixed(2));
-        const total = taxableAmount + taxAmount;
-
-        itemsTotal += total;
-        totalTaxCalculated += taxAmount;
+        const calculated = CalculationService.calculateLineItem(
+          {
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+            tax: taxAmount,
+          },
+          taxRateSnapshot
+        );
 
         return {
           description: item.description,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          totalPrice: total,
+          totalPrice: calculated.total.toNumber(),
           discount: item.discount,
-          tax: taxAmount,
+          tax: calculated.taxAmount.toNumber(),
           taxRateId: item.taxRateId,
           taxRateSnapshot: taxRateSnapshot,
+          productId: item.productId,
           accountId: item.accountId,
+          purchaseOrderItemId: item.purchaseOrderItemId,
+          _calculated: calculated
         };
       });
 
-      const totalAmount =
-        itemsTotal -
-        (data.globalDiscount || 0) +
-        (data.shippingCost || 0) +
-        (data.handlingCost || 0);
+      const totals = CalculationService.calculateInvoiceTotals(
+        itemsToCreate.map(i => i._calculated),
+        data.globalDiscount,
+        data.shippingCost,
+        data.handlingCost
+      );
+
+      // Remove internal field before creating
+      const itemsData = itemsToCreate.map(({ _calculated, ...rest }) => rest);
 
       const result = await prisma.$transaction(async (tx) => {
         // Delete existing items
@@ -355,19 +358,16 @@ export const updatePurchaseInvoice = authorizedAction(
             invoiceDate: data.invoiceDate,
             dueDate: data.dueDate,
             notes: data.notes,
-            // status: data.status || currentInvoice.status, // Purchase Invoice Input doesn't have status usually?
-            // If we want to allow status update, we need to add it to schema.
-            // For now, let's keep status unchanged unless posted.
             status: currentInvoice.status,
-            totalAmount,
+            totalAmount: totals.totalAmount.toNumber(),
             globalDiscount: data.globalDiscount,
-            totalTax: totalTaxCalculated,
+            totalTax: totals.totalTax.toNumber(),
             shippingCost: data.shippingCost,
             handlingCost: data.handlingCost,
             departmentId: data.departmentId,
             projectId: data.projectId,
             items: {
-              create: itemsToCreate,
+              create: itemsData,
             },
             attachments: {
               set: data.attachmentIds?.map((id) => ({ id })) || [],
