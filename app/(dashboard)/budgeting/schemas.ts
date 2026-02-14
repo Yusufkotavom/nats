@@ -23,8 +23,10 @@ export const budgetSchema = z.object({
   name: z.string().min(1, "Name is required"),
   fiscalYear: z.number().int().min(2000).max(2100),
   description: z.string().optional(),
-  departmentId: z.string().optional(),
-  projectId: z.string().optional(),
+  departmentId: z.string().optional().nullable(),
+  projectId: z.string().optional().nullable(),
+  isDefault: z.boolean().default(false),
+  totalAmount: z.number().min(0).default(0),
   items: z.array(budgetItemSchema).default([]),
 });
 

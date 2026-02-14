@@ -71,6 +71,8 @@ export async function createBudget(data: z.infer<typeof budgetSchema>) {
       description: parsed.description,
       departmentId: parsed.departmentId,
       projectId: parsed.projectId,
+      isDefault: parsed.isDefault,
+      totalAmount: parsed.totalAmount,
       createdBy: session.userId,
       status: "DRAFT",
       items: {
@@ -118,6 +120,8 @@ export async function updateBudget(id: string, data: z.infer<typeof budgetSchema
       description: parsed.description,
       departmentId: parsed.departmentId,
       projectId: parsed.projectId,
+      isDefault: parsed.isDefault,
+      totalAmount: parsed.totalAmount,
     },
   });
 
@@ -252,6 +256,12 @@ export async function getBudgetVariance(budgetId: string) {
     whereClause.projectId = budget.projectId;
   }
 
+  // If no dimensions are set, treat as Default Budget (Unassigned Transactions)
+  if (!budget.departmentId && !budget.projectId) {
+    whereClause.departmentId = null;
+    whereClause.projectId = null;
+  }
+
   const varianceData = await Promise.all(budget.items.map(async (item) => {
     const aggregates = await prisma.journalEntryLine.aggregate({
       where: {
@@ -293,4 +303,83 @@ export async function getBudgetVariance(budgetId: string) {
   }));
 
   return varianceData;
+}
+
+export async function checkBudgetAvailability(
+  departmentId: string | null | undefined,
+  projectId: string | null | undefined,
+  date: Date,
+  amount: number
+) {
+  const fiscalYear = date.getFullYear();
+
+  // Find Budget
+  const where: any = {
+    fiscalYear,
+    status: "APPROVED",
+  };
+
+  if (departmentId) {
+    where.departmentId = departmentId;
+  } else if (projectId) {
+    where.projectId = projectId;
+  } else {
+    where.departmentId = null;
+    where.projectId = null;
+  }
+
+  const budget = await prisma.budget.findFirst({
+    where,
+    include: { items: true }
+  });
+
+  if (!budget) {
+    return { available: true, warning: "No budget defined for this period." };
+  }
+
+  const startDate = new Date(fiscalYear, 0, 1);
+  const endDate = new Date(fiscalYear, 11, 31);
+
+  const jeWhere: any = {
+    transactionDate: { gte: startDate, lte: endDate },
+    status: "posted",
+  };
+
+  if (departmentId) jeWhere.departmentId = departmentId;
+  if (projectId) jeWhere.projectId = projectId;
+  if (!departmentId && !projectId) {
+    jeWhere.departmentId = null;
+    jeWhere.projectId = null;
+  }
+
+  const aggregates = await prisma.journalEntryLine.aggregate({
+    where: jeWhere,
+    _sum: { debitAmount: true, creditAmount: true }
+  });
+
+  // Assuming expense nature (Debit positive)
+  const totalActual = (aggregates._sum.debitAmount?.toNumber() || 0) - (aggregates._sum.creditAmount?.toNumber() || 0);
+
+  const totalBudget = budget.totalAmount.toNumber();
+  const itemsTotal = budget.items.reduce((sum, item) => sum + item.totalAmount.toNumber(), 0);
+
+  const limit = totalBudget > 0 ? totalBudget : itemsTotal;
+
+  const remaining = limit - totalActual;
+
+  if (amount > remaining) {
+    return {
+      available: false,
+      warning: `Exceeds budget! Limit: ${limit.toFixed(2)}, Used: ${totalActual.toFixed(2)}, Remaining: ${remaining.toFixed(2)}`
+    };
+  }
+
+  if (remaining - amount < limit * 0.1) {
+    return {
+      available: true,
+      warning: `Warning: approaching budget limit. Remaining after this: ${(remaining - amount).toFixed(2)}`
+    };
+  }
+
+  return { available: true };
 }

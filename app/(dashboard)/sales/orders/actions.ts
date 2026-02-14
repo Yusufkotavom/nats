@@ -67,6 +67,8 @@ export async function getSalesOrders(
       where,
       include: {
         contact: true,
+        department: true,
+        project: true,
         createdBy: { select: { name: true } },
         updatedBy: { select: { name: true } },
         confirmedBy: { select: { name: true } },
@@ -108,6 +110,8 @@ export async function getSalesOrder(id: string) {
     where: { id },
     include: {
       contact: true,
+      department: true,
+      project: true,
       createdBy: { select: { name: true } },
       updatedBy: { select: { name: true } },
       confirmedBy: { select: { name: true } },
@@ -180,6 +184,8 @@ export const createSalesOrder = authorizedAction(
           subtotal,
           taxAmount,
           discountAmount,
+          departmentId: data.departmentId,
+          projectId: data.projectId,
           createdById: session?.userId,
           items: {
             create: data.items.map((item) => ({
@@ -257,6 +263,8 @@ export const updateSalesOrder = authorizedAction(
             status: "DRAFT", // Ensure it stays DRAFT during update
             totalAmount,
             subtotal,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             updatedById: session?.userId,
             items: {
               create: data.items.map((item) => ({

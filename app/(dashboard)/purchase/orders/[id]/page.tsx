@@ -5,6 +5,7 @@ import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { getProducts } from "@/app/(dashboard)/inventory/products/actions";
 import { SuperJSONResult } from "superjson";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 
 export default async function Page({
   params,
@@ -12,10 +13,12 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [orderResult, vendors, products] = await Promise.all([
+  const [orderResult, vendors, products, departments, projects] = await Promise.all([
     getPurchaseOrder(id),
     getContacts({ type: ContactType.VENDOR }),
     getProducts(),
+    getDepartments(),
+    getProjects(),
   ]);
 
   if (!orderResult) {
@@ -27,6 +30,8 @@ export default async function Page({
       order={orderResult as unknown as SuperJSONResult}
       vendors={vendors.data}
       products={products.products}
+      departments={departments}
+      projects={projects}
       readonly
     />
   );

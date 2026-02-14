@@ -10,6 +10,7 @@ import {
   fetchEquityData,
   fetchRatiosData,
 } from "@/app/(dashboard)/accounting/reports/data";
+import { fetchBudgetTrackingData } from "@/app/(dashboard)/budgeting/_reports/budget-tracking/data";
 
 export const serverRegistry = {
   "SALES_ORDER": {
@@ -41,6 +42,9 @@ export const serverRegistry = {
   },
   "FINANCIAL_RATIOS": {
     fetchData: fetchRatiosData
+  },
+  "BUDGET_TRACKING": {
+    fetchData: fetchBudgetTrackingData
   }
 } as const;
 

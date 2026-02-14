@@ -3,6 +3,8 @@ import { Prisma, PurchaseOrderStatus } from "@/prisma/generated/prisma/client";
 export type PurchaseOrderWithDetails = Prisma.PurchaseOrderGetPayload<{
   include: {
     contact: true;
+    department: true;
+    project: true;
     createdBy: { select: { name: true } };
     updatedBy: { select: { name: true } };
     issuedBy: { select: { name: true } };
@@ -36,4 +38,6 @@ export type PurchaseOrderInput = {
   status?: PurchaseOrderStatus;
   items: PurchaseOrderItemInput[];
   attachmentIds?: string[];
+  departmentId?: string | null;
+  projectId?: string | null;
 };

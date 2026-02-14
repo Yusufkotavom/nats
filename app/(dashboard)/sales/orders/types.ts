@@ -3,6 +3,8 @@ import { Prisma, SalesOrderStatus } from "@/prisma/generated/prisma/client";
 export type SalesOrderWithDetails = Prisma.SalesOrderGetPayload<{
   include: {
     contact: true;
+    department: true;
+    project: true;
     createdBy: { select: { name: true } };
     updatedBy: { select: { name: true } };
     confirmedBy: { select: { name: true } };
@@ -38,4 +40,6 @@ export type SalesOrderInput = {
   status?: SalesOrderStatus;
   items: SalesOrderItemInput[];
   attachmentIds?: string[];
+  departmentId?: string | null;
+  projectId?: string | null;
 };

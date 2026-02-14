@@ -29,6 +29,8 @@ import {
 import { Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateId, formatCurrency } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface BudgetItemData {
   id?: string;
@@ -55,6 +57,8 @@ interface BudgetFormData {
   description?: string;
   departmentId?: string | null;
   projectId?: string | null;
+  isDefault: boolean;
+  totalAmount: number;
   items: BudgetItemData[];
 }
 
@@ -76,6 +80,8 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
         ...initialData,
         departmentId: initialData.departmentId || null,
         projectId: initialData.projectId || null,
+        isDefault: initialData.isDefault || false,
+        totalAmount: Number(initialData.totalAmount) || 0,
         items: initialData.items?.map((item: any) => ({
           ...item,
           totalAmount: Number(item.totalAmount),
@@ -100,6 +106,8 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
       description: "",
       departmentId: null,
       projectId: null,
+      isDefault: false,
+      totalAmount: 0,
       items: [],
     };
   });
@@ -116,8 +124,10 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
 
     const dataToSubmit = {
       ...formData,
-      departmentId: formData.departmentId || undefined,
-      projectId: formData.projectId || undefined,
+      departmentId: formData.isDefault ? null : (formData.departmentId || null),
+      projectId: formData.isDefault ? null : (formData.projectId || null),
+      isDefault: formData.isDefault,
+      totalAmount: formData.totalAmount,
     };
 
     try {
@@ -241,6 +251,35 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
               onChange={(e) => setFormData({ ...formData, fiscalYear: parseInt(e.target.value) || 0 })}
               required
             />
+
+            <div className="col-span-1 md:col-span-2 flex items-center space-x-2 border p-4 rounded-md bg-muted/20">
+              <Switch
+                id="isDefault"
+                checked={formData.isDefault}
+                onCheckedChange={(checked) => setFormData({
+                  ...formData,
+                  isDefault: checked,
+                  departmentId: checked ? null : formData.departmentId,
+                  projectId: checked ? null : formData.projectId
+                })}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="isDefault" className="font-medium">Default / Global Budget</Label>
+                <p className="text-xs text-muted-foreground">
+                  Check this to make this the default budget for transactions not explicitly linked to any department or project.
+                </p>
+              </div>
+            </div>
+
+            <CustomInput
+              label="Global Allocation Limit"
+              id="totalAmount"
+              type="number"
+              value={formData.totalAmount}
+              onChange={(e) => setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 })}
+              placeholder="0.00"
+            />
+
             <div className="space-y-1">
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Department (Optional)</label>
               <SearchableSelect
@@ -248,6 +287,7 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
                 onValueChange={(val) => setFormData({ ...formData, departmentId: val })}
                 options={departments.map(d => ({ value: d.id, label: d.name }))}
                 placeholder="Select Department"
+                disabled={formData.isDefault}
               />
             </div>
             <div className="space-y-1">
@@ -257,6 +297,7 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
                 onValueChange={(val) => setFormData({ ...formData, projectId: val })}
                 options={projects.map(p => ({ value: p.id, label: p.name }))}
                 placeholder="Select Project"
+                disabled={formData.isDefault}
               />
             </div>
             <div className="col-span-1 md:col-span-2">

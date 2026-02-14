@@ -12,6 +12,11 @@ model Department {
 
   budgets     Budget[]
   journalLines JournalEntryLine[]
+  purchaseOrders   PurchaseOrder[]
+  purchaseInvoices PurchaseInvoice[]
+  salesOrders      SalesOrder[]
+  salesInvoices    SalesInvoice[]
+  cashTransactions CashTransaction[]
 }
 
 model Project {
@@ -29,6 +34,11 @@ model Project {
 
   budgets     Budget[]
   journalLines JournalEntryLine[]
+  purchaseOrders   PurchaseOrder[]
+  purchaseInvoices PurchaseInvoice[]
+  salesOrders      SalesOrder[]
+  salesInvoices    SalesInvoice[]
+  cashTransactions CashTransaction[]
 }
 
 enum ProjectStatus {
@@ -50,6 +60,9 @@ model Budget {
   department   Department? @relation(fields: [departmentId], references: [id])
   projectId    String?
   project      Project?    @relation(fields: [projectId], references: [id])
+  
+  isDefault   Boolean  @default(false)
+  totalAmount Decimal  @default(0) // Top-down allocation limit
 
   createdBy   String
   createdByUser User @relation("BudgetCreator", fields: [createdBy], references: [id])

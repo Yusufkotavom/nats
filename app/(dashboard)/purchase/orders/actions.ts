@@ -67,6 +67,8 @@ export async function getPurchaseOrders(
       where,
       include: {
         contact: true,
+        department: true,
+        project: true,
         createdBy: { select: { name: true } },
         updatedBy: { select: { name: true } },
         issuedBy: { select: { name: true } },
@@ -107,6 +109,8 @@ export async function getPurchaseOrder(id: string) {
     where: { id },
     include: {
       contact: true,
+      department: true,
+      project: true,
       createdBy: { select: { name: true } },
       updatedBy: { select: { name: true } },
       issuedBy: { select: { name: true } },
@@ -170,6 +174,8 @@ export const createPurchaseOrder = authorizedAction(
           notes: data.notes,
           status: "DRAFT",
           totalAmount,
+          departmentId: data.departmentId,
+          projectId: data.projectId,
           createdById: session?.userId,
           items: {
             create: data.items.map((item) => ({
@@ -240,6 +246,8 @@ export const updatePurchaseOrder = authorizedAction(
             notes: data.notes,
             status: "DRAFT", // Ensure it stays DRAFT during update
             totalAmount,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             updatedById: session?.userId,
             items: {
               create: data.items.map((item) => ({

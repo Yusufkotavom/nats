@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,11 +80,18 @@ import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog"
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { Paperclip } from "lucide-react";
 import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
+import { Department, Project } from "@/prisma/generated/prisma/client";
+import { checkBudgetAvailability } from "@/app/(dashboard)/budgeting/actions";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface SalesOrderFormProps {
   order?: SuperJSONResult;
   customers: Awaited<ReturnType<typeof getContacts>>["data"];
   products: Awaited<ReturnType<typeof getProducts>>["products"];
+  departments?: Department[];
+  projects?: Project[];
   readonly?: boolean;
 }
 
@@ -92,6 +99,8 @@ export function SalesOrderForm({
   order: serializedOrder,
   customers,
   products: serializedProducts,
+  departments = [],
+  projects = [],
   readonly = false,
 }: SalesOrderFormProps) {
   const order = serializedOrder
@@ -124,12 +133,16 @@ export function SalesOrderForm({
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
 
+  const [budgetWarning, setBudgetWarning] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<
     Omit<SalesOrderInput, "items"> & {
       items: (SalesOrderInput["items"][0] & { id: string })[];
     }
   >({
     contactId: order?.contactId || "",
+    departmentId: order?.departmentId || null,
+    projectId: order?.projectId || null,
     orderDate: order?.orderDate ? new Date(order.orderDate) : new Date(),
     expectedDate: order?.expectedDate ? new Date(order.expectedDate) : null,
     notes: order?.notes || "",
@@ -335,6 +348,22 @@ export function SalesOrderForm({
     }
   };
 
+  useEffect(() => {
+    // For Sales Orders, budget checks might be different (Revenue Budget?).
+    // But the user asked for "budget tracking system" which usually implies spending.
+    // However, sales contribute to Revenue Budget.
+    // If we want to check Revenue Target, we can use similar logic but reverse check (Warning if below target?).
+    // The requirement "budget validation logic that checks transaction amounts against the assigned budget... provides real-time warnings when approaching or exceeding budget limits".
+    // "Approaching or exceeding limits" usually means spending limits.
+    // For Sales, it might be "Credit Limit"?
+    // But since the request is about "Budgeting Module Integration", and usually budgets track expenses or revenue targets.
+    // Let's assume for now we validate against budget just to link it.
+    // BUT, checking "availability" (spending) doesn't make sense for Sales (Income).
+    // So for Sales, we might just want to LINK it, but NOT warn about "exceeding budget" (unless we are exceeding a SALES QUOTA? which is good).
+    // I will skip the warning logic for SalesOrder unless I inverse it.
+    // But I will keep the linkage.
+  }, []);
+
   const displayOrderNumber = order?.orderNumber?.startsWith("DRAFT")
     ? "Draft"
     : order?.orderNumber;
@@ -537,6 +566,13 @@ export function SalesOrderForm({
         </div>
       </div>
       <form onSubmit={handleSubmit}>
+        {budgetWarning && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Budget Warning</AlertTitle>
+            <AlertDescription>{budgetWarning}</AlertDescription>
+          </Alert>
+        )}
         <div className="grid gap-4">
           <div className="space-y-4">
             <Card>
@@ -597,6 +633,29 @@ export function SalesOrderForm({
                         }
                         disabled={isReadOnly}
                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Department</label>
+                        <SearchableSelect
+                          value={formData.departmentId || ""}
+                          onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
+                          options={departments.map(d => ({ value: d.id, label: d.name }))}
+                          placeholder="Default Budget"
+                          disabled={isReadOnly}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Project</label>
+                        <SearchableSelect
+                          value={formData.projectId || ""}
+                          onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
+                          options={projects.map(p => ({ value: p.id, label: p.name }))}
+                          placeholder="Default Budget"
+                          disabled={isReadOnly}
+                        />
+                      </div>
                     </div>
                   </div>
                   <CustomTextarea
