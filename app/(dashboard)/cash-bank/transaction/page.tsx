@@ -22,7 +22,9 @@ import {
   PageListHeader,
   PageListLayout,
   PageListTitle,
+  PageListFilter,
 } from "@/components/layout/page/list-layout";
+import { CashTransactionFilters } from "./_components/cash-transaction-filters";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { DataTable, Column } from "@/components/ui/data-table";
@@ -60,15 +62,16 @@ interface TransactionWithDetails extends CashTransaction {
 export default function CashTransactionListPage() {
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
+  const search = searchParams.get("search") || "";
   const { toast } = useToast();
   const confirm = useConfirm();
   const [isPending, startTransition] = useTransition();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cash-transactions", page],
+    queryKey: ["cash-transactions", page, search],
     queryFn: async () => {
-      const res = await getCashTransactions(page);
+      const res = await getCashTransactions(page, 10, search);
       console.log({ res });
       return {
         ...res,
@@ -279,6 +282,9 @@ export default function CashTransactionListPage() {
           </Button>
         </PageListActions>
       </PageListHeader>
+      <PageListFilter>
+        <CashTransactionFilters />
+      </PageListFilter>
       <PageListContent>
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />

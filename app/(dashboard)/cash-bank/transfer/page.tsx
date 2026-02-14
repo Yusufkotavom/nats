@@ -42,12 +42,17 @@ import {
   PageListHeader,
   PageListLayout,
   PageListTitle,
+  PageListFilter,
 } from "@/components/layout/page/list-layout";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { SuperJSON } from "@/lib/superjson";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { TransferFilters } from "./_components/transfer-filters";
 
 export default function TransferPage() {
+  const searchParams = useSearchParams();
+  const search = searchParams.get("search") || "";
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<
     CashTransfer | undefined
@@ -61,9 +66,9 @@ export default function TransferPage() {
   const formatDate = useFormatDate();
 
   const { data: transfers = [] } = useQuery({
-    queryKey: ["cash-transfers"],
+    queryKey: ["cash-transfers", search],
     queryFn: async () => {
-      const serialized = await getTransfers();
+      const serialized = await getTransfers(search);
       return SuperJSON.deserialize<CashTransfer[]>(serialized);
     },
   });
@@ -290,6 +295,10 @@ export default function TransferPage() {
           </Button>
         </PageListActions>
       </PageListHeader>
+
+      <PageListFilter>
+        <TransferFilters />
+      </PageListFilter>
 
       <PageListContent>
         <DataTable

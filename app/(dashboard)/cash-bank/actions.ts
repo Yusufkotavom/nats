@@ -365,8 +365,19 @@ export async function deleteCashTransfer(id: string) {
   revalidatePath("/accounting/transfer");
 }
 
-export async function getTransfers() {
+export async function getTransfers(search: string = "") {
+  const where: Prisma.CashTransferWhereInput = search
+    ? {
+        OR: [
+          { description: { contains: search, mode: "insensitive" } },
+          { fromAccount: { name: { contains: search, mode: "insensitive" } } },
+          { toAccount: { name: { contains: search, mode: "insensitive" } } },
+        ],
+      }
+    : {};
+
   const transfers = await prisma.cashTransfer.findMany({
+    where,
     include: {
       fromAccount: true,
       toAccount: true,

@@ -119,11 +119,24 @@ export async function createCashTransaction(
 export async function getCashTransactions(
   page: number = 1,
   pageSize: number = 10,
+  search: string = "",
 ) {
   const skip = (page - 1) * pageSize;
 
+  const where: Prisma.CashTransactionWhereInput = search
+    ? {
+      OR: [
+        { description: { contains: search, mode: "insensitive" } },
+        { reference: { contains: search, mode: "insensitive" } },
+        { contact: { name: { contains: search, mode: "insensitive" } } },
+        { cashAccount: { name: { contains: search, mode: "insensitive" } } },
+      ],
+    }
+    : {};
+
   const [transactions, total] = await Promise.all([
     prisma.cashTransaction.findMany({
+      where,
       include: {
         cashAccount: true,
         journalEntry: {
@@ -138,7 +151,7 @@ export async function getCashTransactions(
         },
         contact: true,
         department: true,
-        project: true
+        project: true,
       },
       orderBy: {
         date: "desc",
@@ -146,7 +159,7 @@ export async function getCashTransactions(
       skip,
       take: pageSize,
     }),
-    prisma.cashTransaction.count(),
+    prisma.cashTransaction.count({ where }),
   ]);
 
   return {
