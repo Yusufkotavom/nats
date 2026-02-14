@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SalesInvoiceStatus, MovementType } from "@/prisma/generated/prisma/client";
+import { SalesInvoiceStatus, MovementType, CashTransactionType } from "@/prisma/generated/prisma/client";
 
 // --- Shared Schemas ---
 const idSchema = z.string().cuid().optional();
@@ -134,4 +134,35 @@ export const purchasePaymentSchema = z.object({
   departmentId: z.string().optional().nullable(),
   projectId: z.string().optional().nullable(),
   attachmentIds: z.array(z.string()).optional(),
+});
+
+// --- Cash Transaction ---
+export const cashTransactionAllocationSchema = z.object({
+  accountId: requiredIdSchema,
+  amount: positiveDecimalSchema.refine((val) => val > 0, "Amount must be greater than 0"),
+  description: z.string().optional(),
+});
+
+export const cashTransactionSchema = z.object({
+  cashAccountId: requiredIdSchema,
+  contactId: z.string().optional(),
+  departmentId: z.string().optional().nullable(),
+  projectId: z.string().optional().nullable(),
+  type: z.nativeEnum(CashTransactionType),
+  date: dateSchema,
+  reference: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
+  notes: z.string().optional(),
+  allocations: z.array(cashTransactionAllocationSchema).min(1, "At least 1 allocation required"),
+  attachmentIds: z.array(z.string()).optional(),
+});
+
+// --- Cash Transfer ---
+export const cashTransferSchema = z.object({
+  fromAccountId: requiredIdSchema,
+  toAccountId: requiredIdSchema,
+  amount: positiveDecimalSchema.refine((val) => val > 0, "Amount must be greater than 0"),
+  date: dateSchema,
+  description: z.string().optional(),
+  reference: z.string().optional(),
 });

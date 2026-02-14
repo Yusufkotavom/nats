@@ -17,6 +17,9 @@ import {
 import { saveFile } from "@/lib/file-service";
 import { verifySession } from "@/lib/auth/auth";
 import { SuperJSONResult } from "superjson";
+import { JournalService } from "@/lib/accounting/journal-service";
+import { cashTransferSchema } from "@/lib/validation/schemas";
+import { Decimal } from "decimal.js";
 
 export async function uploadTransferAttachment(formData: FormData) {
   const session = await verifySession();
@@ -208,13 +211,17 @@ export async function createCashTransfer(
   const data2 = SuperJSON.deserialize(
     data as unknown as SuperJSONResult,
   ) as CashTransferFormData;
+
+  // Validate with Zod
+  const validatedData = cashTransferSchema.parse(data2);
+
   // 1. Validate accounts
   const fromAccount = await prisma.cashAccount.findUnique({
-    where: { id: data2.fromAccountId },
+    where: { id: validatedData.fromAccountId },
     include: { glAccount: true },
   });
   const toAccount = await prisma.cashAccount.findUnique({
-    where: { id: data2.toAccountId },
+    where: { id: validatedData.toAccountId },
     include: { glAccount: true },
   });
 
@@ -222,13 +229,22 @@ export async function createCashTransfer(
     throw new Error("Invalid accounts.");
   }
 
-  if (data2.fromAccountId === data2.toAccountId) {
+  if (validatedData.fromAccountId === validatedData.toAccountId) {
     throw new Error("Cannot transfer to the same account.");
   }
 
   // 2. Create Transfer (Pending Approval)
   const transfer = await prisma.cashTransfer.create({
-    data: data2,
+    data: {
+      fromAccountId: validatedData.fromAccountId,
+      toAccountId: validatedData.toAccountId,
+      amount: new Decimal(validatedData.amount),
+      date: validatedData.date,
+      description: validatedData.description,
+      reference: validatedData.reference,
+      status: TransferStatus.PENDING,
+      // createdById: userId, // Removing as it might not exist in schema
+    },
   });
 
   revalidatePath("/accounting/cash-bank");
@@ -256,14 +272,24 @@ export async function updateCashTransfer(
     data as unknown as SuperJSONResult,
   ) as CashTransferFormData;
 
+  // Validate with Zod
+  const validatedData = cashTransferSchema.parse(data2);
+
   // Validate accounts
-  if (data2.fromAccountId === data2.toAccountId) {
+  if (validatedData.fromAccountId === validatedData.toAccountId) {
     throw new Error("Cannot transfer to the same account.");
   }
 
   const updatedTransfer = await prisma.cashTransfer.update({
     where: { id },
-    data: data2,
+    data: {
+      fromAccountId: validatedData.fromAccountId,
+      toAccountId: validatedData.toAccountId,
+      amount: new Decimal(validatedData.amount),
+      date: validatedData.date,
+      description: validatedData.description,
+      reference: validatedData.reference,
+    },
   });
 
   revalidatePath("/accounting/cash-bank");
@@ -303,13 +329,12 @@ export async function approveCashTransfer(id: string) {
         description:
           transfer.description ||
           `Transfer from ${transfer.fromAccount.name} to ${transfer.toAccount.name}`,
-        status: EntryStatus.posted,
-        postedAt: new Date(),
+        status: EntryStatus.draft, // Created as Draft first
         lines: {
           create: [
             {
               accountId: transfer.toAccount.glAccountId,
-              debitAmount: transfer.amount,
+              debitAmount: new Decimal(transfer.amount),
               creditAmount: 0,
               description: `Transfer from ${transfer.fromAccount.name}`,
               lineNumber: 1,
@@ -317,7 +342,7 @@ export async function approveCashTransfer(id: string) {
             {
               accountId: transfer.fromAccount.glAccountId,
               debitAmount: 0,
-              creditAmount: transfer.amount,
+              creditAmount: new Decimal(transfer.amount),
               description: `Transfer to ${transfer.toAccount.name}`,
               lineNumber: 2,
             },
@@ -325,6 +350,9 @@ export async function approveCashTransfer(id: string) {
         },
       },
     });
+
+    // Post Journal Entry using Service (Handles validation and balance updates)
+    await JournalService.postJournalEntry(tx, journalEntry.id);
 
     const approvedTransfer = await tx.cashTransfer.update({
       where: { id },
@@ -368,12 +396,12 @@ export async function deleteCashTransfer(id: string) {
 export async function getTransfers(search: string = "") {
   const where: Prisma.CashTransferWhereInput = search
     ? {
-        OR: [
-          { description: { contains: search, mode: "insensitive" } },
-          { fromAccount: { name: { contains: search, mode: "insensitive" } } },
-          { toAccount: { name: { contains: search, mode: "insensitive" } } },
-        ],
-      }
+      OR: [
+        { description: { contains: search, mode: "insensitive" } },
+        { fromAccount: { name: { contains: search, mode: "insensitive" } } },
+        { toAccount: { name: { contains: search, mode: "insensitive" } } },
+      ],
+    }
     : {};
 
   const transfers = await prisma.cashTransfer.findMany({
