@@ -169,6 +169,8 @@ export const createPurchaseReceive = authorizedAction(
             receiveNumber,
             contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             receiveDate: data.receiveDate,
             notes: data.notes,
             status: "DRAFT", // Default to DRAFT
@@ -235,6 +237,8 @@ export const updatePurchaseReceive = authorizedAction(
           data: {
             contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             receiveDate: data.receiveDate,
             notes: data.notes,
             status: data.status || currentReceive.status,
@@ -365,6 +369,8 @@ export const updatePurchaseReceive = authorizedAction(
                       debitAmount: totalValue,
                       creditAmount: 0,
                       description: "Inventory Asset",
+                      departmentId: data.departmentId,
+                      projectId: data.projectId,
                       lineNumber: 1
                     },
                     {
@@ -372,6 +378,8 @@ export const updatePurchaseReceive = authorizedAction(
                       debitAmount: 0,
                       creditAmount: totalValue,
                       description: "Goods Received Not Invoiced",
+                      departmentId: data.departmentId,
+                      projectId: data.projectId,
                       lineNumber: 2
                     }
                   ]

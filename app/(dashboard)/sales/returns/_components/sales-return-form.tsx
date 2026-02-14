@@ -42,12 +42,16 @@ import { SalesOrderWithDetails } from "../../orders/types";
 import { SalesInvoiceWithDetails } from "../../invoices/types";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
+import { Department, Project } from "@/prisma/generated/prisma/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface SalesReturnFormProps {
     returnItem?: SuperJSONResult;
     customers: { id: string; name: string }[];
     salesOrders: SuperJSONResult;
     salesInvoices: SuperJSONResult;
+    departments?: Department[];
+    projects?: Project[];
     readonly?: boolean;
 }
 
@@ -56,6 +60,8 @@ export function SalesReturnForm({
     customers,
     salesOrders: serializedSalesOrders,
     salesInvoices: serializedSalesInvoices,
+    departments = [],
+    projects = [],
     readonly = false,
 }: SalesReturnFormProps) {
     const router = useRouter();
@@ -106,6 +112,8 @@ export function SalesReturnForm({
         contactId: returnItem?.contactId || "",
         salesOrderId: returnItem?.salesOrderId || undefined,
         salesInvoiceId: returnItem?.salesInvoiceId || undefined,
+        departmentId: returnItem?.departmentId || null,
+        projectId: returnItem?.projectId || null,
         returnDate: returnItem?.returnDate
             ? new Date(returnItem.returnDate)
             : new Date(),
@@ -166,6 +174,8 @@ export function SalesReturnForm({
         setFormData((prev) => ({
             ...prev,
             salesOrderId: soId,
+            departmentId: so?.departmentId || prev.departmentId,
+            projectId: so?.projectId || prev.projectId,
             items: so
                 ? so.items.map((item) => ({
                     id: generateId(),
@@ -372,6 +382,39 @@ export function SalesReturnForm({
                             disabled={readonly || !formData.contactId}
                             placeholder="Select Invoice..."
                         />
+                    </div>
+
+                    <div className="col-span-2 grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Department</Label>
+                            <SearchableSelect
+                                value={formData.departmentId || ""}
+                                onValueChange={(val) =>
+                                    setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                                }
+                                options={departments.map((d) => ({
+                                    value: d.id,
+                                    label: d.name,
+                                }))}
+                                placeholder="Select Department"
+                                disabled={readonly}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Project</Label>
+                            <SearchableSelect
+                                value={formData.projectId || ""}
+                                onValueChange={(val) =>
+                                    setFormData((prev) => ({ ...prev, projectId: val || null }))
+                                }
+                                options={projects.map((p) => ({
+                                    value: p.id,
+                                    label: p.name,
+                                }))}
+                                placeholder="Select Project"
+                                disabled={readonly}
+                            />
+                        </div>
                     </div>
 
                     <div className="space-y-2">

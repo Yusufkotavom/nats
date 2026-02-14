@@ -22,4 +22,6 @@ export type CashTransactionFormData = {
   allocations: CashTransactionAllocationFormData[];
   attachments: Attachment[];
   notes?: string;
+  departmentId?: string | null;
+  projectId?: string | null;
 };

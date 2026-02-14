@@ -6,6 +6,8 @@ import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchaseInvoiceWithDetails } from "../../types";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
+import { getTaxRates } from "@/app/(dashboard)/accounting/configuration/taxes/actions";
 
 export const metadata: Metadata = {
   title: "Edit Purchase Invoice | Pasak",
@@ -20,11 +22,14 @@ interface PageProps {
 
 export default async function EditPurchaseInvoicePage(props: PageProps) {
   const params = await props.params;
-  const [serializedInvoice, vendors, serializedPurchaseOrders] =
+  const [serializedInvoice, vendors, serializedPurchaseOrders, departments, projects, taxRates] =
     await Promise.all([
       getPurchaseInvoice(params.id),
       getContacts({ type: ContactType.VENDOR }),
       getPurchaseOrdersForSelect(),
+      getDepartments(),
+      getProjects(),
+      getTaxRates(),
     ]);
 
   if (!serializedInvoice) {
@@ -51,6 +56,9 @@ export default async function EditPurchaseInvoicePage(props: PageProps) {
       invoice={serializedInvoice}
       vendors={vendors.data}
       purchaseOrders={serializedPurchaseOrders}
+      departments={departments}
+      projects={projects}
+      taxRates={taxRates}
     />
   );
 }

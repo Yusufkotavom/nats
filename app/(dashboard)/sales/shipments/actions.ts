@@ -170,6 +170,8 @@ export const createSalesShipment = authorizedAction(
             shipmentNumber,
             contactId: data.contactId,
             salesOrderId: data.salesOrderId,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             shipmentDate: data.shipmentDate,
             notes: data.notes,
             trackingNumber: data.trackingNumber,
@@ -237,6 +239,8 @@ export const updateSalesShipment = authorizedAction(
           data: {
             contactId: data.contactId,
             salesOrderId: data.salesOrderId,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             shipmentDate: data.shipmentDate,
             notes: data.notes,
             trackingNumber: data.trackingNumber,
@@ -358,6 +362,8 @@ export const updateSalesShipment = authorizedAction(
                       debitAmount: totalCogs,
                       creditAmount: 0,
                       description: "Cost of Goods Sold",
+                      departmentId: data.departmentId,
+                      projectId: data.projectId,
                       lineNumber: 1
                     },
                     {
@@ -365,6 +371,8 @@ export const updateSalesShipment = authorizedAction(
                       debitAmount: 0,
                       creditAmount: totalCogs,
                       description: "Inventory Asset",
+                      departmentId: data.departmentId,
+                      projectId: data.projectId,
                       lineNumber: 2
                     }
                   ]

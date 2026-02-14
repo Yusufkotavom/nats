@@ -10,6 +10,7 @@ import { PurchaseOrderWithDetails } from "../../orders/types";
 import SuperJSON from "superjson";
 import { PurchaseInvoiceWithDetails } from "../../invoices/types";
 import { SuperJSONResult } from "superjson";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 
 export const metadata: Metadata = {
   title: "New Purchase Return | Pasak",
@@ -17,10 +18,12 @@ export const metadata: Metadata = {
 };
 
 export default async function NewPurchaseReturnPage() {
-  const [vendors, purchaseOrders, purchaseInvoices] = await Promise.all([
+  const [vendors, purchaseOrders, purchaseInvoices, departments, projects] = await Promise.all([
     getContacts({ type: ContactType.VENDOR }),
     getPurchaseOrdersForReturn(),
     getPurchaseInvoicesForReturn(),
+    getDepartments(),
+    getProjects(),
   ]);
 
   return (
@@ -32,6 +35,8 @@ export default async function NewPurchaseReturnPage() {
       purchaseInvoices={SuperJSON.deserialize(
         purchaseInvoices as unknown as SuperJSONResult,
       )}
+      departments={departments}
+      projects={projects}
     />
   );
 }

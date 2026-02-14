@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { CashTransactionFormData } from "../types";
 import { SuperJSON } from "@/lib/superjson";
 import { Decimal } from "decimal.js";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 
 interface PageProps {
   params: Promise<{
@@ -15,7 +16,7 @@ interface PageProps {
 export default async function EditTransactionPage({ params }: PageProps) {
   const { transactionId } = await params;
 
-  const [cashAccounts, glAccounts, transactionResult, contacts] = await Promise.all([
+  const [cashAccounts, glAccounts, transactionResult, contacts, departments, projects] = await Promise.all([
     prisma.cashAccount.findMany({
       where: { isActive: true },
     }),
@@ -28,6 +29,8 @@ export default async function EditTransactionPage({ params }: PageProps) {
       where: { isActive: true },
       orderBy: { name: "asc" },
     }),
+    getDepartments(),
+    getProjects(),
   ]);
 
   const transaction: any = transactionResult
@@ -45,6 +48,8 @@ export default async function EditTransactionPage({ params }: PageProps) {
     type: transaction.type,
     cashAccountId: transaction.cashAccountId,
     contactId: transaction.contactId || undefined,
+    departmentId: transaction.departmentId,
+    projectId: transaction.projectId,
     reference: transaction.reference || undefined,
     description: transaction.description || undefined,
     notes: transaction.note || undefined,
@@ -66,6 +71,9 @@ export default async function EditTransactionPage({ params }: PageProps) {
       glAccounts={glAccounts}
       initialData={initialData}
       readOnly={transaction.status === "APPROVED"}
-      contacts={contacts} />
+      contacts={contacts}
+      departments={departments}
+      projects={projects}
+    />
   );
 }

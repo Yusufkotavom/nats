@@ -4,6 +4,8 @@ import { getPurchaseOrdersForSelect } from "../actions";
 import { getAccounts } from "@/app/(dashboard)/accounting/accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
+import { getTaxRates } from "@/app/(dashboard)/accounting/configuration/taxes/actions";
 
 export const metadata: Metadata = {
   title: "New Purchase Invoice | Pasak",
@@ -11,16 +13,22 @@ export const metadata: Metadata = {
 };
 
 export default async function NewPurchaseInvoicePage() {
-  const [vendors, accounts, purchaseOrders] = await Promise.all([
+  const [vendors, accounts, purchaseOrders, departments, projects, taxRates] = await Promise.all([
     getContacts({ type: ContactType.VENDOR }),
     getAccounts(),
     getPurchaseOrdersForSelect(),
+    getDepartments(),
+    getProjects(),
+    getTaxRates(),
   ]);
 
   return (
     <PurchaseInvoiceForm
       vendors={vendors.data}
       purchaseOrders={purchaseOrders}
+      departments={departments}
+      projects={projects}
+      taxRates={taxRates}
     />
   );
 }

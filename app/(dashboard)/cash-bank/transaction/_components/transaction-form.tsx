@@ -25,6 +25,7 @@ import {
   CashTransactionFormData,
 } from "../types";
 import { Account, CashAccount, Contact } from "@/prisma/generated/prisma/browser";
+import { Department, Project } from "@/prisma/generated/prisma/client";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { NoteDialog } from "@/components/ui/note-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
@@ -45,6 +46,8 @@ interface TransactionFormProps {
   cashAccounts: CashAccount[];
   glAccounts: Account[];
   contacts: Contact[];
+  departments?: Department[];
+  projects?: Project[];
   onCancel?: () => void;
   initialData?: CashTransactionFormData & { id?: string };
   readOnly?: boolean;
@@ -54,6 +57,8 @@ export function TransactionForm({
   cashAccounts,
   glAccounts,
   contacts,
+  departments,
+  projects,
   onCancel,
   initialData,
   readOnly = false,
@@ -83,12 +88,16 @@ export function TransactionForm({
       ? {
         ...initialData,
         date: new Date(initialData.date), // Ensure date is Date object
+        departmentId: initialData.departmentId,
+        projectId: initialData.projectId,
       }
       : {
         date: new Date(),
         type: CashTransactionType.INCOME,
         cashAccountId: "",
         contactId: "",
+        departmentId: undefined,
+        projectId: undefined,
         allocations: [],
         attachments: [],
         notes: "",
@@ -302,6 +311,29 @@ export function TransactionForm({
             placeholder="Transaction description"
             disabled={readOnly}
           />
+
+          <div className="col-span-2 grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label>Department</Label>
+              <SearchableSelect
+                value={formData.departmentId || ""}
+                onValueChange={(val) => setFormData({ ...formData, departmentId: val || undefined })}
+                options={departments?.map(d => ({ value: d.id, label: d.name })) || []}
+                placeholder="Select Department"
+                disabled={readOnly}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Project</Label>
+              <SearchableSelect
+                value={formData.projectId || ""}
+                onValueChange={(val) => setFormData({ ...formData, projectId: val || undefined })}
+                options={projects?.map(p => ({ value: p.id, label: p.name })) || []}
+                placeholder="Select Project"
+                disabled={readOnly}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Allocations Table */}

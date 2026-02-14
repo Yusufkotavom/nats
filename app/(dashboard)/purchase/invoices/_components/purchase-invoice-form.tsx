@@ -54,12 +54,16 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { Paperclip } from "lucide-react";
+import { Department, Project } from "@/prisma/generated/prisma/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface PurchaseInvoiceFormProps {
   invoice?: SuperJSONResult | null;
   vendors: { id: string; name: string }[];
   purchaseOrders: SuperJSONResult;
   taxRates: TaxRate[];
+  departments?: Department[];
+  projects?: Project[];
   readonly?: boolean;
 }
 
@@ -68,6 +72,8 @@ export function PurchaseInvoiceForm({
   vendors,
   purchaseOrders: serializedPurchaseOrders,
   taxRates,
+  departments = [],
+  projects = [],
   readonly = false,
 }: PurchaseInvoiceFormProps) {
   const invoice = serializedInvoice
@@ -111,6 +117,8 @@ export function PurchaseInvoiceForm({
     totalTax: Number(invoice?.totalTax) || 0,
     shippingCost: Number(invoice?.shippingCost) || 0,
     handlingCost: Number(invoice?.handlingCost) || 0,
+    departmentId: invoice?.departmentId || undefined,
+    projectId: invoice?.projectId || undefined,
 
     items:
       invoice?.items.map((item) => ({
@@ -160,7 +168,13 @@ export function PurchaseInvoiceForm({
 
         if (fullPo) {
           // Auto-select vendor
-          setFormData((prev) => ({ ...prev, contactId: fullPo.contactId }));
+          setFormData((prev) => ({
+            ...prev,
+            contactId: fullPo.contactId,
+            // Inherit dimensions from PO if available and not already set
+            departmentId: fullPo.departmentId || prev.departmentId,
+            projectId: fullPo.projectId || prev.projectId
+          }));
 
           // Populate items from PO
           const newItems = fullPo.items.map((item) => ({
@@ -405,6 +419,29 @@ export function PurchaseInvoiceForm({
                     </SelectItem>
                   ))}
                 </CustomSelect>
+
+                <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <SearchableSelect
+                      value={formData.departmentId || ""}
+                      onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
+                      options={departments.map(d => ({ value: d.id, label: d.name }))}
+                      placeholder="Select Department"
+                      disabled={readonly}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Project</Label>
+                    <SearchableSelect
+                      value={formData.projectId || ""}
+                      onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
+                      options={projects.map(p => ({ value: p.id, label: p.name }))}
+                      placeholder="Select Project"
+                      disabled={readonly}
+                    />
+                  </div>
+                </div>
 
                 <CustomInput
                   label="Invoice Number"

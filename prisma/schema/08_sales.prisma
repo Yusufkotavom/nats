@@ -113,6 +113,12 @@ model SalesShipment {
 
   inventoryMovementId String?
 
+  // Budgeting
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  projectId    String?
+  project      Project?    @relation(fields: [projectId], references: [id])
+
   attachments File[]
 
   createdAt DateTime @default(now())
@@ -281,6 +287,12 @@ model SalesReturn {
   items SalesReturnItem[]
 
   inventoryMovementId String?
+
+  // Budgeting
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  projectId    String?
+  project      Project?    @relation(fields: [projectId], references: [id])
 
   attachments File[]
 

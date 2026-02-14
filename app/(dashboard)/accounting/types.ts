@@ -51,9 +51,13 @@ export type JournalEntryLineData = {
   creditAmount: Decimal | number;
   description?: string;
   contactId?: string | null;
+  departmentId?: string | null;
+  projectId?: string | null;
   lineNumber?: number;
   account?: { name: string; code: string };
   contact?: { name: string } | null;
+  department?: { name: string } | null;
+  project?: { name: string } | null;
 };
 
 export type JournalEntryAttachmentData = {
@@ -82,6 +86,8 @@ export type JournalEntryWithDetails = Prisma.JournalEntryGetPayload<{
       include: {
         account: true;
         contact: true;
+        department: true;
+        project: true;
       };
       orderBy: { lineNumber: "asc" };
     };

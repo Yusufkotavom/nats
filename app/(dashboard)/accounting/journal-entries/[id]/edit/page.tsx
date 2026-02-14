@@ -6,6 +6,7 @@ import { JournalEntryForm } from "../../_components/journal-entry-form";
 import { getJournalEntry, updateJournalEntry } from "../../actions";
 import { getAccounts } from "../../../accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 import {
   CreateJournalEntryData,
   JournalEntryWithDetails,
@@ -48,6 +49,22 @@ export default function EditJournalEntryPage({
     queryFn: async () => {
       const res = await getContacts({ pageSize: 1000 });
       return res.data || [];
+    },
+  });
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const res = await getDepartments();
+      return res || [];
+    },
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const res = await getProjects();
+      return res || [];
     },
   });
 
@@ -111,9 +128,13 @@ export default function EditJournalEntryPage({
         creditAmount: line.creditAmount,
         description: line.description || undefined,
         contactId: line.contactId,
+        departmentId: line.departmentId,
+        projectId: line.projectId,
         lineNumber: line.lineNumber,
         account: { name: line.account.name, code: line.account.code },
         contact: line.contact ? { name: line.contact.name } : null,
+        department: line.department ? { name: line.department.name } : null,
+        project: line.project ? { name: line.project.name } : null,
       })),
       attachments: entry.attachments.map((att) => ({
         id: att.id,

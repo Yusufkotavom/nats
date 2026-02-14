@@ -56,6 +56,16 @@ export function JournalEntryDetails({
       cell: (line) => line.description || "-",
     },
     {
+      header: "Department",
+      accessorKey: "department",
+      cell: (line) => line.department?.name || "-",
+    },
+    {
+      header: "Project",
+      accessorKey: "project",
+      cell: (line) => line.project?.name || "-",
+    },
+    {
       header: "Relevant Contact",
       accessorKey: "contact",
       cell: (line) =>
@@ -162,7 +172,7 @@ export function JournalEntryDetails({
                 footer={
                   <TableFooter>
                     <TableRow className="font-bold bg-muted/50">
-                      <TableCell colSpan={4} className="text-right">
+                      <TableCell colSpan={6} className="text-right">
                         Total
                       </TableCell>
                       <TableCell className="text-right">

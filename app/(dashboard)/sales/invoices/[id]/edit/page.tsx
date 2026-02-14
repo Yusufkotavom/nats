@@ -1,9 +1,11 @@
-import { SalesInvoiceForm } from "../_components/sales-invoice-form";
+import { SalesInvoiceForm } from "../../_components/sales-invoice-form";
 import { Metadata } from "next";
-import { getSalesOrdersForSelect, getSalesInvoice } from "../actions";
+import { getSalesOrdersForSelect, getSalesInvoice } from "../../actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { notFound } from "next/navigation";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
+import { getTaxRates } from "@/app/(dashboard)/accounting/configuration/taxes/actions";
 
 export const metadata: Metadata = {
   title: "Edit Sales Invoice | Pasak",
@@ -17,10 +19,13 @@ interface PageProps {
 export default async function EditSalesInvoicePage({ params }: PageProps) {
   const { id } = await params;
   
-  const [customers, salesOrders, invoice] = await Promise.all([
+  const [customers, salesOrders, invoice, departments, projects, taxRates] = await Promise.all([
     getContacts({ type: ContactType.CUSTOMER }),
     getSalesOrdersForSelect(),
     getSalesInvoice(id),
+    getDepartments(),
+    getProjects(),
+    getTaxRates(),
   ]);
 
   if (!invoice) {
@@ -32,6 +37,9 @@ export default async function EditSalesInvoicePage({ params }: PageProps) {
       invoice={invoice}
       customers={customers.data}
       salesOrders={salesOrders}
+      departments={departments}
+      projects={projects}
+      taxRates={taxRates}
     />
   );
 }

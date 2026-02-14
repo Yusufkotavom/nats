@@ -27,6 +27,9 @@ export interface SalesInvoiceInput {
   totalTax: number;
   shippingCost: number;
 
+  departmentId?: string | null;
+  projectId?: string | null;
+
   items: SalesInvoiceItemInput[];
   attachmentIds?: string[];
 }
@@ -35,6 +38,8 @@ export type SalesInvoiceWithDetails = Prisma.SalesInvoiceGetPayload<{
   include: {
     contact: true;
     salesOrder: true;
+    department: true;
+    project: true;
     items: true;
     payments: true;
     attachments: true;

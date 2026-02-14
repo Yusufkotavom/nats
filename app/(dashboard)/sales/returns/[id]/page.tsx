@@ -10,6 +10,8 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { SuperJSON } from "@/lib/superjson";
 import { SalesReturnWithDetails } from "../types";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
+import { SuperJSONResult } from "superjson";
 
 export const metadata: Metadata = {
   title: "View Sales Return | Pasak",
@@ -24,12 +26,14 @@ interface PageProps {
 
 export default async function ViewSalesReturnPage(props: PageProps) {
   const params = await props.params;
-  const [returnItem, customers, salesOrders, salesInvoices] =
+  const [returnItem, customers, salesOrders, salesInvoices, departments, projects] =
     await Promise.all([
       getSalesReturn(params.id),
       getContacts({ type: ContactType.CUSTOMER }),
       getSalesOrdersForReturn(),
       getSalesInvoicesForReturn(),
+      getDepartments(),
+      getProjects(),
     ]);
 
   if (!returnItem) {
@@ -49,8 +53,10 @@ export default async function ViewSalesReturnPage(props: PageProps) {
       <SalesReturnForm
         returnItem={returnItem}
         customers={customers.data}
-        salesOrders={salesOrders}
-        salesInvoices={salesInvoices}
+        salesOrders={salesOrders as unknown as SuperJSONResult}
+        salesInvoices={salesInvoices as unknown as SuperJSONResult}
+        departments={departments}
+        projects={projects}
         readonly
       />
     </div>

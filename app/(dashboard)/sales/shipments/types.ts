@@ -27,6 +27,8 @@ export interface SalesShipmentItemInput {
 export interface SalesShipmentInput {
   contactId: string;
   salesOrderId?: string;
+  departmentId?: string | null;
+  projectId?: string | null;
   shipmentDate: Date;
   notes?: string;
   trackingNumber?: string;

@@ -27,6 +27,9 @@ export interface PurchaseInvoiceInput {
   shippingCost: number;
   handlingCost: number;
 
+  departmentId?: string | null;
+  projectId?: string | null;
+
   items: PurchaseInvoiceItemInput[];
   attachmentIds?: string[];
 }
@@ -35,6 +38,8 @@ export type PurchaseInvoiceWithDetails = Prisma.PurchaseInvoiceGetPayload<{
   include: {
     contact: true;
     purchaseOrder: true;
+    department: true;
+    project: true;
     items: true;
     payments: true;
     attachments: true;

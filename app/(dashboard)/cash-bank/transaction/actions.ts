@@ -61,6 +61,8 @@ export async function createCashTransaction(
         data2.type === CashTransactionType.INCOME ? Number(alloc.amount) : 0,
       description: alloc.description || data2.description,
       lineNumber: lineNumber++,
+      departmentId: data2.departmentId,
+      projectId: data2.projectId,
     });
   }
 
@@ -87,6 +89,8 @@ export async function createCashTransaction(
       data: {
         cashAccountId: data2.cashAccountId,
         contactId: data2.contactId,
+        departmentId: data2.departmentId,
+        projectId: data2.projectId,
         type: data2.type,
         date: data2.date,
         reference: data2.reference,
@@ -132,7 +136,9 @@ export async function getCashTransactions(
             account: true,
           },
         },
-        contact: true
+        contact: true,
+        department: true,
+        project: true
       },
       orderBy: {
         date: "desc",
@@ -166,6 +172,8 @@ export async function getCashTransaction(id: string) {
           account: true,
         },
       },
+      department: true,
+      project: true,
     },
   });
   return SuperJSON.serialize(transaction);
@@ -221,6 +229,8 @@ export async function updateCashTransaction(
         data2.type === CashTransactionType.INCOME ? Number(alloc.amount) : 0,
       description: alloc.description || data2.description,
       lineNumber: lineNumber++,
+      departmentId: data2.departmentId,
+      projectId: data2.projectId,
     });
   }
 
@@ -259,6 +269,8 @@ export async function updateCashTransaction(
       data: {
         cashAccountId: data2.cashAccountId,
         contactId: data2.contactId,
+        departmentId: data2.departmentId,
+        projectId: data2.projectId,
         type: data2.type,
         date: data2.date,
         reference: data2.reference,

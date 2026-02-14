@@ -40,7 +40,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Account, Contact, Prisma } from "@/prisma/generated/prisma/browser";
+import { Account, Contact, Department, Project, Prisma } from "@/prisma/generated/prisma/browser";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { CreateJournalEntryData } from "../../types";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
@@ -61,6 +61,8 @@ interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
   accounts: (Account & { children?: unknown[] })[];
   contacts: Contact[];
+  departments?: Department[];
+  projects?: Project[];
   onSubmit: (data: CreateJournalEntryData) => Promise<void>;
   isSubmitting: boolean;
   onCancel: () => void;
@@ -70,6 +72,8 @@ export function JournalEntryForm({
   initialData,
   accounts,
   contacts,
+  departments = [],
+  projects = [],
   onSubmit,
   isSubmitting,
   onCancel,
@@ -282,9 +286,11 @@ export function JournalEntryForm({
           accountId: "",
           account: { name: "", code: "" },
           contact: null,
-          // journalEntryId: formData.id, // removed extra property
-          // runningBalance: null, // removed extra property
+          department: null,
+          project: null,
           contactId: null,
+          departmentId: null,
+          projectId: null,
           lineNumber: formData.lines.length,
           debitAmount: new Decimal(0),
           creditAmount: new Decimal(0),
@@ -388,6 +394,8 @@ export function JournalEntryForm({
                       <TableHead className="w-[40px]"></TableHead>
                       <TableHead className="w-[300px]">Account</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead className="w-[150px]">Department</TableHead>
+                      <TableHead className="w-[150px]">Project</TableHead>
                       <TableHead className="w-[150px] text-right">
                         Debit
                       </TableHead>
@@ -527,7 +535,7 @@ export function JournalEntryForm({
                   </TableBody>
                   <TableFooter>
                     <TableRow>
-                      <TableCell colSpan={3} className="font-bold">
+                      <TableCell colSpan={5} className="font-bold">
                         Total
                       </TableCell>
                       <TableCell className="text-right font-bold">

@@ -6,6 +6,7 @@ import { JournalEntryForm } from "../_components/journal-entry-form";
 import { createJournalEntry } from "../actions";
 import { getAccounts } from "../../accounts/actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 import { EntryStatus } from "@/prisma/generated/prisma/browser";
 import { CreateJournalEntryData } from "../../types";
 import { generateId } from "@/lib/utils";
@@ -57,6 +58,22 @@ export default function CreateJournalEntryPage() {
     },
   });
 
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const res = await getDepartments();
+      return res || [];
+    },
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const res = await getProjects();
+      return res || [];
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: createJournalEntry,
     onSuccess: (res) => {
@@ -80,6 +97,8 @@ export default function CreateJournalEntryPage() {
     <JournalEntryForm
       accounts={accounts}
       contacts={contacts}
+      departments={departments}
+      projects={projects}
       initialData={newEntry}
       onSubmit={handleSubmit}
       isSubmitting={createMutation.isPending}

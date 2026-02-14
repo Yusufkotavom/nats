@@ -14,8 +14,12 @@ model Department {
   journalLines JournalEntryLine[]
   purchaseOrders   PurchaseOrder[]
   purchaseInvoices PurchaseInvoice[]
+  purchaseReceives PurchaseReceive[]
+  purchaseReturns  PurchaseReturn[]
   salesOrders      SalesOrder[]
   salesInvoices    SalesInvoice[]
+  salesShipments   SalesShipment[]
+  salesReturns     SalesReturn[]
   cashTransactions CashTransaction[]
 }
 
@@ -36,8 +40,12 @@ model Project {
   journalLines JournalEntryLine[]
   purchaseOrders   PurchaseOrder[]
   purchaseInvoices PurchaseInvoice[]
+  purchaseReceives PurchaseReceive[]
+  purchaseReturns  PurchaseReturn[]
   salesOrders      SalesOrder[]
   salesInvoices    SalesInvoice[]
+  salesShipments   SalesShipment[]
+  salesReturns     SalesReturn[]
   cashTransactions CashTransaction[]
 }
 

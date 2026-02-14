@@ -5,6 +5,8 @@ export type PurchaseReturnWithDetails = Prisma.PurchaseReturnGetPayload<{
     contact: true;
     purchaseOrder: true;
     purchaseInvoice: true;
+    department: true;
+    project: true;
     items: {
       include: {
         product: {
@@ -30,6 +32,8 @@ export interface PurchaseReturnInput {
   contactId: string;
   purchaseOrderId?: string;
   purchaseInvoiceId?: string;
+  departmentId?: string | null;
+  projectId?: string | null;
   returnDate: Date;
   reason?: string;
   notes?: string;

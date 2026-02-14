@@ -8,6 +8,7 @@ import { SalesReturnForm } from "../_components/sales-return-form";
 import { Metadata } from "next";
 import SuperJSON from "superjson";
 import { SuperJSONResult } from "superjson";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 
 export const metadata: Metadata = {
   title: "New Sales Return | Pasak",
@@ -15,10 +16,12 @@ export const metadata: Metadata = {
 };
 
 export default async function NewSalesReturnPage() {
-  const [customers, salesOrders, salesInvoices] = await Promise.all([
+  const [customers, salesOrders, salesInvoices, departments, projects] = await Promise.all([
     getContacts({ type: ContactType.CUSTOMER }),
     getSalesOrdersForReturn(),
     getSalesInvoicesForReturn(),
+    getDepartments(),
+    getProjects(),
   ]);
 
   return (
@@ -30,6 +33,8 @@ export default async function NewSalesReturnPage() {
       salesInvoices={SuperJSON.deserialize(
         salesInvoices as unknown as SuperJSONResult,
       )}
+      departments={departments}
+      projects={projects}
     />
   );
 }

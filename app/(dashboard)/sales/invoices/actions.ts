@@ -62,6 +62,8 @@ export async function getSalesInvoices(
       include: {
         contact: true,
         salesOrder: true,
+        department: true,
+        project: true,
         items: true,
         payments: true,
       },
@@ -90,6 +92,8 @@ export async function getSalesInvoice(id: string) {
     include: {
       contact: true,
       salesOrder: true,
+      department: true,
+      project: true,
       items: true,
       attachments: true,
     },
@@ -101,7 +105,7 @@ export async function getSalesInvoice(id: string) {
 export async function getSalesOrdersForSelect() {
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "sales.view")) {
-    return [];
+    return SuperJSON.serialize([]);
   }
 
   const orders = await prisma.salesOrder.findMany({
@@ -221,6 +225,8 @@ export const createSalesInvoice = authorizedAction(
           globalDiscount: data.globalDiscount,
           totalTax: totalTaxCalculated,
           shippingCost: data.shippingCost,
+          departmentId: data.departmentId,
+          projectId: data.projectId,
           items: {
             create: itemsToCreate,
           },
@@ -349,6 +355,8 @@ export const updateSalesInvoice = authorizedAction(
             globalDiscount: data.globalDiscount,
             totalTax: totalTaxCalculated,
             shippingCost: data.shippingCost,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             items: {
               create: itemsToCreate,
             },

@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { TransactionForm } from "../_components/transaction-form";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 
 export default async function NewTransactionPage() {
-  const [cashAccounts, glAccounts, contacts] = await Promise.all([
+  const [cashAccounts, glAccounts, contacts, departments, projects] = await Promise.all([
     prisma.cashAccount.findMany({
       where: { isActive: true },
     }),
@@ -14,13 +15,17 @@ export default async function NewTransactionPage() {
       where: { isActive: true },
       orderBy: { name: "asc" },
     }),
+    getDepartments(),
+    getProjects(),
   ]);
 
   return (
-    < TransactionForm
+    <TransactionForm
       cashAccounts={cashAccounts}
       glAccounts={glAccounts}
       contacts={contacts}
+      departments={departments}
+      projects={projects}
     />
   );
 }

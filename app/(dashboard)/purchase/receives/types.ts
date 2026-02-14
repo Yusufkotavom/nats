@@ -27,6 +27,8 @@ export interface PurchaseReceiveItemInput {
 export interface PurchaseReceiveInput {
   contactId: string;
   purchaseOrderId?: string;
+  departmentId?: string | null;
+  projectId?: string | null;
   receiveDate: Date;
   notes?: string;
   items: PurchaseReceiveItemInput[];

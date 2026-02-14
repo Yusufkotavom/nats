@@ -1,20 +1,26 @@
 import { SalesShipmentForm } from "../_components/sales-shipment-form";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { getSalesOrdersForSelect } from "../actions";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
+import { SuperJSONResult } from "superjson";
 
 export default async function NewSalesShipmentPage() {
-  const [contactsResult, salesOrdersResult] = await Promise.all([
-    getContacts(1, 1000), // Fetch all contacts for dropdown
+  const [contactsResult, salesOrdersResult, departments, projects] = await Promise.all([
+    getContacts({ page: 1, pageSize: 1000 }), // Fetch all contacts for dropdown
     getSalesOrdersForSelect(),
+    getDepartments(),
+    getProjects(),
   ]);
 
   return (
     <SalesShipmentForm
-      customers={contactsResult.contacts.map((c) => ({
+      customers={contactsResult.data.map((c) => ({
         id: c.id,
         name: c.name,
       }))}
-      salesOrders={salesOrdersResult}
+      salesOrders={salesOrdersResult as unknown as SuperJSONResult}
+      departments={departments}
+      projects={projects}
     />
   );
 }

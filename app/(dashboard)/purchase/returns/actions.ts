@@ -60,6 +60,8 @@ export async function getPurchaseReturns(
         contact: true,
         purchaseOrder: true,
         purchaseInvoice: true,
+        department: true,
+        project: true,
         items: {
           include: {
             product: true,
@@ -92,6 +94,8 @@ export async function getPurchaseReturn(id: string) {
       contact: true,
       purchaseOrder: true,
       purchaseInvoice: true,
+      department: true,
+      project: true,
       items: {
         include: {
           product: {
@@ -195,6 +199,8 @@ export const createPurchaseReturn = authorizedAction(
           contactId: data.contactId,
           purchaseOrderId: data.purchaseOrderId || undefined,
           purchaseInvoiceId: data.purchaseInvoiceId || undefined,
+          departmentId: data.departmentId,
+          projectId: data.projectId,
           returnDate: data.returnDate,
           notes: data.notes,
           status: "DRAFT",
@@ -271,6 +277,8 @@ export const updatePurchaseReturn = authorizedAction(
             contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId || undefined,
             purchaseInvoiceId: data.purchaseInvoiceId || undefined,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             returnDate: data.returnDate,
             notes: data.notes,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

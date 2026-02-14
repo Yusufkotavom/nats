@@ -199,6 +199,8 @@ export const createSalesReturn = authorizedAction(
           contactId: data.contactId,
           salesOrderId: data.salesOrderId || undefined,
           salesInvoiceId: data.salesInvoiceId || undefined,
+          departmentId: data.departmentId,
+          projectId: data.projectId,
           returnDate: data.returnDate,
           notes: data.notes,
           status: "DRAFT",
@@ -277,6 +279,8 @@ export const updateSalesReturn = authorizedAction(
             contactId: data.contactId,
             salesOrderId: data.salesOrderId || undefined,
             salesInvoiceId: data.salesInvoiceId || undefined,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             returnDate: data.returnDate,
             notes: data.notes,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

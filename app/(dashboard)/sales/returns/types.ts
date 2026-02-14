@@ -30,6 +30,8 @@ export interface SalesReturnInput {
   contactId: string;
   salesOrderId?: string;
   salesInvoiceId?: string;
+  departmentId?: string | null;
+  projectId?: string | null;
   returnDate: Date;
   reason?: string;
   notes?: string;
