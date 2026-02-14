@@ -112,7 +112,8 @@ export class InventoryService {
     const inventory = await tx.inventory.findFirst({
       where: {
         productId,
-        warehouseId
+        warehouseId,
+        batchNumber: batchNumber ?? null, // Match batchNumber (can be null)
       },
     });
 
@@ -133,7 +134,7 @@ export class InventoryService {
       });
       const totalStock = totalStockAgg._sum.quantity || 0;
 
-      if (unitCost) {
+      if (unitCost !== undefined) {
         // totalValue = productAvgCost * totalStock + unitCost * quantity
         const totalValue = productAvgCost.mul(totalStock).plus(unitCost.mul(quantity));
         const newTotalStock = totalStock + quantity;
@@ -156,7 +157,7 @@ export class InventoryService {
           data: {
             quantity: { increment: quantity },
             // Update the stored unit cost for this bucket if provided
-            unitCost: unitCost || currentCost,
+            unitCost: unitCost ?? currentCost,
           },
         });
       } else {
@@ -166,7 +167,7 @@ export class InventoryService {
             productId,
             warehouseId,
             quantity: quantity,
-            unitCost: unitCost || productAvgCost,
+            unitCost: unitCost ?? productAvgCost,
             batchNumber,
           },
         });

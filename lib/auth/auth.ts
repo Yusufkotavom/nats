@@ -3,6 +3,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const secretKey = process.env.SESSION_SECRET || "default-secret-key-change-me";
+
+if (process.env.NODE_ENV === "production" && secretKey === "default-secret-key-change-me") {
+  throw new Error("FATAL: SESSION_SECRET is not set in production environment!");
+}
+
 const key = new TextEncoder().encode(secretKey);
 
 export type SessionPayload = {

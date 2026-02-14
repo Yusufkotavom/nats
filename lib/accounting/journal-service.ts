@@ -48,7 +48,20 @@ export class JournalService {
       throw new Error(`Cannot post unbalanced journal entry. Debit: ${totalDebit}, Credit: ${totalCredit}`);
     }
 
-    // 2. Update Status
+    // 2. Lock Accounts (Pessimistic Locking)
+    // Extract unique account IDs and sort them to prevent deadlocks
+    const uniqueAccountIds = Array.from(
+      new Set(existingEntry.lines.map((line) => line.accountId))
+    ).sort();
+
+    // Lock each account row using SELECT ... FOR UPDATE
+    // This ensures no other transaction can modify these accounts (including their balances)
+    // until this transaction commits.
+    for (const accountId of uniqueAccountIds) {
+      await tx.$executeRaw`SELECT 1 FROM "Account" WHERE id = ${accountId} FOR UPDATE`;
+    }
+
+    // 3. Update Status
     // We update this first to mark it as posted. 
     // Note: The running balance calculation logic relies on finding the *previous* posted entry.
     // Since this entry is now "posted" (in the DB state within this transaction), 
@@ -61,7 +74,7 @@ export class JournalService {
       },
     });
 
-    // 3. Update Running Balances
+    // 4. Update Running Balances
     const accountBalances: Record<string, Decimal> = {};
 
     for (const line of existingEntry.lines) {
