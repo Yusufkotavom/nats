@@ -278,7 +278,6 @@ export async function getBudgetVariance(budgetId: string) {
     const credit = aggregates._sum.creditAmount?.toNumber() || 0;
 
     let actual = 0;
-    // @ts-ignore - AccountType might be enum
     const type = item.account.type.toString().toLowerCase();
 
     if (["expense", "asset", "cost_of_goods_sold"].includes(type)) {

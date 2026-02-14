@@ -46,7 +46,7 @@ describe("AIService", () => {
     };
 
     service.registerTool(tool);
-    // @ts-ignore - accessing private property for test
+    // @ts-expect-error - accessing private property for test
     expect(service.tools.has("test_tool")).toBe(true);
   });
 });

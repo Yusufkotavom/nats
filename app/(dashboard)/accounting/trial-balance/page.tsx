@@ -65,13 +65,14 @@ export default function TrialBalancePage() {
       // However, resetting expansion on every date change might be annoying if user collapsed something.
       // But since data structure might change, it's safer to re-expand.
       // Or we can merge. But let's follow original behavior for now.
-      
+
       // Original logic:
       // const initialExpanded: Record<string, boolean> = {};
       // res.data.items.forEach(...)
       // setExpanded(initialExpanded);
-      
+
       // So yes, it resets.
+      // eslint-disable-next-line
       setExpanded(initialExpanded);
     }
   }, [items]); // items reference changes on new fetch
@@ -178,9 +179,8 @@ export default function TrialBalancePage() {
                         style={{
                           paddingLeft: `${(item.level - 1) * 1.5}rem`,
                         }}
-                        className={`flex items-center gap-2 ${
-                          item.hasChildren ? "font-bold" : ""
-                        }`}
+                        className={`flex items-center gap-2 ${item.hasChildren ? "font-bold" : ""
+                          }`}
                       >
                         {item.hasChildren && (
                           <button
@@ -201,16 +201,14 @@ export default function TrialBalancePage() {
                     </TableCell>
                     <TableCell className="capitalize">{item.type}</TableCell>
                     <TableCell
-                      className={`text-right ${
-                        item.hasChildren ? "font-bold" : ""
-                      }`}
+                      className={`text-right ${item.hasChildren ? "font-bold" : ""
+                        }`}
                     >
                       {item.debit > 0 ? formatCurrency(item.debit) : "-"}
                     </TableCell>
                     <TableCell
-                      className={`text-right ${
-                        item.hasChildren ? "font-bold" : ""
-                      }`}
+                      className={`text-right ${item.hasChildren ? "font-bold" : ""
+                        }`}
                     >
                       {item.credit > 0 ? formatCurrency(item.credit) : "-"}
                     </TableCell>

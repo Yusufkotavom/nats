@@ -30,7 +30,7 @@ export async function getTaxSummaryReport(startDate: Date, endDate: Date) {
 
   // Helper to get or create entry
   const getEntry = (rateId: string | null, manualName = "Manual/Other") => {
-    let key = rateId || "manual"
+    const key = rateId || "manual"
     if (!summary.has(key)) {
       const rate = rateId ? taxRates.find(r => r.id === rateId) : null
       summary.set(key, {

@@ -151,6 +151,8 @@ export default function EditJournalEntryPage({
       initialData={initialData}
       accounts={accounts}
       contacts={contacts}
+      departments={departments}
+      projects={projects}
       onSubmit={handleSubmit}
       isSubmitting={updateMutation.isPending}
       onCancel={() => router.push("/accounting/journal-entries")}

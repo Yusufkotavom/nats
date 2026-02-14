@@ -267,7 +267,7 @@ export function JournalEntryForm({
   const updateLine = (
     index: number,
     field: string,
-    value: string | Decimal,
+    value: string | Decimal | null,
   ) => {
     if (!formData) return;
     const newLines = [...formData.lines];
@@ -481,6 +481,34 @@ export function JournalEntryForm({
                                   );
                                 })()}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <SearchableSelect
+                              value={line.departmentId || ""}
+                              onValueChange={(val) =>
+                                updateLine(index, "departmentId", val || null)
+                              }
+                              placeholder="Department"
+                              className="w-full border-0"
+                              options={departments.map((d) => ({
+                                value: d.id,
+                                label: d.name,
+                              }))}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <SearchableSelect
+                              value={line.projectId || ""}
+                              onValueChange={(val) =>
+                                updateLine(index, "projectId", val || null)
+                              }
+                              placeholder="Project"
+                              className="w-full border-0"
+                              options={projects.map((p) => ({
+                                value: p.id,
+                                label: p.name,
+                              }))}
+                            />
                           </TableCell>
                           <TableCell>
                             <CurrencyInput

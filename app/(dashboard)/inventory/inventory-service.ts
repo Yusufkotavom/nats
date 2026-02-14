@@ -116,8 +116,8 @@ export class InventoryService {
       },
     });
 
-    let currentQty = inventory?.quantity || 0;
-    let currentCost = inventory?.unitCost || new Decimal(0);
+    const currentQty = inventory?.quantity || 0;
+    const currentCost = inventory?.unitCost || new Decimal(0);
 
     // Fetch Product for Average Cost calculation
     const product = await tx.product.findUniqueOrThrow({ where: { id: productId } });

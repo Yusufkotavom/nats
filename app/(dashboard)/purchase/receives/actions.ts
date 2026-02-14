@@ -90,6 +90,8 @@ export async function getPurchaseReceive(id: string) {
           product: true,
         },
       },
+      department: true,
+      project: true,
       attachments: true,
     },
   });

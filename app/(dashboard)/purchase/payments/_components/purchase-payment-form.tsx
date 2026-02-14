@@ -34,14 +34,22 @@ import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog"
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { useFormatDate } from "@/hooks";
 
+import { Department, Project } from "@/prisma/generated/prisma/client";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { SuperJSONResult } from "superjson";
+
 interface PurchasePaymentFormProps {
   initialData?: PurchasePaymentWithDetails;
   readonly?: boolean;
+  departments?: Department[];
+  projects?: Project[];
 }
 
 export function PurchasePaymentForm({
   initialData,
   readonly = false,
+  departments = [],
+  projects = [],
 }: PurchasePaymentFormProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -56,6 +64,8 @@ export function PurchasePaymentForm({
     amount: initialData ? Number(initialData.amount) : 0,
     reference: initialData?.reference || "",
     notes: initialData?.notes || "",
+    departmentId: initialData?.departmentId || null,
+    projectId: initialData?.projectId || null,
     cashAccountId: initialData?.cashAccountId || "",
   });
 
@@ -81,7 +91,7 @@ export function PurchasePaymentForm({
       const data = await getUnpaidInvoices();
       return SuperJSON.deserialize<
         (PurchaseInvoice & { contact: Contact; payments: any[] })[]
-      >(data);
+      >(data as unknown as SuperJSONResult);
     },
   });
 
@@ -89,7 +99,7 @@ export function PurchasePaymentForm({
     queryKey: ["cash-accounts"],
     queryFn: async () => {
       const data = await getCashAccounts();
-      return SuperJSON.deserialize<CashAccount[]>(data);
+      return SuperJSON.deserialize<CashAccount[]>(data as unknown as SuperJSONResult);
     },
   });
 
@@ -286,6 +296,39 @@ export function PurchasePaymentForm({
             }
             disabled={readonly}
           />
+
+          <div className="col-span-2 grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Department</label>
+              <SearchableSelect
+                value={formData.departmentId || ""}
+                onValueChange={(val) =>
+                  setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                }
+                options={departments.map((d) => ({
+                  value: d.id,
+                  label: d.name,
+                }))}
+                placeholder="Select Department"
+                disabled={readonly}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Project</label>
+              <SearchableSelect
+                value={formData.projectId || ""}
+                onValueChange={(val) =>
+                  setFormData((prev) => ({ ...prev, projectId: val || null }))
+                }
+                options={projects.map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                }))}
+                placeholder="Select Project"
+                disabled={readonly}
+              />
+            </div>
+          </div>
 
           <div className="col-span-2">
             <CustomTextarea

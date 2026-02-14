@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { SuperJSON } from "@/lib/superjson";
 import { PurchasePaymentWithDetails } from "../types";
+import { getDepartments, getProjects } from "@/app/(dashboard)/accounting/journal-entries/actions";
 
 export const metadata: Metadata = {
   title: "View Purchase Payment | Pasak",
@@ -19,6 +20,8 @@ interface PageProps {
 export default async function ViewPurchasePaymentPage(props: PageProps) {
   const params = await props.params;
   const paymentData = await getPurchasePayment(params.id);
+  const departments = await getDepartments();
+  const projects = await getProjects();
 
   if (!paymentData) {
     notFound();
@@ -26,5 +29,12 @@ export default async function ViewPurchasePaymentPage(props: PageProps) {
 
   const payment = SuperJSON.deserialize<PurchasePaymentWithDetails>(paymentData);
 
-  return <PurchasePaymentForm initialData={payment} readonly />;
+  return (
+    <PurchasePaymentForm
+      initialData={payment}
+      readonly
+      departments={departments}
+      projects={projects}
+    />
+  );
 }

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { SuperJSON } from "@/lib/superjson";
 import { SalesPaymentWithDetails } from "../../types";
+import { getDepartments, getProjects } from "@/app/(dashboard)/accounting/journal-entries/actions";
 
 export const metadata: Metadata = {
   title: "Edit Sales Payment | Pasak",
@@ -19,6 +20,8 @@ interface PageProps {
 export default async function EditSalesPaymentPage(props: PageProps) {
   const params = await props.params;
   const paymentData = await getSalesPayment(params.id);
+  const departments = await getDepartments();
+  const projects = await getProjects();
 
   if (!paymentData) {
     notFound();
@@ -38,5 +41,11 @@ export default async function EditSalesPaymentPage(props: PageProps) {
     );
   }
 
-  return <SalesPaymentForm initialData={payment} />;
+  return (
+    <SalesPaymentForm
+      initialData={payment}
+      departments={departments}
+      projects={projects}
+    />
+  );
 }

@@ -174,6 +174,8 @@ export const createPurchasePayment = authorizedAction(
             amount: data.amount,
             reference: data.reference,
             notes: data.notes,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             cashAccountId: data.cashAccountId,
             attachments: {
               connect: data.attachmentIds?.map((id) => ({ id })),

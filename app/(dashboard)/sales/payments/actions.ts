@@ -190,6 +190,8 @@ export const createSalesPayment = authorizedAction(
             reference: data.reference,
             notes: data.notes,
             method: data.method,
+            departmentId: data.departmentId,
+            projectId: data.projectId,
             cashAccountId: data.cashAccountId,
             attachments: {
               connect: data.attachmentIds?.map((id) => ({ id })),

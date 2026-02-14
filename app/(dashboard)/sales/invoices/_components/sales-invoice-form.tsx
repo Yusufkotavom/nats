@@ -222,7 +222,6 @@ export function SalesInvoiceForm({
     value: string | number | undefined,
   ) => {
     const newItems = [...formData.items];
-    // @ts-ignore
     newItems[index] = { ...newItems[index], [field]: value };
     setFormData((prev) => ({ ...prev, items: newItems }));
   };

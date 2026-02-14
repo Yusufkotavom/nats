@@ -86,6 +86,8 @@ interface PurchaseOrderForSelect {
 interface PurchaseReceiveFormProps {
   receive?: SuperJSONResult | null;
   vendors: Awaited<ReturnType<typeof getContacts>>["data"];
+  departments: Department[];
+  projects: Project[];
   products: SuperJSONResult;
   purchaseOrders: SuperJSONResult;
   readonly?: boolean;
@@ -94,6 +96,8 @@ interface PurchaseReceiveFormProps {
 export function PurchaseReceiveForm({
   receive: serializedReceive,
   vendors,
+  departments,
+  projects,
   products: serializedProducts,
   purchaseOrders: serializedPurchaseOrders,
   readonly = false,

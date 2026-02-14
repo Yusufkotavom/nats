@@ -337,7 +337,7 @@ export function BudgetForm({ departments, projects, accounts, initialData, isEdi
                   {formData.items.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={15} className="text-center text-muted-foreground h-24">
-                        No items added. Click "Add Item" to start planning.
+                        No items added. Click &quot;Add Item&quot; to start planning.
                       </TableCell>
                     </TableRow>
                   ) : (

@@ -162,8 +162,8 @@ export const createSalesOrder = authorizedAction(
 
       // Calculate totals
       let totalAmount = 0;
-      let taxAmount = 0;
-      let discountAmount = 0;
+      const taxAmount = 0;
+      const discountAmount = 0;
       let subtotal = 0;
 
       data.items.forEach((item) => {
@@ -237,8 +237,8 @@ export const updateSalesOrder = authorizedAction(
       // Calculate totals
       let totalAmount = 0;
       let subtotal = 0;
-      let taxAmount = 0;
-      let discountAmount = 0;
+      const taxAmount = 0;
+      const discountAmount = 0;
 
       data.items.forEach((item) => {
         const lineTotal = item.quantity * item.unitPrice;

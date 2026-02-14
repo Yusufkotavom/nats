@@ -385,7 +385,7 @@ export function PurchaseReturnForm({
             />
           </div>
 
-          <div className="col-span-2 grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Department</Label>
               <SearchableSelect
@@ -418,20 +418,25 @@ export function PurchaseReturnForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Return Date</Label>
-            <CustomInput
-              type="date"
-              value={formData.returnDate.toISOString().split("T")[0]}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  returnDate: new Date(e.target.value),
-                })
-              }
-              disabled={readonly}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Return Date</Label>
+              <CustomInput
+                type="date"
+                value={
+                  formData.returnDate instanceof Date
+                    ? formData.returnDate.toISOString().split("T")[0]
+                    : formData.returnDate
+                }
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    returnDate: new Date(e.target.value),
+                  }))
+                }
+                disabled={readonly}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -9,6 +9,8 @@ export type SalesPaymentInput = {
   reference?: string;
   notes?: string;
   method?: string;
+  departmentId?: string | null;
+  projectId?: string | null;
   cashAccountId: string;
   attachmentIds?: string[];
 };
@@ -19,6 +21,8 @@ export type SalesPaymentWithDetails = Prisma.SalesPaymentGetPayload<{
     salesInvoice: true;
     cashAccount: true;
     journalEntry: true;
+    department: true;
+    project: true;
     attachments: true;
   };
 }>;

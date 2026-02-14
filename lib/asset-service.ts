@@ -93,7 +93,7 @@ export class AssetService {
   /**
    * Post depreciation for a schedule item
    */
-  static async postDepreciation(scheduleId: String, userId: String) {
+  static async postDepreciation(scheduleId: string, userId: string) {
     const schedule = await prisma.depreciationSchedule.findUnique({
       where: { id: scheduleId as string },
       include: {

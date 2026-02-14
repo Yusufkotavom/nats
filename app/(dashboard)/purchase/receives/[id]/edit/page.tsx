@@ -7,15 +7,19 @@ import {
 } from "../../actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
+import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
+import { SuperJSONResult } from "superjson";
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const { id } = params;
-  const [receive, vendors, products, purchaseOrders] = await Promise.all([
+  const [receive, vendors, products, purchaseOrders, departments, projects] = await Promise.all([
     getPurchaseReceive(id),
     getContacts({ type: ContactType.VENDOR }),
     getProducts(),
     getPurchaseOrdersForSelect(),
+    getDepartments(),
+    getProjects(),
   ]);
 
   if (!receive) {
@@ -26,8 +30,10 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     <PurchaseReceiveForm
       receive={receive}
       vendors={vendors.data}
-      products={products}
-      purchaseOrders={purchaseOrders}
+      products={products as unknown as SuperJSONResult}
+      purchaseOrders={purchaseOrders as unknown as SuperJSONResult}
+      departments={departments}
+      projects={projects}
     />
   );
 }

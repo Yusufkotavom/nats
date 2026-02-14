@@ -99,6 +99,12 @@ model PurchasePayment {
   journalEntryId String?       @unique
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
 
+  // Budgeting
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  projectId    String?
+  project      Project?    @relation(fields: [projectId], references: [id])
+
   attachments File[]
 
   createdAt DateTime @default(now())

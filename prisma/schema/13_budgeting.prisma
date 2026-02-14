@@ -16,10 +16,12 @@ model Department {
   purchaseInvoices PurchaseInvoice[]
   purchaseReceives PurchaseReceive[]
   purchaseReturns  PurchaseReturn[]
+  purchasePayments PurchasePayment[]
   salesOrders      SalesOrder[]
   salesInvoices    SalesInvoice[]
   salesShipments   SalesShipment[]
   salesReturns     SalesReturn[]
+  salesPayments    SalesPayment[]
   cashTransactions CashTransaction[]
 }
 
@@ -42,10 +44,12 @@ model Project {
   purchaseInvoices PurchaseInvoice[]
   purchaseReceives PurchaseReceive[]
   purchaseReturns  PurchaseReturn[]
+  purchasePayments PurchasePayment[]
   salesOrders      SalesOrder[]
   salesInvoices    SalesInvoice[]
   salesShipments   SalesShipment[]
   salesReturns     SalesReturn[]
+  salesPayments    SalesPayment[]
   cashTransactions CashTransaction[]
 }
 

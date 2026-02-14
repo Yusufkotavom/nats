@@ -110,7 +110,7 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
                       Status: <Badge variant={approval.status === "APPROVED" ? "default" : approval.status === "REJECTED" ? "destructive" : "secondary"}>{approval.status}</Badge>
                     </div>
                     {approval.comments && (
-                      <div className="text-sm mt-1 italic">"{approval.comments}"</div>
+                      <div className="text-sm mt-1 italic">&quot;{approval.comments}&quot;</div>
                     )}
                   </div>
                   <div className="text-right text-sm text-muted-foreground">
