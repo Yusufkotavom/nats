@@ -1,6 +1,7 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Decimal } from "decimal.js";
+import { JournalService } from "@/lib/accounting/journal-service";
 
 type AssetWithCategory = Prisma.AssetGetPayload<{
   include: { category: true };
@@ -20,33 +21,33 @@ export class AssetService {
     const schedule: { date: Date; amount: Decimal; bookValueAfter: Decimal }[] = [];
     let currentBookValue = cost;
     const depreciableAmount = cost.minus(residualValue);
-    
+
     if (method === "NO_DEPRECIATION" || usefulLifeMonths <= 0) {
       return [];
     }
 
     if (method === "STRAIGHT_LINE") {
       const monthlyDepreciation = depreciableAmount.div(usefulLifeMonths);
-      
+
       for (let i = 1; i <= usefulLifeMonths; i++) {
         const date = new Date(startDate);
         date.setMonth(date.getMonth() + i);
-        
+
         // Handle last month adjustment to match residual value exactly
         let amount = monthlyDepreciation;
         if (i === usefulLifeMonths) {
           amount = currentBookValue.minus(residualValue);
         }
-        
+
         // Ensure we don't go below residual value
         if (currentBookValue.minus(amount).lessThan(residualValue)) {
           amount = currentBookValue.minus(residualValue);
         }
-        
+
         if (amount.lessThanOrEqualTo(0)) break;
 
         currentBookValue = currentBookValue.minus(amount);
-        
+
         schedule.push({
           date,
           amount,
@@ -58,15 +59,15 @@ export class AssetService {
       // Monthly Rate = (2 / (Life in Months / 12)) / 12 = 2 / Life in Months
       // Actually standard formula is usually annual based. 
       // Let's use simplified monthly: Rate = 2 / usefulLifeMonths
-      
+
       const rate = new Decimal(2).div(usefulLifeMonths);
-      
+
       for (let i = 1; i <= usefulLifeMonths; i++) {
         const date = new Date(startDate);
         date.setMonth(date.getMonth() + i);
 
         let amount = currentBookValue.times(rate);
-        
+
         // Switch to straight line if it's greater? (Optional, but common in GAAP)
         // For simplicity, just strict DDB until the end or manual adjustment.
         // But usually we stop when hitting residual.
@@ -74,11 +75,11 @@ export class AssetService {
         if (currentBookValue.minus(amount).lessThan(residualValue)) {
           amount = currentBookValue.minus(residualValue);
         }
-        
+
         if (amount.lessThanOrEqualTo(0)) break;
-        
+
         currentBookValue = currentBookValue.minus(amount);
-        
+
         schedule.push({
           date,
           amount,
@@ -118,34 +119,30 @@ export class AssetService {
     const entryNumber = `DEP-${asset.code}-${schedule.date.toISOString().slice(0, 10)}`; // Simple unique generation
 
     await prisma.$transaction(async (tx) => {
-      const journalEntry = await tx.journalEntry.create({
-        data: {
-          userId: userId as string,
-          entryNumber,
-          transactionDate: date,
-          description: `Depreciation for ${asset.name} (${asset.code})`,
-          status: "posted", // Auto post
-          postedAt: new Date(),
-          lines: {
-            create: [
-              {
-                accountId: category.depreciationExpenseAccountId,
-                debitAmount: amount,
-                creditAmount: 0,
-                description: "Depreciation Expense",
-                lineNumber: 1,
-              },
-              {
-                accountId: category.accumDepreciationAccountId,
-                debitAmount: 0,
-                creditAmount: amount,
-                description: "Accumulated Depreciation",
-                lineNumber: 2,
-              },
-            ],
+      const je = await JournalService.createDraftJournalEntry(tx, {
+        userId: userId as string,
+        entryNumber,
+        transactionDate: date,
+        description: `Depreciation for ${asset.name} (${asset.code})`,
+        lines: [
+          {
+            accountId: category.depreciationExpenseAccountId,
+            debitAmount: new Decimal(amount),
+            creditAmount: new Decimal(0),
+            description: "Depreciation Expense",
+            lineNumber: 1,
           },
-        },
+          {
+            accountId: category.accumDepreciationAccountId,
+            debitAmount: new Decimal(0),
+            creditAmount: new Decimal(amount),
+            description: "Accumulated Depreciation",
+            lineNumber: 2,
+          },
+        ],
       });
+
+      await JournalService.postJournalEntry(tx, je.id);
 
       // Update Schedule
       await tx.depreciationSchedule.update({
@@ -153,7 +150,7 @@ export class AssetService {
         data: {
           isPosted: true,
           postedAt: new Date(),
-          journalEntryId: journalEntry.id,
+          journalEntryId: je.id,
         },
       });
 
@@ -164,13 +161,6 @@ export class AssetService {
           currentBookValue: schedule.bookValueAfter,
         },
       });
-      
-      // Update Account Balances (Using existing logic or manual update? existing logic should handle it if triggered, but JournalEntry creation usually doesn't auto-update balances unless there's a trigger or service call. 
-      // Wait, looking at codebase, is there a trigger? The user rules say "Consider the permission...". 
-      // I don't see an explicit ledger update service call in the rules. 
-      // Usually posting a journal entry should update balances.
-      // I'll assume for now I just create the JE. 
-      // Wait, I should check if there is a helper to post JE that updates balances.
     });
   }
 }

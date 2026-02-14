@@ -13,6 +13,8 @@ import { getPurchaseOrder } from "../orders/actions";
 import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { JournalService } from "@/lib/accounting/journal-service";
+import { Decimal } from "decimal.js";
 
 export { getPurchaseOrder };
 
@@ -419,17 +421,26 @@ export const postPurchaseInvoice = authorizedAction(
       const expenseAccount = await getRequiredDefaultAccount("UNCATEGORIZED_EXPENSE");
 
       // Prepare JE lines
-      const lines: Prisma.JournalEntryLineCreateWithoutJournalEntryInput[] = [];
+      const jeLines: {
+        accountId: string;
+        debitAmount: Decimal;
+        creditAmount: Decimal;
+        description: string;
+        lineNumber: number;
+        contactId?: string;
+        departmentId?: string | null;
+        projectId?: string | null;
+      }[] = [];
       let lineNumber = 1;
 
       // Credit AP (Total Amount)
-      lines.push({
-        account: { connect: { id: apAccount.accountId } },
-        debitAmount: 0,
-        creditAmount: invoice.totalAmount,
+      jeLines.push({
+        accountId: apAccount.accountId,
+        debitAmount: new Decimal(0),
+        creditAmount: new Decimal(invoice.totalAmount),
         description: `Payable for Invoice #${invoice.invoiceNumber}`,
         lineNumber: lineNumber++,
-        contact: { connect: { id: invoice.contactId } },
+        contactId: invoice.contactId,
       });
 
       // Debit Items (Expense/Asset/GRNI)
@@ -440,28 +451,29 @@ export const postPurchaseInvoice = authorizedAction(
           accountId = grniAccount.accountId;
         }
 
-        const subtotal = Number(item.unitPrice) * item.quantity;
-        const discountAmount = subtotal * (Number(item.discount || 0) / 100);
-        const taxableAmount = subtotal - discountAmount;
-        const taxAmount = Number(item.tax || 0);
+        const subtotal = new Decimal(item.unitPrice.toString()).mul(item.quantity);
+        const discountPercent = new Decimal(item.discount?.toString() || 0).div(100);
+        const discountAmount = subtotal.mul(discountPercent);
+        const taxableAmount = subtotal.minus(discountAmount);
+        const taxAmount = new Decimal(item.tax?.toString() || 0);
 
         // Debit Net Amount
-        if (taxableAmount > 0) {
-          lines.push({
-            account: { connect: { id: accountId } },
+        if (taxableAmount.gt(0)) {
+          jeLines.push({
+            accountId: accountId,
             debitAmount: taxableAmount,
-            creditAmount: 0,
+            creditAmount: new Decimal(0),
             description: item.description,
             lineNumber: lineNumber++,
           });
         }
 
         // Debit Tax Amount
-        if (taxAmount > 0) {
-          lines.push({
-            account: { connect: { id: taxAccount.accountId } },
+        if (taxAmount.gt(0)) {
+          jeLines.push({
+            accountId: taxAccount.accountId,
             debitAmount: taxAmount,
-            creditAmount: 0,
+            creditAmount: new Decimal(0),
             description: `Tax on ${item.description}`,
             lineNumber: lineNumber++,
           });
@@ -469,33 +481,33 @@ export const postPurchaseInvoice = authorizedAction(
       }
 
       // Shipping
-      if (Number(invoice.shippingCost) > 0) {
-        lines.push({
-          account: { connect: { id: expenseAccount.accountId } },
-          debitAmount: invoice.shippingCost,
-          creditAmount: 0,
+      if (new Decimal(invoice.shippingCost || 0).gt(0)) {
+        jeLines.push({
+          accountId: expenseAccount.accountId,
+          debitAmount: new Decimal(invoice.shippingCost || 0),
+          creditAmount: new Decimal(0),
           description: "Shipping Cost",
           lineNumber: lineNumber++,
         });
       }
 
       // Handling
-      if (Number(invoice.handlingCost) > 0) {
-        lines.push({
-          account: { connect: { id: expenseAccount.accountId } },
-          debitAmount: invoice.handlingCost,
-          creditAmount: 0,
+      if (new Decimal(invoice.handlingCost || 0).gt(0)) {
+        jeLines.push({
+          accountId: expenseAccount.accountId,
+          debitAmount: new Decimal(invoice.handlingCost || 0),
+          creditAmount: new Decimal(0),
           description: "Handling Cost",
           lineNumber: lineNumber++,
         });
       }
 
       // Global Discount (Credit)
-      if (Number(invoice.globalDiscount) > 0) {
-        lines.push({
-          account: { connect: { id: expenseAccount.accountId } },
-          debitAmount: 0,
-          creditAmount: invoice.globalDiscount,
+      if (new Decimal(invoice.globalDiscount || 0).gt(0)) {
+        jeLines.push({
+          accountId: expenseAccount.accountId,
+          debitAmount: new Decimal(0),
+          creditAmount: new Decimal(invoice.globalDiscount || 0),
           description: "Global Discount",
           lineNumber: lineNumber++,
         });
@@ -503,20 +515,17 @@ export const postPurchaseInvoice = authorizedAction(
 
       // Transaction
       await prisma.$transaction(async (tx) => {
-        // Create JE
-        const je = await tx.journalEntry.create({
-          data: {
-            userId: session.userId,
-            entryNumber: `INV-${invoice.invoiceNumber}`,
-            transactionDate: invoice.invoiceDate,
-            description: `Purchase Invoice #${invoice.invoiceNumber}`,
-            status: "posted",
-            postedAt: new Date(),
-            lines: {
-              create: lines,
-            },
-          },
+        // Create Draft JE
+        const je = await JournalService.createDraftJournalEntry(tx, {
+          userId: session.userId,
+          entryNumber: `INV-${invoice.invoiceNumber}`,
+          transactionDate: invoice.invoiceDate,
+          description: `Purchase Invoice #${invoice.invoiceNumber}`,
+          lines: jeLines,
         });
+
+        // Post JE
+        await JournalService.postJournalEntry(tx, je.id);
 
         // Update Invoice
         await tx.purchaseInvoice.update({
@@ -533,7 +542,7 @@ export const postPurchaseInvoice = authorizedAction(
       return { success: true };
     } catch (error) {
       console.error("Failed to post Invoice:", error);
-      return { success: false, error: "Failed to post Purchase Invoice" };
+      return { success: false, error: error instanceof Error ? error.message : "Failed to post Purchase Invoice" };
     }
   },
 );

@@ -5,8 +5,9 @@ import { revalidatePath } from 'next/cache';
 import { InventoryService } from '@/app/(dashboard)/inventory/inventory-service';
 import { getSession } from '@/lib/auth/auth';
 import { MovementType, CashTransactionType } from "@/prisma/generated/prisma/client";
-import { Decimal } from '@/prisma/generated/prisma/internal/prismaNamespace';
+import { Decimal } from "decimal.js";
 import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
+import { JournalService } from "@/lib/accounting/journal-service";
 
 import { SuperJSON } from "@/lib/superjson";
 
@@ -343,7 +344,7 @@ export async function processPOSTransaction(
     invoiceJeLines.push({
       accountId: arAccount.accountId,
       debitAmount: totalAmount,
-      creditAmount: 0,
+      creditAmount: new Decimal(0),
       description: `Receivable for Invoice #${invoiceNumber}`,
       lineNumber: lineNum++,
       contactId: contactId,
@@ -361,8 +362,8 @@ export async function processPOSTransaction(
 
       invoiceJeLines.push({
         accountId: revenueAccount.accountId,
-        debitAmount: 0,
-        creditAmount: netAmount,
+        debitAmount: new Decimal(0),
+        creditAmount: new Decimal(netAmount),
         description: `POS Item - ${item.productId}`, // We should probably improve description
         lineNumber: lineNum++,
       });
@@ -372,26 +373,22 @@ export async function processPOSTransaction(
     if (globalDiscount > 0) {
       invoiceJeLines.push({
         accountId: discountAccount.accountId,
-        debitAmount: globalDiscount,
-        creditAmount: 0,
+        debitAmount: new Decimal(globalDiscount),
+        creditAmount: new Decimal(0),
         description: "Global Discount",
         lineNumber: lineNum++,
       });
     }
 
-    const invoiceJe = await tx.journalEntry.create({
-      data: {
-        userId: session.cashierId,
-        entryNumber: `INV-POS-${Date.now()}`, // Or match invoice?
-        transactionDate: new Date(),
-        description: `Invoice #${invoiceNumber}`,
-        status: "posted",
-        postedAt: new Date(),
-        lines: {
-          create: invoiceJeLines
-        }
-      }
+    const invoiceJe = await JournalService.createDraftJournalEntry(tx, {
+      userId: session.cashierId,
+      entryNumber: `INV-POS-${Date.now()}`,
+      transactionDate: new Date(),
+      description: `Invoice #${invoiceNumber}`,
+      lines: invoiceJeLines
     });
+
+    await JournalService.postJournalEntry(tx, invoiceJe.id);
 
     await tx.salesInvoice.update({
       where: { id: salesInvoice.id },
@@ -422,35 +419,31 @@ export async function processPOSTransaction(
     });
 
     // 5.5 Create Payment Journal Entry & Cash Transaction
-    const paymentJe = await tx.journalEntry.create({
-      data: {
-        userId: session.cashierId,
-        entryNumber: `PAY-POS-${Date.now()}`,
-        transactionDate: new Date(),
-        description: `Payment for Invoice #${invoiceNumber}`,
-        status: "posted",
-        postedAt: new Date(),
-        lines: {
-          create: [
-            {
-              accountId: cashAccount.glAccountId,
-              debitAmount: new Decimal(totalAmount),
-              creditAmount: 0,
-              description: `Payment to ${cashAccount.name}`,
-              lineNumber: 1,
-            },
-            {
-              accountId: arAccount.accountId,
-              debitAmount: 0,
-              creditAmount: new Decimal(totalAmount),
-              description: `Payment for Invoice #${invoiceNumber}`,
-              lineNumber: 2,
-              contactId: contactId,
-            },
-          ],
+    const paymentJe = await JournalService.createDraftJournalEntry(tx, {
+      userId: session.cashierId,
+      entryNumber: `PAY-POS-${Date.now()}`,
+      transactionDate: new Date(),
+      description: `Payment for Invoice #${invoiceNumber}`,
+      lines: [
+        {
+          accountId: cashAccount.glAccountId,
+          debitAmount: new Decimal(totalAmount),
+          creditAmount: new Decimal(0),
+          description: `Payment to ${cashAccount.name}`,
+          lineNumber: 1,
         },
-      },
+        {
+          accountId: arAccount.accountId,
+          debitAmount: new Decimal(0),
+          creditAmount: new Decimal(totalAmount),
+          description: `Payment for Invoice #${invoiceNumber}`,
+          lineNumber: 2,
+          contactId: contactId,
+        },
+      ],
     });
+
+    await JournalService.postJournalEntry(tx, paymentJe.id);
 
     await tx.cashTransaction.create({
       data: {

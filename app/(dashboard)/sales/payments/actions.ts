@@ -13,6 +13,8 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesPaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { JournalService } from "@/lib/accounting/journal-service";
+import { Decimal } from "decimal.js";
 
 export async function getSalesPayments(
   page: number = 1,
@@ -254,37 +256,33 @@ export const postSalesPayment = authorizedAction(
       const arAccount = await getRequiredDefaultAccount("ACCOUNTS_RECEIVABLE");
 
       await prisma.$transaction(async (tx) => {
-        // Create Journal Entry
-        // Debit Cash, Credit AR
-        const je = await tx.journalEntry.create({
-          data: {
-            userId: session.userId,
-            entryNumber: `PAY-IN-${payment.paymentNumber}`,
-            transactionDate: payment.paymentDate,
-            description: `Payment for Invoice #${invoice.invoiceNumber}`,
-            status: "posted",
-            postedAt: new Date(),
-            lines: {
-              create: [
-                {
-                  accountId: cashAccount.glAccountId,
-                  debitAmount: payment.amount,
-                  creditAmount: 0,
-                  description: `Payment to ${cashAccount.name}`,
-                  lineNumber: 1,
-                },
-                {
-                  accountId: arAccount.accountId,
-                  debitAmount: 0,
-                  creditAmount: payment.amount,
-                  description: `Payment for Invoice #${invoice.invoiceNumber}`,
-                  lineNumber: 2,
-                  contactId: payment.contactId,
-                },
-              ],
+        // Create Draft JE
+        const je = await JournalService.createDraftJournalEntry(tx, {
+          userId: session.userId,
+          entryNumber: `PAY-IN-${payment.paymentNumber}`,
+          transactionDate: payment.paymentDate,
+          description: `Payment for Invoice #${invoice.invoiceNumber}`,
+          lines: [
+            {
+              accountId: cashAccount.glAccountId,
+              debitAmount: new Decimal(payment.amount),
+              creditAmount: new Decimal(0),
+              description: `Payment to ${cashAccount.name}`,
+              lineNumber: 1,
             },
-          },
+            {
+              accountId: arAccount.accountId,
+              debitAmount: new Decimal(0),
+              creditAmount: new Decimal(payment.amount),
+              description: `Payment for Invoice #${invoice.invoiceNumber}`,
+              lineNumber: 2,
+              contactId: payment.contactId,
+            },
+          ],
         });
+
+        // Post JE
+        await JournalService.postJournalEntry(tx, je.id);
 
         // Create Cash Transaction (Income)
         await tx.cashTransaction.create({

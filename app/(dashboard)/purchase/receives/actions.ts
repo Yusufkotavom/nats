@@ -12,6 +12,8 @@ import { getPurchaseOrder } from "../orders/actions";
 import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { JournalService } from "@/lib/accounting/journal-service";
+import { Decimal } from "decimal.js";
 
 export { getPurchaseOrder };
 
@@ -356,38 +358,34 @@ export const updatePurchaseReceive = authorizedAction(
             const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
             const grniAccount = await getRequiredDefaultAccount("GOODS_RECEIVED_NOT_INVOICED");
 
-            await tx.journalEntry.create({
-              data: {
-                userId: session.userId,
-                entryNumber: `JE-${currentReceive.receiveNumber}`,
-                transactionDate: data.receiveDate,
-                description: `Inventory Receipt #${currentReceive.receiveNumber}`,
-                status: "posted",
-                postedAt: new Date(),
-                lines: {
-                  create: [
-                    {
-                      accountId: inventoryAccount.accountId,
-                      debitAmount: totalValue,
-                      creditAmount: 0,
-                      description: "Inventory Asset",
-                      departmentId: data.departmentId,
-                      projectId: data.projectId,
-                      lineNumber: 1
-                    },
-                    {
-                      accountId: grniAccount.accountId,
-                      debitAmount: 0,
-                      creditAmount: totalValue,
-                      description: "Goods Received Not Invoiced",
-                      departmentId: data.departmentId,
-                      projectId: data.projectId,
-                      lineNumber: 2
-                    }
-                  ]
-                }
-              }
+            const je = await JournalService.createDraftJournalEntry(tx, {
+              userId: session.userId,
+              entryNumber: `JE-${updatedReceive.receiveNumber}`,
+              transactionDate: updatedReceive.receiveDate,
+              description: `Inventory Asset for Receive #${updatedReceive.receiveNumber}`,
+              lines: [
+                {
+                  accountId: inventoryAccount.accountId,
+                  debitAmount: new Decimal(totalValue),
+                  creditAmount: new Decimal(0),
+                  description: "Inventory Asset",
+                  departmentId: data.departmentId,
+                  projectId: data.projectId,
+                  lineNumber: 1,
+                },
+                {
+                  accountId: grniAccount.accountId,
+                  debitAmount: new Decimal(0),
+                  creditAmount: new Decimal(totalValue),
+                  description: "Goods Received Not Invoiced",
+                  departmentId: data.departmentId,
+                  projectId: data.projectId,
+                  lineNumber: 2,
+                },
+              ],
             });
+
+            await JournalService.postJournalEntry(tx, je.id);
           }
         }
 

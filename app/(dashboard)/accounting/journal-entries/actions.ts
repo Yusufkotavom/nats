@@ -377,98 +377,13 @@ export async function deleteJournalEntry(id: string) {
   }
 }
 
+import { JournalService } from "@/lib/accounting/journal-service";
+
 export async function postJournalEntry(id: string) {
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const existingEntry = await tx.journalEntry.findUnique({
-        where: { id },
-        include: {
-          lines: {
-            orderBy: { lineNumber: "asc" },
-            include: { account: true },
-          },
-        },
-      });
-
-      if (!existingEntry) {
-        return { success: false, error: "Journal entry not found" };
-      }
-
-      if (existingEntry.status === "posted") {
-        return { success: false, error: "Journal entry is already posted" };
-      }
-
-      // Double check journal entry balance
-      const totalDebit = existingEntry.lines.reduce(
-        (sum, line) => sum + (line?.debitAmount?.toNumber() || 0),
-        0,
-      );
-      const totalCredit = existingEntry.lines.reduce(
-        (sum, line) => sum + (line?.creditAmount?.toNumber() || 0),
-        0,
-      );
-
-      if (Math.abs(totalDebit - totalCredit) > 0.01) {
-        return {
-          success: false,
-          error: "Cannot post unbalanced journal entry",
-        };
-      }
-
-      // Update status
-      await tx.journalEntry.update({
-        where: { id },
-        data: {
-          status: "posted",
-          postedAt: new Date(),
-        },
-      });
-
-      // Update running balances
-      const accountBalances: Record<string, number> = {};
-
-      for (const line of existingEntry.lines) {
-        const { accountId, account } = line;
-
-        // Initialize balance for this account if not already tracked in this transaction
-        if (accountBalances[accountId] === undefined) {
-          const lastEntryLine = await tx.journalEntryLine.findFirst({
-            where: {
-              accountId,
-              journalEntry: {
-                status: "posted",
-              },
-              journalEntryId: { not: id },
-            },
-            orderBy: [
-              { journalEntry: { postedAt: "desc" } },
-              { journalEntry: { createdAt: "desc" } },
-            ],
-            select: { runningBalance: true },
-          });
-          accountBalances[accountId] =
-            lastEntryLine?.runningBalance?.toNumber() || 0;
-        }
-
-        // Update balance based on normal balance type
-        const debit = line.debitAmount.toNumber();
-        const credit = line.creditAmount.toNumber();
-
-        if (account.normalBalance === "credit") {
-          accountBalances[accountId] =
-            accountBalances[accountId] - debit + credit;
-        } else {
-          accountBalances[accountId] =
-            accountBalances[accountId] + debit - credit;
-        }
-
-        // Update line with new running balance
-        await tx.journalEntryLine.update({
-          where: { id: line.id },
-          data: { runningBalance: accountBalances[accountId] },
-        });
-      }
-
+      // Use the centralized JournalService to post the entry
+      await JournalService.postJournalEntry(tx, id);
       return { success: true };
     });
 
@@ -480,6 +395,9 @@ export async function postJournalEntry(id: string) {
     return result;
   } catch (error) {
     console.error("Failed to post journal entry:", error);
-    return { success: false, error: "Failed to post journal entry" };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to post journal entry"
+    };
   }
 }
