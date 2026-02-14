@@ -1,7 +1,7 @@
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { SalesOrderReportData } from './data';
-import { format } from 'date-fns';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 // Create styles
 const styles = StyleSheet.create({
@@ -133,6 +133,15 @@ const styles = StyleSheet.create({
 
 export const SalesOrderPdf = ({ data, company, config }: ReportContext<SalesOrderReportData>) => {
     const { order } = data;
+    const currencyOptions = {
+        currency: company.currency,
+        currencySymbol: company.currencySymbol,
+        currencyFormat: company.currencyFormat,
+        locale: company.locale,
+    };
+    const dateOptions = {
+        dateFormat: company.dateFormat,
+    };
 
     return (
         <Document>
@@ -148,7 +157,7 @@ export const SalesOrderPdf = ({ data, company, config }: ReportContext<SalesOrde
                     <View style={styles.headerRight}>
                         <Text style={styles.title}>SALES ORDER</Text>
                         <Text style={styles.subtitle}>#{order.orderNumber}</Text>
-                        <Text style={styles.value}>{format(new Date(order.orderDate), 'MMM dd, yyyy')}</Text>
+                        <Text style={styles.value}>{formatDate(order.orderDate, dateOptions)}</Text>
                     </View>
                 </View>
 
@@ -171,7 +180,7 @@ export const SalesOrderPdf = ({ data, company, config }: ReportContext<SalesOrde
                         <Text style={styles.label}>Status</Text>
                         <Text style={styles.value}>{order.status}</Text>
                         <Text style={styles.label}>Expected Date</Text>
-                        <Text style={styles.value}>{order.expectedDate ? format(new Date(order.expectedDate), 'MMM dd, yyyy') : 'N/A'}</Text>
+                        <Text style={styles.value}>{order.expectedDate ? formatDate(order.expectedDate, dateOptions) : 'N/A'}</Text>
                     </View>
                 </View>
 
@@ -187,8 +196,8 @@ export const SalesOrderPdf = ({ data, company, config }: ReportContext<SalesOrde
                         <View key={item.id} style={styles.tableRow}>
                             <Text style={[styles.value, styles.colDesc]}>{item.product?.name || item.description}</Text>
                             <Text style={[styles.value, styles.colQty]}>{item.quantity}</Text>
-                            <Text style={[styles.value, styles.colPrice]}>{Number(item.unitPrice).toFixed(2)}</Text>
-                            <Text style={[styles.value, styles.colTotal]}>{Number(item.totalPrice).toFixed(2)}</Text>
+                            <Text style={[styles.value, styles.colPrice]}>{formatCurrency(item.unitPrice, currencyOptions)}</Text>
+                            <Text style={[styles.value, styles.colTotal]}>{formatCurrency(item.totalPrice, currencyOptions)}</Text>
                         </View>
                     ))}
                 </View>
@@ -197,25 +206,25 @@ export const SalesOrderPdf = ({ data, company, config }: ReportContext<SalesOrde
                 <View style={styles.totalSection}>
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Subtotal:</Text>
-                        <Text style={styles.totalValue}>{Number(order.subtotal).toFixed(2)}</Text>
+                        <Text style={styles.totalValue}>{formatCurrency(order.subtotal, currencyOptions)}</Text>
                     </View>
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Tax:</Text>
-                        <Text style={styles.totalValue}>{Number(order.taxAmount).toFixed(2)}</Text>
+                        <Text style={styles.totalValue}>{formatCurrency(order.taxAmount, currencyOptions)}</Text>
                     </View>
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Discount:</Text>
-                        <Text style={styles.totalValue}>({Number(order.discountAmount).toFixed(2)})</Text>
+                        <Text style={styles.totalValue}>({formatCurrency(order.discountAmount, currencyOptions)})</Text>
                     </View>
                     <View style={[styles.totalRow, { borderTopWidth: 1, borderTopColor: '#000', paddingTop: 5 }]}>
                         <Text style={[styles.totalLabel, { color: '#000', fontWeight: 'bold' }]}>TOTAL:</Text>
-                        <Text style={[styles.totalValue, { fontSize: 12 }]}>{Number(order.totalAmount).toFixed(2)}</Text>
+                        <Text style={[styles.totalValue, { fontSize: 12 }]}>{formatCurrency(order.totalAmount, currencyOptions)}</Text>
                     </View>
                 </View>
 
                 {/* Footer */}
                 <Text style={styles.footer}>
-                    {company.name} | {company.website || 'www.company.com'} | Generated on {format(new Date(), 'PPpp')}
+                    {company.name} | {company.website || 'www.company.com'} | Generated on {formatDate(new Date(), { ...dateOptions, includeTime: true })}
                 </Text>
             </Page>
         </Document>

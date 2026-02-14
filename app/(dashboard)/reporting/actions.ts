@@ -47,6 +47,11 @@ export async function getReportData(code: string, input: any) {
         phone: companyProfile?.phone || "",
         email: companyProfile?.email || "",
         website: companyProfile?.website || "",
+        dateFormat: companyProfile?.dateFormat || "MMM dd, yyyy",
+        currency: companyProfile?.currency || "USD",
+        currencySymbol: companyProfile?.currencySymbol || "$",
+        currencyFormat: companyProfile?.currencyFormat || "standard",
+        locale: companyProfile?.locale || "en-US",
       },
       config,
     };

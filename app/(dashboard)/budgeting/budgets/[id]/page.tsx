@@ -7,14 +7,29 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/auth/auth";
 import { notFound } from "next/navigation";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 export default async function BudgetDetailPage({ params }: { params: { id: string } }) {
   const budget = await getBudgetById(params.id);
   if (!budget) return notFound();
 
-  const varianceData = await getBudgetVariance(budget.id);
-  const session = await getSession();
+  const [varianceData, session, companyProfile] = await Promise.all([
+    getBudgetVariance(budget.id),
+    getSession(),
+    prisma.companyProfile.findFirst()
+  ]);
+
+  const currencyOptions = {
+    currency: companyProfile?.currency,
+    currencySymbol: companyProfile?.currencySymbol,
+    currencyFormat: companyProfile?.currencyFormat,
+    locale: companyProfile?.locale,
+  };
+
+  const dateOptions = {
+    dateFormat: companyProfile?.dateFormat,
+  };
 
   // Calculate totals
   const totalBudgeted = varianceData.reduce((acc, item) => acc + item.budgeted, 0);
@@ -51,7 +66,7 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
             <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalBudgeted)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalBudgeted, currencyOptions)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -59,7 +74,7 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
             <CardTitle className="text-sm font-medium">Total Actual</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalActual)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalActual, currencyOptions)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -68,7 +83,7 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${totalVariance < 0 ? "text-destructive" : "text-green-600"}`}>
-              {formatCurrency(totalVariance)}
+              {formatCurrency(totalVariance, currencyOptions)}
             </div>
           </CardContent>
         </Card>
@@ -117,7 +132,7 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
                     {approval.approver ? (
                       <>
                         <div>Approved by: {approval.approver.name}</div>
-                        <div>{new Date(approval.updatedAt).toLocaleDateString()}</div>
+                        <div>{formatDate(approval.updatedAt, dateOptions)}</div>
                       </>
                     ) : (
                       <div>Pending</div>

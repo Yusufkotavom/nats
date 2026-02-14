@@ -17,7 +17,14 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "#000", marginTop: 5, paddingTop: 5, fontWeight: "bold" }
 });
 
-export function BudgetTrackingPdf({ data }: ReportContext<Awaited<ReturnType<typeof fetchBudgetTrackingData>>>) {
+export function BudgetTrackingPdf({ data, company }: ReportContext<Awaited<ReturnType<typeof fetchBudgetTrackingData>>>) {
+  const currencyOptions = {
+    currency: company.currency,
+    currencySymbol: company.currencySymbol,
+    currencyFormat: company.currencyFormat,
+    locale: company.locale,
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -27,46 +34,46 @@ export function BudgetTrackingPdf({ data }: ReportContext<Awaited<ReturnType<typ
         </View>
 
         {data.budgets.map((budget) => (
-            <View key={budget.id} style={styles.section}>
-                <Text style={styles.sectionTitle}>
-                    {budget.name} 
-                    {budget.isDefault ? " (Default/Global)" : ""}
-                    {budget.department ? ` • Dept: ${budget.department}` : ""}
-                    {budget.project ? ` • Proj: ${budget.project}` : ""}
-                </Text>
-                
-                <View style={styles.headerRow}>
-                    <Text style={styles.colName}>Account</Text>
-                    <Text style={styles.colNum}>Budgeted</Text>
-                    <Text style={styles.colNum}>Actual</Text>
-                    <Text style={styles.colNum}>Variance</Text>
-                </View>
-                
-                {budget.items.length === 0 ? (
-                    <Text style={{ padding: 10, color: "#666" }}>No line items defined.</Text>
-                ) : (
-                    budget.items.map((item) => (
-                        <View key={item.accountId} style={styles.row}>
-                            <Text style={styles.colName}>{item.accountName} ({item.accountCode})</Text>
-                            <Text style={styles.colNum}>{formatCurrency(item.budgeted)}</Text>
-                            <Text style={styles.colNum}>{formatCurrency(item.actual)}</Text>
-                            <Text style={styles.colNum}>{formatCurrency(item.variance)}</Text>
-                        </View>
-                    ))
-                )}
-                
-                <View style={styles.totalRow}>
-                    <Text style={styles.colName}>Total</Text>
-                    <Text style={styles.colNum}>{formatCurrency(budget.totalBudget)}</Text>
-                    <Text style={styles.colNum}>{formatCurrency(budget.totalActual)}</Text>
-                    <Text style={styles.colNum}>{formatCurrency(budget.variance)}</Text>
-                </View>
-                <Text style={{ marginTop: 5, textAlign: 'right' }}>Utilization: {budget.percentage.toFixed(1)}%</Text>
+          <View key={budget.id} style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {budget.name}
+              {budget.isDefault ? " (Default/Global)" : ""}
+              {budget.department ? ` • Dept: ${budget.department}` : ""}
+              {budget.project ? ` • Proj: ${budget.project}` : ""}
+            </Text>
+
+            <View style={styles.headerRow}>
+              <Text style={styles.colName}>Account</Text>
+              <Text style={styles.colNum}>Budgeted</Text>
+              <Text style={styles.colNum}>Actual</Text>
+              <Text style={styles.colNum}>Variance</Text>
             </View>
+
+            {budget.items.length === 0 ? (
+              <Text style={{ padding: 10, color: "#666" }}>No line items defined.</Text>
+            ) : (
+              budget.items.map((item) => (
+                <View key={item.accountId} style={styles.row}>
+                  <Text style={styles.colName}>{item.accountName} ({item.accountCode})</Text>
+                  <Text style={styles.colNum}>{formatCurrency(item.budgeted, currencyOptions)}</Text>
+                  <Text style={styles.colNum}>{formatCurrency(item.actual, currencyOptions)}</Text>
+                  <Text style={styles.colNum}>{formatCurrency(item.variance, currencyOptions)}</Text>
+                </View>
+              ))
+            )}
+
+            <View style={styles.totalRow}>
+              <Text style={styles.colName}>Total</Text>
+              <Text style={styles.colNum}>{formatCurrency(budget.totalBudget, currencyOptions)}</Text>
+              <Text style={styles.colNum}>{formatCurrency(budget.totalActual, currencyOptions)}</Text>
+              <Text style={styles.colNum}>{formatCurrency(budget.variance, currencyOptions)}</Text>
+            </View>
+            <Text style={{ marginTop: 5, textAlign: 'right' }}>Utilization: {budget.percentage.toFixed(1)}%</Text>
+          </View>
         ))}
-        
+
         {data.budgets.length === 0 && (
-            <Text style={{ textAlign: "center", marginTop: 50 }}>No budgets found for this fiscal year.</Text>
+          <Text style={{ textAlign: "center", marginTop: 50 }}>No budgets found for this fiscal year.</Text>
         )}
       </Page>
     </Document>

@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2 } from 'lucide-react';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
-import { format } from 'date-fns';
+import { useFormatDate } from '@/hooks/use-format-date';
 import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
 
 interface POSHistoryDialogProps {
@@ -35,6 +35,7 @@ export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: 
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['pos-transactions', sessionId],
@@ -86,7 +87,7 @@ export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: 
                     onClick={() => onRowClick?.(tx.id)}
                   >
                     <TableCell>
-                      {format(new Date(tx.createdAt), 'HH:mm:ss')}
+                      {formatDate(tx.createdAt, "HH:mm:ss")}
                     </TableCell>
                     <TableCell>{tx.invoiceNumber}</TableCell>
                     <TableCell>{tx.contact?.name || 'Walk-in'}</TableCell>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { SalesInvoiceReportData } from './data';
-import { format } from 'date-fns';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 const styles = StyleSheet.create({
   page: { flexDirection: 'column', backgroundColor: '#FFFFFF', padding: 30, fontSize: 10, fontFamily: 'Helvetica' },
@@ -33,6 +33,15 @@ const styles = StyleSheet.create({
 
 export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesInvoiceReportData>) => {
   const { invoice } = data;
+  const currencyOptions = {
+    currency: company.currency,
+    currencySymbol: company.currencySymbol,
+    currencyFormat: company.currencyFormat,
+    locale: company.locale,
+  };
+  const dateOptions = {
+    dateFormat: company.dateFormat,
+  };
 
   return (
     <Document>
@@ -47,7 +56,7 @@ export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesIn
           <View style={styles.headerRight}>
             <Text style={styles.title}>INVOICE</Text>
             <Text style={styles.subtitle}>#{invoice.invoiceNumber}</Text>
-            <Text style={styles.value}>{format(new Date(invoice.invoiceDate), 'MMM dd, yyyy')}</Text>
+            <Text style={styles.value}>{formatDate(invoice.invoiceDate, dateOptions)}</Text>
           </View>
         </View>
 
@@ -62,7 +71,7 @@ export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesIn
           <View style={styles.column}>
             <Text style={styles.label}>DETAILS</Text>
             <Text style={styles.label}>Due Date</Text>
-            <Text style={styles.value}>{format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</Text>
+            <Text style={styles.value}>{formatDate(invoice.dueDate, dateOptions)}</Text>
             <Text style={styles.label}>Status</Text>
             <Text style={styles.value}>{invoice.status}</Text>
           </View>
@@ -79,8 +88,8 @@ export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesIn
             <View key={item.id} style={styles.tableRow}>
               <Text style={[styles.value, styles.colDesc]}>{item.product?.name || item.description}</Text>
               <Text style={[styles.value, styles.colQty]}>{item.quantity}</Text>
-              <Text style={[styles.value, styles.colPrice]}>{Number(item.unitPrice).toFixed(2)}</Text>
-              <Text style={[styles.value, styles.colTotal]}>{Number(item.totalPrice).toFixed(2)}</Text>
+              <Text style={[styles.value, styles.colPrice]}>{formatCurrency(item.unitPrice, currencyOptions)}</Text>
+              <Text style={[styles.value, styles.colTotal]}>{formatCurrency(item.totalPrice, currencyOptions)}</Text>
             </View>
           ))}
         </View>
@@ -88,24 +97,24 @@ export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesIn
         <View style={styles.totalSection}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Subtotal:</Text>
-            <Text style={styles.totalValue}>{Number(invoice.subtotal).toFixed(2)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(invoice.subtotal, currencyOptions)}</Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Tax:</Text>
-            <Text style={styles.totalValue}>{Number(invoice.totalTax).toFixed(2)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(invoice.totalTax, currencyOptions)}</Text>
           </View>
           <View style={[styles.totalRow, { borderTopWidth: 1, borderTopColor: '#000', paddingTop: 5 }]}>
             <Text style={[styles.totalLabel, { color: '#000', fontWeight: 'bold' }]}>TOTAL:</Text>
-            <Text style={[styles.totalValue, { fontSize: 12 }]}>{Number(invoice.totalAmount).toFixed(2)}</Text>
+            <Text style={[styles.totalValue, { fontSize: 12 }]}>{formatCurrency(invoice.totalAmount, currencyOptions)}</Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Balance Due:</Text>
-            <Text style={[styles.totalValue, { color: 'red' }]}>{Number(invoice.balanceDue).toFixed(2)}</Text>
+            <Text style={[styles.totalValue, { color: 'red' }]}>{formatCurrency(invoice.balanceDue, currencyOptions)}</Text>
           </View>
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | {company.website || 'www.company.com'} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | {company.website || 'www.company.com'} | Generated on {formatDate(new Date(), { ...dateOptions, includeTime: true })}
         </Text>
       </Page>
     </Document>

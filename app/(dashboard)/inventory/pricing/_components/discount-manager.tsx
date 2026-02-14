@@ -18,6 +18,7 @@ import { DiscountType } from "@/prisma/generated/prisma/client";
 import { PricingProductWithDetails } from "../types";
 import { createAndAssignDiscount, toggleDiscountStatus } from "../actions";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,6 +40,7 @@ export function DiscountManager({
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const confirm = useConfirm();
   const alert = useAlert();
   const queryClient = useQueryClient();

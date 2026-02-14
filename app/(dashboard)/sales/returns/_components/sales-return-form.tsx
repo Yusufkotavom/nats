@@ -44,6 +44,7 @@ import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog"
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 interface SalesReturnFormProps {
     returnItem?: SuperJSONResult;
@@ -67,6 +68,7 @@ export function SalesReturnForm({
     const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
+    const formatCurrency = useFormatCurrency();
 
     const returnItem = serializedReturnItem
         ? SuperJSON.deserialize<SalesReturnWithDetails>(serializedReturnItem)
@@ -581,7 +583,7 @@ export function SalesReturnForm({
                         <div className="text-right">
                             <span className="font-medium mr-4">Total Amount:</span>
                             <span className="text-xl font-bold">
-                                {calculateTotal().toLocaleString()}
+                                {formatCurrency(calculateTotal())}
                             </span>
                         </div>
                     </div>

@@ -2,11 +2,14 @@ import React from 'react';
 import { Page, Text, View, Document } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { EquityChangeReport } from '../actions';
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { styles } from './styles';
 
 export const EquityChangePdf = ({ data, company, config }: ReportContext<EquityChangeReport & { startDate: string, endDate: string, comparativeStartDate?: string, comparativeEndDate?: string }>) => {
   const showComparative = !!data.comparativeStartDate;
+  const dateOptions = {
+    dateFormat: company.dateFormat,
+  };
 
   return (
     <Document>
@@ -19,7 +22,7 @@ export const EquityChangePdf = ({ data, company, config }: ReportContext<EquityC
           <View style={styles.headerRight}>
             <Text style={styles.title}>STATEMENT OF CHANGES IN EQUITY</Text>
             <Text style={styles.subtitle}>
-              {format(new Date(data.startDate), 'MMM dd, yyyy')} - {format(new Date(data.endDate), 'MMM dd, yyyy')}
+              {formatDate(data.startDate, dateOptions)} - {formatDate(data.endDate, dateOptions)}
             </Text>
           </View>
         </View>
@@ -80,7 +83,7 @@ export const EquityChangePdf = ({ data, company, config }: ReportContext<EquityC
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | Generated on {formatDate(new Date(), { ...dateOptions, includeTime: true })}
         </Text>
       </Page>
     </Document>

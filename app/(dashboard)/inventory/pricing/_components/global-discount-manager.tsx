@@ -49,6 +49,7 @@ import {
 } from '../actions';
 import { SuperJSON } from '@/lib/superjson';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
+import { useFormatDate } from "@/hooks/use-format-date";
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -57,6 +58,7 @@ export function GlobalDiscountManager() {
   const [editingDiscount, setEditingDiscount] = useState<any>(null);
   const queryClient = useQueryClient();
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const { toast } = useToast();
 
   const { data: discounts = [], isLoading } = useQuery({
@@ -160,10 +162,10 @@ export function GlobalDiscountManager() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">
-                      <div>Start: {new Date(discount.startDate).toLocaleDateString()}</div>
+                      <div>Start: {formatDate(discount.startDate)}</div>
                       {discount.endDate && (
                         <div className="text-muted-foreground">
-                          End: {new Date(discount.endDate).toLocaleDateString()}
+                          End: {formatDate(discount.endDate)}
                         </div>
                       )}
                     </TableCell>
@@ -242,7 +244,7 @@ interface DiscountFormDialogProps {
 function DiscountFormDialog({ open, onOpenChange, initialData, onSuccess }: DiscountFormDialogProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
+
   const [code, setCode] = useState(initialData?.code || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [type, setType] = useState<DiscountType>(initialData?.type || 'PERCENTAGE');

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Page, Text, View, Document } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
-import { FinancialRatios } from '../actions';
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { styles } from './styles';
+import { FinancialRatios } from '../actions';
 
 const RatioRow = ({ label, value, isPercent = false, description }: { label: string, value: number, isPercent?: boolean, description?: string }) => {
   return (
@@ -18,6 +18,10 @@ const RatioRow = ({ label, value, isPercent = false, description }: { label: str
 };
 
 export const FinancialRatiosPdf = ({ data, company, config }: ReportContext<FinancialRatios & { date: string }>) => {
+  const dateOptions = {
+    dateFormat: company.dateFormat,
+  };
+
   return (
     <Document>
       <Page size={config.pageSize || "A4"} orientation={config.orientation || "portrait"} style={styles.page}>
@@ -29,60 +33,60 @@ export const FinancialRatiosPdf = ({ data, company, config }: ReportContext<Fina
           <View style={styles.headerRight}>
             <Text style={styles.title}>FINANCIAL RATIOS</Text>
             <Text style={styles.subtitle}>
-              As of {format(new Date(data.date), 'MMM dd, yyyy')}
+              As of {formatDate(data.date, dateOptions)}
             </Text>
           </View>
         </View>
 
         <View style={styles.table}>
           <Text style={styles.sectionTitle}>LIQUIDITY</Text>
-          <RatioRow 
-            label="Current Ratio" 
-            value={data.currentRatio} 
+          <RatioRow
+            label="Current Ratio"
+            value={data.currentRatio}
             description="Ability to pay short-term obligations."
           />
-          <RatioRow 
-            label="Quick Ratio" 
-            value={data.quickRatio} 
+          <RatioRow
+            label="Quick Ratio"
+            value={data.quickRatio}
             description="Ability to pay short-term obligations without selling inventory."
           />
 
           <Text style={styles.sectionTitle}>SOLVENCY</Text>
-          <RatioRow 
-            label="Debt to Equity Ratio" 
-            value={data.debtToEquity} 
+          <RatioRow
+            label="Debt to Equity Ratio"
+            value={data.debtToEquity}
             description="Proportion of equity and debt used to finance assets."
           />
 
           <Text style={styles.sectionTitle}>PROFITABILITY</Text>
-          <RatioRow 
-            label="Gross Profit Margin" 
-            value={data.grossProfitMargin} 
+          <RatioRow
+            label="Gross Profit Margin"
+            value={data.grossProfitMargin}
             isPercent
             description="Percentage of revenue that exceeds COGS."
           />
-          <RatioRow 
-            label="Net Profit Margin" 
-            value={data.netProfitMargin} 
+          <RatioRow
+            label="Net Profit Margin"
+            value={data.netProfitMargin}
             isPercent
             description="Percentage of revenue remaining after all expenses."
           />
-          <RatioRow 
-            label="Return on Assets (ROA)" 
-            value={data.returnOnAssets} 
+          <RatioRow
+            label="Return on Assets (ROA)"
+            value={data.returnOnAssets}
             isPercent
             description="How profitable a company is relative to its total assets."
           />
-          <RatioRow 
-            label="Return on Equity (ROE)" 
-            value={data.returnOnEquity} 
+          <RatioRow
+            label="Return on Equity (ROE)"
+            value={data.returnOnEquity}
             isPercent
             description="Profitability relative to shareholder's equity."
           />
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | Generated on {formatDate(new Date(), { dateFormat: company.dateFormat, includeTime: true })}
         </Text>
       </Page>
     </Document>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { JournalEntryReportData } from './data';
-import { format } from 'date-fns';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 const styles = StyleSheet.create({
   page: { flexDirection: 'column', backgroundColor: '#FFFFFF', padding: 30, fontSize: 10, fontFamily: 'Helvetica' },
@@ -33,6 +33,15 @@ const styles = StyleSheet.create({
 
 export const JournalEntryPdf = ({ data, company, config }: ReportContext<JournalEntryReportData>) => {
   const { entry } = data;
+  const currencyOptions = {
+    currency: company.currency,
+    currencySymbol: company.currencySymbol,
+    currencyFormat: company.currencyFormat,
+    locale: company.locale,
+  };
+  const dateOptions = {
+    dateFormat: company.dateFormat,
+  };
   const totalDebit = entry.lines.reduce((sum: number, line: any) => sum + Number(line.debitAmount), 0);
   const totalCredit = entry.lines.reduce((sum: number, line: any) => sum + Number(line.creditAmount), 0);
 
@@ -47,7 +56,7 @@ export const JournalEntryPdf = ({ data, company, config }: ReportContext<Journal
           <View style={styles.headerRight}>
             <Text style={styles.title}>JOURNAL ENTRY</Text>
             <Text style={styles.subtitle}>#{entry.entryNumber}</Text>
-            <Text style={styles.value}>{format(new Date(entry.transactionDate), 'MMM dd, yyyy')}</Text>
+            <Text style={styles.value}>{formatDate(entry.transactionDate, dateOptions)}</Text>
           </View>
         </View>
 
@@ -74,12 +83,12 @@ export const JournalEntryPdf = ({ data, company, config }: ReportContext<Journal
           {entry.lines.map((line: any) => (
             <View key={line.id} style={styles.tableRow}>
               <View style={styles.colAccount}>
-                 <Text style={[styles.value, {fontWeight: 'bold'}]}>{line.account.code} - {line.account.name}</Text>
-                 {line.contact && <Text style={{fontSize: 8, color: '#666'}}>{line.contact.name}</Text>}
+                <Text style={[styles.value, { fontWeight: 'bold' }]}>{line.account.code} - {line.account.name}</Text>
+                {line.contact && <Text style={{ fontSize: 8, color: '#666' }}>{line.contact.name}</Text>}
               </View>
               <Text style={[styles.value, styles.colDesc]}>{line.description}</Text>
-              <Text style={[styles.value, styles.colDebit]}>{Number(line.debitAmount) > 0 ? Number(line.debitAmount).toFixed(2) : "-"}</Text>
-              <Text style={[styles.value, styles.colCredit]}>{Number(line.creditAmount) > 0 ? Number(line.creditAmount).toFixed(2) : "-"}</Text>
+              <Text style={[styles.value, styles.colDebit]}>{Number(line.debitAmount) > 0 ? formatCurrency(line.debitAmount, currencyOptions) : "-"}</Text>
+              <Text style={[styles.value, styles.colCredit]}>{Number(line.creditAmount) > 0 ? formatCurrency(line.creditAmount, currencyOptions) : "-"}</Text>
             </View>
           ))}
         </View>
@@ -87,13 +96,13 @@ export const JournalEntryPdf = ({ data, company, config }: ReportContext<Journal
         <View style={styles.totalSection}>
           <View style={[styles.totalRow, { borderTopWidth: 1, borderTopColor: '#000', paddingTop: 5 }]}>
             <Text style={[styles.totalLabel, { color: '#000', fontWeight: 'bold' }]}>TOTAL:</Text>
-            <Text style={[styles.totalValue, { fontSize: 10, width: '25%' }]}>{totalDebit.toFixed(2)}</Text>
-            <Text style={[styles.totalValue, { fontSize: 10, width: '25%' }]}>{totalCredit.toFixed(2)}</Text>
+            <Text style={[styles.totalValue, { fontSize: 10, width: '25%' }]}>{formatCurrency(totalDebit, currencyOptions)}</Text>
+            <Text style={[styles.totalValue, { fontSize: 10, width: '25%' }]}>{formatCurrency(totalCredit, currencyOptions)}</Text>
           </View>
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | {company.website || 'www.company.com'} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | {company.website || 'www.company.com'} | Generated on {formatDate(new Date(), { ...dateOptions, includeTime: true })}
         </Text>
       </Page>
     </Document>

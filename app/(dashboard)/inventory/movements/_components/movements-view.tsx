@@ -30,13 +30,14 @@ import {
   Product,
   Warehouse,
 } from "@/prisma/generated/prisma/browser";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
 import { useFormatDate } from "@/hooks";
+import { SuperJSONResult } from "superjson";
+
 
 type BatchWithDetails = Omit<InventoryMovement, "status"> & {
   fromWarehouse: Warehouse | null;
@@ -147,7 +148,7 @@ export function MovementsView() {
     queryFn: async () => {
       const { batches, total } = await getMovementBatches(page, pageSize);
       return {
-        batches: SuperJSON.deserialize<BatchWithDetails[]>(batches),
+        batches: SuperJSON.deserialize<BatchWithDetails[]>(batches as unknown as SuperJSONResult),
         total,
       };
     },

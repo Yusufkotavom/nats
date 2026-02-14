@@ -17,7 +17,7 @@ import {
 import { ArrowLeft, Printer, Calendar, User, FileText, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
-import { format } from 'date-fns';
+import { useFormatDate } from '@/hooks/use-format-date';
 import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
 import { Badge } from '@/components/ui/badge';
 
@@ -29,6 +29,7 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
   const invoice = SuperJSON.deserialize<any>(serializedInvoice);
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   return (
@@ -81,10 +82,10 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {format(new Date(invoice.createdAt), 'dd MMM yyyy')}
+                  {formatDate(invoice.createdAt)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {format(new Date(invoice.createdAt), 'HH:mm:ss')}
+                  {formatDate(invoice.createdAt, "HH:mm:ss")}
                 </p>
                 {invoice.posSession?.cashier?.name && (
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -186,7 +187,7 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
                   {invoice.payments.map((payment: any) => (
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium">{payment.paymentNumber}</TableCell>
-                      <TableCell>{format(new Date(payment.paymentDate), 'dd MMM yyyy HH:mm')}</TableCell>
+                      <TableCell>{formatDate(payment.paymentDate)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <CreditCard className="h-4 w-4" />

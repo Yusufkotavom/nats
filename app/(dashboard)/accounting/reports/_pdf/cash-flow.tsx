@@ -2,7 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { CashFlowReport, ReportAccountLine } from '../actions';
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { styles } from './styles';
 
 const ActivityRow = ({ node, showComparative }: { node: ReportAccountLine, showComparative?: boolean }) => {
@@ -33,6 +33,9 @@ const ActivityRow = ({ node, showComparative }: { node: ReportAccountLine, showC
 
 export const CashFlowPdf = ({ data, company, config }: ReportContext<CashFlowReport & { startDate: string, endDate: string, comparativeStartDate?: string, comparativeEndDate?: string }>) => {
   const showComparative = !!data.comparativeStartDate;
+  const dateOptions = {
+    dateFormat: company.dateFormat,
+  };
 
   return (
     <Document>
@@ -45,11 +48,11 @@ export const CashFlowPdf = ({ data, company, config }: ReportContext<CashFlowRep
           <View style={styles.headerRight}>
             <Text style={styles.title}>STATEMENT OF CASH FLOWS</Text>
             <Text style={styles.subtitle}>
-              {format(new Date(data.startDate), 'MMM dd, yyyy')} - {format(new Date(data.endDate), 'MMM dd, yyyy')}
+              {formatDate(data.startDate, dateOptions)} - {formatDate(data.endDate, dateOptions)}
             </Text>
             {showComparative && (
-              <Text style={[styles.subtitle, {fontSize: 8}]}>
-                Compared to: {format(new Date(data.comparativeStartDate!), 'MMM dd, yyyy')} - {format(new Date(data.comparativeEndDate!), 'MMM dd, yyyy')}
+              <Text style={[styles.subtitle, { fontSize: 8 }]}>
+                Compared to: {formatDate(data.comparativeStartDate!, dateOptions)} - {formatDate(data.comparativeEndDate!, dateOptions)}
               </Text>
             )}
           </View>
@@ -90,7 +93,7 @@ export const CashFlowPdf = ({ data, company, config }: ReportContext<CashFlowRep
           {data.investingActivities.length === 0 && (
             <View style={styles.tableRow}>
               <View style={styles.colLabel}>
-                <Text style={[styles.label, {fontStyle: 'italic'}]}>No investing activities.</Text>
+                <Text style={[styles.label, { fontStyle: 'italic' }]}>No investing activities.</Text>
               </View>
             </View>
           )}
@@ -115,7 +118,7 @@ export const CashFlowPdf = ({ data, company, config }: ReportContext<CashFlowRep
           {data.financingActivities.length === 0 && (
             <View style={styles.tableRow}>
               <View style={styles.colLabel}>
-                <Text style={[styles.label, {fontStyle: 'italic'}]}>No financing activities.</Text>
+                <Text style={[styles.label, { fontStyle: 'italic' }]}>No financing activities.</Text>
               </View>
             </View>
           )}
@@ -180,7 +183,7 @@ export const CashFlowPdf = ({ data, company, config }: ReportContext<CashFlowRep
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | Generated on {formatDate(new Date(), { dateFormat: company.dateFormat, includeTime: true })}
         </Text>
       </Page>
     </Document>

@@ -2,14 +2,14 @@ import React from 'react';
 import { Page, Text, View, Document } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { ProfitLossReport, ReportAccountLine } from '../actions';
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { styles } from './styles';
 
 // Recursive component to render account tree
 const AccountRow = ({ node, level = 0, showComparative }: { node: ReportAccountLine, level?: number, showComparative?: boolean }) => {
   const indentStyle = level === 1 ? styles.indent1 : level === 2 ? styles.indent2 : level >= 3 ? styles.indent3 : {};
   const isBold = node.children && node.children.length > 0;
-  
+
   return (
     <>
       <View style={styles.tableRow}>
@@ -42,6 +42,9 @@ const AccountRow = ({ node, level = 0, showComparative }: { node: ReportAccountL
 
 export const ProfitLossPdf = ({ data, company, config }: ReportContext<ProfitLossReport & { startDate: string, endDate: string, comparativeStartDate?: string, comparativeEndDate?: string }>) => {
   const showComparative = !!data.comparativeStartDate;
+  const dateOptions = {
+    dateFormat: company.dateFormat,
+  };
 
   return (
     <Document>
@@ -54,11 +57,11 @@ export const ProfitLossPdf = ({ data, company, config }: ReportContext<ProfitLos
           <View style={styles.headerRight}>
             <Text style={styles.title}>PROFIT AND LOSS</Text>
             <Text style={styles.subtitle}>
-              {format(new Date(data.startDate), 'MMM dd, yyyy')} - {format(new Date(data.endDate), 'MMM dd, yyyy')}
+              {formatDate(data.startDate, dateOptions)} - {formatDate(data.endDate, dateOptions)}
             </Text>
             {showComparative && (
-              <Text style={[styles.subtitle, {fontSize: 8}]}>
-                Compared to: {format(new Date(data.comparativeStartDate!), 'MMM dd, yyyy')} - {format(new Date(data.comparativeEndDate!), 'MMM dd, yyyy')}
+              <Text style={[styles.subtitle, { fontSize: 8 }]}>
+                Compared to: {formatDate(data.comparativeStartDate!, dateOptions)} - {formatDate(data.comparativeEndDate!, dateOptions)}
               </Text>
             )}
           </View>
@@ -141,7 +144,7 @@ export const ProfitLossPdf = ({ data, company, config }: ReportContext<ProfitLos
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | Generated on {formatDate(new Date(), { dateFormat: company.dateFormat, includeTime: true })}
         </Text>
       </Page>
     </Document>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { POSReceiptData } from './data';
-import { format } from 'date-fns';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 // 80mm thermal paper width is approx 226 points (80mm * 2.83)
 // 58mm thermal paper width is approx 164 points
@@ -34,6 +34,16 @@ const styles = StyleSheet.create({
 
 export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceiptData>) => {
     const { invoice, payment, cashier } = data;
+    const currencyOptions = {
+        currency: company.currency,
+        currencySymbol: company.currencySymbol,
+        currencyFormat: company.currencyFormat,
+        locale: company.locale,
+    };
+    const dateOptions = {
+        dateFormat: company.dateFormat,
+        includeTime: true,
+    };
 
     // --- Dynamic Height Calculation ---
     // Approximate heights in points (pt)
@@ -99,7 +109,7 @@ export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceip
 
                     <Text style={styles.title}>SALES RECEIPT</Text>
                     <Text style={styles.meta}>#{invoice.invoiceNumber}</Text>
-                    <Text style={styles.meta}>{format(new Date(invoice.invoiceDate), 'PP pp')}</Text>
+                    <Text style={styles.meta}>{formatDate(invoice.invoiceDate, dateOptions)}</Text>
                 </View>
 
                 {/* Cashier/Customer Info */}
@@ -122,8 +132,8 @@ export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceip
                         <View key={item.id} style={{ marginBottom: 4 }}>
                             <Text style={styles.itemDesc}>{item.description || item.product?.name}</Text>
                             <View style={styles.itemDetails}>
-                                <Text>{item.quantity} x {Number(item.unitPrice).toFixed(2)}</Text>
-                                <Text>{Number(item.totalPrice).toFixed(2)}</Text>
+                                <Text>{item.quantity} x {formatCurrency(item.unitPrice, currencyOptions)}</Text>
+                                <Text>{formatCurrency(item.totalPrice, currencyOptions)}</Text>
                             </View>
                         </View>
                     ))}
@@ -135,17 +145,17 @@ export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceip
                 <View>
                     <View style={styles.row}>
                         <Text>Subtotal</Text>
-                        <Text>{Number(invoice.subtotal).toFixed(2)}</Text>
+                        <Text>{formatCurrency(invoice.subtotal, currencyOptions)}</Text>
                     </View>
                     {Number(invoice.globalDiscount) > 0 && (
                         <View style={styles.row}>
                             <Text>Discount</Text>
-                            <Text>-{Number(invoice.globalDiscount).toFixed(2)}</Text>
+                            <Text>-{formatCurrency(invoice.globalDiscount, currencyOptions)}</Text>
                         </View>
                     )}
                     <View style={[styles.totalRow, { marginTop: 3, fontSize: 11 }]}>
                         <Text>TOTAL</Text>
-                        <Text>{Number(invoice.totalAmount).toFixed(2)}</Text>
+                        <Text>{formatCurrency(invoice.totalAmount, currencyOptions)}</Text>
                     </View>
                 </View>
 
@@ -156,7 +166,7 @@ export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceip
                     <View>
                         <View style={styles.row}>
                             <Text>Paid ({payment.method})</Text>
-                            <Text>{Number(payment.amount).toFixed(2)}</Text>
+                            <Text>{formatCurrency(payment.amount, currencyOptions)}</Text>
                         </View>
                         {/* 
                    If we had change amount, we would show it here. 
@@ -171,6 +181,7 @@ export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceip
                 <View style={styles.footer}>
                     <Text>Thank you for your purchase!</Text>
                     <Text>Please come again.</Text>
+                    {company.email && <Text style={{ marginTop: 2 }}>{company.email}</Text>}
                     {company.website && <Text style={{ marginTop: 2 }}>{company.website}</Text>}
                 </View>
 

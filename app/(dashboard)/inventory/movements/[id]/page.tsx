@@ -1,6 +1,6 @@
 "use client";
 
-import { getMovementBatchById, getCompanyProfile } from "../actions";
+import { getMovementBatchById } from "../actions";
 import { notFound, useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,11 +13,12 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MovementActions } from "./_components/movement-actions";
-import { cn, formatDate, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
 import { Prisma } from "@/prisma/generated/prisma/browser";
 import { useQuery } from "@tanstack/react-query";
-import { CompanyProfile } from "@/prisma/generated/prisma/client";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 
 export type BatchWithDetails = Prisma.InventoryMovementGetPayload<{
   include: {
@@ -45,18 +46,15 @@ export type BatchWithDetails = Prisma.InventoryMovementGetPayload<{
 export default function MovementDetailsPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data: serializedBatch, isLoading: isBatchLoading } = useQuery({
     queryKey: ["movement-batch", id],
     queryFn: () => getMovementBatchById(id),
   });
 
-  const { data: serializedProfile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ["company-profile"],
-    queryFn: () => getCompanyProfile(),
-  });
-
-  if (isBatchLoading || isProfileLoading) {
+  if (isBatchLoading) {
     return <div className="p-4">Loading...</div>;
   }
 
@@ -65,15 +63,6 @@ export default function MovementDetailsPage() {
   }
 
   const batch = SuperJSON.deserialize<BatchWithDetails>(serializedBatch);
-  const companyProfile = serializedProfile
-    ? SuperJSON.deserialize<CompanyProfile>(serializedProfile)
-    : null;
-
-  const currencyOptions = {
-    currency: companyProfile?.currency,
-    currencySymbol: companyProfile?.currencySymbol,
-    currencyFormat: companyProfile?.currencyFormat,
-  };
 
   return (
     <div className="flex flex-1 flex-col gap-4 px-4">
@@ -157,9 +146,7 @@ export default function MovementDetailsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatDate(batch.createdAt, {
-                dateFormat: companyProfile?.dateFormat,
-              })}
+              {formatDate(batch.createdAt)}
             </div>
           </CardContent>
         </Card>
@@ -194,13 +181,10 @@ export default function MovementDetailsPage() {
                       {item.quantity} {item.product.baseUnit?.symbol}
                     </TableCell>
                     <TableCell>
-                      {formatCurrency(Number(item.unitCost), currencyOptions)}
+                      {formatCurrency(Number(item.unitCost))}
                     </TableCell>
                     <TableCell>
-                      {formatCurrency(
-                        Number(item.unitCost) * item.quantity,
-                        currencyOptions,
-                      )}
+                      {formatCurrency(Number(item.unitCost) * item.quantity)}
                     </TableCell>
                     <TableCell>{item.batchNumber || "-"}</TableCell>
                   </TableRow>

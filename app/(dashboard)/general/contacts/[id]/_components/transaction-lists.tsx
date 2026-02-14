@@ -23,12 +23,13 @@ import {
 } from "@/components/ui/table";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
+import { useFormatDate } from "@/hooks";
+import { formatCurrency } from "@/lib/utils";
 
 const PAGE_SIZE = 10;
 
@@ -47,6 +48,7 @@ function ListSkeleton() {
 export function CashTransactionsList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-cash-transactions", contactId, page],
@@ -82,7 +84,7 @@ export function CashTransactionsList({ contactId }: { contactId: string }) {
             return (
               <TableRow key={tx.id}>
                 <TableCell>
-                  {format(new Date(tx.date), "dd MMM yyyy")}
+                  {formatDate(tx.date)}
                 </TableCell>
                 <TableCell>{tx.cashAccount.name}</TableCell>
                 <TableCell>
@@ -129,6 +131,7 @@ export function CashTransactionsList({ contactId }: { contactId: string }) {
 export function PurchaseOrdersList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-purchase-orders", contactId, page],
@@ -157,7 +160,7 @@ export function PurchaseOrdersList({ contactId }: { contactId: string }) {
           {orders.map((order) => (
             <TableRow key={order.id}>
               <TableCell>
-                {format(new Date(order.orderDate), "dd MMM yyyy")}
+                {formatDate(order.orderDate)}
               </TableCell>
               <TableCell>{order.orderNumber}</TableCell>
               <TableCell>
@@ -199,6 +202,7 @@ export function PurchaseOrdersList({ contactId }: { contactId: string }) {
 export function PurchaseInvoicesList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-purchase-invoices", contactId, page],
@@ -228,10 +232,10 @@ export function PurchaseInvoicesList({ contactId }: { contactId: string }) {
           {invoices.map((invoice: any) => (
             <TableRow key={invoice.id}>
               <TableCell>
-                {format(new Date(invoice.invoiceDate), "dd MMM yyyy")}
+                {formatDate(invoice.invoiceDate)}
               </TableCell>
               <TableCell>
-                {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+                {formatDate(invoice.dueDate)}
               </TableCell>
               <TableCell>{invoice.invoiceNumber}</TableCell>
               <TableCell>
@@ -273,6 +277,7 @@ export function PurchaseInvoicesList({ contactId }: { contactId: string }) {
 export function PurchasePaymentsList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-purchase-payments", contactId, page],
@@ -302,7 +307,7 @@ export function PurchasePaymentsList({ contactId }: { contactId: string }) {
           {payments.map((payment) => (
             <TableRow key={payment.id}>
               <TableCell>
-                {format(new Date(payment.paymentDate), "dd MMM yyyy")}
+                {formatDate(payment.paymentDate)}
               </TableCell>
               <TableCell>{payment.paymentNumber}</TableCell>
               <TableCell>{payment.reference || "-"}</TableCell>
@@ -343,6 +348,7 @@ export function PurchasePaymentsList({ contactId }: { contactId: string }) {
 export function SalesOrdersList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-sales-orders", contactId, page],
@@ -371,7 +377,7 @@ export function SalesOrdersList({ contactId }: { contactId: string }) {
           {orders.map((order) => (
             <TableRow key={order.id}>
               <TableCell>
-                {format(new Date(order.orderDate), "dd MMM yyyy")}
+                {formatDate(order.orderDate)}
               </TableCell>
               <TableCell>{order.orderNumber}</TableCell>
               <TableCell>
@@ -413,6 +419,7 @@ export function SalesOrdersList({ contactId }: { contactId: string }) {
 export function SalesInvoicesList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-sales-invoices", contactId, page],
@@ -442,10 +449,10 @@ export function SalesInvoicesList({ contactId }: { contactId: string }) {
           {invoices.map((invoice: any) => (
             <TableRow key={invoice.id}>
               <TableCell>
-                {format(new Date(invoice.invoiceDate), "dd MMM yyyy")}
+                {formatDate(invoice.invoiceDate)}
               </TableCell>
               <TableCell>
-                {format(new Date(invoice.dueDate), "dd MMM yyyy")}
+                {formatDate(invoice.dueDate)}
               </TableCell>
               <TableCell>{invoice.invoiceNumber}</TableCell>
               <TableCell>
@@ -487,6 +494,7 @@ export function SalesInvoicesList({ contactId }: { contactId: string }) {
 export function SalesPaymentsList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-sales-payments", contactId, page],
@@ -516,7 +524,7 @@ export function SalesPaymentsList({ contactId }: { contactId: string }) {
           {payments.map((payment) => (
             <TableRow key={payment.id}>
               <TableCell>
-                {format(new Date(payment.paymentDate), "dd MMM yyyy")}
+                {formatDate(payment.paymentDate)}
               </TableCell>
               <TableCell>{payment.paymentNumber}</TableCell>
               <TableCell>{payment.reference || "-"}</TableCell>
@@ -557,6 +565,7 @@ export function SalesPaymentsList({ contactId }: { contactId: string }) {
 export function JournalEntriesList({ contactId }: { contactId: string }) {
   const [page, setPage] = useState(1);
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["contact-journal-entries", contactId, page],
@@ -590,7 +599,7 @@ export function JournalEntriesList({ contactId }: { contactId: string }) {
             return (
               <TableRow key={entry.id}>
                 <TableCell>
-                  {format(new Date(entry.transactionDate), "dd MMM yyyy")}
+                  {formatDate(entry.transactionDate)}
                 </TableCell>
                 <TableCell>{entry.entryNumber}</TableCell>
                 <TableCell>{entry.description || "-"}</TableCell>

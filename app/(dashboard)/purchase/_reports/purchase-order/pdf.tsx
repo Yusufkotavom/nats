@@ -2,7 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { PurchaseOrderReportData } from './data';
-import { format } from 'date-fns';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 const styles = StyleSheet.create({
   page: { flexDirection: 'column', backgroundColor: '#FFFFFF', padding: 30, fontSize: 10, fontFamily: 'Helvetica' },
@@ -33,6 +33,15 @@ const styles = StyleSheet.create({
 
 export const PurchaseOrderPdf = ({ data, company, config }: ReportContext<PurchaseOrderReportData>) => {
   const { order } = data;
+  const currencyOptions = {
+    currency: company.currency,
+    currencySymbol: company.currencySymbol,
+    currencyFormat: company.currencyFormat,
+    locale: company.locale,
+  };
+  const dateOptions = {
+    dateFormat: company.dateFormat,
+  };
 
   return (
     <Document>
@@ -47,7 +56,7 @@ export const PurchaseOrderPdf = ({ data, company, config }: ReportContext<Purcha
           <View style={styles.headerRight}>
             <Text style={styles.title}>PURCHASE ORDER</Text>
             <Text style={styles.subtitle}>#{order.orderNumber}</Text>
-            <Text style={styles.value}>{format(new Date(order.orderDate), 'MMM dd, yyyy')}</Text>
+            <Text style={styles.value}>{formatDate(order.orderDate, dateOptions)}</Text>
           </View>
         </View>
 
@@ -65,11 +74,11 @@ export const PurchaseOrderPdf = ({ data, company, config }: ReportContext<Purcha
             <Text style={styles.value}>{company.address}</Text>
           </View>
           <View style={styles.column}>
-             <Text style={styles.label}>DETAILS</Text>
-             <Text style={styles.label}>Status</Text>
-             <Text style={styles.value}>{order.status}</Text>
-             <Text style={styles.label}>Expected Date</Text>
-             <Text style={styles.value}>{order.expectedDate ? format(new Date(order.expectedDate), 'MMM dd, yyyy') : 'N/A'}</Text>
+            <Text style={styles.label}>DETAILS</Text>
+            <Text style={styles.label}>Status</Text>
+            <Text style={styles.value}>{order.status}</Text>
+            <Text style={styles.label}>Expected Date</Text>
+            <Text style={styles.value}>{order.expectedDate ? formatDate(order.expectedDate, dateOptions) : 'N/A'}</Text>
           </View>
         </View>
 
@@ -84,8 +93,8 @@ export const PurchaseOrderPdf = ({ data, company, config }: ReportContext<Purcha
             <View key={item.id} style={styles.tableRow}>
               <Text style={[styles.value, styles.colDesc]}>{item.product?.name || item.description}</Text>
               <Text style={[styles.value, styles.colQty]}>{item.quantity}</Text>
-              <Text style={[styles.value, styles.colPrice]}>{Number(item.unitCost).toFixed(2)}</Text>
-              <Text style={[styles.value, styles.colTotal]}>{Number(item.totalCost).toFixed(2)}</Text>
+              <Text style={[styles.value, styles.colPrice]}>{formatCurrency(item.unitCost, currencyOptions)}</Text>
+              <Text style={[styles.value, styles.colTotal]}>{formatCurrency(item.totalCost, currencyOptions)}</Text>
             </View>
           ))}
         </View>
@@ -93,12 +102,12 @@ export const PurchaseOrderPdf = ({ data, company, config }: ReportContext<Purcha
         <View style={styles.totalSection}>
           <View style={[styles.totalRow, { borderTopWidth: 1, borderTopColor: '#000', paddingTop: 5 }]}>
             <Text style={[styles.totalLabel, { color: '#000', fontWeight: 'bold' }]}>TOTAL:</Text>
-            <Text style={[styles.totalValue, { fontSize: 12 }]}>{Number(order.totalAmount).toFixed(2)}</Text>
+            <Text style={[styles.totalValue, { fontSize: 12 }]}>{formatCurrency(order.totalAmount, currencyOptions)}</Text>
           </View>
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | {company.website || 'www.company.com'} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | {company.website || 'www.company.com'} | Generated on {formatDate(new Date(), { ...dateOptions, includeTime: true })}
         </Text>
       </Page>
     </Document>

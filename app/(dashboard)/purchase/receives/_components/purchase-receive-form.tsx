@@ -83,6 +83,8 @@ interface PurchaseOrderForSelect {
   }[];
 }
 
+import { useFormatDate } from "@/hooks/use-format-date";
+
 interface PurchaseReceiveFormProps {
   receive?: SuperJSONResult | null;
   vendors: Awaited<ReturnType<typeof getContacts>>["data"];
@@ -113,6 +115,7 @@ export function PurchaseReceiveForm({
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const formatDate = useFormatDate();
   const isEditing = !!receive;
 
   const [attachments, setAttachments] = useState<Attachment[]>(

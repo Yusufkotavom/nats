@@ -26,6 +26,12 @@ export interface ReportContext<T = any> {
     email?: string;
     website?: string;
     logoUrl?: string;
+    // Formatting settings
+    dateFormat?: string;
+    currency?: string;
+    currencySymbol?: string;
+    currencyFormat?: string;
+    locale?: string;
   };
 }
 

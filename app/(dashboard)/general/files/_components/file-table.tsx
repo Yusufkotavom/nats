@@ -14,6 +14,7 @@ import { deleteFile, getFiles } from "../actions";
 import { useState } from "react";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
+import { useFormatDate } from "@/hooks/use-format-date";
 
 export function FileTable({
   files,
@@ -23,6 +24,7 @@ export function FileTable({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const confirm = useConfirm();
   const alert = useAlert();
+  const formatDate = useFormatDate();
 
   const handleDelete = async (id: string) => {
     if (
@@ -84,7 +86,7 @@ export function FileTable({
               <TableCell>{formatSize(file.size)}</TableCell>
               <TableCell>{file.uploadedBy?.name || "Unknown"}</TableCell>
               <TableCell>
-                {new Date(file.createdAt).toLocaleDateString()}
+                {formatDate(file.createdAt)}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

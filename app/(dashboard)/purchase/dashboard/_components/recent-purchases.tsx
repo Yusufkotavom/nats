@@ -9,8 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
@@ -30,6 +30,7 @@ type RecentPurchasesProps = {
 
 export function RecentPurchases({ data }: RecentPurchasesProps) {
   const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,7 +73,7 @@ export function RecentPurchases({ data }: RecentPurchasesProps) {
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.orderNumber}</TableCell>
                 <TableCell>{order.vendor}</TableCell>
-                <TableCell>{format(new Date(order.date), "MMM d, yyyy")}</TableCell>
+                <TableCell>{formatDate(order.date)}</TableCell>
                 <TableCell>
                   <Badge variant={getStatusColor(order.status) as any}>
                     {order.status.replace(/_/g, " ")}

@@ -6,7 +6,8 @@ import { TableFooter, TableRow, TableCell } from "@/components/ui/table";
 import Link from "next/link";
 import { Pencil, Paperclip, ArrowLeft, PrinterIcon } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatCurrency } from "@/lib/utils";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import { useRouter } from "next/navigation";
 import { getJournalEntry } from "../actions";
 import { Decimal } from "decimal.js";
@@ -20,6 +21,8 @@ export function JournalEntryDetails({
   entry: JournalEntryWithDetails;
 }) {
   const router = useRouter();
+  const formatCurrency = useFormatCurrency();
+  const formatDate = useFormatDate();
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
 
   const totalDebit = entry?.lines.reduce(
@@ -119,7 +122,7 @@ export function JournalEntryDetails({
                 <span>{entry.entryNumber}</span>
                 <span>•</span>
                 <span>
-                  {new Date(entry.transactionDate).toLocaleDateString()}
+                  {formatDate(entry.transactionDate)}
                 </span>
                 <span>•</span>
                 <StatusBadge status={entry.status} />
@@ -226,10 +229,10 @@ export function JournalEntryDetails({
           <div className="text-sm text-muted-foreground">
             <p>
               Created by {entry.user.name} on{" "}
-              {new Date(entry.createdAt).toLocaleString()}
+              {formatDate(entry.createdAt, { includeTime: true })}
             </p>
             {entry.status === "posted" && entry.postedAt && (
-              <p>Posted on {new Date(entry.postedAt).toLocaleString()}</p>
+              <p>Posted on {formatDate(entry.postedAt, { includeTime: true })}</p>
             )}
           </div>
         </div>

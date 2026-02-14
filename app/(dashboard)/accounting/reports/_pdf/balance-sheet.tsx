@@ -2,13 +2,13 @@ import React from 'react';
 import { Page, Text, View, Document } from '@react-pdf/renderer';
 import { ReportContext } from '@/lib/reporting/types';
 import { BalanceSheetReport, ReportAccountLine } from '../actions';
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { styles } from './styles';
 
 const AccountRow = ({ node, level = 0, showComparative }: { node: ReportAccountLine, level?: number, showComparative?: boolean }) => {
   const indentStyle = level === 1 ? styles.indent1 : level === 2 ? styles.indent2 : level >= 3 ? styles.indent3 : {};
   const isBold = node.children && node.children.length > 0;
-  
+
   return (
     <>
       <View style={styles.tableRow}>
@@ -53,11 +53,11 @@ export const BalanceSheetPdf = ({ data, company, config }: ReportContext<Balance
           <View style={styles.headerRight}>
             <Text style={styles.title}>BALANCE SHEET</Text>
             <Text style={styles.subtitle}>
-              As of {format(new Date(data.date), 'MMM dd, yyyy')}
+              As of {formatDate(data.date, { dateFormat: company.dateFormat })}
             </Text>
             {showComparative && (
-              <Text style={[styles.subtitle, {fontSize: 8}]}>
-                Compared to: {format(new Date(data.comparativeDate!), 'MMM dd, yyyy')}
+              <Text style={[styles.subtitle, { fontSize: 8 }]}>
+                Compared to: {formatDate(data.comparativeDate!, { dateFormat: company.dateFormat })}
               </Text>
             )}
           </View>
@@ -146,7 +146,7 @@ export const BalanceSheetPdf = ({ data, company, config }: ReportContext<Balance
         </View>
 
         <Text style={styles.footer}>
-          {company.name} | Generated on {format(new Date(), 'PPpp')}
+          {company.name} | Generated on {formatDate(new Date(), { dateFormat: company.dateFormat, includeTime: true })}
         </Text>
       </Page>
     </Document>

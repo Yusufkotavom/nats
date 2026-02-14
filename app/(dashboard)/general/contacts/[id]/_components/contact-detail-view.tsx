@@ -26,13 +26,14 @@ import {
 } from "./transaction-lists";
 import { ContactType } from "@/prisma/generated/prisma/browser";
 import { Mail, Phone, MapPin, Calendar, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { useFormatDate } from "@/hooks/use-format-date";
 
 interface ContactDetailViewProps {
   contact: Contact;
 }
 
 export function ContactDetailView({ contact }: ContactDetailViewProps) {
+  const formatDate = useFormatDate();
   const getTypeBadgeColor = (type: ContactType) => {
     switch (type) {
       case ContactType.CUSTOMER:
@@ -108,14 +109,14 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Created At:</span>
                   <span className="text-sm">
-                    {format(new Date(contact.createdAt), "dd MMM yyyy HH:mm")}
+                    {formatDate(contact.createdAt, { includeTime: true })}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Updated At:</span>
                   <span className="text-sm">
-                    {format(new Date(contact.updatedAt), "dd MMM yyyy HH:mm")}
+                    {formatDate(contact.updatedAt, { includeTime: true })}
                   </span>
                 </div>
               </div>
