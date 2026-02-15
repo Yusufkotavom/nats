@@ -51,11 +51,13 @@ import { generateId } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useToast } from "@/hooks/use-toast";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { Paperclip } from "lucide-react";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import Link from "next/link";
 
 interface PurchaseInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -88,6 +90,7 @@ export function PurchaseInvoiceForm({
   const isEditing = !!invoice;
   const formatDate = useFormatDate();
   const confirm = useConfirm();
+  const { toast } = useToast();
 
   const [attachments, setAttachments] = useState<Attachment[]>(
     invoice?.attachments?.map((a) => ({
@@ -282,24 +285,44 @@ export function PurchaseInvoiceForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.invoiceNumber) {
-      alert("Please enter invoice number");
+      toast({
+        title: "Validation Error",
+        description: "Please enter invoice number",
+        variant: "destructive",
+      });
       return;
     }
     if (!formData.contactId) {
-      alert("Please select a vendor");
+      toast({
+        title: "Validation Error",
+        description: "Please select a vendor",
+        variant: "destructive",
+      });
       return;
     }
     if (formData.items.length === 0) {
-      alert("Please add at least one item");
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one item",
+        variant: "destructive",
+      });
       return;
     }
     for (const item of formData.items) {
       if (!item.description) {
-        alert("Please enter description for all items");
+        toast({
+          title: "Validation Error",
+          description: "Please enter description for all items",
+          variant: "destructive",
+        });
         return;
       }
       if (item.quantity <= 0) {
-        alert("Quantity must be greater than 0");
+        toast({
+          title: "Validation Error",
+          description: "Quantity must be greater than 0",
+          variant: "destructive",
+        });
         return;
       }
     }
@@ -321,11 +344,19 @@ export function PurchaseInvoiceForm({
       if (result.success) {
         router.push("/purchase/invoices");
       } else {
-        alert(result.error);
+        toast({
+          title: "Error",
+          description: result.error || "Failed to save invoice",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("An error occurred");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -346,20 +377,43 @@ export function PurchaseInvoiceForm({
     try {
       const result = await postPurchaseInvoice(invoice.id);
       if (result.success) {
-        if (!result.data?.processed) {
-          alert(
-            result.data?.alreadyQueued
-              ? "Invoice posting is already queued for processing."
-              : "Invoice posting queued for processing."
-          );
-        }
+        toast({
+          title: result.data?.processed ? "Posted" : "Queued",
+          description: result.data?.processed ? (
+            "Invoice posted successfully"
+          ) : (
+            <span>
+              {result.data?.alreadyQueued
+                ? "Invoice posting already queued."
+                : "Invoice posting queued for processing."}{" "}
+              {result.data?.outboxId ? (
+                <Link
+                  href={`/admin/integrations/outbox?search=${encodeURIComponent(
+                    result.data.outboxId,
+                  )}`}
+                  className="underline"
+                >
+                  View outbox
+                </Link>
+              ) : null}
+            </span>
+          ),
+        });
         router.refresh();
       } else {
-        alert(result.error);
+        toast({
+          title: "Error",
+          description: result.error || "Failed to post invoice",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error(error);
-      alert("An error occurred");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

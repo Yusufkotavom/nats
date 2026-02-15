@@ -8,11 +8,12 @@ import { MovementType } from "@/prisma/generated/prisma/client";
 import { Decimal } from "decimal.js";
 import { hasPermission } from "@/lib/permissions/utils";
 import {
-  enqueueIntegrationEvent,
+  enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 
 import { SuperJSON } from "@/lib/superjson";
+import type { ActionResponse } from "@/lib/permissions/protected-action";
 
 // Types
 export type POSProduct = {
@@ -271,8 +272,14 @@ export async function processPOSTransaction(
   amountPaid: number,
   globalDiscount: number = 0,
   customerId?: string
-) {
-  const result = await prisma.$transaction(async (tx) => {
+): Promise<
+  ActionResponse<{
+    invoiceId: string;
+    outbox: { outboxIds: string[]; alreadyQueuedIds: string[]; processed: boolean };
+  }>
+> {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
     // 1. Validate Session
     const session = await tx.pOSSession.findUnique({
       where: { id: sessionId },
@@ -414,7 +421,7 @@ export async function processPOSTransaction(
       warehouseId: session.warehouseId || undefined,
     });
 
-    const invoiceOutbox = await enqueueIntegrationEvent(tx, {
+    const invoiceOutbox = await enqueueIntegrationEventOnce(tx, {
       topic: "sales",
       type: "SALES_INVOICE_ISSUED",
       aggregateType: "SalesInvoice",
@@ -447,7 +454,7 @@ export async function processPOSTransaction(
       },
     });
 
-    const paymentOutbox = await enqueueIntegrationEvent(tx, {
+    const paymentOutbox = await enqueueIntegrationEventOnce(tx, {
       topic: "sales",
       type: "SALES_PAYMENT_POSTED",
       aggregateType: "SalesPayment",
@@ -466,14 +473,38 @@ export async function processPOSTransaction(
       },
     });
 
-    return { invoiceId: salesInvoice.id, outboxIds: [invoiceOutbox.id, paymentOutbox.id] };
+    const outboxIds = [invoiceOutbox.id, paymentOutbox.id];
+    const alreadyQueuedIds = [
+      ...(invoiceOutbox.alreadyQueued ? [invoiceOutbox.id] : []),
+      ...(paymentOutbox.alreadyQueued ? [paymentOutbox.id] : []),
+    ];
+
+    return { invoiceId: salesInvoice.id, outboxIds, alreadyQueuedIds };
   });
 
-  for (const outboxId of result.outboxIds) {
-    await maybeProcessIntegrationOutboxEvent(outboxId);
-  }
+    const processingResults = await Promise.all(
+      result.outboxIds.map((outboxId) => maybeProcessIntegrationOutboxEvent(outboxId)),
+    );
 
-  return { invoiceId: result.invoiceId };
+    const processedAll = processingResults.every((r) => r.processed);
+
+    return {
+      success: true,
+      data: {
+        invoiceId: result.invoiceId,
+        outbox: {
+          outboxIds: result.outboxIds,
+          alreadyQueuedIds: result.alreadyQueuedIds,
+          processed: processedAll,
+        },
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to process POS transaction",
+    };
+  }
 }
 
 export async function holdOrder(

@@ -97,17 +97,34 @@ export default function CashTransactionListPage() {
       startTransition(async () => {
         try {
           const result = await approveCashTransaction(id);
+          if (!result.success) {
+            throw new Error(result.error || "Failed to approve");
+          }
           queryClient.invalidateQueries({ queryKey: ["cash-transactions"] });
           queryClient.invalidateQueries({
             queryKey: ["cash-bank", "dashboard-stats"],
           });
           toast({
             title: "Success",
-            description: result.processed
-              ? "Transaction approved successfully"
-              : result.alreadyQueued
-                ? "Transaction approval already queued"
-                : "Transaction approval queued for processing",
+            description: result.data?.processed ? (
+              "Transaction approved successfully"
+            ) : (
+              <span>
+                {result.data?.alreadyQueued
+                  ? "Transaction approval already queued."
+                  : "Transaction approval queued for processing."}{" "}
+                {result.data?.outboxId ? (
+                  <Link
+                    href={`/admin/integrations/outbox?search=${encodeURIComponent(
+                      result.data.outboxId,
+                    )}`}
+                    className="underline"
+                  >
+                    View outbox
+                  </Link>
+                ) : null}
+              </span>
+            ),
           });
         } catch (error) {
           toast({

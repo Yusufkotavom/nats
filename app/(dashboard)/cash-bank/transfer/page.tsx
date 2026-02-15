@@ -129,14 +129,31 @@ export default function TransferPage() {
       startTransition(async () => {
         try {
           const result = await approveCashTransfer(id);
+          if (!result.success) {
+            throw new Error(result.error || "Failed to approve");
+          }
           queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           toast({
             title: "Success",
-            description: result.processed
-              ? "Transfer approved successfully"
-              : result.alreadyQueued
-                ? "Transfer approval already queued"
-                : "Transfer approval queued for processing",
+            description: result.data?.processed ? (
+              "Transfer approved successfully"
+            ) : (
+              <span>
+                {result.data?.alreadyQueued
+                  ? "Transfer approval already queued."
+                  : "Transfer approval queued for processing."}{" "}
+                {result.data?.outboxId ? (
+                  <Link
+                    href={`/admin/integrations/outbox?search=${encodeURIComponent(
+                      result.data.outboxId,
+                    )}`}
+                    className="underline"
+                  >
+                    View outbox
+                  </Link>
+                ) : null}
+              </span>
+            ),
           });
         } catch (error) {
           toast({

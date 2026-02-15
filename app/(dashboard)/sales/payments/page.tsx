@@ -80,11 +80,25 @@ export default function SalesPaymentsPage() {
           if (result.success) {
             toast({
               title: "Success",
-              description: result.data?.processed
-                ? "Payment posted successfully"
-                : result.data?.alreadyQueued
-                  ? "Payment posting already queued"
-                : "Payment queued for processing",
+              description: result.data?.processed ? (
+                "Payment posted successfully"
+              ) : (
+                <span>
+                  {result.data?.alreadyQueued
+                    ? "Payment posting already queued."
+                    : "Payment queued for processing."}{" "}
+                  {result.data?.outboxId ? (
+                    <Link
+                      href={`/admin/integrations/outbox?search=${encodeURIComponent(
+                        result.data.outboxId,
+                      )}`}
+                      className="underline"
+                    >
+                      View outbox
+                    </Link>
+                  ) : null}
+                </span>
+              ),
             });
             queryClient.invalidateQueries({ queryKey: ["sales-payments"] });
           } else {

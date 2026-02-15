@@ -41,6 +41,7 @@ import {
   PageFormTitle,
 } from "@/components/layout/page/form-layout";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 interface TransactionFormProps {
   cashAccounts: CashAccount[];
@@ -182,11 +183,28 @@ export function TransactionForm({
         });
       } else {
         const result = await createCashTransaction(SuperJSON.serialize(submitData));
+        if (!result.success) {
+          throw new Error(result.error || "Failed to create transaction");
+        }
         toast({
           title: "Success",
-          description: result.processed
-            ? "Transaction created successfully"
-            : "Transaction queued for processing",
+          description: result.data?.processed ? (
+            "Transaction created successfully"
+          ) : (
+            <span>
+              Transaction queued for processing.{" "}
+              {result.data?.outboxId ? (
+                <Link
+                  href={`/admin/integrations/outbox?search=${encodeURIComponent(
+                    result.data.outboxId,
+                  )}`}
+                  className="underline"
+                >
+                  View outbox
+                </Link>
+              ) : null}
+            </span>
+          ),
         });
       }
 

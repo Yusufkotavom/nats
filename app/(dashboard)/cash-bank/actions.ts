@@ -24,6 +24,14 @@ import {
   enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+import type { ActionResponse } from "@/lib/permissions/protected-action";
+
+type CashTransferOutboxResult = {
+  transferId: string;
+  outboxId: string;
+  processed: boolean;
+  alreadyQueued?: boolean;
+};
 
 export async function uploadTransferAttachment(formData: FormData) {
   const session = await verifySession();
@@ -301,48 +309,63 @@ export async function updateCashTransfer(
   return updatedTransfer;
 }
 
-export async function approveCashTransfer(id: string) {
-  const session = await verifySession();
-  const userId = session.userId;
+export async function approveCashTransfer(
+  id: string,
+): Promise<ActionResponse<CashTransferOutboxResult>> {
+  try {
+    const session = await verifySession();
+    const userId = session.userId;
 
-  const transfer = await prisma.cashTransfer.findUnique({
-    where: { id },
-    include: {
-      fromAccount: { include: { glAccount: true } },
-      toAccount: { include: { glAccount: true } },
-    },
-  });
-
-  if (!transfer) {
-    throw new Error("Transfer not found");
-  }
-
-  if (transfer.status === TransferStatus.APPROVED) {
-    throw new Error("Transfer already approved");
-  }
-
-  const outbox = await prisma.$transaction(async (tx) => {
-    return enqueueIntegrationEventOnce(tx, {
-      topic: "cash_bank",
-      type: "CASH_TRANSFER_APPROVED",
-      aggregateType: "CashTransfer",
-      aggregateId: id,
-      payload: {
-        transferId: id,
-        userId,
+    const transfer = await prisma.cashTransfer.findUnique({
+      where: { id },
+      include: {
+        fromAccount: { include: { glAccount: true } },
+        toAccount: { include: { glAccount: true } },
       },
     });
-  });
 
-  if (outbox.alreadyQueued) {
-    return { success: true as const, processed: false as const, alreadyQueued: true as const };
+    if (!transfer) {
+      return { success: false, error: "Transfer not found" };
+    }
+
+    if (transfer.status === TransferStatus.APPROVED) {
+      return { success: false, error: "Transfer already approved" };
+    }
+
+    const outbox = await prisma.$transaction(async (tx) => {
+      return enqueueIntegrationEventOnce(tx, {
+        topic: "cash_bank",
+        type: "CASH_TRANSFER_APPROVED",
+        aggregateType: "CashTransfer",
+        aggregateId: id,
+        payload: {
+          transferId: id,
+          userId,
+        },
+      });
+    });
+
+    if (outbox.alreadyQueued) {
+      return {
+        success: true,
+        data: { transferId: id, outboxId: outbox.id, processed: false, alreadyQueued: true },
+      };
+    }
+
+    const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
+
+    revalidatePath("/accounting/cash-bank");
+    revalidatePath("/accounting/transfer");
+    return {
+      success: true,
+      data: { transferId: id, outboxId: outbox.id, processed: processed.processed },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to approve transfer",
+    };
   }
-
-  const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
-
-  revalidatePath("/accounting/cash-bank");
-  revalidatePath("/accounting/transfer");
-  return { success: true as const, outboxId: outbox.id, ...processed };
 }
 
 export async function deleteCashTransfer(id: string) {

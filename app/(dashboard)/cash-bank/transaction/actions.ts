@@ -18,62 +18,79 @@ import {
   enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+import type { ActionResponse } from "@/lib/permissions/protected-action";
+
+type CashTransactionOutboxResult = {
+  transactionId: string;
+  outboxId: string;
+  processed: boolean;
+  alreadyQueued?: boolean;
+};
 
 export async function createCashTransaction(
   data: CashTransactionFormData | SuperJSONResult,
-) {
-  const session = await verifySession();
+): Promise<ActionResponse<CashTransactionOutboxResult>> {
+  try {
+    const session = await verifySession();
 
-  const data2 = SuperJSON.deserialize(
-    data as unknown as SuperJSONResult,
-  ) as CashTransactionFormData;
+    const data2 = SuperJSON.deserialize(
+      data as unknown as SuperJSONResult,
+    ) as CashTransactionFormData;
 
-  const validatedData = cashTransactionSchema.parse(data2);
+    const validatedData = cashTransactionSchema.parse(data2);
 
-  const transactionId = crypto.randomUUID();
-  const journalEntryId = crypto.randomUUID();
-  const entryNumber = `CT-${transactionId}`;
+    const transactionId = crypto.randomUUID();
+    const journalEntryId = crypto.randomUUID();
+    const entryNumber = `CT-${transactionId}`;
 
-  const outbox = await prisma.$transaction(async (tx) => {
-    return enqueueIntegrationEvent(tx, {
-      topic: "cash_bank",
-      type: "CASH_TRANSACTION_CREATE_REQUESTED",
-      aggregateType: "CashTransaction",
-      aggregateId: transactionId,
-      payload: {
-        transactionId,
-        journalEntryId,
-        entryNumber,
-        cashAccountId: validatedData.cashAccountId,
-        contactId: validatedData.contactId,
-        departmentId: validatedData.departmentId,
-        projectId: validatedData.projectId,
-        type: validatedData.type,
-        date: validatedData.date.toISOString(),
-        reference: validatedData.reference,
-        description: validatedData.description,
-        notes: validatedData.notes,
-        allocations: validatedData.allocations.map((a) => ({
-          accountId: a.accountId,
-          amount: String(a.amount),
-          description: a.description,
-        })),
-        attachmentIds: validatedData.attachmentIds,
-        userId: session.userId,
-      },
+    const outbox = await prisma.$transaction(async (tx) => {
+      return enqueueIntegrationEvent(tx, {
+        topic: "cash_bank",
+        type: "CASH_TRANSACTION_CREATE_REQUESTED",
+        aggregateType: "CashTransaction",
+        aggregateId: transactionId,
+        payload: {
+          transactionId,
+          journalEntryId,
+          entryNumber,
+          cashAccountId: validatedData.cashAccountId,
+          contactId: validatedData.contactId,
+          departmentId: validatedData.departmentId,
+          projectId: validatedData.projectId,
+          type: validatedData.type,
+          date: validatedData.date.toISOString(),
+          reference: validatedData.reference,
+          description: validatedData.description,
+          notes: validatedData.notes,
+          allocations: validatedData.allocations.map((a) => ({
+            accountId: a.accountId,
+            amount: String(a.amount),
+            description: a.description,
+          })),
+          attachmentIds: validatedData.attachmentIds,
+          userId: session.userId,
+        },
+      });
     });
-  });
 
-  const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
+    const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
-  revalidatePath("/cash-bank/transaction");
-  revalidatePath("/accounting/journal-entries");
-  return {
-    success: true as const,
-    transactionId,
-    outboxId: outbox.id,
-    ...processed,
-  };
+    revalidatePath("/cash-bank/transaction");
+    revalidatePath("/accounting/journal-entries");
+    return {
+      success: true,
+      data: {
+        transactionId,
+        outboxId: outbox.id,
+        processed: processed.processed,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create transaction",
+    };
+  }
 }
 
 export async function getCashTransactions(
@@ -265,44 +282,57 @@ export async function updateCashTransaction(
 }
 
 export async function approveCashTransaction(id: string) {
-  const session = await verifySession();
-  const userId = session.userId;
+  try {
+    const session = await verifySession();
+    const userId = session.userId;
 
-  const transaction = await prisma.cashTransaction.findUnique({
-    where: { id },
-  });
-
-  if (!transaction) {
-    throw new Error("Transaction not found");
-  }
-
-  if (transaction.status === CashTransactionStatus.APPROVED) {
-    throw new Error("Transaction already approved");
-  }
-
-  const outbox = await prisma.$transaction(async (tx) => {
-    return enqueueIntegrationEventOnce(tx, {
-      topic: "cash_bank",
-      type: "CASH_TRANSACTION_APPROVED",
-      aggregateType: "CashTransaction",
-      aggregateId: id,
-      payload: {
-        transactionId: id,
-        userId,
-      },
+    const transaction = await prisma.cashTransaction.findUnique({
+      where: { id },
     });
-  });
 
-  if (outbox.alreadyQueued) {
-    return { success: true as const, processed: false as const, alreadyQueued: true as const };
+    if (!transaction) {
+      return { success: false, error: "Transaction not found" };
+    }
+
+    if (transaction.status === CashTransactionStatus.APPROVED) {
+      return { success: false, error: "Transaction already approved" };
+    }
+
+    const outbox = await prisma.$transaction(async (tx) => {
+      return enqueueIntegrationEventOnce(tx, {
+        topic: "cash_bank",
+        type: "CASH_TRANSACTION_APPROVED",
+        aggregateType: "CashTransaction",
+        aggregateId: id,
+        payload: {
+          transactionId: id,
+          userId,
+        },
+      });
+    });
+
+    if (outbox.alreadyQueued) {
+      return {
+        success: true,
+        data: { transactionId: id, outboxId: outbox.id, processed: false, alreadyQueued: true },
+      };
+    }
+
+    const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
+
+    revalidatePath("/cash-bank/transaction");
+    revalidatePath("/accounting/journal-entries");
+    revalidatePath("/cash-bank");
+    return {
+      success: true,
+      data: { transactionId: id, outboxId: outbox.id, processed: processed.processed },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to approve transaction",
+    };
   }
-
-  const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
-
-  revalidatePath("/cash-bank/transaction");
-  revalidatePath("/accounting/journal-entries");
-  revalidatePath("/cash-bank"); // For dashboard stats
-  return { success: true as const, outboxId: outbox.id, ...processed };
 }
 
 export async function deleteCashTransaction(id: string) {

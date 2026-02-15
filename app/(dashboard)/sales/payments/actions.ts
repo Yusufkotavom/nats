@@ -286,7 +286,10 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
       });
 
       if (outbox.alreadyQueued) {
-        return { success: true, data: { processed: false as const, alreadyQueued: true as const } };
+        return {
+          success: true,
+          data: { processed: false as const, alreadyQueued: true as const, outboxId: outbox.id },
+        };
       }
 
       const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);

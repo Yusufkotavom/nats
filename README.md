@@ -45,6 +45,12 @@ Optional query params:
 - `maxBatches` (default 25)
 - `deadlineMs` (default 25000)
 
+Example request:
+```bash
+curl -X POST "http://localhost:3000/api/integration/worker?limitPerBatch=50&maxBatches=25&deadlineMs=25000" \
+  -H "x-integration-dispatch-key: $INTEGRATION_DISPATCH_KEY"
+```
+
 CLI entrypoint:
 - `npm run outbox:work`
 
@@ -56,6 +62,8 @@ CLI entrypoint:
 - `INTEGRATION_BACKOFF_BASE_MS` (default 5000)
 - `INTEGRATION_BACKOFF_MAX_MS` (default 300000)
 - `INTEGRATION_WORKER_ID` (optional; defaults to random UUID)
+
+You can start from the provided `.env.example` and fill in your deployment-specific values.
 
 ### Monitoring & recovery (Admin)
 

@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { ProductImage } from './product-image';
 import { ReportPreviewDialog } from "@/app/(dashboard)/reporting/_components/report-preview-dialog";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -72,14 +73,34 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         customerId
       );
 
+      if (!result.success) {
+        throw new Error(result.error || "Transaction failed");
+      }
+
       toast({
         title: 'Transaction Successful',
-        description: `Paid ${formatCurrency(amount)} via ${method}`,
+        description: result.data?.outbox.processed ? (
+          `Paid ${formatCurrency(amount)} via ${method}`
+        ) : (
+          <span>
+            Paid {formatCurrency(amount)} via {method}. Queued for processing.{" "}
+            {result.data?.outbox.outboxIds?.[0] ? (
+              <Link
+                href={`/admin/integrations/outbox?search=${encodeURIComponent(
+                  result.data.outbox.outboxIds[0],
+                )}`}
+                className="underline"
+              >
+                View outbox
+              </Link>
+            ) : null}
+          </span>
+        ),
       });
 
       // Store invoice ID for receipt
-      if (result?.invoiceId) {
-        setLastInvoiceId(result.invoiceId);
+      if (result.data?.invoiceId) {
+        setLastInvoiceId(result.data.invoiceId);
         setIsReceiptOpen(true);
       }
 

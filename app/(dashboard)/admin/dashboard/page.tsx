@@ -117,6 +117,18 @@ export default function AdminDashboardPage() {
                 {data.oldestRetryableCreatedAt ? formatDate(data.oldestRetryableCreatedAt) : "—"}
               </div>
               <div>
+                Oldest pending event:{" "}
+                {data.oldestPendingCreatedAt ? formatDate(data.oldestPendingCreatedAt) : "—"}
+              </div>
+              <div>
+                Oldest failed event:{" "}
+                {data.oldestFailedCreatedAt ? formatDate(data.oldestFailedCreatedAt) : "—"}
+              </div>
+              <div>Retrying (attempts &gt; 0): {data.retrying}</div>
+              <div>
+                Last hour: processed {data.processedLastHour}, failed {data.failedLastHour}
+              </div>
+              <div>
                 Tip: Use “Unlock” for stuck PROCESSING, and “Mark DEAD” for poison messages.
               </div>
             </div>

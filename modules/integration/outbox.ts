@@ -114,62 +114,64 @@ export async function dispatchPendingIntegrationEvents(
 }
 
 export async function processIntegrationOutboxEvent(outboxId: string) {
-  await prisma.$transaction(async (tx) => {
-    const now = new Date();
-    const staleBefore = new Date(now.getTime() - lockTimeoutMs);
-    const claimed = await tx.integrationOutbox.updateMany({
-      where: {
-        id: outboxId,
-        attempts: { lt: maxAttempts },
-        OR: [
-          {
-            status: { in: ["PENDING", "FAILED"] },
-            OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
-          },
-          {
-            status: "PROCESSING",
-            lockedAt: { lte: staleBefore },
-          },
-        ],
-      },
-      data: {
-        status: "PROCESSING",
-        lockedAt: now,
-        lockedBy: workerId,
-        attempts: { increment: 1 },
-        lastError: null,
-      },
-    });
-
-    if (claimed.count === 0) return;
-
-    const outbox = await tx.integrationOutbox.findUnique({
-      where: { id: outboxId },
-      select: {
-        id: true,
-        type: true,
-        payload: true,
-        attempts: true,
-      },
-    });
-
-    if (!outbox) return;
-
-    const handlers = getIntegrationHandlers(outbox.type);
-    if (!handlers) {
-      await tx.integrationOutbox.update({
-        where: { id: outboxId },
-        data: {
-          status: "DEAD",
-          deadAt: now,
-          lastError: `No handler for ${outbox.type}`,
+  const now = new Date();
+  const staleBefore = new Date(now.getTime() - lockTimeoutMs);
+  const claimed = await prisma.integrationOutbox.updateMany({
+    where: {
+      id: outboxId,
+      attempts: { lt: maxAttempts },
+      OR: [
+        {
+          status: { in: ["PENDING", "FAILED"] },
+          OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
         },
-      });
-      return;
-    }
+        {
+          status: "PROCESSING",
+          lockedAt: { lte: staleBefore },
+        },
+      ],
+    },
+    data: {
+      status: "PROCESSING",
+      lockedAt: now,
+      lockedBy: workerId,
+      attempts: { increment: 1 },
+      lastError: null,
+    },
+  });
 
-    try {
-      for (const handler of handlers) {
+  if (claimed.count === 0) return;
+
+  const outbox = await prisma.integrationOutbox.findUnique({
+    where: { id: outboxId },
+    select: {
+      id: true,
+      type: true,
+      payload: true,
+      attempts: true,
+    },
+  });
+
+  if (!outbox) return;
+
+  const handlers = getIntegrationHandlers(outbox.type);
+  if (!handlers) {
+    await prisma.integrationOutbox.update({
+      where: { id: outboxId },
+      data: {
+        status: "DEAD",
+        deadAt: now,
+        lastError: `No handler for ${outbox.type}`,
+        lockedAt: null,
+        lockedBy: null,
+      },
+    });
+    return;
+  }
+
+  try {
+    for (const handler of handlers) {
+      await prisma.$transaction(async (tx) => {
         const alreadyProcessed = await tx.integrationInbox.findUnique({
           where: {
             consumer_outboxId: { consumer: handler.consumer, outboxId: outbox.id },
@@ -178,57 +180,58 @@ export async function processIntegrationOutboxEvent(outboxId: string) {
         });
 
         if (alreadyProcessed) {
-          continue;
+          return;
         }
+
+        await handler.handle(tx, outbox.payload);
 
         await tx.integrationInbox.create({
           data: { consumer: handler.consumer, outboxId: outbox.id },
         });
+      });
+    }
 
-        await handler.handle(tx, outbox.payload);
-      }
+    await prisma.integrationOutbox.update({
+      where: { id: outboxId },
+      data: {
+        status: "PROCESSED",
+        processedAt: now,
+        lockedAt: null,
+        lockedBy: null,
+        nextAttemptAt: null,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const attempts = outbox.attempts;
+    const isDead = attempts >= maxAttempts;
+    const backoffMs = computeExponentialBackoffMs(attempts, {
+      baseMs: backoffBaseMs,
+      maxMs: backoffMaxMs,
+    });
+    const nextAttemptAt = new Date(now.getTime() + backoffMs);
 
-      await tx.integrationOutbox.update({
-        where: { id: outboxId },
-        data: {
-          status: "PROCESSED",
-          processedAt: now,
+    await prisma.integrationOutbox.update({
+      where: { id: outboxId },
+      data: isDead
+        ? {
+          status: "DEAD",
+          deadAt: now,
+          lastError: message,
           lockedAt: null,
           lockedBy: null,
-          nextAttemptAt: null,
+        }
+        : {
+          status: "FAILED",
+          lastError: message,
+          nextAttemptAt,
+          lockedAt: null,
+          lockedBy: null,
         },
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      const attempts = outbox.attempts;
-      const isDead = attempts >= maxAttempts;
-      const backoffMs = computeExponentialBackoffMs(attempts, {
-        baseMs: backoffBaseMs,
-        maxMs: backoffMaxMs,
-      });
-      const nextAttemptAt = new Date(now.getTime() + backoffMs);
+    });
 
-      await tx.integrationOutbox.update({
-        where: { id: outboxId },
-        data: isDead
-          ? {
-            status: "DEAD",
-            deadAt: now,
-            lastError: message,
-            lockedAt: null,
-            lockedBy: null,
-          }
-          : {
-            status: "FAILED",
-            lastError: message,
-            nextAttemptAt,
-            lockedAt: null,
-            lockedBy: null,
-          },
-      });
-      throw error;
-    }
-  });
+    throw error;
+  }
 }
 
 export async function maybeProcessIntegrationOutboxEvent(

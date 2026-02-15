@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission, Permission } from "@/lib/permissions/utils";
 import { prisma } from "@/lib/prisma";
 
-type ActionResponse<T> = { success: boolean; data?: T; error?: string };
+export type ActionResponse<T> = { success: boolean; data?: T; error?: string };
 
 export function authorizedAction<T, A extends unknown[]>(
   permission: Permission,
