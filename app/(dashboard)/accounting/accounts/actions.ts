@@ -176,6 +176,11 @@ export async function getNextAccountCode(
   parentId: string | null,
   type: AccountType
 ) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "accounts.create")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   try {
     if (!parentId) {
       // Root level logic

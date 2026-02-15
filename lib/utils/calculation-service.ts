@@ -64,6 +64,13 @@ export class CalculationService {
 
   /**
    * Calculates totals for an invoice (Sales or Purchase).
+   * 
+   * @param items - Array of calculated line items
+   * @param globalDiscount - Fixed amount discount applied to the GROSS total (Post-Tax).
+   *                         Note: This is treated as a "Payment/Cash Discount" (e.g., Voucher), 
+   *                         NOT a "Trade Discount". It does not reduce the taxable basis.
+   * @param shippingCost - Shipping cost added to total
+   * @param handlingCost - Handling cost added to total
    */
   static calculateInvoiceTotals(
     items: LineItemResult[],
@@ -80,9 +87,6 @@ export class CalculationService {
     const handling = new Decimal(handlingCost);
     
     // Logic: Total = ItemsTotal - GlobalDiscount + Shipping + Handling
-    // Wait, itemsTotal includes Tax.
-    // Usually Global Discount applies before Tax? Or after?
-    // Previous code: totalAmount = itemsTotal - globalDiscount + shippingCost
     // This implies Global Discount is applied to the Gross Total (Post-Tax).
     
     const totalAmount = itemsTotal.minus(globalDisc).plus(shipping).plus(handling);

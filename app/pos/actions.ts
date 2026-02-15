@@ -8,6 +8,7 @@ import { MovementType, CashTransactionType } from "@/prisma/generated/prisma/cli
 import { Decimal } from "decimal.js";
 import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { JournalService } from "@/lib/accounting/journal-service";
+import { hasPermission } from "@/lib/permissions/utils";
 
 import { SuperJSON } from "@/lib/superjson";
 
@@ -34,6 +35,11 @@ export type POSCartItem = POSProduct & {
 };
 
 export async function getPOSSessions() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize([]);
+  }
+
   const sessions = await prisma.pOSSession.findMany({
     orderBy: { startTime: 'desc' },
     include: {
@@ -58,6 +64,11 @@ export async function getPOSSessions() {
 }
 
 export async function getPOSProducts(query?: string, categoryId?: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize([]);
+  }
+
   const where: any = {
     isActive: true,
   };
@@ -121,6 +132,11 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
 }
 
 export async function getPOSCategories() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize([]);
+  }
+
   const categories = await prisma.category.findMany({
     orderBy: { name: 'asc' },
   });
@@ -128,6 +144,11 @@ export async function getPOSCategories() {
 }
 
 export async function getWarehouses() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize([]);
+  }
+
   const warehouses = await prisma.warehouse.findMany({
     orderBy: { name: 'asc' },
   });
@@ -138,7 +159,7 @@ export async function getOpenPOSSession() {
   const session = await getSession();
   const userId = session?.userId;
 
-  if (!userId) return null;
+  if (!userId || !hasPermission(session.permissions, "pos.access")) return null;
 
   const posSession = await prisma.pOSSession.findFirst({
     where: {
@@ -159,7 +180,7 @@ export async function getOpenPOSSession() {
 export async function openPOSSession(openingCash: number, warehouseId: string) {
   const session = await getSession();
   const userId = session?.userId;
-  if (!userId) throw new Error('Unauthorized');
+  if (!userId || !hasPermission(session.permissions, "pos.access")) throw new Error('Unauthorized');
 
   // Close any existing open sessions for this user just in case
   await prisma.pOSSession.updateMany({
@@ -185,6 +206,11 @@ export async function openPOSSession(openingCash: number, warehouseId: string) {
 }
 
 export async function closePOSSession(sessionId: string, actualCash: number, notes?: string) {
+  const sessionUser = await getSession();
+  if (!sessionUser || !hasPermission(sessionUser.permissions, "pos.access")) {
+     throw new Error("Unauthorized");
+  }
+
   const payments = await prisma.salesPayment.findMany({
     where: {
       posSessionId: sessionId,

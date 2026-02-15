@@ -122,25 +122,39 @@ export class InventoryService {
 
     // Fetch Product for Average Cost calculation
     const product = await tx.product.findUniqueOrThrow({ where: { id: productId } });
-    let productAvgCost = new Decimal(product.averageCost || 0);
+    
+    // Recalculate Average Cost from all inventory layers to prevent drift
+    const allInventoryLayers = await tx.inventory.findMany({
+      where: { productId },
+      select: { quantity: true, unitCost: true }
+    });
+    
+    // Calculate current total value and quantity from actual layers
+    const currentTotalValue = allInventoryLayers.reduce(
+      (sum, layer) => sum.plus(new Decimal(layer.unitCost).mul(layer.quantity)), 
+      new Decimal(0)
+    );
+    const currentTotalQty = allInventoryLayers.reduce(
+      (sum, layer) => sum + layer.quantity, 
+      0
+    );
+    
+    let productAvgCost = new Decimal(0);
+    if (currentTotalQty > 0) {
+      productAvgCost = currentTotalValue.div(currentTotalQty);
+    }
 
     if (type === "IN") {
       // Moving Average Cost Calculation for Product (Global)
-      // New Avg Cost = ((Current Total Qty * Current Avg Cost) + (Incoming Qty * Incoming Cost)) / (Current Total Qty + Incoming Qty)
-
-      const totalStockAgg = await tx.inventory.aggregate({
-        where: { productId },
-        _sum: { quantity: true },
-      });
-      const totalStock = totalStockAgg._sum.quantity || 0;
+      // New Avg Cost = ((Current Total Value) + (Incoming Qty * Incoming Cost)) / (Current Total Qty + Incoming Qty)
 
       if (unitCost !== undefined) {
-        // totalValue = productAvgCost * totalStock + unitCost * quantity
-        const totalValue = productAvgCost.mul(totalStock).plus(unitCost.mul(quantity));
-        const newTotalStock = totalStock + quantity;
+        const incomingValue = unitCost.mul(quantity);
+        const newTotalValue = currentTotalValue.plus(incomingValue);
+        const newTotalStock = currentTotalQty + quantity;
 
         if (newTotalStock > 0) {
-          productAvgCost = totalValue.div(newTotalStock);
+          productAvgCost = newTotalValue.div(newTotalStock);
         }
 
         // Update Product Average Cost

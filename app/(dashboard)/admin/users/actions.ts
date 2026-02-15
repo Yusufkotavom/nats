@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
 
 interface UserCreateData {
   name: string;
@@ -60,6 +62,12 @@ export async function getUsers(page: number, limit: number) {
  * @returns - List of roles
  */
 export async function getRoles() {
+  const session = await getSession();
+  // Allow if user can view users or edit them
+  if (!session || (!hasPermission(session.permissions, "users.create") && !hasPermission(session.permissions, "users.edit"))) {
+    return [];
+  }
+
   return prisma.role.findMany({
     select: {
       id: true,
