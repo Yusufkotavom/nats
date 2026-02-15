@@ -11,6 +11,14 @@ import {
 } from "@/modules/integration/outbox";
 import type { Prisma } from "@/prisma/generated/prisma/client";
 
+function getIntEnv(name: string, fallback: number) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.trunc(n);
+}
+
 export async function getIntegrationOutboxEvents(
   page: number = 1,
   limit: number = 20,
@@ -93,6 +101,53 @@ export async function getIntegrationOutboxEvents(
     events: SuperJSON.serialize(events),
     total,
     totalPages: Math.ceil(total / limit),
+  };
+}
+
+export async function getIntegrationOutboxTopErrors(input?: {
+  topic?: string;
+  type?: string;
+  limit?: number;
+  statuses?: Array<"FAILED" | "DEAD">;
+}) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "integrations.outbox.view")) {
+    return { errors: [] as Array<{ lastError: string; count: number }> };
+  }
+
+  const limit = Math.min(50, Math.max(1, input?.limit ?? 10));
+  const statuses = input?.statuses?.length ? input.statuses : ["FAILED"];
+
+  const where: Prisma.IntegrationOutboxWhereInput = {
+    status: { in: statuses as any[] },
+    lastError: { not: null },
+    AND: [],
+  };
+
+  if (input?.topic) {
+    (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+      topic: { equals: input.topic, mode: "insensitive" },
+    });
+  }
+
+  if (input?.type) {
+    (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+      type: { contains: input.type, mode: "insensitive" },
+    });
+  }
+
+  const groups = await prisma.integrationOutbox.groupBy({
+    by: ["lastError"],
+    where,
+    _count: { id: true },
+    orderBy: { _count: { id: "desc" } },
+    take: limit,
+  });
+
+  return {
+    errors: groups
+      .map((g) => ({ lastError: g.lastError ?? "", count: g._count.id }))
+      .filter((g) => g.lastError.trim().length > 0),
   };
 }
 
@@ -214,5 +269,140 @@ export const forceDeadIntegrationOutboxEvent = authorizedAction(
     });
 
     return { success: true as const };
+  }
+);
+
+export const bulkUnlockStuckIntegrationOutboxEvents = authorizedAction(
+  "integrations.outbox.retry",
+  async (input?: { topic?: string; type?: string }) => {
+    const now = new Date();
+    const lockTimeoutMs = getIntEnv("INTEGRATION_LOCK_TIMEOUT_MS", 60_000);
+    const staleBefore = new Date(now.getTime() - lockTimeoutMs);
+
+    const where: Prisma.IntegrationOutboxWhereInput = {
+      status: "PROCESSING",
+      lockedAt: { lte: staleBefore },
+      AND: [],
+    };
+
+    if (input?.topic) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        topic: { equals: input.topic, mode: "insensitive" },
+      });
+    }
+
+    if (input?.type) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        type: { contains: input.type, mode: "insensitive" },
+      });
+    }
+
+    const result = await prisma.integrationOutbox.updateMany({
+      where,
+      data: {
+        status: "FAILED",
+        lockedAt: null,
+        lockedBy: null,
+        nextAttemptAt: null,
+      },
+    });
+
+    return { success: true as const, count: result.count };
+  }
+);
+
+export const bulkRequeueIntegrationOutboxEvents = authorizedAction(
+  "integrations.outbox.retry",
+  async (input: {
+    fromStatus: "FAILED" | "DEAD";
+    topic?: string;
+    type?: string;
+    lastErrorExact?: string;
+    resetAttempts?: boolean;
+  }) => {
+    const resetAttempts = input.resetAttempts ?? true;
+
+    const where: Prisma.IntegrationOutboxWhereInput = {
+      status: input.fromStatus,
+      AND: [],
+    };
+
+    if (input.topic) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        topic: { equals: input.topic, mode: "insensitive" },
+      });
+    }
+
+    if (input.type) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        type: { contains: input.type, mode: "insensitive" },
+      });
+    }
+
+    if (input.lastErrorExact) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        lastError: { equals: input.lastErrorExact },
+      });
+    }
+
+    const result = await prisma.integrationOutbox.updateMany({
+      where,
+      data: {
+        status: "PENDING",
+        attempts: resetAttempts ? 0 : undefined,
+        lockedAt: null,
+        lockedBy: null,
+        processedAt: null,
+        nextAttemptAt: null,
+        lastError: null,
+        deadAt: null,
+      },
+    });
+
+    return { success: true as const, count: result.count };
+  }
+);
+
+export const bulkForceDeadIntegrationOutboxEvents = authorizedAction(
+  "integrations.outbox.retry",
+  async (input: { topic?: string; type?: string; lastErrorExact?: string; reason?: string }) => {
+    const where: Prisma.IntegrationOutboxWhereInput = {
+      status: "FAILED",
+      AND: [],
+    };
+
+    if (input.topic) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        topic: { equals: input.topic, mode: "insensitive" },
+      });
+    }
+
+    if (input.type) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        type: { contains: input.type, mode: "insensitive" },
+      });
+    }
+
+    if (input.lastErrorExact) {
+      (where.AND as Prisma.IntegrationOutboxWhereInput[]).push({
+        lastError: { equals: input.lastErrorExact },
+      });
+    }
+
+    const reason = input.reason?.trim();
+
+    const result = await prisma.integrationOutbox.updateMany({
+      where,
+      data: {
+        status: "DEAD",
+        deadAt: new Date(),
+        lockedAt: null,
+        lockedBy: null,
+        nextAttemptAt: null,
+        lastError: reason ? reason : undefined,
+      },
+    });
+
+    return { success: true as const, count: result.count };
   }
 );

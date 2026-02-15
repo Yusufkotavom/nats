@@ -53,6 +53,22 @@ curl -X POST "http://localhost:3000/api/integration/worker?limitPerBatch=50&maxB
   -H "x-integration-dispatch-key: $INTEGRATION_DISPATCH_KEY"
 ```
 
+### Healthcheck (external monitoring)
+
+Protected endpoint:
+- `GET /api/integration/health`
+- Header: `x-integration-dispatch-key: <INTEGRATION_DISPATCH_KEY>`
+
+Behavior:
+- Returns `200` for `ok` / `warn`
+- Returns `503` for `alert` (so uptime monitors can alert on status code)
+
+Example request:
+```bash
+curl -X GET "http://localhost:3000/api/integration/health" \
+  -H "x-integration-dispatch-key: $INTEGRATION_DISPATCH_KEY"
+```
+
 CLI entrypoint:
 - `npm run outbox:work`
 
@@ -69,8 +85,21 @@ HTTP CLI entrypoint (scheduler-friendly when the scheduler cannot access the DB)
 - `INTEGRATION_WORKER_ID` (optional; defaults to random UUID)
 - `OUTBOX_WORKER_URL`: full URL to `/api/integration/worker` for `outbox:work:http`
 - `OUTBOX_LIMIT_PER_BATCH`, `OUTBOX_MAX_BATCHES`, `OUTBOX_DEADLINE_MS`, `OUTBOX_CONCURRENCY`, `OUTBOX_DRAIN`
+- `OUTBOX_ALERT_OLDEST_PENDING_SECONDS` (default 3600)
+- `OUTBOX_ALERT_STUCK_PROCESSING_COUNT` (default 1)
+- `OUTBOX_ALERT_DEAD_COUNT` (default 1)
+- `OUTBOX_WARN_FAILED_LAST_HOUR_COUNT` (default 1)
 
 You can start from the provided `.env.example` and fill in your deployment-specific values.
+
+### Database migrations (Prisma)
+
+This repo uses Prisma schema folder configuration (`prisma.config.ts` points to `prisma/schema`), so schema changes (including new indexes) should be shipped via migrations.
+
+- Generate a migration locally:
+  - `npx prisma migrate dev --name <migration_name>`
+- Apply migrations in production:
+  - `npx prisma migrate deploy`
 
 ### Monitoring & recovery (Admin)
 
@@ -79,6 +108,7 @@ You can start from the provided `.env.example` and fill in your deployment-speci
   - Use “Unlock” for stuck PROCESSING
   - Use “Requeue” to retry (optionally resetting attempts)
   - Use “Mark DEAD” for poison messages
+  - Use “Top Failed Errors” to bulk requeue or dead-letter by exact error text
 
 ### Operations runbook (recommended)
 

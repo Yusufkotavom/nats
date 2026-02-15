@@ -26,7 +26,9 @@ model IntegrationOutbox {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([status, nextAttemptAt, createdAt])
+  @@index([status, nextAttemptAt, attempts, createdAt])
+  @@index([status, lockedAt, attempts, createdAt])
+  @@index([topic, status, createdAt])
   @@index([type, createdAt])
   @@index([aggregateType, aggregateId])
 }

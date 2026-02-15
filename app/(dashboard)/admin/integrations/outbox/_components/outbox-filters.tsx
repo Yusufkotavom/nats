@@ -6,8 +6,10 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { Search } from "lucide-react";
 
+const ALL_STATUSES_VALUE = "__ALL_STATUSES__";
+
 const statusOptions = [
-  { label: "All Statuses", value: "" },
+  { label: "All Statuses", value: ALL_STATUSES_VALUE },
   { label: "PENDING", value: "PENDING" },
   { label: "PROCESSING", value: "PROCESSING" },
   { label: "PROCESSED", value: "PROCESSED" },
@@ -58,9 +60,10 @@ export function OutboxFilters() {
     return () => clearTimeout(timer);
   }, [status, topic, type, search, searchParams, pathname, replace]);
 
-  const statusValue = useMemo(() => {
-    return statusOptions.find((o) => o.value === status) || statusOptions[0];
-  }, [status]);
+  const selectStatusValue = useMemo(
+    () => (status ? status : ALL_STATUSES_VALUE),
+    [status]
+  );
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -77,9 +80,11 @@ export function OutboxFilters() {
 
         <div className="w-full md:w-56">
           <CustomSelect
-            value={statusValue}
+            value={selectStatusValue}
             options={statusOptions}
-            onChange={(value) => setStatus(value.value)}
+            onValueChange={(value) =>
+              setStatus(value === ALL_STATUSES_VALUE ? "" : value)
+            }
             placeholder="Status"
           />
         </div>
@@ -103,4 +108,3 @@ export function OutboxFilters() {
     </div>
   );
 }
-

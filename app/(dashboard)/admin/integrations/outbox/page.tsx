@@ -31,7 +31,11 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate } from "@/hooks";
 import {
   dispatchIntegrationOutboxBatch,
+  bulkRequeueIntegrationOutboxEvents,
+  bulkForceDeadIntegrationOutboxEvents,
+  bulkUnlockStuckIntegrationOutboxEvents,
   forceDeadIntegrationOutboxEvent,
+  getIntegrationOutboxTopErrors,
   getIntegrationOutboxEventDetail,
   getIntegrationOutboxEvents,
   requeueIntegrationOutboxEvent,
@@ -48,6 +52,7 @@ import {
 } from "@/components/layout/page/list-layout";
 import { OutboxFilters } from "./_components/outbox-filters";
 import { OutboxEventDialog } from "./_components/outbox-event-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type OutboxEvent = {
   id: string;
@@ -111,7 +116,7 @@ export default function IntegrationOutboxPage() {
         type,
       });
       return {
-        events: SuperJSON.deserialize<OutboxEvent[]>(result.events),
+        events: Array.isArray(result.events) ? result.events : SuperJSON.deserialize<OutboxEvent[]>(result.events),
         total: result.total,
         totalPages: result.totalPages,
       };
@@ -119,6 +124,21 @@ export default function IntegrationOutboxPage() {
     staleTime: 0,
     refetchOnMount: true,
   });
+
+  const { data: errorsData, isLoading: isLoadingErrors } = useQuery({
+    queryKey: ["admin-outbox-errors", topic, type],
+    queryFn: async () => getIntegrationOutboxTopErrors({ topic: topic || undefined, type: type || undefined, limit: 8 }),
+    staleTime: 0,
+    refetchOnMount: true,
+  });
+
+  const openErrorText = (error: string) => {
+    setDialog({
+      open: true,
+      title: "Error group",
+      content: error,
+    });
+  };
 
   const openPayload = (event: OutboxEvent) => {
     setDialog({
@@ -154,6 +174,7 @@ export default function IntegrationOutboxPage() {
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ["admin-outbox"] });
+    await queryClient.invalidateQueries({ queryKey: ["admin-outbox-errors"] });
   };
 
   const handleRequeue = async (id: string, options: { resetAttempts: boolean }) => {
@@ -243,11 +264,119 @@ export default function IntegrationOutboxPage() {
       if (result.success) {
         toast({
           title: "Dispatched",
-          description: `Attempted ${result.result.attempted}, processed ${result.result.processed}, failed ${result.result.failed}`,
+          description: `Attempted ${(result as any).attempted}, processed ${(result as any).processed}, failed ${(result as any).failed}`,
         });
         await invalidate();
       } else {
         toast({ title: "Failed to dispatch", description: result.error, variant: "destructive" });
+      }
+    });
+  };
+
+  const handleBulkUnlockStuck = async () => {
+    if (
+      !(await confirm({
+        title: "Bulk unlock stuck events",
+        description:
+          "This will unlock stale PROCESSING events (older than lock timeout) and set them to FAILED, so they can be retried.",
+      }))
+    ) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await bulkUnlockStuckIntegrationOutboxEvents({
+        topic: topic || undefined,
+        type: type || undefined,
+      });
+      if (result.success) {
+        toast({ title: "Bulk unlocked", description: `Updated ${(result as any).count} events` });
+        await invalidate();
+      } else {
+        toast({ title: "Failed", description: result.error, variant: "destructive" });
+      }
+    });
+  };
+
+  const handleBulkRequeue = async (fromStatus: "FAILED" | "DEAD", resetAttempts: boolean) => {
+    if (
+      !(await confirm({
+        title: `Bulk requeue ${fromStatus} events`,
+        description:
+          "This will reset matching events to PENDING and clear error/lock state. Use with care in production.",
+      }))
+    ) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await bulkRequeueIntegrationOutboxEvents({
+        fromStatus,
+        resetAttempts,
+        topic: topic || undefined,
+        type: type || undefined,
+      });
+      if (result.success) {
+        toast({ title: "Bulk requeued", description: `Updated ${(result as any).count} events` });
+        await invalidate();
+      } else {
+        toast({ title: "Failed", description: result.error, variant: "destructive" });
+      }
+    });
+  };
+
+  const handleBulkRequeueError = async (fromStatus: "FAILED" | "DEAD", error: string, resetAttempts: boolean) => {
+    if (
+      !(await confirm({
+        title: `Bulk requeue ${fromStatus} events for this error`,
+        description:
+          "This will reset matching events to PENDING and clear error/lock state. This action uses exact error matching.",
+      }))
+    ) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await bulkRequeueIntegrationOutboxEvents({
+        fromStatus,
+        resetAttempts,
+        topic: topic || undefined,
+        type: type || undefined,
+        lastErrorExact: error,
+      });
+      if (result.success) {
+        toast({ title: "Bulk requeued", description: `Updated ${(result as any).count} events` });
+        await invalidate();
+      } else {
+        toast({ title: "Failed", description: result.error, variant: "destructive" });
+      }
+    });
+  };
+
+  const handleBulkDeadError = async (error: string) => {
+    if (
+      !(await confirm({
+        title: "Bulk mark DEAD for this error",
+        description:
+          "This will move matching FAILED events to DEAD. This action uses exact error matching.",
+        confirmText: "Mark DEAD",
+        variant: "destructive",
+      }))
+    ) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await bulkForceDeadIntegrationOutboxEvents({
+        topic: topic || undefined,
+        type: type || undefined,
+        lastErrorExact: error,
+      });
+      if (result.success) {
+        toast({ title: "Bulk marked DEAD", description: `Updated ${(result as any).count} events` });
+        await invalidate();
+      } else {
+        toast({ title: "Failed", description: result.error, variant: "destructive" });
       }
     });
   };
@@ -367,6 +496,48 @@ export default function IntegrationOutboxPage() {
       <PageListHeader>
         <PageListTitle title="Integration Outbox" />
         <PageListActions>
+          <Protect permission="integrations.outbox.retry">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={isPending}>
+                  <MoreHorizontal className="mr-2 h-4 w-4" />
+                  Bulk Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filtered by</DropdownMenuLabel>
+                <DropdownMenuItem disabled>
+                  {topic ? `topic=${topic}` : "topic=any"}
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  {type ? `type~=${type}` : "type=any"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleBulkUnlockStuck}>
+                  <LockOpen className="mr-2 h-4 w-4" />
+                  Unlock stuck processing
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleBulkRequeue("FAILED", true)}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Requeue FAILED (Reset)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkRequeue("FAILED", false)}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Requeue FAILED (Keep)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleBulkRequeue("DEAD", true)}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Requeue DEAD (Reset)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkRequeue("DEAD", false)}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Requeue DEAD (Keep)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Protect>
           <Protect permission="integrations.outbox.dispatch">
             <Button onClick={handleDispatchBatch} disabled={isPending}>
               {isPending ? (
@@ -385,6 +556,59 @@ export default function IntegrationOutboxPage() {
       </PageListFilter>
 
       <PageListContent>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle>Top Failed Errors</CardTitle>
+            <div className="text-xs text-muted-foreground">
+              {topic ? `topic=${topic}` : "topic=any"} · {type ? `type~=${type}` : "type=any"}
+            </div>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {isLoadingErrors ? (
+              <div className="text-muted-foreground">Loading error groups…</div>
+            ) : errorsData?.errors?.length ? (
+              <div className="flex flex-col gap-2">
+                {errorsData.errors.map((e) => (
+                  <div key={e.lastError} className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate">{e.lastError}</div>
+                      <div className="text-xs text-muted-foreground">{e.count} events</div>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => openErrorText(e.lastError)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
+                      </Button>
+                      <Protect permission="integrations.outbox.retry">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleBulkRequeueError("FAILED", e.lastError, true)}
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Requeue
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleBulkDeadError(e.lastError)}
+                        >
+                          <Ban className="mr-2 h-4 w-4" />
+                          Dead
+                        </Button>
+                      </Protect>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-muted-foreground">No failed error groups for the current filter.</div>
+            )}
+          </CardContent>
+        </Card>
+
         <DataTable
           data={data?.events ?? []}
           columns={columns}

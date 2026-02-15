@@ -1,4 +1,4 @@
-import { LayoutDashboard } from "lucide-react";
+import { Building2Icon, CogIcon, LayoutDashboard } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const adminPlugin: ModulePlugin = {
@@ -8,18 +8,24 @@ export const adminPlugin: ModulePlugin = {
       section: "Administration",
       items: [
         {
-          title: "General",
+          title: "Company Management",
           url: "#",
-          icon: LayoutDashboard,
+          icon: Building2Icon,
+          items: [
+            { title: "Company Settings", url: "/admin/settings" },
+            { title: "Contacts", url: "/general/contacts" },
+            { title: "Departments", url: "/general/departments" },
+            { title: "Projects", url: "/general/projects" }],
+        },
+        {
+          title: "System Management",
+          url: "#",
+          icon: CogIcon,
           items: [
             { title: "Dashboard", url: "/admin/dashboard" },
             { title: "User Management", url: "/admin/users" },
             { title: "Role Definitions", url: "/admin/roles" },
-            { title: "Contacts", url: "/general/contacts" },
-            { title: "Departments", url: "/general/departments" },
-            { title: "Projects", url: "/general/projects" },
             { title: "File Manager", url: "/general/files" },
-            { title: "Company Settings", url: "/admin/settings" },
             { title: "AI Configuration", url: "/admin/settings/ai" },
             { title: "Integration Outbox", url: "/admin/integrations/outbox" },
           ],

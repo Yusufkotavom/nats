@@ -1,13 +1,4 @@
 import { handleSalesInvoiceIssued } from "./sales-invoice-issued";
-import { handlePurchaseInvoiceBilled } from "./purchase-invoice-billed";
-import {
-  handleSalesPaymentPostedAccounting,
-  handleSalesPaymentPostedCashBank,
-} from "./sales-payment-posted";
-import {
-  handlePurchasePaymentPostedAccounting,
-  handlePurchasePaymentPostedCashBank,
-} from "./purchase-payment-posted";
 import {
   handleCashTransactionApprovedAccounting,
   handleCashTransactionApprovedCashBank,
@@ -20,6 +11,9 @@ import {
   handleCashTransactionCreateRequestedAccounting,
   handleCashTransactionCreateRequestedCashBank,
 } from "./cash-transaction-create-requested";
+import { handlePurchaseInvoiceBilled } from "./purchase-invoice-billed";
+import { handlePurchasePaymentPostedAccounting, handlePurchasePaymentPostedCashBank } from "./purchase-payment-posted";
+import { handleSalesPaymentPostedAccounting, handleSalesPaymentPostedCashBank } from "./sales-payment-posted";
 
 export const integrationHandlers = {
   SALES_INVOICE_ISSUED: [
