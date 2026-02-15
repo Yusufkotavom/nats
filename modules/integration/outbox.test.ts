@@ -166,4 +166,65 @@ describe("processIntegrationOutboxEvent", () => {
       }),
     );
   });
+
+  it("keeps successful consumer receipt when later consumer fails, then retries remaining consumer only", async () => {
+    const handleA = vi.fn(async () => {});
+    const handleB = vi.fn(async () => {
+      throw new Error("broke");
+    });
+    getIntegrationHandlersMock.mockReturnValue([
+      { consumer: "consumer-a", handle: handleA },
+      { consumer: "consumer-b", handle: handleB },
+    ]);
+
+    let phase: "first" | "retry" = "first";
+
+    prismaMock.integrationOutbox.findUnique
+      .mockResolvedValueOnce({
+        id: "outbox-1",
+        type: "TYPE",
+        payload: { hello: "world" },
+        attempts: 1,
+      })
+      .mockResolvedValueOnce({
+        id: "outbox-1",
+        type: "TYPE",
+        payload: { hello: "world" },
+        attempts: 2,
+      });
+
+    prismaMock.$transaction.mockImplementation(async (cb: any) => {
+      const tx = {
+        integrationInbox: {
+          findUnique: vi.fn(async ({ where }: any) => {
+            const consumer = where.consumer_outboxId.consumer;
+            if (phase === "first") return null;
+            if (consumer === "consumer-a") return { id: "inbox-a" };
+            return null;
+          }),
+          create: vi.fn(),
+        },
+      };
+      return cb(tx);
+    });
+
+    await expect(processIntegrationOutboxEvent("outbox-1")).rejects.toThrow("broke");
+    expect(handleA).toHaveBeenCalledTimes(1);
+    expect(handleB).toHaveBeenCalledTimes(1);
+
+    phase = "retry";
+    handleB.mockImplementationOnce(async () => {});
+
+    await processIntegrationOutboxEvent("outbox-1");
+
+    expect(handleA).toHaveBeenCalledTimes(1);
+    expect(handleB).toHaveBeenCalledTimes(2);
+
+    expect(prismaMock.integrationOutbox.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "outbox-1" },
+        data: expect.objectContaining({ status: "PROCESSED" }),
+      }),
+    );
+  });
 });

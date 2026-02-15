@@ -10,8 +10,18 @@ async function main() {
   const deadlineMs = process.env.OUTBOX_DEADLINE_MS
     ? Number(process.env.OUTBOX_DEADLINE_MS)
     : undefined;
+  const concurrency = process.env.OUTBOX_CONCURRENCY
+    ? Number(process.env.OUTBOX_CONCURRENCY)
+    : undefined;
+  const drain = process.env.OUTBOX_DRAIN === "true" ? true : undefined;
 
-  const result = await runOutboxWorker({ limitPerBatch, maxBatches, deadlineMs });
+  const result = await runOutboxWorker({
+    limitPerBatch,
+    maxBatches,
+    deadlineMs,
+    concurrency,
+    drain,
+  });
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
@@ -19,4 +29,3 @@ main().catch((error) => {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
 });
-

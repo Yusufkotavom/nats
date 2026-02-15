@@ -9,6 +9,7 @@ import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import {
   getUnpaidSalesInvoices,
   getCashAccounts,
@@ -205,6 +206,15 @@ export function SalesPaymentForm({
             >
               {readonly ? "Back" : "Cancel"}
             </Button>
+            {initialData ? (
+              <Button asChild type="button" variant="outline">
+                <Link
+                  href={`/admin/integrations/outbox?search=${encodeURIComponent(initialData.id)}`}
+                >
+                  Outbox
+                </Link>
+              </Button>
+            ) : null}
             {!readonly && (
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && (

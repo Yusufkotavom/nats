@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "outbox:work": "tsx scripts/outbox-worker.ts"
+    "outbox:work": "tsx scripts/outbox-worker.ts",
+    "outbox:work:http": "tsx scripts/outbox-worker-http.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

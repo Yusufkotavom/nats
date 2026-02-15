@@ -44,6 +44,8 @@ Optional query params:
 - `limitPerBatch` (default 50)
 - `maxBatches` (default 25)
 - `deadlineMs` (default 25000)
+ - `concurrency` (default 4)
+ - `drain` (default false; when true, ignores maxBatches and runs until drained or deadline)
 
 Example request:
 ```bash
@@ -54,6 +56,9 @@ curl -X POST "http://localhost:3000/api/integration/worker?limitPerBatch=50&maxB
 CLI entrypoint:
 - `npm run outbox:work`
 
+HTTP CLI entrypoint (scheduler-friendly when the scheduler cannot access the DB):
+- `npm run outbox:work:http`
+
 ### Key environment variables
 
 - `INTEGRATION_DISPATCH_KEY`: required for `/api/integration/dispatch` and `/api/integration/worker`
@@ -62,6 +67,8 @@ CLI entrypoint:
 - `INTEGRATION_BACKOFF_BASE_MS` (default 5000)
 - `INTEGRATION_BACKOFF_MAX_MS` (default 300000)
 - `INTEGRATION_WORKER_ID` (optional; defaults to random UUID)
+- `OUTBOX_WORKER_URL`: full URL to `/api/integration/worker` for `outbox:work:http`
+- `OUTBOX_LIMIT_PER_BATCH`, `OUTBOX_MAX_BATCHES`, `OUTBOX_DEADLINE_MS`, `OUTBOX_CONCURRENCY`, `OUTBOX_DRAIN`
 
 You can start from the provided `.env.example` and fill in your deployment-specific values.
 
@@ -72,6 +79,22 @@ You can start from the provided `.env.example` and fill in your deployment-speci
   - Use “Unlock” for stuck PROCESSING
   - Use “Requeue” to retry (optionally resetting attempts)
   - Use “Mark DEAD” for poison messages
+
+### Operations runbook (recommended)
+
+- **If PENDING grows and oldest pending is increasing**
+  - Verify your scheduler is calling the worker endpoint.
+  - Run a one-off drain with higher concurrency for catch-up:
+    - `POST /api/integration/worker?drain=true&deadlineMs=25000&concurrency=8`
+- **If PROCESSING is stuck (stuck processing count > 0)**
+  - Use Outbox “Unlock” for stale locks (PROCESSING with old lockedAt).
+  - Ensure multiple schedulers aren’t using the same worker identity unexpectedly.
+- **If DEAD increases**
+  - Inspect `lastError`, fix the underlying handler issue, then use “Requeue” (optionally resetting attempts).
+  - Consider increasing `INTEGRATION_MAX_ATTEMPTS` only after confirming the error is transient.
+- **If retries are thrashing**
+  - Increase `INTEGRATION_BACKOFF_BASE_MS` and/or cap `INTEGRATION_BACKOFF_MAX_MS`.
+  - Reduce `concurrency` to limit downstream pressure.
 
 ## Learn More
 

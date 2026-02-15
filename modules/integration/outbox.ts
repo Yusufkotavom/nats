@@ -73,9 +73,10 @@ const backoffBaseMs = getIntEnv("INTEGRATION_BACKOFF_BASE_MS", 5_000);
 const backoffMaxMs = getIntEnv("INTEGRATION_BACKOFF_MAX_MS", 5 * 60_000);
 
 export async function dispatchPendingIntegrationEvents(
-  options?: { limit?: number }
+  options?: { limit?: number; concurrency?: number }
 ): Promise<DispatchPendingIntegrationEventsResult> {
   const limit = options?.limit ?? 50;
+  const concurrency = Math.max(1, options?.concurrency ?? 4);
   const now = new Date();
   const staleBefore = new Date(now.getTime() - lockTimeoutMs);
   const pending = await prisma.integrationOutbox.findMany({
@@ -98,17 +99,32 @@ export async function dispatchPendingIntegrationEvents(
     take: limit,
   });
 
+  if (pending.length === 0) {
+    return { attempted: 0, processed: 0, failed: 0 };
+  }
+
   let processed = 0;
   let failed = 0;
 
-  for (const row of pending) {
-    try {
-      await processIntegrationOutboxEvent(row.id);
-      processed += 1;
-    } catch {
-      failed += 1;
-    }
-  }
+  const ids = pending.map((r) => r.id);
+  let cursor = 0;
+
+  const workerCount = Math.min(concurrency, ids.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const id = ids[cursor];
+        cursor += 1;
+        if (!id) return;
+        try {
+          await processIntegrationOutboxEvent(id);
+          processed += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+    })
+  );
 
   return { attempted: pending.length, processed, failed };
 }

@@ -431,6 +431,15 @@ export function PurchaseInvoiceForm({
           New Purchase Invoice
         </h2>
         <div className="flex gap-2">
+          {invoice ? (
+            <Button asChild type="button" variant="outline" size="sm">
+              <Link
+                href={`/admin/integrations/outbox?search=${encodeURIComponent(invoice.id)}`}
+              >
+                Outbox
+              </Link>
+            </Button>
+          ) : null}
           {invoice?.status === "DRAFT" && (
             <Button
               type="button"
