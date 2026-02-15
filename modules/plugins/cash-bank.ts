@@ -5,7 +5,7 @@ export const cashBankPlugin: ModulePlugin = {
   id: "cash-bank",
   navigation: [
     {
-      section: "Finance & Accounting",
+      section: "Operations",
       items: [
         {
           title: "Cash & Bank",

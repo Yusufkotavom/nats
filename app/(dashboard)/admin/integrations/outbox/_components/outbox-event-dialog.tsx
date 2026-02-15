@@ -23,13 +23,15 @@ export function OutboxEventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-full w-full">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="max-h-[70vh] rounded border bg-muted/20 p-3">
-          <pre className="text-xs leading-relaxed">{text}</pre>
-        </ScrollArea>
+        <div className="w-full overflow-auto max-h-[300px] p-2 border border-muted bg-muted/20">
+          <pre className="text-xs leading-relaxed overflow-auto w-full h-full">
+            {text}
+          </pre>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -106,6 +106,7 @@ This repo uses Prisma schema folder configuration (`prisma.config.ts` points to 
   - `npx prisma migrate dev --name <migration_name>`
 - Apply migrations in production:
   - `npx prisma migrate deploy`
+- Outbox indexes are shipped as a migration under `prisma/migrations`.
 
 ### Monitoring & recovery (Admin)
 
