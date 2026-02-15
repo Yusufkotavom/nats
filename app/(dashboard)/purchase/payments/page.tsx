@@ -78,7 +78,12 @@ export default function PurchasePaymentsPage() {
         try {
           const result = await postPurchasePayment(id);
           if (result.success) {
-            toast({ title: "Success", description: "Payment posted successfully" });
+            toast({
+              title: "Success",
+              description: result.processed
+                ? "Payment posted successfully"
+                : "Payment queued for processing",
+            });
             queryClient.invalidateQueries({ queryKey: ["purchase-payments"] });
           } else {
             toast({

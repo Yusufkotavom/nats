@@ -31,7 +31,7 @@ export class JournalService {
     }
 
     if (existingEntry.status === "posted") {
-      throw new Error("Journal entry is already posted");
+      return;
     }
 
     // 1. Validate Balance using Decimal

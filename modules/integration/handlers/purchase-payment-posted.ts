@@ -1,0 +1,119 @@
+import { Decimal } from "decimal.js";
+import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
+import { JournalService } from "@/lib/accounting/journal-service";
+import { CashTransactionType } from "@/prisma/generated/prisma/client";
+import { purchasePaymentPostedPayloadSchema } from "@/modules/integration/events";
+import type { Prisma } from "@/prisma/generated/prisma/client";
+
+type Tx = Prisma.TransactionClient;
+
+export async function handlePurchasePaymentPostedAccounting(
+  tx: Tx,
+  payloadInput: unknown
+) {
+  const payload = purchasePaymentPostedPayloadSchema.parse(payloadInput);
+
+  const payment = await tx.purchasePayment.findUnique({
+    where: { id: payload.paymentId },
+    include: {
+      purchaseInvoice: { select: { invoiceNumber: true } },
+      cashAccount: { select: { name: true, glAccountId: true } },
+    },
+  });
+
+  if (!payment) {
+    throw new Error("Payment not found");
+  }
+
+  if (payment.journalEntryId) {
+    return;
+  }
+
+  const apAccount = await getRequiredDefaultAccount("ACCOUNTS_PAYABLE");
+
+  const journalEntry = await JournalService.createDraftJournalEntry(tx, {
+    userId: payload.userId,
+    entryNumber: `PAY-OUT-${payment.paymentNumber}`,
+    transactionDate: payment.paymentDate,
+    description: `Payment for Purchase Invoice #${payment.purchaseInvoice.invoiceNumber}`,
+    lines: [
+      {
+        accountId: apAccount.accountId,
+        debitAmount: new Decimal(payload.amount),
+        creditAmount: new Decimal(0),
+        description: `Payment for Purchase Invoice #${payment.purchaseInvoice.invoiceNumber}`,
+        lineNumber: 1,
+        contactId: payment.contactId,
+      },
+      {
+        accountId: payment.cashAccount.glAccountId,
+        debitAmount: new Decimal(0),
+        creditAmount: new Decimal(payload.amount),
+        description: `Payment from ${payment.cashAccount.name}`,
+        lineNumber: 2,
+      },
+    ],
+  });
+
+  await JournalService.postJournalEntry(tx, journalEntry.id);
+
+  await tx.purchasePayment.update({
+    where: { id: payment.id },
+    data: { journalEntryId: journalEntry.id },
+  });
+}
+
+export async function handlePurchasePaymentPostedCashBank(
+  tx: Tx,
+  payloadInput: unknown
+) {
+  const payload = purchasePaymentPostedPayloadSchema.parse(payloadInput);
+
+  const payment = await tx.purchasePayment.findUnique({
+    where: { id: payload.paymentId },
+    include: {
+      purchaseInvoice: { select: { invoiceNumber: true } },
+    },
+  });
+
+  if (!payment) {
+    throw new Error("Payment not found");
+  }
+
+  if (!payment.journalEntryId) {
+    throw new Error("Payment journal entry not created");
+  }
+
+  const existingCashTx = await tx.cashTransaction.findUnique({
+    where: { journalEntryId: payment.journalEntryId },
+    select: { id: true },
+  });
+
+  if (existingCashTx) {
+    return;
+  }
+
+  const apAccount = await getRequiredDefaultAccount("ACCOUNTS_PAYABLE");
+
+  await tx.cashTransaction.create({
+    data: {
+      cashAccountId: payment.cashAccountId,
+      type: CashTransactionType.EXPENSE,
+      date: payment.paymentDate,
+      reference: payload.reference ?? null,
+      description: `Payment for Purchase Invoice #${payment.purchaseInvoice.invoiceNumber}`,
+      note: payload.notes ?? null,
+      journalEntryId: payment.journalEntryId,
+      status: "APPROVED",
+      approvedById: payload.userId,
+      approvedAt: new Date(),
+      allocations: {
+        create: {
+          accountId: apAccount.accountId,
+          amount: new Decimal(payload.amount),
+          description: `Payment for Purchase Invoice #${payment.purchaseInvoice.invoiceNumber}`,
+        },
+      },
+    },
+  });
+}

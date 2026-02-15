@@ -4,11 +4,13 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { InventoryService } from '@/app/(dashboard)/inventory/inventory-service';
 import { getSession } from '@/lib/auth/auth';
-import { MovementType, CashTransactionType } from "@/prisma/generated/prisma/client";
+import { MovementType } from "@/prisma/generated/prisma/client";
 import { Decimal } from "decimal.js";
-import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
-import { JournalService } from "@/lib/accounting/journal-service";
 import { hasPermission } from "@/lib/permissions/utils";
+import {
+  enqueueIntegrationEvent,
+  processIntegrationOutboxEvent,
+} from "@/modules/integration/outbox";
 
 import { SuperJSON } from "@/lib/superjson";
 
@@ -270,7 +272,7 @@ export async function processPOSTransaction(
   globalDiscount: number = 0,
   customerId?: string
 ) {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. Validate Session
     const session = await tx.pOSSession.findUnique({
       where: { id: sessionId },
@@ -326,22 +328,16 @@ export async function processPOSTransaction(
       include: { items: true },
     });
 
-    // 3.5. Prepare Accounting Accounts
-    const arAccount = await getRequiredDefaultAccount("ACCOUNTS_RECEIVABLE");
-    const revenueAccount = await getRequiredDefaultAccount("SALES_REVENUE");
-    const taxAccount = await getRequiredDefaultAccount("SALES_TAX_PAYABLE");
-    const discountAccount = await getRequiredDefaultAccount("SALES_DISCOUNT");
-    const shippingAccount = await getRequiredDefaultAccount("UNCATEGORIZED_INCOME");
-
     // 4. Create Sales Invoice
     const invoiceNumber = `INV-POS-${Date.now()}`;
+    const invoiceDate = new Date();
     const salesInvoice = await tx.salesInvoice.create({
       data: {
         invoiceNumber,
         contactId: contactId!,
         salesOrderId: salesOrder.id,
-        invoiceDate: new Date(),
-        dueDate: new Date(), // Immediate payment
+        invoiceDate,
+        dueDate: invoiceDate, // Immediate payment
         status: 'PAID',
         subtotal: new Decimal(subtotal),
         globalDiscount: new Decimal(globalDiscount),
@@ -362,66 +358,6 @@ export async function processPOSTransaction(
       include: { items: true },
     });
 
-    // 4.5. Create Invoice Journal Entry (Revenue Recognition)
-    const invoiceJeLines: any[] = [];
-    let lineNum = 1;
-
-    // Debit AR
-    invoiceJeLines.push({
-      accountId: arAccount.accountId,
-      debitAmount: totalAmount,
-      creditAmount: new Decimal(0),
-      description: `Receivable for Invoice #${invoiceNumber}`,
-      lineNumber: lineNum++,
-      contactId: contactId,
-    });
-
-    // Credit Revenue & Tax
-    for (const item of items) {
-      // Ideally we fetch product income account, but using default revenue for now
-      const itemTotal = item.price * item.quantity;
-      const itemDiscount = item.discount;
-      const netAmount = itemTotal - itemDiscount;
-
-      // Assuming no tax calculation in POS for now (as per current logic)
-      // If tax is added later, it should be split here
-
-      invoiceJeLines.push({
-        accountId: revenueAccount.accountId,
-        debitAmount: new Decimal(0),
-        creditAmount: new Decimal(netAmount),
-        description: `POS Item - ${item.productId}`, // We should probably improve description
-        lineNumber: lineNum++,
-      });
-    }
-
-    // Debit Global Discount
-    if (globalDiscount > 0) {
-      invoiceJeLines.push({
-        accountId: discountAccount.accountId,
-        debitAmount: new Decimal(globalDiscount),
-        creditAmount: new Decimal(0),
-        description: "Global Discount",
-        lineNumber: lineNum++,
-      });
-    }
-
-    const invoiceJe = await JournalService.createDraftJournalEntry(tx, {
-      userId: session.cashierId,
-      entryNumber: `INV-POS-${Date.now()}`,
-      transactionDate: new Date(),
-      description: `Invoice #${invoiceNumber}`,
-      lines: invoiceJeLines
-    });
-
-    await JournalService.postJournalEntry(tx, invoiceJe.id);
-
-    await tx.salesInvoice.update({
-      where: { id: salesInvoice.id },
-      data: { journalEntryId: invoiceJe.id }
-    });
-
-
     // 5. Create Payment
     const paymentNumber = `PAY-POS-${Date.now()}`;
     const cashAccount = await tx.cashAccount.findFirst({
@@ -430,70 +366,19 @@ export async function processPOSTransaction(
 
     if (!cashAccount) throw new Error('No Cash/Bank account configured');
 
+    const paymentDate = new Date();
     const payment = await tx.salesPayment.create({
       data: {
         paymentNumber,
         contactId: contactId!,
         amount: new Decimal(totalAmount),
-        paymentDate: new Date(),
+        paymentDate,
         method: paymentMethod,
         reference: invoiceNumber,
         cashAccountId: cashAccount.id,
         posSessionId: sessionId,
         salesInvoiceId: salesInvoice.id,
       },
-    });
-
-    // 5.5 Create Payment Journal Entry & Cash Transaction
-    const paymentJe = await JournalService.createDraftJournalEntry(tx, {
-      userId: session.cashierId,
-      entryNumber: `PAY-POS-${Date.now()}`,
-      transactionDate: new Date(),
-      description: `Payment for Invoice #${invoiceNumber}`,
-      lines: [
-        {
-          accountId: cashAccount.glAccountId,
-          debitAmount: new Decimal(totalAmount),
-          creditAmount: new Decimal(0),
-          description: `Payment to ${cashAccount.name}`,
-          lineNumber: 1,
-        },
-        {
-          accountId: arAccount.accountId,
-          debitAmount: new Decimal(0),
-          creditAmount: new Decimal(totalAmount),
-          description: `Payment for Invoice #${invoiceNumber}`,
-          lineNumber: 2,
-          contactId: contactId,
-        },
-      ],
-    });
-
-    await JournalService.postJournalEntry(tx, paymentJe.id);
-
-    await tx.cashTransaction.create({
-      data: {
-        cashAccountId: cashAccount.id,
-        type: CashTransactionType.INCOME,
-        date: new Date(),
-        reference: invoiceNumber,
-        description: `Payment for Invoice #${invoiceNumber}`,
-        journalEntryId: paymentJe.id,
-        status: "APPROVED",
-        approvedAt: new Date(),
-        allocations: {
-          create: {
-            accountId: arAccount.accountId,
-            amount: new Decimal(totalAmount),
-            description: `Payment for Invoice #${invoiceNumber}`,
-          },
-        },
-      },
-    });
-
-    await tx.salesPayment.update({
-      where: { id: payment.id },
-      data: { journalEntryId: paymentJe.id }
     });
 
     // 6. Create Shipment
@@ -529,8 +414,66 @@ export async function processPOSTransaction(
       warehouseId: session.warehouseId || undefined,
     });
 
-    return { invoiceId: salesInvoice.id };
+    const invoiceOutbox = await enqueueIntegrationEvent(tx, {
+      topic: "sales",
+      type: "SALES_INVOICE_ISSUED",
+      aggregateType: "SalesInvoice",
+      aggregateId: salesInvoice.id,
+      payload: {
+        invoiceId: salesInvoice.id,
+        invoiceNumber: salesInvoice.invoiceNumber,
+        invoiceDate: invoiceDate.toISOString(),
+        contactId: contactId!,
+        userId: session.cashierId,
+        totalAmount: salesInvoice.totalAmount.toString(),
+        globalDiscount: salesInvoice.globalDiscount?.toString(),
+        shippingCost: undefined,
+        items: items.map((item) => {
+          const subtotal = new Decimal(item.price).mul(item.quantity);
+          const discountPercent =
+            subtotal.gt(0) && item.discount > 0
+              ? new Decimal(item.discount).div(subtotal).mul(100)
+              : new Decimal(0);
+
+          return {
+            description: `POS Item - ${item.productId}`,
+            quantity: item.quantity,
+            unitPrice: new Decimal(item.price).toString(),
+            discount: discountPercent.toString(),
+            tax: undefined,
+            accountId: undefined,
+          };
+        }),
+      },
+    });
+
+    const paymentOutbox = await enqueueIntegrationEvent(tx, {
+      topic: "sales",
+      type: "SALES_PAYMENT_POSTED",
+      aggregateType: "SalesPayment",
+      aggregateId: payment.id,
+      payload: {
+        paymentId: payment.id,
+        paymentNumber: payment.paymentNumber,
+        paymentDate: paymentDate.toISOString(),
+        amount: payment.amount.toString(),
+        reference: payment.reference ?? undefined,
+        notes: undefined,
+        cashAccountId: payment.cashAccountId,
+        contactId: payment.contactId,
+        salesInvoiceId: payment.salesInvoiceId,
+        userId: session.cashierId,
+      },
+    });
+
+    return { invoiceId: salesInvoice.id, outboxIds: [invoiceOutbox.id, paymentOutbox.id] };
   });
+
+  for (const outboxId of result.outboxIds) {
+    await processIntegrationOutboxEvent(outboxId);
+  }
+
+  return { invoiceId: result.invoiceId };
 }
 
 export async function holdOrder(

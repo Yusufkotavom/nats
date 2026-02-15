@@ -6,6 +6,39 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    files: ["lib/**/*.{js,jsx,ts,tsx,mts}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: ["@/app/*"],
+        },
+      ],
+    },
+  },
+  {
+    files: ["modules/integration/**/*.{js,jsx,ts,tsx,mts}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: ["@/app/*"],
+        },
+      ],
+    },
+  },
+  {
+    files: ["modules/plugins/**/*.{js,jsx,ts,tsx,mts}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: ["@/app/*"],
+        },
+      ],
+    },
+  },
+  {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
     },

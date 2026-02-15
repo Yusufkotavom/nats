@@ -159,7 +159,7 @@ async function generateShipmentNumber() {
 }
 
 import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
-import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
+import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
 
 export const createSalesShipment = authorizedAction(
   "sales.create",

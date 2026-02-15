@@ -16,25 +16,24 @@ vi.mock("@/lib/auth/auth", () => ({
   getSession: vi.fn().mockResolvedValue({ userId: "user-1" }),
 }));
 
-// Mock Prisma
-const prismaMock = {
-  account: {
-    findMany: vi.fn(),
+const { prismaMock } = vi.hoisted(() => ({
+  prismaMock: {
+    account: {
+      findMany: vi.fn(),
+    },
+    journalEntryLine: {
+      groupBy: vi.fn(),
+    },
+    reportTemplate: {
+      upsert: vi.fn().mockResolvedValue({ id: "template-1" }),
+    },
+    reportLog: {
+      create: vi.fn(),
+    },
   },
-  journalEntryLine: {
-    groupBy: vi.fn(),
-  },
-  reportTemplate: {
-    upsert: vi.fn().mockResolvedValue({ id: "template-1" }),
-  },
-  reportLog: {
-    create: vi.fn(),
-  },
-};
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: prismaMock,
 }));
+
+vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
 describe("Financial Reports Actions", () => {
   beforeEach(() => {

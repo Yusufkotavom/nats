@@ -5,16 +5,16 @@ import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
 import {
   Prisma,
-  CashTransactionType,
   PurchaseInvoiceStatus,
 } from "@/prisma/generated/prisma/client";
-import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchasePaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-import { JournalService } from "@/lib/accounting/journal-service";
-import { Decimal } from "decimal.js";
+import {
+  enqueueIntegrationEvent,
+  maybeProcessIntegrationOutboxEvent,
+} from "@/modules/integration/outbox";
 
 export async function getPurchasePayments(
   page: number = 1,
@@ -241,77 +241,35 @@ export const postPurchasePayment = authorizedAction(
 
       if (!payment) throw new Error("Payment not found");
       if (payment.journalEntryId) throw new Error("Payment already posted");
+      const payload = {
+        paymentId: payment.id,
+        paymentNumber: payment.paymentNumber,
+        paymentDate: payment.paymentDate.toISOString(),
+        amount: payment.amount.toString(),
+        reference: payment.reference ?? undefined,
+        notes: payment.notes ?? undefined,
+        cashAccountId: payment.cashAccountId,
+        contactId: payment.contactId,
+        purchaseInvoiceId: payment.purchaseInvoiceId,
+        userId: session.userId,
+      };
 
-      const invoice = payment.purchaseInvoice;
-      const cashAccount = payment.cashAccount;
-
-      // Find AP Account
-      const apAccount = await getRequiredDefaultAccount("ACCOUNTS_PAYABLE");
-
-      await prisma.$transaction(async (tx) => {
-        // Create Draft JE
-        const je = await JournalService.createDraftJournalEntry(tx, {
-          userId: session.userId,
-          entryNumber: `PAY-${payment.paymentNumber}`,
-          transactionDate: payment.paymentDate,
-          description: `Payment for Invoice #${invoice.invoiceNumber}`,
-          lines: [
-            {
-              accountId: apAccount.accountId,
-              debitAmount: new Decimal(payment.amount),
-              creditAmount: new Decimal(0),
-              description: `Payment for Invoice #${invoice.invoiceNumber}`,
-              lineNumber: 1,
-              contactId: payment.contactId,
-            },
-            {
-              accountId: cashAccount.glAccountId,
-              debitAmount: new Decimal(0),
-              creditAmount: new Decimal(payment.amount),
-              description: `Payment from ${cashAccount.name}`,
-              lineNumber: 2,
-            },
-          ],
-        });
-
-        // Post JE
-        await JournalService.postJournalEntry(tx, je.id);
-
-        // Create Cash Transaction
-        await tx.cashTransaction.create({
-          data: {
-            cashAccountId: payment.cashAccountId,
-            type: CashTransactionType.EXPENSE,
-            date: payment.paymentDate,
-            reference: payment.reference,
-            description: `Payment for Invoice #${invoice.invoiceNumber}`,
-            note: payment.notes,
-            journalEntryId: je.id,
-            status: "APPROVED",
-            approvedAt: new Date(),
-            allocations: {
-              create: {
-                accountId: apAccount.accountId,
-                amount: payment.amount,
-                description: `Payment for Invoice #${invoice.invoiceNumber}`,
-              },
-            },
-          },
-        });
-
-        // Update Payment with JE ID
-        await tx.purchasePayment.update({
-          where: { id: payment.id },
-          data: {
-            journalEntryId: je.id,
-          },
+      const outbox = await prisma.$transaction(async (tx) => {
+        return enqueueIntegrationEvent(tx, {
+          topic: "purchase",
+          type: "PURCHASE_PAYMENT_POSTED",
+          aggregateType: "PurchasePayment",
+          aggregateId: payment.id,
+          payload,
         });
       });
+
+      const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
       revalidatePath("/purchase/payments");
       revalidatePath("/purchase/invoices");
       revalidatePath(`/purchase/payments/${id}`);
-      return { success: true };
+      return { success: true, ...processed };
     } catch (error) {
       console.error("Failed to post Payment:", error);
       return {

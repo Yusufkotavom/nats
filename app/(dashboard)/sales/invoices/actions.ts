@@ -10,12 +10,13 @@ import {
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesInvoiceInput } from "./types";
 import { getSalesOrder } from "../orders/actions";
-import { getRequiredDefaultAccount } from "@/app/(dashboard)/accounting/accounting-service";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-import { JournalService } from "@/lib/accounting/journal-service";
-import { Decimal } from "decimal.js";
 import { CalculationService } from "@/lib/utils/calculation-service";
+import {
+  enqueueIntegrationEvent,
+  processIntegrationOutboxEvent,
+} from "@/modules/integration/outbox";
 
 export { getSalesOrder };
 
@@ -180,7 +181,7 @@ export const createSalesInvoice = authorizedAction(
       const itemsToCreate = data.items.map((item) => {
         // Resolve tax rate if ID provided
         let taxRateSnapshot: number | undefined = undefined;
-        let taxAmount = item.tax || 0;
+        const taxAmount = item.tax || 0;
 
         if (item.taxRateId) {
           const rateObj = taxRates.find(r => r.id === item.taxRateId);
@@ -311,7 +312,7 @@ export const updateSalesInvoice = authorizedAction(
 
       const itemsToCreate = data.items.map((item) => {
         let taxRateSnapshot: number | undefined = undefined;
-        let taxAmount = item.tax || 0;
+        const taxAmount = item.tax || 0;
 
         if (item.taxRateId) {
           const rateObj = taxRates.find(r => r.id === item.taxRateId);
@@ -441,119 +442,36 @@ export const postSalesInvoice = authorizedAction(
       if (!invoice) throw new Error("Invoice not found");
       if (invoice.status !== "DRAFT") throw new Error("Only draft invoices can be posted");
       if (invoice.journalEntryId) throw new Error("Invoice already posted");
-
-      // Get Default Accounts
-      const arAccount = await getRequiredDefaultAccount("ACCOUNTS_RECEIVABLE");
-      const revenueAccount = await getRequiredDefaultAccount("SALES_REVENUE");
-      const taxAccount = await getRequiredDefaultAccount("SALES_TAX_PAYABLE");
-      const discountAccount = await getRequiredDefaultAccount("SALES_DISCOUNT");
-      const shippingAccount = await getRequiredDefaultAccount("UNCATEGORIZED_INCOME"); // Or Shipping Revenue
-
-      // Prepare JE lines
-      const jeLines: {
-        accountId: string;
-        debitAmount: Decimal;
-        creditAmount: Decimal;
-        description: string;
-        lineNumber: number;
-        contactId?: string;
-        departmentId?: string | null;
-        projectId?: string | null;
-      }[] = [];
-      let lineNumber = 1;
-
-      // Debit AR (Total Amount)
-      jeLines.push({
-        accountId: arAccount.accountId,
-        debitAmount: new Decimal(invoice.totalAmount),
-        creditAmount: new Decimal(0),
-        description: `Receivable for Invoice #${invoice.invoiceNumber}`,
-        lineNumber: lineNumber++,
+      const payload = {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceDate: invoice.invoiceDate.toISOString(),
         contactId: invoice.contactId,
-      });
+        userId: session.userId,
+        totalAmount: invoice.totalAmount.toString(),
+        globalDiscount: invoice.globalDiscount?.toString(),
+        shippingCost: invoice.shippingCost?.toString(),
+        items: invoice.items.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice.toString(),
+          discount: item.discount?.toString(),
+          tax: item.tax?.toString(),
+          accountId: item.accountId ?? undefined,
+        })),
+      };
 
-      // Credit Items (Revenue/Tax)
-      for (const item of invoice.items) {
-        let accountId = item.accountId;
-        if (!accountId) {
-          // Default to Sales Revenue
-          accountId = revenueAccount.accountId;
-        }
-
-        const subtotal = new Decimal(item.unitPrice.toString()).mul(item.quantity);
-        const discountPercent = new Decimal(item.discount?.toString() || 0).div(100);
-        const discountAmount = subtotal.mul(discountPercent);
-        const taxableAmount = subtotal.minus(discountAmount);
-        const taxAmount = new Decimal(item.tax?.toString() || 0);
-
-        // Credit Revenue (Net)
-        if (taxableAmount.gt(0)) {
-          jeLines.push({
-            accountId: accountId,
-            debitAmount: new Decimal(0),
-            creditAmount: taxableAmount,
-            description: item.description,
-            lineNumber: lineNumber++,
-          });
-        }
-
-        // Credit Tax
-        if (taxAmount.gt(0)) {
-          jeLines.push({
-            accountId: taxAccount.accountId,
-            debitAmount: new Decimal(0),
-            creditAmount: taxAmount,
-            description: `Tax on ${item.description}`,
-            lineNumber: lineNumber++,
-          });
-        }
-      }
-
-      // Shipping (Credit)
-      if (new Decimal(invoice.shippingCost || 0).gt(0)) {
-        jeLines.push({
-          accountId: shippingAccount.accountId,
-          debitAmount: new Decimal(0),
-          creditAmount: new Decimal(invoice.shippingCost || 0),
-          description: "Shipping Cost",
-          lineNumber: lineNumber++,
-        });
-      }
-
-      // Global Discount (Debit)
-      if (new Decimal(invoice.globalDiscount || 0).gt(0)) {
-        jeLines.push({
-          accountId: discountAccount.accountId,
-          debitAmount: new Decimal(invoice.globalDiscount || 0),
-          creditAmount: new Decimal(0),
-          description: "Global Discount",
-          lineNumber: lineNumber++,
-        });
-      }
-
-      // Transaction
-      await prisma.$transaction(async (tx) => {
-        // Create Draft JE
-        const je = await JournalService.createDraftJournalEntry(tx, {
-          userId: session.userId,
-          entryNumber: `INV-${invoice.invoiceNumber}`,
-          transactionDate: invoice.invoiceDate,
-          description: `Sales Invoice #${invoice.invoiceNumber}`,
-          lines: jeLines,
-        });
-
-        // Post JE (updates balances)
-        await JournalService.postJournalEntry(tx, je.id);
-
-        // Update Invoice
-        await tx.salesInvoice.update({
-          where: { id },
-          data: {
-            status: "ISSUED",
-            journalEntryId: je.id,
-          },
+      const outbox = await prisma.$transaction(async (tx) => {
+        return enqueueIntegrationEvent(tx, {
+          topic: "sales",
+          type: "SALES_INVOICE_ISSUED",
+          aggregateType: "SalesInvoice",
+          aggregateId: invoice.id,
+          payload,
         });
       });
+
+      await processIntegrationOutboxEvent(outbox.id);
 
       revalidatePath("/sales/invoices");
       revalidatePath(`/sales/invoices/${id}`);

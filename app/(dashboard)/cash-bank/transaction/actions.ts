@@ -7,111 +7,66 @@ import { verifySession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
 import {
   CashTransactionType,
-  EntryStatus,
   CashTransactionStatus,
 } from "@/prisma/generated/prisma/enums";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { SuperJSONResult } from "superjson";
-import { JournalService } from "@/lib/accounting/journal-service";
 import { cashTransactionSchema } from "@/lib/validation/schemas";
 import { Decimal } from "decimal.js";
+import {
+  enqueueIntegrationEvent,
+  processIntegrationOutboxEvent,
+} from "@/modules/integration/outbox";
 
 export async function createCashTransaction(
   data: CashTransactionFormData | SuperJSONResult,
 ) {
   const session = await verifySession();
 
-  // Validation
   const data2 = SuperJSON.deserialize(
     data as unknown as SuperJSONResult,
   ) as CashTransactionFormData;
 
-  // Zod Validation
   const validatedData = cashTransactionSchema.parse(data2);
 
-  const totalAmount = validatedData.allocations.reduce(
-    (sum, a) => sum.plus(new Decimal(a.amount)),
-    new Decimal(0),
-  );
+  const transactionId = crypto.randomUUID();
+  const journalEntryId = crypto.randomUUID();
+  const entryNumber = `CT-${transactionId}`;
 
-  const cashAccount = await prisma.cashAccount.findUnique({
-    where: { id: validatedData.cashAccountId },
-  });
-  if (!cashAccount) throw new Error("Cash account not found");
-
-  const entryNumber = `CT-${Date.now()}`;
-
-  const lines: Prisma.JournalEntryLineUncheckedCreateWithoutJournalEntryInput[] =
-    [];
-  let lineNumber = 1;
-
-  // 1. Cash Line
-  lines.push({
-    accountId: cashAccount.glAccountId,
-    debitAmount: validatedData.type === CashTransactionType.INCOME ? totalAmount : new Decimal(0),
-    creditAmount: validatedData.type === CashTransactionType.EXPENSE ? totalAmount : new Decimal(0),
-    description: validatedData.description || "Cash Transaction",
-    lineNumber: lineNumber++,
-  });
-
-  // 2. Allocation Lines
-  for (const alloc of validatedData.allocations) {
-    lines.push({
-      accountId: alloc.accountId,
-      debitAmount:
-        validatedData.type === CashTransactionType.EXPENSE ? new Decimal(alloc.amount) : new Decimal(0),
-      creditAmount:
-        validatedData.type === CashTransactionType.INCOME ? new Decimal(alloc.amount) : new Decimal(0),
-      description: alloc.description || validatedData.description,
-      lineNumber: lineNumber++,
-      departmentId: validatedData.departmentId,
-      projectId: validatedData.projectId,
-    });
-  }
-
-  const result = await prisma.$transaction(async (tx) => {
-    const journalEntry = await tx.journalEntry.create({
-      data: {
+  const outbox = await prisma.$transaction(async (tx) => {
+    return enqueueIntegrationEvent(tx, {
+      topic: "cash_bank",
+      type: "CASH_TRANSACTION_CREATE_REQUESTED",
+      aggregateType: "CashTransaction",
+      aggregateId: transactionId,
+      payload: {
+        transactionId,
+        journalEntryId,
         entryNumber,
-        transactionDate: validatedData.date,
-        description: validatedData.description,
-        status: EntryStatus.draft, // Changed to draft
-        userId: session.userId,
-        // postedAt: new Date(), // Removed postedAt
-        notes: validatedData.notes,
-        lines: {
-          create: lines,
-        },
-        attachments: {
-          connect: validatedData.attachmentIds?.map((id) => ({ id })) || [],
-        },
-      },
-    });
-
-    const transaction = await tx.cashTransaction.create({
-      data: {
         cashAccountId: validatedData.cashAccountId,
         contactId: validatedData.contactId,
         departmentId: validatedData.departmentId,
         projectId: validatedData.projectId,
         type: validatedData.type,
-        date: validatedData.date,
+        date: validatedData.date.toISOString(),
         reference: validatedData.reference,
         description: validatedData.description,
-        note: validatedData.notes,
-        journalEntryId: journalEntry.id,
-        status: CashTransactionStatus.PENDING, // Explicitly set to PENDING
-        allocations: {
-          create: validatedData.allocations.map((a) => ({
-            accountId: a.accountId,
-            amount: new Decimal(a.amount),
-            description: a.description,
-          })),
-        },
+        notes: validatedData.notes,
+        allocations: validatedData.allocations.map((a) => ({
+          accountId: a.accountId,
+          amount: String(a.amount),
+          description: a.description,
+        })),
+        attachmentIds: validatedData.attachmentIds,
+        userId: session.userId,
       },
     });
+  });
 
-    return transaction;
+  await processIntegrationOutboxEvent(outbox.id);
+
+  const result = await prisma.cashTransaction.findUnique({
+    where: { id: transactionId },
   });
 
   revalidatePath("/cash-bank/transaction");
@@ -323,21 +278,23 @@ export async function approveCashTransaction(id: string) {
     throw new Error("Transaction already approved");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    // Update Journal Entry to POSTED using Service
-    await JournalService.postJournalEntry(tx, transaction.journalEntryId);
-
-    // Update Transaction to APPROVED
-    const approvedTransaction = await tx.cashTransaction.update({
-      where: { id },
-      data: {
-        status: CashTransactionStatus.APPROVED,
-        approvedById: userId,
-        approvedAt: new Date(),
+  const outbox = await prisma.$transaction(async (tx) => {
+    return enqueueIntegrationEvent(tx, {
+      topic: "cash_bank",
+      type: "CASH_TRANSACTION_APPROVED",
+      aggregateType: "CashTransaction",
+      aggregateId: id,
+      payload: {
+        transactionId: id,
+        userId,
       },
     });
+  });
 
-    return approvedTransaction;
+  await processIntegrationOutboxEvent(outbox.id);
+
+  const result = await prisma.cashTransaction.findUnique({
+    where: { id },
   });
 
   revalidatePath("/cash-bank/transaction");

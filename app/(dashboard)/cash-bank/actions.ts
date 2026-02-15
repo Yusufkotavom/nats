@@ -17,9 +17,12 @@ import {
 import { saveFile } from "@/lib/file-service";
 import { verifySession } from "@/lib/auth/auth";
 import { SuperJSONResult } from "superjson";
-import { JournalService } from "@/lib/accounting/journal-service";
 import { cashTransferSchema } from "@/lib/validation/schemas";
 import { Decimal } from "decimal.js";
+import {
+  enqueueIntegrationEvent,
+  processIntegrationOutboxEvent,
+} from "@/modules/integration/outbox";
 
 export async function uploadTransferAttachment(formData: FormData) {
   const session = await verifySession();
@@ -317,54 +320,28 @@ export async function approveCashTransfer(id: string) {
     throw new Error("Transfer already approved");
   }
 
-  // Create Journal Entry and Update Transfer
-  const result = await prisma.$transaction(async (tx) => {
-    // Create Journal Entry
-    // Credit From Account (Asset decrease), Debit To Account (Asset increase)
-    const journalEntry = await tx.journalEntry.create({
-      data: {
+  const outbox = await prisma.$transaction(async (tx) => {
+    return enqueueIntegrationEvent(tx, {
+      topic: "cash_bank",
+      type: "CASH_TRANSFER_APPROVED",
+      aggregateType: "CashTransfer",
+      aggregateId: id,
+      payload: {
+        transferId: id,
         userId,
-        entryNumber: `TRF-${Date.now()}`,
-        transactionDate: transfer.date,
-        description:
-          transfer.description ||
-          `Transfer from ${transfer.fromAccount.name} to ${transfer.toAccount.name}`,
-        status: EntryStatus.draft, // Created as Draft first
-        lines: {
-          create: [
-            {
-              accountId: transfer.toAccount.glAccountId,
-              debitAmount: new Decimal(transfer.amount),
-              creditAmount: 0,
-              description: `Transfer from ${transfer.fromAccount.name}`,
-              lineNumber: 1,
-            },
-            {
-              accountId: transfer.fromAccount.glAccountId,
-              debitAmount: 0,
-              creditAmount: new Decimal(transfer.amount),
-              description: `Transfer to ${transfer.toAccount.name}`,
-              lineNumber: 2,
-            },
-          ],
-        },
       },
     });
+  });
 
-    // Post Journal Entry using Service (Handles validation and balance updates)
-    await JournalService.postJournalEntry(tx, journalEntry.id);
+  await processIntegrationOutboxEvent(outbox.id);
 
-    const approvedTransfer = await tx.cashTransfer.update({
-      where: { id },
-      data: {
-        status: TransferStatus.APPROVED,
-        journalEntryId: journalEntry.id,
-        approvedById: userId,
-        approvedAt: new Date(),
-      },
-    });
-
-    return approvedTransfer;
+  const result = await prisma.cashTransfer.findUnique({
+    where: { id },
+    include: {
+      fromAccount: true,
+      toAccount: true,
+      journalEntry: { include: { attachments: true } },
+    },
   });
 
   revalidatePath("/accounting/cash-bank");
