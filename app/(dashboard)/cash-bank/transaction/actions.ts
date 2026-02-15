@@ -15,7 +15,8 @@ import { cashTransactionSchema } from "@/lib/validation/schemas";
 import { Decimal } from "decimal.js";
 import {
   enqueueIntegrationEvent,
-  processIntegrationOutboxEvent,
+  enqueueIntegrationEventOnce,
+  maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 
 export async function createCashTransaction(
@@ -63,15 +64,16 @@ export async function createCashTransaction(
     });
   });
 
-  await processIntegrationOutboxEvent(outbox.id);
-
-  const result = await prisma.cashTransaction.findUnique({
-    where: { id: transactionId },
-  });
+  const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
   revalidatePath("/cash-bank/transaction");
   revalidatePath("/accounting/journal-entries");
-  return SuperJSON.serialize(result);
+  return {
+    success: true as const,
+    transactionId,
+    outboxId: outbox.id,
+    ...processed,
+  };
 }
 
 export async function getCashTransactions(
@@ -279,7 +281,7 @@ export async function approveCashTransaction(id: string) {
   }
 
   const outbox = await prisma.$transaction(async (tx) => {
-    return enqueueIntegrationEvent(tx, {
+    return enqueueIntegrationEventOnce(tx, {
       topic: "cash_bank",
       type: "CASH_TRANSACTION_APPROVED",
       aggregateType: "CashTransaction",
@@ -291,16 +293,16 @@ export async function approveCashTransaction(id: string) {
     });
   });
 
-  await processIntegrationOutboxEvent(outbox.id);
+  if (outbox.alreadyQueued) {
+    return { success: true as const, processed: false as const, alreadyQueued: true as const };
+  }
 
-  const result = await prisma.cashTransaction.findUnique({
-    where: { id },
-  });
+  const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
   revalidatePath("/cash-bank/transaction");
   revalidatePath("/accounting/journal-entries");
   revalidatePath("/cash-bank"); // For dashboard stats
-  return SuperJSON.serialize(result);
+  return { success: true as const, outboxId: outbox.id, ...processed };
 }
 
 export async function deleteCashTransaction(id: string) {

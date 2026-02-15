@@ -332,6 +332,13 @@ export function SalesInvoiceForm({
     try {
       const result = await postSalesInvoice(invoice.id);
       if (result.success) {
+        if (!result.data?.processed) {
+          alert(
+            result.data?.alreadyQueued
+              ? "Invoice posting is already queued for processing."
+              : "Invoice posting queued for processing."
+          );
+        }
         router.refresh();
       } else {
         alert(result.error);

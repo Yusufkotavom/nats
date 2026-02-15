@@ -181,10 +181,12 @@ export function TransactionForm({
           description: "Transaction updated successfully",
         });
       } else {
-        await createCashTransaction(SuperJSON.serialize(submitData));
+        const result = await createCashTransaction(SuperJSON.serialize(submitData));
         toast({
           title: "Success",
-          description: "Transaction created successfully",
+          description: result.processed
+            ? "Transaction created successfully"
+            : "Transaction queued for processing",
         });
       }
 
@@ -194,10 +196,6 @@ export function TransactionForm({
         queryKey: ["cash-bank", "dashboard-stats"],
       });
 
-      toast({
-        title: "Success",
-        description: "Transaction created successfully",
-      });
       router.push("/cash-bank/transaction");
     } catch (error) {
       console.error(error);

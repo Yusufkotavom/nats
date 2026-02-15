@@ -9,7 +9,7 @@ import { Decimal } from "decimal.js";
 import { hasPermission } from "@/lib/permissions/utils";
 import {
   enqueueIntegrationEvent,
-  processIntegrationOutboxEvent,
+  maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 
 import { SuperJSON } from "@/lib/superjson";
@@ -470,7 +470,7 @@ export async function processPOSTransaction(
   });
 
   for (const outboxId of result.outboxIds) {
-    await processIntegrationOutboxEvent(outboxId);
+    await maybeProcessIntegrationOutboxEvent(outboxId);
   }
 
   return { invoiceId: result.invoiceId };

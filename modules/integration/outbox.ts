@@ -27,6 +27,31 @@ export async function enqueueIntegrationEvent(tx: Tx, input: EnqueueIntegrationE
   });
 }
 
+export async function enqueueIntegrationEventOnce(
+  tx: Tx,
+  input: EnqueueIntegrationEventInput,
+  options?: { activeStatuses?: Array<"PENDING" | "FAILED" | "PROCESSING"> }
+) {
+  const activeStatuses = options?.activeStatuses ?? ["PENDING", "FAILED", "PROCESSING"];
+
+  const existing = await tx.integrationOutbox.findFirst({
+    where: {
+      type: input.type,
+      aggregateType: input.aggregateType,
+      aggregateId: input.aggregateId,
+      status: { in: activeStatuses },
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    return { id: existing.id, alreadyQueued: true as const };
+  }
+
+  const created = await enqueueIntegrationEvent(tx, input);
+  return { id: created.id, alreadyQueued: false as const };
+}
+
 export type DispatchPendingIntegrationEventsResult = {
   attempted: number;
   processed: number;

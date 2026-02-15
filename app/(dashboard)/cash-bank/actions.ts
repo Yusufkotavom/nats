@@ -21,7 +21,8 @@ import { cashTransferSchema } from "@/lib/validation/schemas";
 import { Decimal } from "decimal.js";
 import {
   enqueueIntegrationEvent,
-  processIntegrationOutboxEvent,
+  enqueueIntegrationEventOnce,
+  maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 
 export async function uploadTransferAttachment(formData: FormData) {
@@ -321,7 +322,7 @@ export async function approveCashTransfer(id: string) {
   }
 
   const outbox = await prisma.$transaction(async (tx) => {
-    return enqueueIntegrationEvent(tx, {
+    return enqueueIntegrationEventOnce(tx, {
       topic: "cash_bank",
       type: "CASH_TRANSFER_APPROVED",
       aggregateType: "CashTransfer",
@@ -333,20 +334,15 @@ export async function approveCashTransfer(id: string) {
     });
   });
 
-  await processIntegrationOutboxEvent(outbox.id);
+  if (outbox.alreadyQueued) {
+    return { success: true as const, processed: false as const, alreadyQueued: true as const };
+  }
 
-  const result = await prisma.cashTransfer.findUnique({
-    where: { id },
-    include: {
-      fromAccount: true,
-      toAccount: true,
-      journalEntry: { include: { attachments: true } },
-    },
-  });
+  const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
   revalidatePath("/accounting/cash-bank");
   revalidatePath("/accounting/transfer");
-  return result;
+  return { success: true as const, outboxId: outbox.id, ...processed };
 }
 
 export async function deleteCashTransfer(id: string) {

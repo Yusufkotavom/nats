@@ -96,6 +96,45 @@ export async function getIntegrationOutboxEvents(
   };
 }
 
+export async function getIntegrationOutboxEventDetail(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "integrations.outbox.view")) {
+    return null;
+  }
+
+  const outbox = await prisma.integrationOutbox.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      topic: true,
+      type: true,
+      aggregateType: true,
+      aggregateId: true,
+      status: true,
+      attempts: true,
+      lockedAt: true,
+      lockedBy: true,
+      nextAttemptAt: true,
+      processedAt: true,
+      lastError: true,
+      deadAt: true,
+      createdAt: true,
+      updatedAt: true,
+      payload: true,
+    },
+  });
+
+  if (!outbox) return null;
+
+  const inbox = await prisma.integrationInbox.findMany({
+    where: { outboxId: id },
+    select: { id: true, consumer: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return SuperJSON.serialize({ outbox, inbox });
+}
+
 export const requeueIntegrationOutboxEvent = authorizedAction(
   "integrations.outbox.retry",
   async (id: string, options?: { resetAttempts?: boolean }) => {

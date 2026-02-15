@@ -96,14 +96,18 @@ export default function CashTransactionListPage() {
     ) {
       startTransition(async () => {
         try {
-          await approveCashTransaction(id);
+          const result = await approveCashTransaction(id);
           queryClient.invalidateQueries({ queryKey: ["cash-transactions"] });
           queryClient.invalidateQueries({
             queryKey: ["cash-bank", "dashboard-stats"],
           });
           toast({
             title: "Success",
-            description: "Transaction approved successfully",
+            description: result.processed
+              ? "Transaction approved successfully"
+              : result.alreadyQueued
+                ? "Transaction approval already queued"
+                : "Transaction approval queued for processing",
           });
         } catch (error) {
           toast({

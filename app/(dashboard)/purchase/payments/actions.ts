@@ -12,9 +12,15 @@ import { PurchasePaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import {
-  enqueueIntegrationEvent,
+  enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+
+type PostPurchasePaymentResult = {
+  processed: boolean;
+  alreadyQueued?: boolean;
+  outboxId?: string;
+};
 
 export async function getPurchasePayments(
   page: number = 1,
@@ -224,7 +230,7 @@ export const createPurchasePayment = authorizedAction(
   }
 );
 
-export const postPurchasePayment = authorizedAction(
+export const postPurchasePayment = authorizedAction<PostPurchasePaymentResult, [string]>(
   "purchase.create",
   async (id: string) => {
     try {
@@ -255,7 +261,7 @@ export const postPurchasePayment = authorizedAction(
       };
 
       const outbox = await prisma.$transaction(async (tx) => {
-        return enqueueIntegrationEvent(tx, {
+        return enqueueIntegrationEventOnce(tx, {
           topic: "purchase",
           type: "PURCHASE_PAYMENT_POSTED",
           aggregateType: "PurchasePayment",
@@ -264,12 +270,16 @@ export const postPurchasePayment = authorizedAction(
         });
       });
 
+      if (outbox.alreadyQueued) {
+        return { success: true, data: { processed: false as const, alreadyQueued: true as const } };
+      }
+
       const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
       revalidatePath("/purchase/payments");
       revalidatePath("/purchase/invoices");
       revalidatePath(`/purchase/payments/${id}`);
-      return { success: true, ...processed };
+      return { success: true, data: { outboxId: outbox.id, ...processed } };
     } catch (error) {
       console.error("Failed to post Payment:", error);
       return {

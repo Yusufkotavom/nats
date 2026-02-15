@@ -32,6 +32,7 @@ import { useFormatDate } from "@/hooks";
 import {
   dispatchIntegrationOutboxBatch,
   forceDeadIntegrationOutboxEvent,
+  getIntegrationOutboxEventDetail,
   getIntegrationOutboxEvents,
   requeueIntegrationOutboxEvent,
   runIntegrationOutboxEventNow,
@@ -136,26 +137,18 @@ export default function IntegrationOutboxPage() {
   };
 
   const openDetails = (event: OutboxEvent) => {
-    setDialog({
-      open: true,
-      title: `Details: ${event.type}`,
-      content: {
-        id: event.id,
-        topic: event.topic,
-        type: event.type,
-        aggregateType: event.aggregateType,
-        aggregateId: event.aggregateId,
-        status: event.status,
-        attempts: event.attempts,
-        lockedAt: event.lockedAt,
-        lockedBy: event.lockedBy,
-        nextAttemptAt: event.nextAttemptAt,
-        processedAt: event.processedAt,
-        deadAt: event.deadAt,
-        createdAt: event.createdAt,
-        updatedAt: event.updatedAt,
-        lastError: event.lastError,
-      },
+    startTransition(async () => {
+      const detail = await getIntegrationOutboxEventDetail(event.id);
+      if (!detail) {
+        toast({ title: "Failed", description: "Unable to load event details", variant: "destructive" });
+        return;
+      }
+
+      setDialog({
+        open: true,
+        title: `Details: ${event.type}`,
+        content: SuperJSON.deserialize(detail),
+      });
     });
   };
 

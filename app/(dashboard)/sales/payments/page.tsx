@@ -80,8 +80,10 @@ export default function SalesPaymentsPage() {
           if (result.success) {
             toast({
               title: "Success",
-              description: result.processed
+              description: result.data?.processed
                 ? "Payment posted successfully"
+                : result.data?.alreadyQueued
+                  ? "Payment posting already queued"
                 : "Payment queued for processing",
             });
             queryClient.invalidateQueries({ queryKey: ["sales-payments"] });

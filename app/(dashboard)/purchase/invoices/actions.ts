@@ -14,9 +14,15 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { CalculationService } from "@/lib/utils/calculation-service";
 import {
-  enqueueIntegrationEvent,
-  processIntegrationOutboxEvent,
+  enqueueIntegrationEventOnce,
+  maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+
+type PostPurchaseInvoiceResult = {
+  processed: boolean;
+  alreadyQueued?: boolean;
+  outboxId?: string;
+};
 
 export { getPurchaseOrder };
 
@@ -416,7 +422,7 @@ export const deletePurchaseInvoice = authorizedAction(
   },
 );
 
-export const postPurchaseInvoice = authorizedAction(
+export const postPurchaseInvoice = authorizedAction<PostPurchaseInvoiceResult, [string]>(
   "purchase.edit",
   async (id: string) => {
     try {
@@ -452,7 +458,7 @@ export const postPurchaseInvoice = authorizedAction(
       };
 
       const outbox = await prisma.$transaction(async (tx) => {
-        return enqueueIntegrationEvent(tx, {
+        return enqueueIntegrationEventOnce(tx, {
           topic: "purchase",
           type: "PURCHASE_INVOICE_BILLED",
           aggregateType: "PurchaseInvoice",
@@ -461,11 +467,15 @@ export const postPurchaseInvoice = authorizedAction(
         });
       });
 
-      await processIntegrationOutboxEvent(outbox.id);
+      if (outbox.alreadyQueued) {
+        return { success: true, data: { processed: false as const, alreadyQueued: true as const } };
+      }
+
+      const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
       revalidatePath("/purchase/invoices");
       revalidatePath(`/purchase/invoices/${id}`);
-      return { success: true };
+      return { success: true, data: { outboxId: outbox.id, ...processed } };
     } catch (error) {
       console.error("Failed to post Invoice:", error);
       return { success: false, error: error instanceof Error ? error.message : "Failed to post Purchase Invoice" };

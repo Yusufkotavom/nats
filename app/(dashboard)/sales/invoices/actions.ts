@@ -14,9 +14,15 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { CalculationService } from "@/lib/utils/calculation-service";
 import {
-  enqueueIntegrationEvent,
-  processIntegrationOutboxEvent,
+  enqueueIntegrationEventOnce,
+  maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+
+type PostSalesInvoiceResult = {
+  processed: boolean;
+  alreadyQueued?: boolean;
+  outboxId?: string;
+};
 
 export { getSalesOrder };
 
@@ -427,7 +433,7 @@ export const deleteSalesInvoice = authorizedAction(
   },
 );
 
-export const postSalesInvoice = authorizedAction(
+export const postSalesInvoice = authorizedAction<PostSalesInvoiceResult, [string]>(
   "sales.edit",
   async (id: string) => {
     try {
@@ -462,7 +468,7 @@ export const postSalesInvoice = authorizedAction(
       };
 
       const outbox = await prisma.$transaction(async (tx) => {
-        return enqueueIntegrationEvent(tx, {
+        return enqueueIntegrationEventOnce(tx, {
           topic: "sales",
           type: "SALES_INVOICE_ISSUED",
           aggregateType: "SalesInvoice",
@@ -471,11 +477,15 @@ export const postSalesInvoice = authorizedAction(
         });
       });
 
-      await processIntegrationOutboxEvent(outbox.id);
+      if (outbox.alreadyQueued) {
+        return { success: true, data: { processed: false as const, alreadyQueued: true as const } };
+      }
+
+      const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
       revalidatePath("/sales/invoices");
       revalidatePath(`/sales/invoices/${id}`);
-      return { success: true };
+      return { success: true, data: { outboxId: outbox.id, ...processed } };
     } catch (error) {
       console.error("Failed to post Invoice:", error);
       return { success: false, error: error instanceof Error ? error.message : "Failed to post Sales Invoice" };

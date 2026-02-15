@@ -23,9 +23,20 @@ export default function AdminDashboardPage() {
     <div className="flex flex-1 flex-col gap-4 px-4 py-4">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-xl font-bold tracking-tight">Admin Dashboard</h2>
-        <Button asChild variant="outline">
-          <Link href="/admin/integrations/outbox">Open Outbox</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/integrations/outbox">Open Outbox</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/integrations/outbox?status=PENDING">Pending</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/integrations/outbox?status=FAILED">Failed</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/integrations/outbox?status=DEAD">Dead</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -119,4 +130,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-

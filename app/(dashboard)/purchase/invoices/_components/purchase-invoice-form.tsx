@@ -346,6 +346,13 @@ export function PurchaseInvoiceForm({
     try {
       const result = await postPurchaseInvoice(invoice.id);
       if (result.success) {
+        if (!result.data?.processed) {
+          alert(
+            result.data?.alreadyQueued
+              ? "Invoice posting is already queued for processing."
+              : "Invoice posting queued for processing."
+          );
+        }
         router.refresh();
       } else {
         alert(result.error);

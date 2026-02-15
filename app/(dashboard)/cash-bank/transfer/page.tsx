@@ -128,11 +128,15 @@ export default function TransferPage() {
     ) {
       startTransition(async () => {
         try {
-          await approveCashTransfer(id);
+          const result = await approveCashTransfer(id);
           queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           toast({
             title: "Success",
-            description: "Transfer approved successfully",
+            description: result.processed
+              ? "Transfer approved successfully"
+              : result.alreadyQueued
+                ? "Transfer approval already queued"
+                : "Transfer approval queued for processing",
           });
         } catch (error) {
           toast({

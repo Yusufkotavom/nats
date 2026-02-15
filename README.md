@@ -20,6 +20,51 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Integration Outbox & Worker
+
+This app uses an outbox/inbox pattern to make cross-module operations retryable and idempotent:
+- UI/server actions enqueue an `IntegrationOutbox` event
+- A worker processes pending events and writes `IntegrationInbox` rows per consumer to guarantee at-most-once per consumer/outboxId
+- Failures backoff and retry; poison messages become `DEAD`
+
+### Async vs inline processing
+
+By default, actions may enqueue and then process inline. To run “true async” (queue only), set:
+- `INTEGRATION_PROCESS_INLINE=false`
+
+When running async, the UI shows “Queued for processing” and the worker is responsible for completing the work.
+
+### Worker runner (scheduler-friendly)
+
+Protected endpoint:
+- `POST /api/integration/worker`
+- Header: `x-integration-dispatch-key: <INTEGRATION_DISPATCH_KEY>`
+
+Optional query params:
+- `limitPerBatch` (default 50)
+- `maxBatches` (default 25)
+- `deadlineMs` (default 25000)
+
+CLI entrypoint:
+- `npm run outbox:work`
+
+### Key environment variables
+
+- `INTEGRATION_DISPATCH_KEY`: required for `/api/integration/dispatch` and `/api/integration/worker`
+- `INTEGRATION_MAX_ATTEMPTS` (default 10)
+- `INTEGRATION_LOCK_TIMEOUT_MS` (default 60000)
+- `INTEGRATION_BACKOFF_BASE_MS` (default 5000)
+- `INTEGRATION_BACKOFF_MAX_MS` (default 300000)
+- `INTEGRATION_WORKER_ID` (optional; defaults to random UUID)
+
+### Monitoring & recovery (Admin)
+
+- Outbox health: `/admin/dashboard`
+- Outbox queue (filters + actions): `/admin/integrations/outbox`
+  - Use “Unlock” for stuck PROCESSING
+  - Use “Requeue” to retry (optionally resetting attempts)
+  - Use “Mark DEAD” for poison messages
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
