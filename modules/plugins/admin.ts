@@ -8,25 +8,25 @@ export const adminPlugin: ModulePlugin = {
       section: "Administration",
       items: [
         {
-          title: "Company Management",
+          title: "Company",
           url: "#",
           icon: Building2Icon,
           items: [
             { title: "Company Settings", url: "/admin/settings" },
             { title: "Contacts", url: "/general/contacts" },
             { title: "Departments", url: "/general/departments" },
-            { title: "Projects", url: "/general/projects" }],
+            { title: "Projects", url: "/general/projects" },
+            { title: "User Management", url: "/admin/users" },
+            { title: "Role Definitions", url: "/admin/roles" }],
         },
         {
-          title: "System Management",
+          title: "System",
           url: "#",
           icon: CogIcon,
           items: [
-            { title: "Dashboard", url: "/admin/dashboard" },
-            { title: "User Management", url: "/admin/users" },
-            { title: "Role Definitions", url: "/admin/roles" },
             { title: "File Manager", url: "/general/files" },
             { title: "AI Configuration", url: "/admin/settings/ai" },
+            { title: "Events Dashboard", url: "/admin/dashboard" },
             { title: "Integration Outbox", url: "/admin/integrations/outbox" },
           ],
         },

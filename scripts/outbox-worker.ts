@@ -14,6 +14,7 @@ async function main() {
     ? Number(process.env.OUTBOX_CONCURRENCY)
     : undefined;
   const drain = process.env.OUTBOX_DRAIN === "true" ? true : undefined;
+  const safeMode = process.env.OUTBOX_SAFE_MODE === "true" ? true : undefined;
 
   const result = await runOutboxWorker({
     limitPerBatch,
@@ -21,6 +22,7 @@ async function main() {
     deadlineMs,
     concurrency,
     drain,
+    safeMode,
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }

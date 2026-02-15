@@ -46,6 +46,7 @@ Optional query params:
 - `deadlineMs` (default 25000)
  - `concurrency` (default 4)
  - `drain` (default false; when true, ignores maxBatches and runs until drained or deadline)
+ - `safeMode` (default false; when true, caps batch size/concurrency/deadline/maxBatches)
 
 Example request:
 ```bash
@@ -85,6 +86,11 @@ HTTP CLI entrypoint (scheduler-friendly when the scheduler cannot access the DB)
 - `INTEGRATION_WORKER_ID` (optional; defaults to random UUID)
 - `OUTBOX_WORKER_URL`: full URL to `/api/integration/worker` for `outbox:work:http`
 - `OUTBOX_LIMIT_PER_BATCH`, `OUTBOX_MAX_BATCHES`, `OUTBOX_DEADLINE_MS`, `OUTBOX_CONCURRENCY`, `OUTBOX_DRAIN`
+- `OUTBOX_SAFE_MODE` (default false)
+- `OUTBOX_SAFE_MODE_LIMIT_PER_BATCH` (default 10)
+- `OUTBOX_SAFE_MODE_MAX_BATCHES` (default 10)
+- `OUTBOX_SAFE_MODE_DEADLINE_MS` (default 10000)
+- `OUTBOX_SAFE_MODE_CONCURRENCY` (default 1)
 - `OUTBOX_ALERT_OLDEST_PENDING_SECONDS` (default 3600)
 - `OUTBOX_ALERT_STUCK_PROCESSING_COUNT` (default 1)
 - `OUTBOX_ALERT_DEAD_COUNT` (default 1)

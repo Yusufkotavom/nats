@@ -495,7 +495,7 @@ export default function IntegrationOutboxPage() {
     <PageListLayout>
       <PageListHeader>
         <PageListTitle title="Integration Outbox" />
-        <PageListActions>
+        <PageListActions className="space-x-1">
           <Protect permission="integrations.outbox.retry">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -554,8 +554,7 @@ export default function IntegrationOutboxPage() {
       <PageListFilter>
         <OutboxFilters />
       </PageListFilter>
-
-      <PageListContent>
+      <PageListContent className="border-0">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Top Failed Errors</CardTitle>
@@ -608,6 +607,9 @@ export default function IntegrationOutboxPage() {
             )}
           </CardContent>
         </Card>
+
+      </PageListContent>
+      <PageListContent>
 
         <DataTable
           data={data?.events ?? []}

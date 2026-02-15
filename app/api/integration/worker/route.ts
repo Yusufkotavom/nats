@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   const deadlineMs = Number(url.searchParams.get("deadlineMs")) || undefined;
   const concurrency = Number(url.searchParams.get("concurrency")) || undefined;
   const drain = url.searchParams.get("drain") === "true" ? true : undefined;
+  const safeMode = url.searchParams.get("safeMode") === "true" ? true : undefined;
 
   const result = await runOutboxWorker({
     limitPerBatch,
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
     deadlineMs,
     concurrency,
     drain,
+    safeMode,
   });
 
   return NextResponse.json({ success: true, result });
