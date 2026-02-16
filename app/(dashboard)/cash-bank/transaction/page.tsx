@@ -171,19 +171,28 @@ export default function CashTransactionListPage() {
 
   const columns: Column<TransactionWithDetails>[] = [
     {
-      header: "Date",
-      cell: (tx) => formatDate(tx.date),
-    },
-    {
-      header: "Reference",
-      cell: (tx) => tx.reference || "-",
+      header: "Date/Reference",
+      cell: (tx) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-sm">{formatDate(tx.date)}</span>
+          <span className="text-xs text-muted-foreground">
+            {tx.reference || "-"}
+          </span>
+        </div>
+      ),
     },
     {
       header: "Type",
       cell: (tx) => (
-        <Badge variant={tx.type === "INCOME" ? "default" : "destructive"}>
-          {tx.type}
-        </Badge>
+        <div className="flex flex-col">
+          <Badge variant={tx.type === "INCOME" ? "default" : "destructive"}>
+            {tx.type}
+          </Badge>
+
+          <Link href={`/accounting/ledger/${tx.cashAccount.glAccountId}`} target="_blank">
+            <span className="font-medium text-primary">{tx.cashAccount.name}</span>
+          </Link>
+        </div>
       ),
     },
     {
@@ -200,15 +209,6 @@ export default function CashTransactionListPage() {
         ) : (
           "-"
         ),
-    },
-    {
-      header: "Cash Account",
-      accessorKey: "cashAccount",
-      cell: (tx) => (
-        <Link href={`/accounting/ledger/${tx.cashAccount.glAccountId}`} target="_blank">
-          <span className="font-medium text-primary">{tx.cashAccount.name}</span>
-        </Link>
-      ),
     },
     {
       header: "Description",
