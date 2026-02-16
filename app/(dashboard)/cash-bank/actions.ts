@@ -18,13 +18,12 @@ import { saveFile } from "@/lib/file-service";
 import { verifySession } from "@/lib/auth/auth";
 import { SuperJSONResult } from "superjson";
 import { cashTransferSchema } from "@/lib/validation/schemas";
-import { Decimal } from "decimal.js";
 import {
-  enqueueIntegrationEvent,
-  enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 import type { ActionResponse } from "@/lib/permissions/protected-action";
+import { CashAccountService } from "@/modules/cash-bank/services/cash-account.service";
+import { CashTransferService } from "@/modules/cash-bank/services/cash-transfer.service";
 
 type CashTransferOutboxResult = {
   transferId: string;
@@ -164,51 +163,19 @@ export async function getCashAccount(id: string) {
 }
 
 export async function createCashAccount(data: CashAccountFormData) {
-  const account = await prisma.cashAccount.create({
-    data: {
-      name: data.name,
-      type: data.type,
-      accountNumber: data.accountNumber,
-      bankName: data.bankName,
-      description: data.description,
-      glAccountId: data.glAccountId,
-    },
-  });
+  const account = await CashAccountService.createAccount(data);
   revalidatePath("/accounting/cash-bank");
   return account;
 }
 
 export async function updateCashAccount(id: string, data: CashAccountFormData) {
-  const account = await prisma.cashAccount.update({
-    where: { id },
-    data: {
-      name: data.name,
-      type: data.type,
-      accountNumber: data.accountNumber,
-      bankName: data.bankName,
-      description: data.description,
-      glAccountId: data.glAccountId,
-    },
-  });
+  const account = await CashAccountService.updateAccount(id, data);
   revalidatePath("/accounting/cash-bank");
   return account;
 }
 
 export async function deleteCashAccount(id: string) {
-  // Check if there are any transfers associated with this account
-  const transfers = await prisma.cashTransfer.findFirst({
-    where: {
-      OR: [{ fromAccountId: id }, { toAccountId: id }],
-    },
-  });
-
-  if (transfers) {
-    throw new Error("Cannot delete account with existing transfers.");
-  }
-
-  await prisma.cashAccount.delete({
-    where: { id },
-  });
+  await CashAccountService.deleteAccount(id);
   revalidatePath("/accounting/cash-bank");
 }
 
@@ -227,37 +194,7 @@ export async function createCashTransfer(
   // Validate with Zod
   const validatedData = cashTransferSchema.parse(data2);
 
-  // 1. Validate accounts
-  const fromAccount = await prisma.cashAccount.findUnique({
-    where: { id: validatedData.fromAccountId },
-    include: { glAccount: true },
-  });
-  const toAccount = await prisma.cashAccount.findUnique({
-    where: { id: validatedData.toAccountId },
-    include: { glAccount: true },
-  });
-
-  if (!fromAccount || !toAccount) {
-    throw new Error("Invalid accounts.");
-  }
-
-  if (validatedData.fromAccountId === validatedData.toAccountId) {
-    throw new Error("Cannot transfer to the same account.");
-  }
-
-  // 2. Create Transfer (Pending Approval)
-  const transfer = await prisma.cashTransfer.create({
-    data: {
-      fromAccountId: validatedData.fromAccountId,
-      toAccountId: validatedData.toAccountId,
-      amount: new Decimal(validatedData.amount),
-      date: validatedData.date,
-      description: validatedData.description,
-      reference: validatedData.reference,
-      status: TransferStatus.PENDING,
-      // createdById: userId, // Removing as it might not exist in schema
-    },
-  });
+  const transfer = await CashTransferService.createTransfer(validatedData);
 
   revalidatePath("/accounting/cash-bank");
   revalidatePath("/accounting/transfer");
@@ -268,18 +205,6 @@ export async function updateCashTransfer(
   id: string,
   data: CashTransferFormData | SuperJSONResult,
 ) {
-  const transfer = await prisma.cashTransfer.findUnique({
-    where: { id },
-  });
-
-  if (!transfer) {
-    throw new Error("Transfer not found");
-  }
-
-  if (transfer.status === TransferStatus.APPROVED) {
-    throw new Error("Cannot edit approved transfer");
-  }
-
   const data2 = SuperJSON.deserialize(
     data as unknown as SuperJSONResult,
   ) as CashTransferFormData;
@@ -287,22 +212,10 @@ export async function updateCashTransfer(
   // Validate with Zod
   const validatedData = cashTransferSchema.parse(data2);
 
-  // Validate accounts
-  if (validatedData.fromAccountId === validatedData.toAccountId) {
-    throw new Error("Cannot transfer to the same account.");
-  }
-
-  const updatedTransfer = await prisma.cashTransfer.update({
-    where: { id },
-    data: {
-      fromAccountId: validatedData.fromAccountId,
-      toAccountId: validatedData.toAccountId,
-      amount: new Decimal(validatedData.amount),
-      date: validatedData.date,
-      description: validatedData.description,
-      reference: validatedData.reference,
-    },
-  });
+  const updatedTransfer = await CashTransferService.updateTransfer(
+    id,
+    validatedData,
+  );
 
   revalidatePath("/accounting/cash-bank");
   revalidatePath("/accounting/transfer");
@@ -316,49 +229,22 @@ export async function approveCashTransfer(
     const session = await verifySession();
     const userId = session.userId;
 
-    const transfer = await prisma.cashTransfer.findUnique({
-      where: { id },
-      include: {
-        fromAccount: { include: { glAccount: true } },
-        toAccount: { include: { glAccount: true } },
-      },
-    });
+    const result = await CashTransferService.approveTransfer(id, userId);
 
-    if (!transfer) {
-      return { success: false, error: "Transfer not found" };
-    }
-
-    if (transfer.status === TransferStatus.APPROVED) {
-      return { success: false, error: "Transfer already approved" };
-    }
-
-    const outbox = await prisma.$transaction(async (tx) => {
-      return enqueueIntegrationEventOnce(tx, {
-        topic: "cash_bank",
-        type: "CASH_TRANSFER_APPROVED",
-        aggregateType: "CashTransfer",
-        aggregateId: id,
-        payload: {
-          transferId: id,
-          userId,
-        },
-      });
-    });
-
-    if (outbox.alreadyQueued) {
+    if (result.alreadyQueued) {
       return {
         success: true,
-        data: { transferId: id, outboxId: outbox.id, processed: false, alreadyQueued: true },
+        data: { transferId: id, outboxId: result.outboxId, processed: false, alreadyQueued: true },
       };
     }
 
-    const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
+    const processed = await maybeProcessIntegrationOutboxEvent(result.outboxId);
 
     revalidatePath("/accounting/cash-bank");
     revalidatePath("/accounting/transfer");
     return {
       success: true,
-      data: { transferId: id, outboxId: outbox.id, processed: processed.processed },
+      data: { transferId: id, outboxId: result.outboxId, processed: processed.processed },
     };
   } catch (error) {
     return {
@@ -369,21 +255,7 @@ export async function approveCashTransfer(
 }
 
 export async function deleteCashTransfer(id: string) {
-  const transfer = await prisma.cashTransfer.findUnique({
-    where: { id },
-  });
-
-  if (!transfer) {
-    throw new Error("Transfer not found");
-  }
-
-  if (transfer.status === TransferStatus.APPROVED) {
-    throw new Error("Cannot delete approved transfer");
-  }
-
-  await prisma.cashTransfer.delete({
-    where: { id },
-  });
+  await CashTransferService.deleteTransfer(id);
 
   revalidatePath("/accounting/cash-bank");
   revalidatePath("/accounting/transfer");
