@@ -9,7 +9,7 @@ import { getSalesOrder } from "../orders/actions";
 import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { Decimal } from "decimal.js";
 
 export { getSalesOrder };
@@ -312,34 +312,31 @@ export const updateSalesShipment = authorizedAction(
             const cogsAccount = await getRequiredDefaultAccount("COGS");
             const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
 
-            const je = await JournalService.createDraftJournalEntry(tx, {
-              userId: session.userId,
+            const je = await JournalService.createJournalEntry({
               entryNumber: `JE-${updatedShipment.shipmentNumber}`,
               transactionDate: data.shipmentDate,
               description: `Cost of Goods Sold for Shipment #${updatedShipment.shipmentNumber}`,
               lines: [
                 {
                   accountId: cogsAccount.accountId,
-                  debitAmount: new Decimal(totalCogs),
-                  creditAmount: new Decimal(0),
+                  debitAmount: new Decimal(totalCogs).toNumber(),
+                  creditAmount: 0,
                   description: "Cost of Goods Sold",
                   departmentId: data.departmentId,
                   projectId: data.projectId,
-                  lineNumber: 1,
                 },
                 {
                   accountId: inventoryAccount.accountId,
-                  debitAmount: new Decimal(0),
-                  creditAmount: new Decimal(totalCogs),
+                  debitAmount: 0,
+                  creditAmount: new Decimal(totalCogs).toNumber(),
                   description: "Inventory Asset",
                   departmentId: data.departmentId,
                   projectId: data.projectId,
-                  lineNumber: 2,
                 },
               ],
-            });
+            }, session.userId, tx);
 
-            await JournalService.postJournalEntry(tx, je.id);
+            await JournalService.postJournalEntry(je.id, tx);
           }
         }
 

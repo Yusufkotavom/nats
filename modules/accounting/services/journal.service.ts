@@ -112,7 +112,14 @@ export class JournalService {
     /**
      * Create a new journal entry
      */
-    static async createJournalEntry(data: CreateJournalEntryInput, userId: string) {
+    /**
+     * Create a new journal entry
+     */
+    static async createJournalEntry(
+        data: CreateJournalEntryInput,
+        userId: string,
+        tx?: Prisma.TransactionClient
+    ) {
         // Validate debit = credit
         const totalDebit =
             data.lines.reduce(
@@ -134,20 +141,26 @@ export class JournalService {
             .slice(0, 10)
             .replace(/-/g, "");
 
-        // Generate entry number
-        const count = await prisma.journalEntry.count({
-            where: {
-                entryNumber: {
-                    startsWith: `JE-${dateStr}-`,
-                },
-            },
-        });
-        const entryNumber = `JE-${dateStr}-${(count + 1)
-            .toString()
-            .padStart(4, "0")}`;
+        const executeCreate = async (db: Prisma.TransactionClient) => {
+            let entryNumber = data.entryNumber;
 
-        return prisma.$transaction(async (tx) => {
-            const entry = await tx.journalEntry.create({
+            if (!entryNumber) {
+                // Generate entry number inside the transaction/logic
+                // Note: If running in parallel without serializable isolation, this count might be off, 
+                // but for now we follow existing pattern.
+                const count = await db.journalEntry.count({
+                    where: {
+                        entryNumber: {
+                            startsWith: `JE-${dateStr}-`,
+                        },
+                    },
+                });
+                entryNumber = `JE-${dateStr}-${(count + 1)
+                    .toString()
+                    .padStart(4, "0")}`;
+            }
+
+            const entry = await db.journalEntry.create({
                 data: {
                     userId,
                     entryNumber,
@@ -176,7 +189,7 @@ export class JournalService {
             });
 
             // Emit Outbox event
-            await enqueueIntegrationEvent(tx, {
+            await enqueueIntegrationEvent(db, {
                 topic: "ACCOUNTING",
                 type: "JOURNAL_ENTRY_CREATED",
                 aggregateType: "JOURNAL_ENTRY",
@@ -192,7 +205,13 @@ export class JournalService {
             });
 
             return entry;
-        });
+        };
+
+        if (tx) {
+            return executeCreate(tx);
+        } else {
+            return prisma.$transaction(executeCreate);
+        }
     }
 
     /**
@@ -291,9 +310,9 @@ export class JournalService {
     /**
      * Post a journal entry
      */
-    static async postJournalEntry(id: string) {
-        return prisma.$transaction(async (tx) => {
-            const existingEntry = await tx.journalEntry.findUnique({
+    static async postJournalEntry(id: string, tx?: Prisma.TransactionClient) {
+        const executePost = async (db: Prisma.TransactionClient) => {
+            const existingEntry = await db.journalEntry.findUnique({
                 where: { id },
                 include: {
                     lines: {
@@ -335,11 +354,11 @@ export class JournalService {
             ).sort();
 
             for (const accountId of uniqueAccountIds) {
-                await tx.$executeRaw`SELECT 1 FROM "Account" WHERE id = ${accountId} FOR UPDATE`;
+                await db.$executeRaw`SELECT 1 FROM "Account" WHERE id = ${accountId} FOR UPDATE`;
             }
 
             // 3. Update Status
-            await tx.journalEntry.update({
+            await db.journalEntry.update({
                 where: { id },
                 data: {
                     status: "posted",
@@ -354,7 +373,7 @@ export class JournalService {
                 const { accountId, account } = line;
 
                 if (accountBalances[accountId] === undefined) {
-                    const lastEntryLine = await tx.journalEntryLine.findFirst({
+                    const lastEntryLine = await db.journalEntryLine.findFirst({
                         where: {
                             accountId,
                             journalEntry: {
@@ -387,14 +406,14 @@ export class JournalService {
                         .minus(credit);
                 }
 
-                await tx.journalEntryLine.update({
+                await db.journalEntryLine.update({
                     where: { id: line.id },
                     data: { runningBalance: accountBalances[accountId] },
                 });
             }
 
             // 5. Emit Outbox Event
-            await enqueueIntegrationEvent(tx, {
+            await enqueueIntegrationEvent(db, {
                 topic: "ACCOUNTING",
                 type: "JOURNAL_ENTRY_POSTED",
                 aggregateType: "JOURNAL_ENTRY",
@@ -405,6 +424,12 @@ export class JournalService {
                     userId: existingEntry.userId,
                 },
             });
-        });
+        };
+
+        if (tx) {
+            return executePost(tx);
+        } else {
+            return prisma.$transaction(executePost);
+        }
     }
 }

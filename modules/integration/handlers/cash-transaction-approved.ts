@@ -1,4 +1,4 @@
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { CashTransactionStatus } from "@/prisma/generated/prisma/client";
 import { cashTransactionApprovedPayloadSchema } from "@/modules/integration/events";
 import type { Prisma } from "@/prisma/generated/prisma/client";
@@ -20,7 +20,7 @@ export async function handleCashTransactionApprovedAccounting(
     throw new Error("Transaction not found");
   }
 
-  await JournalService.postJournalEntry(tx, transaction.journalEntryId);
+  await JournalService.postJournalEntry(transaction.journalEntryId, tx);
 }
 
 export async function handleCashTransactionApprovedCashBank(

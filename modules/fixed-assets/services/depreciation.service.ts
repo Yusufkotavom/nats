@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Decimal } from "decimal.js";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { DepreciationSchedule } from "@/prisma/generated/prisma/client";
 
 export class DepreciationService {
@@ -101,30 +101,27 @@ export class DepreciationService {
 
         await prisma.$transaction(async (tx) => {
             // Create Journal Entry
-            const je = await JournalService.createDraftJournalEntry(tx, {
-                userId: userId,
+            const je = await JournalService.createJournalEntry({
                 entryNumber,
                 transactionDate: date,
                 description: `Depreciation for ${asset.name} (${asset.code})`,
                 lines: [
                     {
                         accountId: category.depreciationExpenseAccountId,
-                        debitAmount: new Decimal(amount),
-                        creditAmount: new Decimal(0),
+                        debitAmount: new Decimal(amount).toNumber(),
+                        creditAmount: 0,
                         description: "Depreciation Expense",
-                        lineNumber: 1,
                     },
                     {
                         accountId: category.accumDepreciationAccountId,
-                        debitAmount: new Decimal(0),
-                        creditAmount: new Decimal(amount),
+                        debitAmount: 0,
+                        creditAmount: new Decimal(amount).toNumber(),
                         description: "Accumulated Depreciation",
-                        lineNumber: 2,
                     },
                 ],
-            });
+            }, userId, tx);
 
-            await JournalService.postJournalEntry(tx, je.id);
+            await JournalService.postJournalEntry(je.id, tx);
 
             // Update Schedule
             await tx.depreciationSchedule.update({

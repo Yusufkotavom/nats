@@ -1,4 +1,5 @@
 import { Decimal } from "decimal.js";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { cashTransactionCreateRequestedPayloadSchema } from "@/modules/integration/events";
 import { CashTransactionStatus, CashTransactionType, EntryStatus } from "@/prisma/generated/prisma/enums";
 import type { Prisma } from "@/prisma/generated/prisma/client";
@@ -34,47 +35,37 @@ export async function handleCashTransactionCreateRequestedAccounting(
     new Decimal(0)
   );
 
-  const lines: Prisma.JournalEntryLineUncheckedCreateWithoutJournalEntryInput[] = [];
-  let lineNumber = 1;
+  const lines: any[] = [];
 
   lines.push({
     accountId: cashAccount.glAccountId,
-    debitAmount: payload.type === CashTransactionType.INCOME ? totalAmount : new Decimal(0),
-    creditAmount: payload.type === CashTransactionType.EXPENSE ? totalAmount : new Decimal(0),
+    debitAmount: payload.type === CashTransactionType.INCOME ? totalAmount.toNumber() : 0,
+    creditAmount: payload.type === CashTransactionType.EXPENSE ? totalAmount.toNumber() : 0,
     description: payload.description || "Cash Transaction",
-    lineNumber: lineNumber++,
   });
 
   for (const alloc of payload.allocations) {
     lines.push({
       accountId: alloc.accountId,
       debitAmount:
-        payload.type === CashTransactionType.EXPENSE ? new Decimal(alloc.amount) : new Decimal(0),
+        payload.type === CashTransactionType.EXPENSE ? new Decimal(alloc.amount).toNumber() : 0,
       creditAmount:
-        payload.type === CashTransactionType.INCOME ? new Decimal(alloc.amount) : new Decimal(0),
+        payload.type === CashTransactionType.INCOME ? new Decimal(alloc.amount).toNumber() : 0,
       description: alloc.description || payload.description,
-      lineNumber: lineNumber++,
       departmentId: payload.departmentId ?? undefined,
       projectId: payload.projectId ?? undefined,
     });
   }
 
-  await tx.journalEntry.create({
-    data: {
-      id: payload.journalEntryId,
-      entryNumber: payload.entryNumber,
-      transactionDate: new Date(payload.date),
-      description: payload.description,
-      status: EntryStatus.draft,
-      userId: payload.userId,
-      notes: payload.notes,
-      lines: { create: lines },
-      attachments: {
-        connect: payload.attachmentIds?.map((id) => ({ id })) || [],
-      },
-    },
-    select: { id: true },
-  });
+  // Create Journal Entry via Service (this will also emit JOURNAL_ENTRY_CREATED)
+  await JournalService.createJournalEntry({
+    entryNumber: payload.entryNumber,
+    transactionDate: new Date(payload.date),
+    description: payload.description,
+    notes: payload.notes,
+    lines: lines,
+    attachments: payload.attachmentIds?.map((id) => ({ id })),
+  }, payload.userId, tx);
 }
 
 export async function handleCashTransactionCreateRequestedCashBank(

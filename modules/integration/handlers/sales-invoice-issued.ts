@@ -1,6 +1,6 @@
 import { Decimal } from "decimal.js";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { salesInvoiceIssuedPayloadSchema } from "@/modules/integration/events";
 import type { Prisma } from "@/prisma/generated/prisma/client";
 
@@ -43,18 +43,16 @@ export async function handleSalesInvoiceIssued(
     debitAmount: Decimal;
     creditAmount: Decimal;
     description: string;
-    lineNumber: number;
     contactId?: string;
   }[] = [];
 
-  let lineNumber = 1;
+  // lineNumber removed
 
   jeLines.push({
     accountId: arAccount.accountId,
     debitAmount: new Decimal(payload.totalAmount),
     creditAmount: new Decimal(0),
     description: `Receivable for Invoice #${invoice.invoiceNumber}`,
-    lineNumber: lineNumber++,
     contactId: payload.contactId,
   });
 
@@ -73,7 +71,6 @@ export async function handleSalesInvoiceIssued(
         debitAmount: new Decimal(0),
         creditAmount: taxableAmount,
         description: item.description,
-        lineNumber: lineNumber++,
       });
     }
 
@@ -83,7 +80,6 @@ export async function handleSalesInvoiceIssued(
         debitAmount: new Decimal(0),
         creditAmount: taxAmount,
         description: `Tax on ${item.description}`,
-        lineNumber: lineNumber++,
       });
     }
   }
@@ -94,7 +90,6 @@ export async function handleSalesInvoiceIssued(
       debitAmount: new Decimal(0),
       creditAmount: new Decimal(payload.shippingCost || 0),
       description: "Shipping Cost",
-      lineNumber: lineNumber++,
     });
   }
 
@@ -104,19 +99,21 @@ export async function handleSalesInvoiceIssued(
       debitAmount: new Decimal(payload.globalDiscount || 0),
       creditAmount: new Decimal(0),
       description: "Global Discount",
-      lineNumber: lineNumber++,
     });
   }
 
-  const journalEntry = await JournalService.createDraftJournalEntry(tx, {
-    userId: payload.userId,
+  const journalEntry = await JournalService.createJournalEntry({
     entryNumber: `INV-${invoice.invoiceNumber}`,
     transactionDate: invoice.invoiceDate,
     description: `Sales Invoice #${invoice.invoiceNumber}`,
-    lines: jeLines,
-  });
+    lines: jeLines.map(line => ({
+      ...line,
+      debitAmount: line.debitAmount.toNumber(),
+      creditAmount: line.creditAmount.toNumber(),
+    })),
+  }, payload.userId, tx);
 
-  await JournalService.postJournalEntry(tx, journalEntry.id);
+  await JournalService.postJournalEntry(journalEntry.id, tx);
 
   await tx.salesInvoice.update({
     where: { id: invoice.id },

@@ -26,6 +26,7 @@ export const createJournalEntryLineSchema = z.object({
 });
 
 export const createJournalEntrySchema = z.object({
+  entryNumber: z.string().optional(),
   transactionDate: dateSchema,
   description: z.string().min(1, "Description is required"),
   notes: z.string().optional(),

@@ -12,7 +12,7 @@ import { getPurchaseOrder } from "../orders/actions";
 import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { Decimal } from "decimal.js";
 import { PurchaseReceiveService } from "@/modules/purchase/services/purchase-receive.service";
 
@@ -318,34 +318,31 @@ export const updatePurchaseReceive = authorizedAction(
             const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
             const grniAccount = await getRequiredDefaultAccount("GOODS_RECEIVED_NOT_INVOICED");
 
-            const je = await JournalService.createDraftJournalEntry(tx, {
-              userId: session.userId,
+            const je = await JournalService.createJournalEntry({
               entryNumber: `JE-${updatedReceive.receiveNumber}`,
               transactionDate: updatedReceive.receiveDate,
               description: `Inventory Asset for Receive #${updatedReceive.receiveNumber}`,
               lines: [
                 {
                   accountId: inventoryAccount.accountId,
-                  debitAmount: new Decimal(totalValue),
-                  creditAmount: new Decimal(0),
+                  debitAmount: new Decimal(totalValue).toNumber(),
+                  creditAmount: 0,
                   description: "Inventory Asset",
                   departmentId: data.departmentId,
                   projectId: data.projectId,
-                  lineNumber: 1,
                 },
                 {
                   accountId: grniAccount.accountId,
-                  debitAmount: new Decimal(0),
-                  creditAmount: new Decimal(totalValue),
+                  debitAmount: 0,
+                  creditAmount: new Decimal(totalValue).toNumber(),
                   description: "Goods Received Not Invoiced",
                   departmentId: data.departmentId,
                   projectId: data.projectId,
-                  lineNumber: 2,
                 },
               ],
-            });
+            }, session.userId, tx);
 
-            await JournalService.postJournalEntry(tx, je.id);
+            await JournalService.postJournalEntry(je.id, tx);
           }
         }
 

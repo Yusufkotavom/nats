@@ -1,5 +1,5 @@
 import { Decimal } from "decimal.js";
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { TransferStatus, EntryStatus } from "@/prisma/generated/prisma/enums";
 import { cashTransferApprovedPayloadSchema } from "@/modules/integration/events";
 import type { Prisma } from "@/prisma/generated/prisma/client";
@@ -22,40 +22,30 @@ export async function handleCashTransferApprovedAccounting(tx: Tx, payloadInput:
   }
 
   const existingJeId = transfer.journalEntryId;
-  const jeId =
-    existingJeId ??
-    (
-      await tx.journalEntry.create({
-        data: {
-          userId: payload.userId,
-          entryNumber: `TRF-${Date.now()}`,
-          transactionDate: transfer.date,
-          description:
-            transfer.description ||
-            `Transfer from ${transfer.fromAccount.name} to ${transfer.toAccount.name}`,
-          status: EntryStatus.draft,
-          lines: {
-            create: [
-              {
-                accountId: transfer.toAccount.glAccountId,
-                debitAmount: new Decimal(transfer.amount),
-                creditAmount: 0,
-                description: `Transfer from ${transfer.fromAccount.name}`,
-                lineNumber: 1,
-              },
-              {
-                accountId: transfer.fromAccount.glAccountId,
-                debitAmount: 0,
-                creditAmount: new Decimal(transfer.amount),
-                description: `Transfer to ${transfer.toAccount.name}`,
-                lineNumber: 2,
-              },
-            ],
-          },
+  let jeId = existingJeId;
+
+  if (!jeId) {
+    const je = await JournalService.createJournalEntry({
+      entryNumber: `TRF-${Date.now()}`,
+      transactionDate: transfer.date,
+      description: transfer.description || `Transfer from ${transfer.fromAccount.name} to ${transfer.toAccount.name}`,
+      lines: [
+        {
+          accountId: transfer.toAccount.glAccountId,
+          debitAmount: new Decimal(transfer.amount).toNumber(),
+          creditAmount: 0,
+          description: `Transfer from ${transfer.fromAccount.name}`,
         },
-        select: { id: true },
-      })
-    ).id;
+        {
+          accountId: transfer.fromAccount.glAccountId,
+          debitAmount: 0,
+          creditAmount: new Decimal(transfer.amount).toNumber(),
+          description: `Transfer to ${transfer.toAccount.name}`,
+        },
+      ],
+    }, payload.userId, tx);
+    jeId = je.id;
+  }
 
   if (!existingJeId) {
     await tx.cashTransfer.update({
@@ -64,7 +54,7 @@ export async function handleCashTransferApprovedAccounting(tx: Tx, payloadInput:
     });
   }
 
-  await JournalService.postJournalEntry(tx, jeId);
+  await JournalService.postJournalEntry(jeId, tx);
 }
 
 export async function handleCashTransferApprovedCashBank(tx: Tx, payloadInput: unknown) {

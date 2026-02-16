@@ -1,6 +1,6 @@
 import { Decimal } from "decimal.js";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 import { CashTransactionType } from "@/prisma/generated/prisma/client";
 import { purchasePaymentPostedPayloadSchema } from "@/modules/integration/events";
 import type { Prisma } from "@/prisma/generated/prisma/client";
@@ -31,31 +31,28 @@ export async function handlePurchasePaymentPostedAccounting(
 
   const apAccount = await getRequiredDefaultAccount("ACCOUNTS_PAYABLE");
 
-  const journalEntry = await JournalService.createDraftJournalEntry(tx, {
-    userId: payload.userId,
+  const journalEntry = await JournalService.createJournalEntry({
     entryNumber: `PAY-OUT-${payment.paymentNumber}`,
     transactionDate: payment.paymentDate,
     description: `Payment for Purchase Invoice #${payment.purchaseInvoice.invoiceNumber}`,
     lines: [
       {
         accountId: apAccount.accountId,
-        debitAmount: new Decimal(payload.amount),
-        creditAmount: new Decimal(0),
+        debitAmount: new Decimal(payload.amount).toNumber(),
+        creditAmount: 0,
         description: `Payment for Purchase Invoice #${payment.purchaseInvoice.invoiceNumber}`,
-        lineNumber: 1,
         contactId: payment.contactId,
       },
       {
         accountId: payment.cashAccount.glAccountId,
-        debitAmount: new Decimal(0),
-        creditAmount: new Decimal(payload.amount),
+        debitAmount: 0,
+        creditAmount: new Decimal(payload.amount).toNumber(),
         description: `Payment from ${payment.cashAccount.name}`,
-        lineNumber: 2,
       },
     ],
-  });
+  }, payload.userId, tx);
 
-  await JournalService.postJournalEntry(tx, journalEntry.id);
+  await JournalService.postJournalEntry(journalEntry.id, tx);
 
   await tx.purchasePayment.update({
     where: { id: payment.id },

@@ -1,7 +1,7 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Decimal } from "decimal.js";
-import { JournalService } from "@/lib/accounting/journal-service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 
 type AssetWithCategory = Prisma.AssetGetPayload<{
   include: { category: true };
@@ -56,9 +56,8 @@ export class AssetService {
       }
     } else if (method === "DOUBLE_DECLINING_BALANCE") {
       // DDB Rate = 2 / Life in Years.
-      // Monthly Rate = (2 / (Life in Months / 12)) / 12 = 2 / Life in Months
-      // Actually standard formula is usually annual based. 
-      // Let's use simplified monthly: Rate = 2 / usefulLifeMonths
+      // Monthly Rate = (Rate) / 12
+      // Simplified monthly: Rate = 2 / usefulLifeMonths
 
       const rate = new Decimal(2).div(usefulLifeMonths);
 
@@ -67,10 +66,6 @@ export class AssetService {
         date.setMonth(date.getMonth() + i);
 
         let amount = currentBookValue.times(rate);
-
-        // Switch to straight line if it's greater? (Optional, but common in GAAP)
-        // For simplicity, just strict DDB until the end or manual adjustment.
-        // But usually we stop when hitting residual.
 
         if (currentBookValue.minus(amount).lessThan(residualValue)) {
           amount = currentBookValue.minus(residualValue);
@@ -96,7 +91,7 @@ export class AssetService {
    */
   static async postDepreciation(scheduleId: string, userId: string) {
     const schedule = await prisma.depreciationSchedule.findUnique({
-      where: { id: scheduleId as string },
+      where: { id: scheduleId },
       include: {
         asset: {
           include: {
@@ -116,37 +111,34 @@ export class AssetService {
     // Dr Depreciation Expense
     // Cr Accumulated Depreciation
 
-    const entryNumber = `DEP-${asset.code}-${schedule.date.toISOString().slice(0, 10)}`; // Simple unique generation
+    const entryNumber = `DEP-${asset.code}-${schedule.date.toISOString().slice(0, 10)}`;
 
     await prisma.$transaction(async (tx) => {
-      const je = await JournalService.createDraftJournalEntry(tx, {
-        userId: userId as string,
+      const je = await JournalService.createJournalEntry({
         entryNumber,
         transactionDate: date,
         description: `Depreciation for ${asset.name} (${asset.code})`,
         lines: [
           {
             accountId: category.depreciationExpenseAccountId,
-            debitAmount: new Decimal(amount),
-            creditAmount: new Decimal(0),
+            debitAmount: new Decimal(amount).toNumber(),
+            creditAmount: 0,
             description: "Depreciation Expense",
-            lineNumber: 1,
           },
           {
             accountId: category.accumDepreciationAccountId,
-            debitAmount: new Decimal(0),
-            creditAmount: new Decimal(amount),
+            debitAmount: 0,
+            creditAmount: new Decimal(amount).toNumber(),
             description: "Accumulated Depreciation",
-            lineNumber: 2,
           },
         ],
-      });
+      }, userId, tx);
 
-      await JournalService.postJournalEntry(tx, je.id);
+      await JournalService.postJournalEntry(je.id, tx);
 
       // Update Schedule
       await tx.depreciationSchedule.update({
-        where: { id: scheduleId as string },
+        where: { id: scheduleId },
         data: {
           isPosted: true,
           postedAt: new Date(),
