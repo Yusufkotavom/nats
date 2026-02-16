@@ -173,128 +173,14 @@ export const updateSalesInvoice = authorizedAction(
       }
       const data = parseResult.data;
 
-      const currentInvoice = await prisma.salesInvoice.findUnique({
-        where: { id },
-      });
-
-      if (!currentInvoice) throw new Error("Invoice not found");
-
-      if (
-        currentInvoice.status === "PAID" ||
-        currentInvoice.status === "CANCELLED"
-      ) {
-        return {
-          success: false,
-          error: "Cannot edit paid or canceled invoice",
-        };
-      }
-
-      // Check for duplicate if invoice number changed
-      if (
-        data.invoiceNumber !== currentInvoice.invoiceNumber
-      ) {
-        const existing = await prisma.salesInvoice.findUnique({
-          where: {
-            invoiceNumber: data.invoiceNumber,
-          },
-        });
-        if (existing && existing.id !== id) {
-          return {
-            success: false,
-            error: "Invoice number already exists",
-          };
-        }
-      }
-
-      // Fetch tax rates
-      const taxRates = await prisma.taxRate.findMany();
-
-      const itemsToCreate = data.items.map((item) => {
-        let taxRateSnapshot: number | undefined = undefined;
-        const taxAmount = item.tax || 0;
-
-        if (item.taxRateId) {
-          const rateObj = taxRates.find(r => r.id === item.taxRateId);
-          if (rateObj) {
-            taxRateSnapshot = Number(rateObj.rate);
-          }
-        }
-
-        const calculated = CalculationService.calculateLineItem(
-          {
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-            tax: taxAmount,
-          },
-          taxRateSnapshot
-        );
-
-        return {
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: calculated.total.toNumber(),
-          discount: item.discount,
-          tax: calculated.taxAmount.toNumber(),
-          taxRateId: item.taxRateId,
-          taxRateSnapshot: taxRateSnapshot,
-          productId: item.productId,
-          accountId: item.accountId,
-          _calculated: calculated
-        };
-      });
-
-      const totals = CalculationService.calculateInvoiceTotals(
-        itemsToCreate.map(i => i._calculated),
-        data.globalDiscount,
-        data.shippingCost
-      );
-
-      // Remove internal field before creating
-      const itemsData = itemsToCreate.map(({ _calculated, ...rest }) => rest);
-
-      const result = await prisma.$transaction(async (tx) => {
-        // Delete existing items
-        await tx.salesInvoiceItem.deleteMany({
-          where: { salesInvoiceId: id },
-        });
-
-        // Update Invoice and create new items
-        return await tx.salesInvoice.update({
-          where: { id },
-          data: {
-            invoiceNumber: data.invoiceNumber,
-            contactId: data.contactId,
-            salesOrderId: data.salesOrderId,
-            invoiceDate: data.invoiceDate,
-            dueDate: data.dueDate,
-            notes: data.notes,
-            status: data.status || currentInvoice.status,
-            totalAmount: totals.totalAmount.toNumber(),
-            globalDiscount: data.globalDiscount,
-            totalTax: totals.totalTax.toNumber(),
-            shippingCost: data.shippingCost,
-            departmentId: data.departmentId,
-            projectId: data.projectId,
-            items: {
-              create: itemsData,
-            },
-            attachments: {
-              set: data.attachmentIds?.map((id) => ({ id })) || [],
-            },
-          },
-          include: {
-            items: true,
-          },
-        });
-      });
+      const result = await SalesInvoiceService.update(id, data);
 
       revalidatePath("/sales/invoices");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Invoice:", error);
-      return { success: false, error: "Failed to update Sales Invoice" };
+      const message = error instanceof Error ? error.message : "Failed to update Sales Invoice";
+      return { success: false, error: message };
     }
   },
 );
@@ -303,25 +189,14 @@ export const deleteSalesInvoice = authorizedAction(
   "sales.delete",
   async (id: string) => {
     try {
-      const currentInvoice = await prisma.salesInvoice.findUnique({
-        where: { id },
-      });
-
-      if (!currentInvoice) throw new Error("Invoice not found");
-
-      if (currentInvoice.status !== "DRAFT") {
-        return { success: false, error: "Can only delete draft invoices" };
-      }
-
-      await prisma.salesInvoice.delete({
-        where: { id },
-      });
+      await SalesInvoiceService.delete(id);
 
       revalidatePath("/sales/invoices");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Invoice:", error);
-      return { success: false, error: "Failed to delete Sales Invoice" };
+      const message = error instanceof Error ? error.message : "Failed to delete Sales Invoice";
+      return { success: false, error: message };
     }
   },
 );

@@ -136,21 +136,7 @@ export async function getPurchaseOrder(id: string) {
   return SuperJSON.serialize(order);
 }
 
-// Helper to generate PO Number
-async function generatePONumber() {
-  const count = await prisma.purchaseOrder.count({
-    where: {
-      NOT: {
-        status: "DRAFT",
-      },
-    },
-  });
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `PO-${year}${month}-${sequence}`;
-}
+
 
 export const createPurchaseOrder = authorizedAction(
   "purchase.create",
@@ -175,68 +161,17 @@ export const updatePurchaseOrder = authorizedAction(
   async (id: string, data: PurchaseOrderInput) => {
     try {
       const session = await getSession();
-      const currentOrder = await prisma.purchaseOrder.findUnique({
-        where: { id },
-        include: { items: true },
-      });
+      if (!session) throw new Error("Unauthorized");
 
-      if (!currentOrder) throw new Error("Order not found");
-
-      // Strict check: Only allow updates if DRAFT
-      if (currentOrder.status !== "DRAFT") {
-        return {
-          success: false,
-          error:
-            "Only Draft orders can be modified. Please Cancel or create a new order.",
-        };
-      }
-
-      // Calculate totals
-      let totalAmount = 0;
-      data.items.forEach((item) => {
-        totalAmount += item.quantity * item.unitCost;
-      });
-
-      const result = await prisma.$transaction(async (tx) => {
-        // Delete existing items
-        await tx.purchaseOrderItem.deleteMany({
-          where: { purchaseOrderId: id },
-        });
-
-        // Update PO and create new items
-        return await tx.purchaseOrder.update({
-          where: { id },
-          data: {
-            contactId: data.contactId,
-            orderDate: data.orderDate,
-            expectedDate: data.expectedDate,
-            notes: data.notes,
-            status: "DRAFT", // Ensure it stays DRAFT during update
-            totalAmount,
-            departmentId: data.departmentId,
-            projectId: data.projectId,
-            updatedById: session?.userId,
-            items: {
-              create: data.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                unitCost: item.unitCost,
-                totalCost: item.quantity * item.unitCost,
-              })),
-            },
-            attachments: {
-              set: data.attachmentIds?.map((id) => ({ id })) || [],
-            },
-          },
-        });
-      });
+      const result = await PurchaseOrderService.update(id, data, session.userId);
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update PO:", error);
-      return { success: false, error: "Failed to update Purchase Order" };
+      const message = error instanceof Error ? error.message : "Failed to update Purchase Order";
+      return { success: false, error: message };
     }
   },
 );
@@ -245,31 +180,15 @@ export const issuePurchaseOrder = authorizedAction(
   "purchase.edit",
   async (id: string) => {
     try {
-      const currentOrder = await prisma.purchaseOrder.findUnique({
-        where: { id },
-      });
-
-      if (!currentOrder) throw new Error("Order not found");
-      if (currentOrder.status !== "DRAFT") {
-        return { success: false, error: "Only Draft orders can be issued" };
-      }
-
-      const orderNumber = await generatePONumber();
-
-      const result = await prisma.purchaseOrder.update({
-        where: { id },
-        data: {
-          status: "ISSUED",
-          orderNumber, // Assign real PO number
-        },
-      });
+      const result = await PurchaseOrderService.issue(id);
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to issue PO:", error);
-      return { success: false, error: "Failed to issue Purchase Order" };
+      const message = error instanceof Error ? error.message : "Failed to issue Purchase Order";
+      return { success: false, error: message };
     }
   },
 );
@@ -278,30 +197,15 @@ export const cancelPurchaseOrder = authorizedAction(
   "purchase.edit",
   async (id: string) => {
     try {
-      const currentOrder = await prisma.purchaseOrder.findUnique({
-        where: { id },
-      });
-
-      if (!currentOrder) throw new Error("Order not found");
-
-      // Can cancel DRAFT or ISSUED
-      if (!["DRAFT", "ISSUED"].includes(currentOrder.status)) {
-        return { success: false, error: "Cannot cancel this order" };
-      }
-
-      const result = await prisma.purchaseOrder.update({
-        where: { id },
-        data: {
-          status: "CANCELLED",
-        },
-      });
+      const result = await PurchaseOrderService.cancel(id);
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to cancel PO:", error);
-      return { success: false, error: "Failed to cancel Purchase Order" };
+      const message = error instanceof Error ? error.message : "Failed to cancel Purchase Order";
+      return { success: false, error: message };
     }
   },
 );
@@ -311,36 +215,17 @@ export const closePurchaseOrder = authorizedAction(
   async (id: string) => {
     try {
       const session = await getSession();
-      const currentOrder = await prisma.purchaseOrder.findUnique({
-        where: { id },
-      });
+      if (!session) throw new Error("Unauthorized");
 
-      if (!currentOrder) throw new Error("Order not found");
-
-      // Can close ISSUED or PARTIALLY_RECEIVED
-      if (!["ISSUED", "PARTIALLY_RECEIVED"].includes(currentOrder.status)) {
-        return { success: false, error: "Cannot close this order" };
-      }
-
-      // TODO: Implement 3-way match validation here
-      // For now, we allow closing manually as per request logic "Closed only after..."
-      // implying it's an action user takes when conditions are met.
-
-      const result = await prisma.purchaseOrder.update({
-        where: { id },
-        data: {
-          status: "CLOSED",
-          closedAt: new Date(),
-          closedById: session?.userId,
-        },
-      });
+      const result = await PurchaseOrderService.close(id, session.userId);
 
       revalidatePath("/purchase/orders");
       revalidatePath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to close PO:", error);
-      return { success: false, error: "Failed to close Purchase Order" };
+      const message = error instanceof Error ? error.message : "Failed to close Purchase Order";
+      return { success: false, error: message };
     }
   },
 );
@@ -349,14 +234,13 @@ export const deletePurchaseOrder = authorizedAction(
   "purchase.delete",
   async (id: string) => {
     try {
-      await prisma.purchaseOrder.delete({
-        where: { id },
-      });
+      await PurchaseOrderService.delete(id);
       revalidatePath("/purchase/orders");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete PO:", error);
-      return { success: false, error: "Failed to delete Purchase Order" };
+      const message = error instanceof Error ? error.message : "Failed to delete Purchase Order";
+      return { success: false, error: message };
     }
   },
 );
