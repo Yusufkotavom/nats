@@ -19,6 +19,23 @@ function getIntEnv(name: string, fallback: number) {
   return Math.trunc(n);
 }
 
+async function logOutboxAudit(action: string, metadata: Record<string, unknown>) {
+  const session = await getSession();
+  if (!session) return;
+  const entityId = typeof metadata.entityId === "string" ? metadata.entityId : undefined;
+  try {
+    await prisma.auditLog.create({
+      data: {
+        userId: session.userId,
+        action,
+        entityType: "IntegrationOutbox",
+        entityId,
+        metadata: metadata as Prisma.InputJsonValue,
+      },
+    });
+  } catch { }
+}
+
 export async function getIntegrationOutboxEvents(
   page: number = 1,
   limit: number = 20,
@@ -183,8 +200,8 @@ export async function getIntegrationOutboxEventDetail(id: string) {
 
   const inbox = await prisma.integrationInbox.findMany({
     where: { outboxId: id },
-    select: { id: true, consumer: true, createdAt: true },
-    orderBy: { createdAt: "asc" },
+    select: { id: true, consumer: true, processedAt: true },
+    orderBy: { processedAt: "asc" },
   });
 
   return SuperJSON.serialize({ outbox, inbox });
@@ -207,6 +224,11 @@ export const requeueIntegrationOutboxEvent = authorizedAction(
         lastError: null,
         deadAt: null,
       },
+    });
+
+    await logOutboxAudit("OUTBOX_REQUEUE", {
+      entityId: id,
+      resetAttempts,
     });
 
     return { success: true as const };
@@ -249,6 +271,10 @@ export const unlockIntegrationOutboxEvent = authorizedAction(
       },
     });
 
+    await logOutboxAudit("OUTBOX_UNLOCK", {
+      entityId: id,
+    });
+
     return { success: true as const };
   }
 );
@@ -266,6 +292,11 @@ export const forceDeadIntegrationOutboxEvent = authorizedAction(
         nextAttemptAt: null,
         lastError: reason?.trim() ? reason.trim() : undefined,
       },
+    });
+
+    await logOutboxAudit("OUTBOX_MARK_DEAD", {
+      entityId: id,
+      reason: reason?.trim() ? reason.trim() : undefined,
     });
 
     return { success: true as const };
@@ -305,6 +336,13 @@ export const bulkUnlockStuckIntegrationOutboxEvents = authorizedAction(
         lockedBy: null,
         nextAttemptAt: null,
       },
+    });
+
+    await logOutboxAudit("OUTBOX_BULK_UNLOCK", {
+      topic: input?.topic ?? null,
+      type: input?.type ?? null,
+      lockTimeoutMs,
+      count: result.count,
     });
 
     return { success: true as const, count: result.count };
@@ -359,6 +397,15 @@ export const bulkRequeueIntegrationOutboxEvents = authorizedAction(
       },
     });
 
+    await logOutboxAudit("OUTBOX_BULK_REQUEUE", {
+      fromStatus: input.fromStatus,
+      resetAttempts,
+      topic: input.topic ?? null,
+      type: input.type ?? null,
+      lastErrorExact: input.lastErrorExact ?? null,
+      count: result.count,
+    });
+
     return { success: true as const, count: result.count };
   }
 );
@@ -401,6 +448,14 @@ export const bulkForceDeadIntegrationOutboxEvents = authorizedAction(
         nextAttemptAt: null,
         lastError: reason ? reason : undefined,
       },
+    });
+
+    await logOutboxAudit("OUTBOX_BULK_DEAD", {
+      topic: input.topic ?? null,
+      type: input.type ?? null,
+      lastErrorExact: input.lastErrorExact ?? null,
+      reason: reason ?? null,
+      count: result.count,
     });
 
     return { success: true as const, count: result.count };

@@ -48,6 +48,7 @@ model User {
   posSessions POSSession[]
   heldOrders  HeldOrder[]
   reportLogs  ReportLog[]
+  auditLogs   AuditLog[]
   aiSessions  AISession[]
   aiUsages    AIUsage[]
 
@@ -73,6 +74,21 @@ model Role {
   users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
 
 model File {
