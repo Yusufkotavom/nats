@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import {
   getSalesOrdersForReturn,
   getSalesInvoicesForReturn,
@@ -27,12 +29,8 @@ export default async function NewSalesReturnPage() {
   return (
     <SalesReturnForm
       customers={customers.data}
-      salesOrders={SuperJSON.deserialize(
-        salesOrders as unknown as SuperJSONResult,
-      )}
-      salesInvoices={SuperJSON.deserialize(
-        salesInvoices as unknown as SuperJSONResult,
-      )}
+      salesOrders={salesOrders}
+      salesInvoices={salesInvoices}
       departments={departments}
       projects={projects}
     />

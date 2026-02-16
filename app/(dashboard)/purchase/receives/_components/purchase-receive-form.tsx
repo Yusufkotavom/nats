@@ -90,8 +90,8 @@ interface PurchaseReceiveFormProps {
   vendors: Awaited<ReturnType<typeof getContacts>>["data"];
   departments: Department[];
   projects: Project[];
-  products: SuperJSONResult;
-  purchaseOrders: SuperJSONResult;
+  products: SuperJSONResult | any[];
+  purchaseOrders: SuperJSONResult | any[];
   readonly?: boolean;
 }
 
@@ -107,11 +107,16 @@ export function PurchaseReceiveForm({
   const receive = serializedReceive
     ? SuperJSON.deserialize<PurchaseReceiveWithDetails>(serializedReceive)
     : undefined;
-  const products =
-    SuperJSON.deserialize<ProductForSelect[]>(serializedProducts);
-  const purchaseOrders = SuperJSON.deserialize<PurchaseOrderForSelect[]>(
-    serializedPurchaseOrders,
-  );
+  const products = Array.isArray(serializedProducts)
+    ? []
+    : SuperJSON.deserialize<ProductForSelect[]>(
+      serializedProducts as SuperJSONResult,
+    );
+  const purchaseOrders = Array.isArray(serializedPurchaseOrders)
+    ? []
+    : SuperJSON.deserialize<PurchaseOrderForSelect[]>(
+      serializedPurchaseOrders as SuperJSONResult,
+    );
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);

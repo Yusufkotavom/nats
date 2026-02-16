@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Metadata } from "next"
 import { getTaxRates } from "./actions"
 import { TaxRatesView } from "./_components/tax-rates-view"

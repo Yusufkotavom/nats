@@ -83,7 +83,7 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
     if (!reason) return;
 
     startTransition(async () => {
-      const result = await rejectMovement(batch.id, reason);
+      const result = await rejectMovement({ movementId: batch.id, reason });
       if (!result.success) {
         await alert({ title: "Error", description: result.error });
       } else {

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PageListLayout, PageListHeader, PageListTitle, PageListContent } from "@/components/layout/page/list-layout";
 import { getAISettings } from "./actions";
 import { AISettingsForm } from "./_components/ai-settings-form";

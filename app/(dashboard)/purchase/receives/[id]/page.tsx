@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { PurchaseReceiveForm } from "../_components/purchase-receive-form";
 import {

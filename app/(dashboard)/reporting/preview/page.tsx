@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { ReportPreview } from "../_components/report-preview";
 import { Loader2 } from "lucide-react";
@@ -21,7 +23,7 @@ async function PreviewContent({
 }) {
   const params = await searchParams;
   const code = params.code as string;
-  
+
   if (!code) {
     return <div>Missing report code</div>;
   }

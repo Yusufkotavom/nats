@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getPurchaseOrder } from "../../actions";
 import { PurchaseOrderForm } from "../../_components/purchase-order-form";
 import { notFound } from "next/navigation";

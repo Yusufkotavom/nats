@@ -1,4 +1,6 @@
 
+export const dynamic = "force-dynamic";
+
 import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 import { getAccounts } from "@/app/(dashboard)/budgeting/actions";
 import { BudgetForm } from "@/components/budgeting/budget-form";

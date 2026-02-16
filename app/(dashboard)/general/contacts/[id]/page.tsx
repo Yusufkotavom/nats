@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { getContact } from "../actions";
 import { ContactDetailView } from "./_components/contact-detail-view";

@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { getPurchaseOrders, deletePurchaseOrder } from "./actions";
 import { Protect } from "@/components/ui/protect";
@@ -17,6 +18,7 @@ import { PurchaseOrderFilters } from "./_components/purchase-order-filters";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { PurchaseOrderWithDetails } from "./types";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
@@ -65,9 +67,11 @@ export default function PurchaseOrdersPage() {
         endDate || undefined
       );
       return {
-        orders: SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
-          result.orders
-        ),
+        orders: Array.isArray(result.orders)
+          ? []
+          : (SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
+            result.orders as SuperJSONResult,
+          ) as PurchaseOrderWithDetails[]),
         total: result.total,
         totalPages: result.totalPages,
       };

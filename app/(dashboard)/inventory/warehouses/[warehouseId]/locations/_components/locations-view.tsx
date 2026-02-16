@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { SuperJSON } from "@/lib/superjson";
 import { Warehouse } from "@/prisma/generated/prisma/browser";
+import { SuperJSONResult } from "superjson";
 
 interface LocationsViewProps {
   warehouseId: string;
@@ -22,7 +23,7 @@ export function LocationsView({ warehouseId }: LocationsViewProps) {
   });
 
   const warehouse = warehouseData
-    ? SuperJSON.deserialize<Warehouse>(warehouseData)
+    ? SuperJSON.deserialize<Warehouse>(warehouseData as SuperJSONResult)
     : null;
 
   return (

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getPurchasePayment } from "../actions";
 import { PurchasePaymentForm } from "../_components/purchase-payment-form";
 import { notFound } from "next/navigation";

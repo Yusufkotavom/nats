@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Metadata } from "next";
 import { SalesPaymentForm } from "../_components/sales-payment-form";
 import { getDepartments, getProjects } from "@/app/(dashboard)/accounting/journal-entries/actions";

@@ -2,13 +2,15 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const secretKey = process.env.SESSION_SECRET || "default-secret-key-change-me";
+const DEFAULT_SECRET = "default-secret-key-change-me";
 
-if (process.env.NODE_ENV === "production" && secretKey === "default-secret-key-change-me") {
-  throw new Error("FATAL: SESSION_SECRET is not set in production environment!");
+function getSecretKey(): Uint8Array {
+  const secret = process.env.SESSION_SECRET || DEFAULT_SECRET;
+  if (process.env.NODE_ENV === "production" && secret === DEFAULT_SECRET) {
+    throw new Error("FATAL: SESSION_SECRET is not set in production environment!");
+  }
+  return new TextEncoder().encode(secret);
 }
-
-const key = new TextEncoder().encode(secretKey);
 
 export type SessionPayload = {
   userId: string;
@@ -23,12 +25,12 @@ export async function encrypt(payload: SessionPayload) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(key);
+    .sign(getSecretKey());
 }
 
 export async function decrypt(session: string | undefined = "") {
   try {
-    const { payload } = await jwtVerify(session, key, {
+    const { payload } = await jwtVerify(session, getSecretKey(), {
       algorithms: ["HS256"],
     });
     return payload as unknown as SessionPayload;

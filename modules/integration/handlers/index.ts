@@ -14,6 +14,7 @@ import {
 import { handlePurchaseInvoiceBilled } from "./purchase-invoice-billed";
 import { handlePurchasePaymentPostedAccounting, handlePurchasePaymentPostedCashBank } from "./purchase-payment-posted";
 import { handleSalesPaymentPostedAccounting, handleSalesPaymentPostedCashBank } from "./sales-payment-posted";
+import { salesOrderCreatedHandler } from "./sales-order-created";
 
 export const integrationHandlers = {
   SALES_INVOICE_ISSUED: [
@@ -78,6 +79,7 @@ export const integrationHandlers = {
       handle: handleCashTransactionCreateRequestedCashBank,
     },
   ],
+  SALES_ORDER_CREATED: [salesOrderCreatedHandler],
 } as const;
 
 export type IntegrationHandlerType = keyof typeof integrationHandlers;

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Metadata } from "next";
 import { getFiles } from "./actions";
 import { FilesView } from "./_components/files-view";

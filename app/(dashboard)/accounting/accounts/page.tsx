@@ -23,6 +23,7 @@ import {
   CalculatorIcon,
 } from "lucide-react";
 import { updateAccount, deleteAccount, getAccounts } from "./actions";
+export const dynamic = "force-dynamic";
 import { AccountDialog } from "./_components/account-dialog";
 import { Protect } from "@/components/ui/protect";
 import {

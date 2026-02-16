@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getProjects } from "../actions";
 import { CreateProjectForm } from "@/components/general/project-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

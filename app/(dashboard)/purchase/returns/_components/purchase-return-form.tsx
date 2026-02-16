@@ -49,8 +49,8 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 interface PurchaseReturnFormProps {
   returnItem?: SuperJSONResult;
   vendors: { id: string; name: string }[];
-  purchaseOrders: SuperJSONResult;
-  purchaseInvoices: SuperJSONResult;
+  purchaseOrders: SuperJSONResult | any[];
+  purchaseInvoices: SuperJSONResult | any[];
   departments?: Department[];
   projects?: Project[];
   readonly?: boolean;
@@ -75,16 +75,20 @@ export function PurchaseReturnForm({
 
   const purchaseOrders = useMemo(
     () =>
-      SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
-        serializedPurchaseOrders,
-      ),
+      Array.isArray(serializedPurchaseOrders)
+        ? []
+        : SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
+          serializedPurchaseOrders as SuperJSONResult,
+        ),
     [serializedPurchaseOrders],
   );
   const purchaseInvoices = useMemo(
     () =>
-      SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(
-        serializedPurchaseInvoices,
-      ),
+      Array.isArray(serializedPurchaseInvoices)
+        ? []
+        : SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(
+          serializedPurchaseInvoices as SuperJSONResult,
+        ),
     [serializedPurchaseInvoices],
   );
 

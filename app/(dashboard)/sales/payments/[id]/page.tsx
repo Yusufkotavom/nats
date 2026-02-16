@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getSalesPayment } from "../actions";
 import { SalesPaymentForm } from "../_components/sales-payment-form";
 import { notFound } from "next/navigation";

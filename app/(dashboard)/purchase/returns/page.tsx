@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { getPurchaseReturns, deletePurchaseReturn } from "./actions";
 import { Protect } from "@/components/ui/protect";
@@ -17,6 +18,7 @@ import { PurchaseReturnFilters } from "./_components/purchase-return-filters";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { PurchaseReturnWithDetails } from "./types";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
@@ -45,9 +47,11 @@ export default function PurchaseReturnsPage() {
     queryFn: async () => {
       const result = await getPurchaseReturns(page, 10, search);
       return {
-        returns: SuperJSON.deserialize<PurchaseReturnWithDetails[]>(
-          result.returns,
-        ),
+        returns: Array.isArray(result.returns)
+          ? []
+          : (SuperJSON.deserialize<PurchaseReturnWithDetails[]>(
+            result.returns as SuperJSONResult,
+          ) as PurchaseReturnWithDetails[]),
         total: result.total,
         totalPages: result.totalPages,
       };

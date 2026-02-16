@@ -250,7 +250,7 @@ export const approveMovement = authorizedAction(
 
 export const rejectMovement = authorizedAction(
   "inventory_movements.create",
-  async (movementId: string, reason: string) => {
+  async ({ movementId, reason }: { movementId: string; reason: string }) => {
     const session = await getSession();
     if (!session) throw new Error("Unauthorized");
 

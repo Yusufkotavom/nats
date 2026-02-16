@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 
 import { getBudgets } from "@/app/(dashboard)/budgeting/actions";
 import { Button } from "@/components/ui/button";
@@ -62,8 +63,8 @@ export default async function BudgetsListPage() {
                     <TableCell>
                       <Badge variant={
                         budget.status === "APPROVED" ? "default" :
-                        budget.status === "REJECTED" ? "destructive" :
-                        budget.status === "PENDING_APPROVAL" ? "secondary" : "outline"
+                          budget.status === "REJECTED" ? "destructive" :
+                            budget.status === "PENDING_APPROVAL" ? "secondary" : "outline"
                       }>
                         {budget.status}
                       </Badge>

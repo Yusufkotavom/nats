@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { AccountDetailsView } from "../_components/cash-account-details-view";
 
 interface PageProps {

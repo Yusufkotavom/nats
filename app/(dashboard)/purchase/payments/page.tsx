@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { Button } from "@/components/ui/button";
 import { Plus, MoreHorizontal, Trash2, Eye, BookOpen } from "lucide-react";
@@ -21,6 +22,7 @@ import { PurchasePaymentFilters } from "./_components/purchase-payment-filters";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { PurchasePaymentWithDetails } from "./types";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -50,9 +52,11 @@ export default function PurchasePaymentsPage() {
     queryFn: async () => {
       const result = await getPurchasePayments(page, 10, search);
       return {
-        payments: SuperJSON.deserialize<PurchasePaymentWithDetails[]>(
-          result.payments,
-        ),
+        payments: Array.isArray(result.payments)
+          ? []
+          : (SuperJSON.deserialize<PurchasePaymentWithDetails[]>(
+            result.payments as SuperJSONResult,
+          ) as PurchasePaymentWithDetails[]),
         total: result.total,
         totalPages: result.totalPages,
       };

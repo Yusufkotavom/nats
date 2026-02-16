@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { getMovementBatchById } from "../actions";
 import { notFound, useParams } from "next/navigation";

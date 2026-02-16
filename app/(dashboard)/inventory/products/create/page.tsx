@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getCategories } from "../actions";
 import { getUnits } from "../../uom/actions";
 import { getTaxRates } from "@/app/(dashboard)/accounting/configuration/taxes/actions";

@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import {
 } from "@tanstack/react-query";
 import { ProductFormData } from "../types";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 export default function ProductsPage() {
@@ -66,9 +68,11 @@ export default function ProductsPage() {
         totalPages,
       } = await getProducts(page, pageSize, search || undefined, categoryId);
       return {
-        products: SuperJSON.deserialize(
-          serializedProducts,
-        ) as ProductFormData[],
+        products: Array.isArray(serializedProducts)
+          ? []
+          : (SuperJSON.deserialize(
+            serializedProducts as SuperJSONResult,
+          ) as ProductFormData[]),
         total,
         totalPages,
       };

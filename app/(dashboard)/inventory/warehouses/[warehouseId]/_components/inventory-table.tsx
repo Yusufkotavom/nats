@@ -14,6 +14,7 @@ import { DataTable, Column } from "@/components/ui/data-table";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { getWarehouseInventory } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
 type InventoryWithProduct = Prisma.InventoryGetPayload<{
   include: {
@@ -69,7 +70,11 @@ export function InventoryTable({
 
   const inventoryData = data?.inventory;
   const inventory = inventoryData
-    ? SuperJSON.deserialize<InventoryWithProduct[]>(inventoryData)
+    ? Array.isArray(inventoryData)
+      ? []
+      : (SuperJSON.deserialize<InventoryWithProduct[]>(
+        inventoryData as SuperJSONResult,
+      ) as InventoryWithProduct[])
     : [];
   const totalEntries = data?.total || 0;
 

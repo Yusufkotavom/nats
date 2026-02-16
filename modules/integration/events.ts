@@ -107,6 +107,17 @@ export const cashTransactionCreateRequestedPayloadSchema = z.object({
   userId: z.string().min(1),
 });
 
+export const salesOrderCreatedPayloadSchema = z.object({
+  salesOrderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  totalAmount: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type SalesOrderCreatedPayload = z.infer<
+  typeof salesOrderCreatedPayloadSchema
+>;
+
 export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("SALES_INVOICE_ISSUED"),
@@ -135,6 +146,10 @@ export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("CASH_TRANSACTION_CREATE_REQUESTED"),
     payload: cashTransactionCreateRequestedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("SALES_ORDER_CREATED"),
+    payload: salesOrderCreatedPayloadSchema,
   }),
 ]);
 

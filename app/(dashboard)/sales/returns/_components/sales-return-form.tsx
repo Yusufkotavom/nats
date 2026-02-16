@@ -49,8 +49,8 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 interface SalesReturnFormProps {
     returnItem?: SuperJSONResult;
     customers: { id: string; name: string }[];
-    salesOrders: SuperJSONResult;
-    salesInvoices: SuperJSONResult;
+    salesOrders: SuperJSONResult | any[];
+    salesInvoices: SuperJSONResult | any[];
     departments?: Department[];
     projects?: Project[];
     readonly?: boolean;
@@ -85,16 +85,20 @@ export function SalesReturnForm({
 
     const salesOrders = useMemo(
         () =>
-            SuperJSON.deserialize<SalesOrderWithDetails[]>(
-                serializedSalesOrders,
-            ),
+            Array.isArray(serializedSalesOrders)
+                ? []
+                : SuperJSON.deserialize<SalesOrderWithDetails[]>(
+                    serializedSalesOrders as SuperJSONResult,
+                ),
         [serializedSalesOrders],
     );
     const salesInvoices = useMemo(
         () =>
-            SuperJSON.deserialize<SalesInvoiceWithDetails[]>(
-                serializedSalesInvoices,
-            ),
+            Array.isArray(serializedSalesInvoices)
+                ? []
+                : SuperJSON.deserialize<SalesInvoiceWithDetails[]>(
+                    serializedSalesInvoices as SuperJSONResult,
+                ),
         [serializedSalesInvoices],
     );
 

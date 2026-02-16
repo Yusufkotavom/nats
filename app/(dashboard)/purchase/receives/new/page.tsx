@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PurchaseReceiveForm } from "../_components/purchase-receive-form";
 import { getProducts, getPurchaseOrdersForSelect } from "../actions";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";

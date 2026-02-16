@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { PurchaseOrderForm } from "../_components/purchase-order-form";
@@ -13,9 +15,9 @@ export default async function Page() {
   ]);
 
   return (
-    <PurchaseOrderForm 
-      vendors={vendors.data} 
-      products={products.products} 
+    <PurchaseOrderForm
+      vendors={vendors.data}
+      products={products.products}
       departments={departments}
       projects={projects}
     />

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getPOSSessions } from "@/app/pos/actions";
 import { POSSessionsTable } from "./_components/pos-sessions-table";
 import { Button } from "@/components/ui/button";

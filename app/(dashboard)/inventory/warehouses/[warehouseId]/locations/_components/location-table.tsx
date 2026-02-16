@@ -14,6 +14,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { LocationDialog } from "./location-dialog";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
 interface LocationTableProps {
   warehouseId: string;
@@ -33,7 +34,9 @@ export function LocationTable({ warehouseId }: LocationTableProps) {
 
   const locationsData = data?.locations;
   const locations = locationsData
-    ? SuperJSON.deserialize<Location[]>(locationsData)
+    ? Array.isArray(locationsData)
+      ? []
+      : (SuperJSON.deserialize<Location[]>(locationsData as SuperJSONResult) as Location[])
     : [];
   const totalEntries = data?.total || 0;
 

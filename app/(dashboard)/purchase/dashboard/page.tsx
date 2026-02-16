@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import {
   HydrationBoundary,
   QueryClient,
@@ -22,11 +24,11 @@ export default async function PurchaseDashboardPage() {
         return res.success
           ? res.data
           : {
-              totalOrders: 0,
-              totalPurchases: 0,
-              totalPaid: 0,
-              outstandingAmount: 0,
-            };
+            totalOrders: 0,
+            totalPurchases: 0,
+            totalPaid: 0,
+            outstandingAmount: 0,
+          };
       },
     }),
     queryClient.prefetchQuery({

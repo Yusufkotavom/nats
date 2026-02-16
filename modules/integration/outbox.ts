@@ -199,7 +199,8 @@ export async function processIntegrationOutboxEvent(outboxId: string) {
           return;
         }
 
-        await handler.handle(tx, outbox.payload);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await handler.handle(tx, outbox.payload as any);
 
         await tx.integrationInbox.create({
           data: { consumer: handler.consumer, outboxId: outbox.id },

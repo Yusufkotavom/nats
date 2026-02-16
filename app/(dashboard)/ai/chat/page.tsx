@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PageListLayout, PageListHeader, PageListTitle, PageListContent } from "@/components/layout/page/list-layout";
 import { ChatInterface } from "./_components/chat-interface";
 import { verifySession } from "@/lib/auth/auth";

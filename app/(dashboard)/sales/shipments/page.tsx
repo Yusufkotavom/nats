@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { getSalesShipments, deleteSalesShipment } from "./actions";
 import { Protect } from "@/components/ui/protect";
@@ -17,6 +18,7 @@ import { SalesShipmentFilters } from "./_components/sales-shipment-filters";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { SalesShipmentWithDetails } from "./types";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
@@ -44,9 +46,11 @@ export default function SalesShipmentsPage() {
     queryFn: async () => {
       const result = await getSalesShipments(page, 10, search);
       return {
-        shipments: SuperJSON.deserialize<SalesShipmentWithDetails[]>(
-          result.shipments
-        ),
+        shipments: Array.isArray(result.shipments)
+          ? []
+          : (SuperJSON.deserialize<SalesShipmentWithDetails[]>(
+            result.shipments as SuperJSONResult,
+          ) as SalesShipmentWithDetails[]),
         total: result.total,
         totalPages: result.totalPages,
       };

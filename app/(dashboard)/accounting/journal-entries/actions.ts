@@ -406,3 +406,28 @@ export async function postJournalEntry(id: string) {
     };
   }
 }
+
+export async function getDepartments() {
+  try {
+    const departments = await prisma.department.findMany({
+      orderBy: { name: "asc" },
+    });
+    return departments;
+  } catch (error) {
+    console.error("Failed to fetch departments:", error);
+    return [];
+  }
+}
+
+export async function getProjects() {
+  try {
+    const projects = await prisma.project.findMany({
+      where: { status: "ACTIVE" },
+      orderBy: { name: "asc" },
+    });
+    return projects;
+  } catch (error) {
+    console.error("Failed to fetch projects:", error);
+    return [];
+  }
+}

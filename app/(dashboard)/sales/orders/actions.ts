@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth/auth";
 import { SalesOrderInput } from "./types";
 import { SuperJSON } from "@/lib/superjson";
 import { hasPermission } from "@/lib/permissions/utils";
+import { SalesOrderService } from "@/modules/sales/services/sales-order.service";
 
 export async function getSalesOrders(
   page: number = 1,
@@ -157,52 +158,9 @@ export const createSalesOrder = authorizedAction(
   async (data: SalesOrderInput) => {
     try {
       const session = await getSession();
-      // Generate temporary draft number
-      const orderNumber = `DRAFT-${Date.now()}`;
+      if (!session) throw new Error("Unauthorized");
 
-      // Calculate totals
-      let totalAmount = 0;
-      const taxAmount = 0;
-      const discountAmount = 0;
-      let subtotal = 0;
-
-      data.items.forEach((item) => {
-        const lineTotal = item.quantity * item.unitPrice;
-        subtotal += lineTotal;
-        totalAmount += lineTotal; // Simplified for now, add tax logic later if needed in item level
-      });
-
-      const result = await prisma.salesOrder.create({
-        data: {
-          orderNumber,
-          contactId: data.contactId,
-          orderDate: data.orderDate,
-          expectedDate: data.expectedDate,
-          notes: data.notes,
-          status: "DRAFT",
-          totalAmount,
-          subtotal,
-          taxAmount,
-          discountAmount,
-          departmentId: data.departmentId,
-          projectId: data.projectId,
-          createdById: session?.userId,
-          items: {
-            create: data.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice: item.quantity * item.unitPrice,
-            })),
-          },
-          attachments: {
-            connect: data.attachmentIds?.map((id) => ({ id })) || [],
-          },
-        },
-        include: {
-          items: true,
-        },
-      });
+      const result = await SalesOrderService.create(data, session.userId);
 
       revalidatePath("/sales/orders");
       return { success: true, data: SuperJSON.serialize(result) };

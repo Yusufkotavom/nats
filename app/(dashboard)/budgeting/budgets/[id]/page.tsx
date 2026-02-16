@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 
 import { getBudgetById, getBudgetVariance } from "@/app/(dashboard)/budgeting/actions";
 import { BudgetItemsTable } from "@/components/budgeting/budget-items-table";

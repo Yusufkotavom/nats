@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { DefaultAccountsView } from "./_components/default-accounts-view"
 import { getAccounts, getDefaultAccounts } from "./actions"
 

@@ -1,4 +1,5 @@
-"use client"
+"use client";
+export const dynamic = "force-dynamic";
 
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
@@ -85,7 +86,7 @@ export default function TaxSummaryPage() {
 
         {report && (
           <div className="space-y-6">
-             <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -138,7 +139,7 @@ export default function TaxSummaryPage() {
                 </TableHeader>
                 <TableBody>
                   {report.length === 0 && (
-                     <TableRow>
+                    <TableRow>
                       <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                         No tax data found for this period.
                       </TableCell>
@@ -156,7 +157,7 @@ export default function TaxSummaryPage() {
                     </TableRow>
                   ))}
                   {report.length > 0 && (
-                     <TableRow className="bg-muted/50 font-bold">
+                    <TableRow className="bg-muted/50 font-bold">
                       <TableCell colSpan={2}>Total</TableCell>
                       <TableCell className="text-right">{formatCurrency(report.reduce((s, i) => s + i.outputBase, 0))}</TableCell>
                       <TableCell className="text-right">{formatCurrency(totalOutputTax)}</TableCell>

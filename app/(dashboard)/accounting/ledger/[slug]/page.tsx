@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getAccountById } from "../actions";
 import LedgerClientPage from "../client-page";
 import { notFound } from "next/navigation";

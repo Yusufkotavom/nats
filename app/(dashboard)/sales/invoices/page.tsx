@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -17,6 +18,7 @@ import { SalesInvoiceFilters } from "./_components/sales-invoice-filters";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { SalesInvoiceWithDetails } from "./types";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
@@ -51,9 +53,11 @@ export default function SalesInvoicesPage() {
     queryFn: async () => {
       const result = await getSalesInvoices(page, 10, search, status);
       return {
-        invoices: SuperJSON.deserialize<SalesInvoiceWithDetails[]>(
-          result.invoices,
-        ),
+        invoices: Array.isArray(result.invoices)
+          ? []
+          : (SuperJSON.deserialize<SalesInvoiceWithDetails[]>(
+            result.invoices as SuperJSONResult,
+          ) as SalesInvoiceWithDetails[]),
         total: result.total,
         totalPages: result.totalPages,
       };
@@ -73,22 +77,22 @@ export default function SalesInvoicesPage() {
         variant: "destructive",
       })
     ) {
-        startTransition(async () => {
-            try {
-              await deleteSalesInvoice(id);
-              queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
-              toast({
-                title: "Success",
-                description: "Sales invoice deleted successfully",
-              });
-            } catch (error) {
-              toast({
-                title: "Error",
-                description: "Failed to delete sales invoice",
-                variant: "destructive",
-              });
-            }
+      startTransition(async () => {
+        try {
+          await deleteSalesInvoice(id);
+          queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
+          toast({
+            title: "Success",
+            description: "Sales invoice deleted successfully",
           });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to delete sales invoice",
+            variant: "destructive",
+          });
+        }
+      });
     }
   };
 

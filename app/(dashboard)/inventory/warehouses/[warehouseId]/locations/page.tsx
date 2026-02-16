@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getLocations, getWarehouse } from "./actions";
 import { LocationsView } from "./_components/locations-view";
 import {

@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "../../products/actions";
@@ -6,6 +7,7 @@ import { getWarehouses } from "../../warehouses/actions";
 import { BatchMovementForm } from "../_components/batch-movement-form";
 import { SuperJSON } from "@/lib/superjson";
 import { Product, Warehouse } from "@/prisma/generated/prisma/browser";
+import { SuperJSONResult } from "superjson";
 
 export default function CreateMovementPage() {
   const { data: productsData, isLoading: isProductsLoading } = useQuery({
@@ -23,10 +25,10 @@ export default function CreateMovementPage() {
   }
 
   const products = productsData?.products
-    ? SuperJSON.deserialize<Product[]>(productsData.products)
+    ? SuperJSON.deserialize<Product[]>(productsData.products as SuperJSONResult)
     : [];
   const warehouses = warehousesData?.warehouses
-    ? SuperJSON.deserialize<Warehouse[]>(warehousesData.warehouses)
+    ? SuperJSON.deserialize<Warehouse[]>(warehousesData.warehouses as SuperJSONResult)
     : [];
 
   // Convert Decimals to numbers for client component

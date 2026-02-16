@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { BeginningBalanceForm } from "./_components/beginning-balance-form";
 
 export const metadata = {

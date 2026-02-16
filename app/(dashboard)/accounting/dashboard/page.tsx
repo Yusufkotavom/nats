@@ -3,6 +3,8 @@ import {
   QueryClient,
   dehydrate,
 } from "@tanstack/react-query";
+export const dynamic = "force-dynamic";
+
 import { DashboardView } from "./_components/dashboard-view";
 import {
   getDashboardSummary,
@@ -23,12 +25,12 @@ export default async function AccountingDashboardPage() {
         return res.success
           ? res.data
           : {
-              totalRevenue: 0,
-              totalExpenses: 0,
-              netIncome: 0,
-              accountsReceivable: 0,
-              accountsPayable: 0,
-            };
+            totalRevenue: 0,
+            totalExpenses: 0,
+            netIncome: 0,
+            accountsReceivable: 0,
+            accountsPayable: 0,
+          };
       },
     }),
     queryClient.prefetchQuery({

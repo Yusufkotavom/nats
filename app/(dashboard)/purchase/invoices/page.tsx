@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -17,6 +18,7 @@ import { PurchaseInvoiceFilters } from "./_components/purchase-invoice-filters";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { PurchaseInvoiceWithDetails } from "./types";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
@@ -45,9 +47,11 @@ export default function PurchaseInvoicesPage() {
     queryFn: async () => {
       const result = await getPurchaseInvoices(page, 10, search, status);
       return {
-        invoices: SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(
-          result.invoices,
-        ),
+        invoices: Array.isArray(result.invoices)
+          ? []
+          : (SuperJSON.deserialize<PurchaseInvoiceWithDetails[]>(
+            result.invoices as SuperJSONResult,
+          ) as PurchaseInvoiceWithDetails[]),
         total: result.total,
         totalPages: result.totalPages,
       };

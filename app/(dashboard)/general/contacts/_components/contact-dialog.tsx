@@ -61,6 +61,8 @@ export function ContactDialog({
           address: address || "",
           type,
           isActive,
+          taxId: "",
+          taxExempt: false,
         });
       }
       onOpenChange(false);

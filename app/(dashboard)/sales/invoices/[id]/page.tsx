@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { SalesInvoiceForm } from "../_components/sales-invoice-form";
 import { Metadata } from "next";
 import { getSalesOrdersForSelect, getSalesInvoice } from "../actions";
@@ -18,7 +20,7 @@ interface PageProps {
 
 export default async function ViewSalesInvoicePage({ params }: PageProps) {
   const { id } = await params;
-  
+
   const [customers, salesOrders, invoice, departments, projects, taxRates] = await Promise.all([
     getContacts({ type: ContactType.CUSTOMER }),
     getSalesOrdersForSelect(),

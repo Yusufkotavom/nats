@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ export default function JournalEntryPage() {
       } else {
         alert({
           title: "Error",
-          description: res.error,
+          description: "error" in res ? res.error : "Unknown error",
         });
       }
     },
@@ -123,7 +124,7 @@ export default function JournalEntryPage() {
       } else {
         alert({
           title: "Error",
-          description: res.error,
+          description: "error" in res ? res.error : "Unknown error",
         });
       }
     },

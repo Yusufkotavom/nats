@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
 import { TransactionForm } from "../_components/transaction-form";
 import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";

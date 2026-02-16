@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PurchaseInvoiceForm } from "../_components/purchase-invoice-form";
 import { Metadata } from "next";
 import { getPurchaseOrdersForSelect } from "../actions";

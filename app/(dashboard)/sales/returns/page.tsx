@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { getSalesReturns, deleteSalesReturn } from "./actions";
 import { Protect } from "@/components/ui/protect";
@@ -51,9 +52,11 @@ export default function SalesReturnsPage() {
     queryFn: async () => {
       const result = await getSalesReturns(page, 10, search);
       return {
-        returns: SuperJSON.deserialize<SalesReturnWithDetails[]>(
-          result.returns as unknown as SuperJSONResult,
-        ),
+        returns: Array.isArray(result.returns)
+          ? []
+          : (SuperJSON.deserialize<SalesReturnWithDetails[]>(
+            result.returns as SuperJSONResult,
+          ) as SalesReturnWithDetails[]),
         total: result.total,
         totalPages: result.totalPages,
       };

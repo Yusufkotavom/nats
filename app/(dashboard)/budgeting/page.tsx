@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import { getBudgets } from "./actions";
@@ -85,8 +86,8 @@ export default async function BudgetingPage() {
                     <TableCell>
                       <Badge variant={
                         budget.status === "APPROVED" ? "default" :
-                        budget.status === "REJECTED" ? "destructive" :
-                        budget.status === "PENDING_APPROVAL" ? "secondary" : "outline"
+                          budget.status === "REJECTED" ? "destructive" :
+                            budget.status === "PENDING_APPROVAL" ? "secondary" : "outline"
                       }>
                         {budget.status}
                       </Badge>

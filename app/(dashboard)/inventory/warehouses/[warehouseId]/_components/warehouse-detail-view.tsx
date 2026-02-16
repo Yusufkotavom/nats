@@ -6,6 +6,7 @@ import { InventoryTable } from "./inventory-table";
 import { notFound } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
 import { Warehouse, Category } from "@/prisma/generated/prisma/browser";
+import { SuperJSONResult } from "superjson";
 
 interface WarehouseDetailViewProps {
   warehouseId: string;
@@ -27,7 +28,11 @@ export function WarehouseDetailView({ warehouseId }: WarehouseDetailViewProps) {
   });
 
   const categories = categoriesData
-    ? SuperJSON.deserialize<Category[]>(categoriesData)
+    ? Array.isArray(categoriesData)
+      ? []
+      : (SuperJSON.deserialize<Category[]>(
+        categoriesData as SuperJSONResult,
+      ) as Category[])
     : [];
 
   if (isLoading) {

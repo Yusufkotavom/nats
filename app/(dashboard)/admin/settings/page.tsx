@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { CompanySettingsForm } from "./company-settings-form";
 import { getCompanyProfile } from "./actions";
 

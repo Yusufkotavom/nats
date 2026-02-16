@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getWarehouse, getWarehouseInventory, getCategories } from "./actions";
 import { WarehouseDetailView } from "./_components/warehouse-detail-view";
 import {
@@ -28,7 +30,7 @@ export default async function Page({
 
   const warehouse = await getWarehouse(warehouseId);
 
-  if (!warehouse.json) {
+  if (!warehouse?.json) {
     notFound();
   }
 

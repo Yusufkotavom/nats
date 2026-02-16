@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { SalesShipmentForm } from "../_components/sales-shipment-form";
 import { getContacts } from "@/app/(dashboard)/general/contacts/actions";
 import { getSalesOrdersForSelect, getSalesShipment } from "../actions";
