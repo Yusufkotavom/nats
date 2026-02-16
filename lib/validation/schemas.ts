@@ -7,6 +7,12 @@ const requiredIdSchema = z.string().cuid();
 const dateSchema = z.coerce.date();
 const decimalSchema = z.union([z.number(), z.string(), z.any()]).transform((val) => Number(val));
 const positiveDecimalSchema = decimalSchema.refine((val) => val >= 0, { message: "Must be positive" });
+export const auditLogQuerySchema = z.object({
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(50).default(20),
+  action: z.string().min(1).optional(),
+  entityId: z.string().min(1).optional(),
+});
 
 // --- Accounting ---
 export const createJournalEntryLineSchema = z.object({

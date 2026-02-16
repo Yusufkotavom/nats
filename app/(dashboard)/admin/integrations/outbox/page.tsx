@@ -29,12 +29,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate } from "@/hooks";
+import { Prisma } from "@/prisma/generated/prisma/browser";
 import {
   dispatchIntegrationOutboxBatch,
   bulkRequeueIntegrationOutboxEvents,
   bulkForceDeadIntegrationOutboxEvents,
   bulkUnlockStuckIntegrationOutboxEvents,
   forceDeadIntegrationOutboxEvent,
+  getOutboxAuditLogs,
   getIntegrationOutboxTopErrors,
   getIntegrationOutboxEventDetail,
   getIntegrationOutboxEvents,
@@ -73,6 +75,18 @@ type OutboxEvent = {
   payload: unknown;
 };
 
+type OutboxAuditLog = Prisma.AuditLogGetPayload<{
+  include: {
+    user: {
+      select: {
+        id: true;
+        name: true;
+        email: true;
+      };
+    };
+  };
+}>;
+
 function statusVariant(status: string) {
   if (status === "PROCESSED") return "default";
   if (status === "FAILED") return "destructive";
@@ -88,6 +102,8 @@ export default function IntegrationOutboxPage() {
   const confirm = useConfirm();
   const formatDate = useFormatDate();
   const [isPending, startTransition] = useTransition();
+  const [auditPage, setAuditPage] = useState(1);
+  const auditPageSize = 10;
 
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -119,6 +135,39 @@ export default function IntegrationOutboxPage() {
         events: Array.isArray(result.events) ? result.events : SuperJSON.deserialize<OutboxEvent[]>(result.events),
         total: result.total,
         totalPages: result.totalPages,
+      };
+    },
+    staleTime: 0,
+    refetchOnMount: true,
+  });
+
+  const { data: auditData, isLoading: isLoadingAudit } = useQuery({
+    queryKey: ["admin-outbox-audit", auditPage],
+    queryFn: async () => {
+      const result = await getOutboxAuditLogs({
+        page: auditPage,
+        pageSize: auditPageSize,
+      });
+      if (!result.success || !result.data) {
+        return {
+          logs: [] as OutboxAuditLog[],
+          total: 0,
+          totalPages: 0,
+          page: auditPage,
+          pageSize: auditPageSize,
+        };
+      }
+
+      const logs = Array.isArray(result.data.logs)
+        ? result.data.logs
+        : SuperJSON.deserialize<OutboxAuditLog[]>(result.data.logs);
+
+      return {
+        logs,
+        total: result.data.total,
+        totalPages: result.data.totalPages,
+        page: result.data.page,
+        pageSize: result.data.pageSize,
       };
     },
     staleTime: 0,
@@ -491,6 +540,59 @@ export default function IntegrationOutboxPage() {
     },
   ];
 
+  const auditColumns: Column<OutboxAuditLog>[] = [
+    {
+      header: "Action",
+      cell: (item) => <div className="font-medium">{item.action}</div>,
+      className: "min-w-[180px]",
+    },
+    {
+      header: "User",
+      cell: (item) => (
+        <div className="min-w-[220px]">
+          <div className="font-medium">{item.user?.name ?? item.user?.email ?? item.user?.id}</div>
+          <div className="text-xs text-muted-foreground">{item.user?.email ?? item.user?.id}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Entity",
+      cell: (item) => (
+        <div className="min-w-[200px]">
+          <div className="font-medium">{item.entityType}</div>
+          <div className="text-xs text-muted-foreground">{item.entityId ?? "-"}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Time",
+      cell: (item) => (
+        <div className="w-[160px] text-sm">{formatDate(item.createdAt)}</div>
+      ),
+    },
+    {
+      header: "",
+      cell: (item) => (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            setDialog({
+              open: true,
+              title: `Audit ${item.action}`,
+              content: item.metadata ?? {},
+            })
+          }
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          View
+        </Button>
+      ),
+      className: "w-[100px]",
+    },
+  ];
+
   return (
     <PageListLayout>
       <PageListHeader>
@@ -608,6 +710,27 @@ export default function IntegrationOutboxPage() {
           </CardContent>
         </Card>
 
+      </PageListContent>
+      <PageListContent className="border-0">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle>Audit Trail</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <DataTable
+              data={auditData?.logs ?? []}
+              columns={auditColumns}
+              isLoading={isLoadingAudit}
+              emptyMessage="No audit logs yet."
+              pagination={{
+                totalEntries: auditData?.total ?? 0,
+                pageSize: auditPageSize,
+                currentPage: auditPage,
+                onPageChange: setAuditPage,
+              }}
+            />
+          </CardContent>
+        </Card>
       </PageListContent>
       <PageListContent>
 

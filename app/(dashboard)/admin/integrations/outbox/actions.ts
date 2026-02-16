@@ -5,6 +5,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { auditLogQuerySchema } from "@/lib/validation/schemas";
 import {
   dispatchPendingIntegrationEvents,
   processIntegrationOutboxEvent,
@@ -35,6 +36,67 @@ async function logOutboxAudit(action: string, metadata: Record<string, unknown>)
     });
   } catch { }
 }
+
+export const getOutboxAuditLogs = authorizedAction(
+  "integrations.outbox.view",
+  async (input?: unknown) => {
+    const parsed = auditLogQuerySchema.parse(input ?? {});
+    const where: Prisma.AuditLogWhereInput = {
+      entityType: "IntegrationOutbox",
+      AND: [],
+    };
+
+    if (parsed.action) {
+      (where.AND as Prisma.AuditLogWhereInput[]).push({
+        action: parsed.action,
+      });
+    }
+
+    if (parsed.entityId) {
+      (where.AND as Prisma.AuditLogWhereInput[]).push({
+        entityId: parsed.entityId,
+      });
+    }
+
+    const skip = (parsed.page - 1) * parsed.pageSize;
+
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: parsed.pageSize,
+        select: {
+          id: true,
+          action: true,
+          entityType: true,
+          entityId: true,
+          metadata: true,
+          createdAt: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+
+    return {
+      success: true as const,
+      data: {
+        logs: SuperJSON.serialize(logs),
+        total,
+        totalPages: Math.ceil(total / parsed.pageSize),
+        page: parsed.page,
+        pageSize: parsed.pageSize,
+      },
+    };
+  }
+);
 
 export async function getIntegrationOutboxEvents(
   page: number = 1,
