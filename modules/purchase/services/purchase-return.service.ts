@@ -1,0 +1,76 @@
+import { prisma } from "@/lib/prisma";
+import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
+import { PurchaseReturnInput } from "@/app/(dashboard)/purchase/returns/types";
+
+const INITIAL_DRAFT_STATUS = "DRAFT" as const;
+
+export class PurchaseReturnService {
+    static async create(data: PurchaseReturnInput, userId: string) {
+        await this.assertUniqueReturnNumber(data.returnNumber);
+
+        let totalAmount = 0;
+        data.items.forEach((item) => {
+            totalAmount += item.quantity * item.unitPrice;
+        });
+
+        return await prisma.$transaction(async (tx) => {
+            const result = await tx.purchaseReturn.create({
+                data: {
+                    returnNumber: data.returnNumber,
+                    contactId: data.contactId,
+                    purchaseOrderId: data.purchaseOrderId || undefined,
+                    purchaseInvoiceId: data.purchaseInvoiceId || undefined,
+                    departmentId: data.departmentId,
+                    projectId: data.projectId,
+                    returnDate: data.returnDate,
+                    reason: data.reason,
+                    notes: data.notes,
+                    status: INITIAL_DRAFT_STATUS,
+                    totalAmount,
+                    items: {
+                        create: data.items.map((item) => ({
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            unitPrice: item.unitPrice,
+                            totalPrice: item.quantity * item.unitPrice,
+                        })),
+                    },
+                    attachments: data.attachmentIds
+                        ? { connect: data.attachmentIds.map((id) => ({ id })) }
+                        : undefined,
+                },
+                include: {
+                    items: true,
+                },
+            });
+
+            await enqueueIntegrationEvent(tx, {
+                topic: "purchase",
+                type: "PURCHASE_RETURN_CREATED",
+                aggregateType: "PurchaseReturn",
+                aggregateId: result.id,
+                payload: {
+                    returnId: result.id,
+                    returnNumber: result.returnNumber,
+                    totalAmount: result.totalAmount.toString(),
+                    contactId: data.contactId,
+                    userId,
+                },
+            });
+
+            return result;
+        });
+    }
+
+    private static async assertUniqueReturnNumber(
+        returnNumber: string,
+    ): Promise<void> {
+        const existing = await prisma.purchaseReturn.findUnique({
+            where: { returnNumber },
+        });
+
+        if (existing) {
+            throw new Error("Return number already exists");
+        }
+    }
+}

@@ -135,17 +135,8 @@ export async function getSalesOrdersForSelect() {
   return SuperJSON.serialize(orders);
 }
 
-// Helper to generate Invoice Number
-async function generateInvoiceNumber() {
-  const count = await prisma.salesInvoice.count();
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `INV-${year}${month}-${sequence}`;
-}
-
 import { salesInvoiceSchema } from "@/lib/validation/schemas";
+import { SalesInvoiceService } from "@/modules/sales/services/sales-invoice.service";
 
 export const createSalesInvoice = authorizedAction(
   "sales.create",
@@ -157,115 +148,17 @@ export const createSalesInvoice = authorizedAction(
       }
       const data = parseResult.data;
 
-      // Generate Invoice Number if not provided or if auto-generated logic is preferred
-      // For now, assume user might provide it or we generate it. 
-      // Purchase module allowed user input, but Sales usually auto-generates.
-      // Let's use the provided one or generate if empty.
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
 
-      let invoiceNumber = data.invoiceNumber;
-      if (!invoiceNumber) {
-        invoiceNumber = await generateInvoiceNumber();
-      }
-
-      // Check for duplicate invoice number
-      const existing = await prisma.salesInvoice.findUnique({
-        where: {
-          invoiceNumber: invoiceNumber
-        },
-      });
-
-      if (existing) {
-        return {
-          success: false,
-          error: "Invoice number already exists",
-        };
-      }
-
-      // Fetch tax rates
-      const taxRates = await prisma.taxRate.findMany();
-
-      const itemsToCreate = data.items.map((item) => {
-        // Resolve tax rate if ID provided
-        let taxRateSnapshot: number | undefined = undefined;
-        const taxAmount = item.tax || 0;
-
-        if (item.taxRateId) {
-          const rateObj = taxRates.find(r => r.id === item.taxRateId);
-          if (rateObj) {
-            taxRateSnapshot = Number(rateObj.rate);
-            // Re-calculate tax using service to ensure consistency
-            // Note: Service expects tax amount in input for fixed tax, or rate for calculation.
-            // But here we want to calculate based on rate if present.
-          }
-        }
-
-        const calculated = CalculationService.calculateLineItem(
-          {
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-            tax: taxAmount,
-          },
-          taxRateSnapshot
-        );
-
-        return {
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: calculated.total.toNumber(), // Prisma expects number/Decimal
-          discount: item.discount,
-          tax: calculated.taxAmount.toNumber(),
-          taxRateId: item.taxRateId,
-          taxRateSnapshot: taxRateSnapshot,
-          productId: item.productId,
-          accountId: item.accountId,
-          // Internal fields for totals calculation later
-          _calculated: calculated
-        };
-      });
-
-      const totals = CalculationService.calculateInvoiceTotals(
-        itemsToCreate.map(i => i._calculated),
-        data.globalDiscount,
-        data.shippingCost
-      );
-
-      // Remove internal field before creating
-      const itemsData = itemsToCreate.map(({ _calculated, ...rest }) => rest);
-
-      const result = await prisma.salesInvoice.create({
-        data: {
-          invoiceNumber: invoiceNumber,
-          contactId: data.contactId,
-          salesOrderId: data.salesOrderId,
-          invoiceDate: data.invoiceDate,
-          dueDate: data.dueDate,
-          notes: data.notes,
-          status: "DRAFT", // Default to DRAFT
-          totalAmount: totals.totalAmount.toNumber(),
-          globalDiscount: data.globalDiscount,
-          totalTax: totals.totalTax.toNumber(),
-          shippingCost: data.shippingCost,
-          departmentId: data.departmentId,
-          projectId: data.projectId,
-          items: {
-            create: itemsData,
-          },
-          attachments: {
-            connect: data.attachmentIds?.map((id) => ({ id })) || [],
-          },
-        },
-        include: {
-          items: true,
-        },
-      });
+      const result = await SalesInvoiceService.create(data, session.userId);
 
       revalidatePath("/sales/invoices");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Invoice:", error);
-      return { success: false, error: "Failed to create Sales Invoice" };
+      const message = error instanceof Error ? error.message : "Failed to create Sales Invoice";
+      return { success: false, error: message };
     }
   },
 );

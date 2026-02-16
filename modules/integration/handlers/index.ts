@@ -15,6 +15,15 @@ import { handlePurchaseInvoiceBilled } from "./purchase-invoice-billed";
 import { handlePurchasePaymentPostedAccounting, handlePurchasePaymentPostedCashBank } from "./purchase-payment-posted";
 import { handleSalesPaymentPostedAccounting, handleSalesPaymentPostedCashBank } from "./sales-payment-posted";
 import { salesOrderCreatedHandler } from "./sales-order-created";
+import { salesInvoiceCreatedHandler } from "./sales-invoice-created";
+import { salesPaymentCreatedHandler } from "./sales-payment-created";
+import { salesReturnCreatedHandler } from "./sales-return-created";
+import { salesShipmentCreatedHandler } from "./sales-shipment-created";
+import { purchaseOrderCreatedHandler } from "./purchase-order-created";
+import { purchaseInvoiceCreatedHandler } from "./purchase-invoice-created";
+import { purchasePaymentCreatedHandler } from "./purchase-payment-created";
+import { purchaseReceiveCreatedHandler } from "./purchase-receive-created";
+import { purchaseReturnCreatedHandler } from "./purchase-return-created";
 
 export const integrationHandlers = {
   SALES_INVOICE_ISSUED: [
@@ -80,6 +89,15 @@ export const integrationHandlers = {
     },
   ],
   SALES_ORDER_CREATED: [salesOrderCreatedHandler],
+  SALES_INVOICE_CREATED: [salesInvoiceCreatedHandler],
+  SALES_PAYMENT_CREATED: [salesPaymentCreatedHandler],
+  SALES_RETURN_CREATED: [salesReturnCreatedHandler],
+  SALES_SHIPMENT_CREATED: [salesShipmentCreatedHandler],
+  PURCHASE_ORDER_CREATED: [purchaseOrderCreatedHandler],
+  PURCHASE_INVOICE_CREATED: [purchaseInvoiceCreatedHandler],
+  PURCHASE_PAYMENT_CREATED: [purchasePaymentCreatedHandler],
+  PURCHASE_RECEIVE_CREATED: [purchaseReceiveCreatedHandler],
+  PURCHASE_RETURN_CREATED: [purchaseReturnCreatedHandler],
 } as const;
 
 export type IntegrationHandlerType = keyof typeof integrationHandlers;

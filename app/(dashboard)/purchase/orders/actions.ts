@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth/auth";
 import { PurchaseOrderInput } from "./types";
 import { SuperJSON } from "@/lib/superjson";
 import { hasPermission } from "@/lib/permissions/utils";
+import { PurchaseOrderService } from "@/modules/purchase/services/purchase-order.service";
 
 export async function getPurchaseOrders(
   page: number = 1,
@@ -156,43 +157,9 @@ export const createPurchaseOrder = authorizedAction(
   async (data: PurchaseOrderInput) => {
     try {
       const session = await getSession();
-      // Generate temporary draft number
-      const orderNumber = `DRAFT-${Date.now()}`;
+      if (!session) throw new Error("Unauthorized");
 
-      // Calculate totals
-      let totalAmount = 0;
-      data.items.forEach((item) => {
-        totalAmount += item.quantity * item.unitCost;
-      });
-
-      const result = await prisma.purchaseOrder.create({
-        data: {
-          orderNumber,
-          contactId: data.contactId,
-          orderDate: data.orderDate,
-          expectedDate: data.expectedDate,
-          notes: data.notes,
-          status: "DRAFT",
-          totalAmount,
-          departmentId: data.departmentId,
-          projectId: data.projectId,
-          createdById: session?.userId,
-          items: {
-            create: data.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitCost: item.unitCost,
-              totalCost: item.quantity * item.unitCost,
-            })),
-          },
-          attachments: {
-            connect: data.attachmentIds?.map((id) => ({ id })) || [],
-          },
-        },
-        include: {
-          items: true,
-        },
-      });
+      const result = await PurchaseOrderService.create(data, session.userId);
 
       revalidatePath("/purchase/orders");
       return { success: true, data: SuperJSON.serialize(result) };

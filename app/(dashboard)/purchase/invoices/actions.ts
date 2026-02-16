@@ -17,6 +17,7 @@ import {
   enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+import { PurchaseInvoiceService } from "@/modules/purchase/services/purchase-invoice.service";
 
 type PostPurchaseInvoiceResult = {
   processed: boolean;
@@ -142,112 +143,21 @@ export const createPurchaseInvoice = authorizedAction(
   "purchase.create",
   async (rawData: PurchaseInvoiceInput) => {
     try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
+
       const parseResult = purchaseInvoiceSchema.safeParse(rawData);
       if (!parseResult.success) {
         return { success: false, error: parseResult.error.message };
       }
-      const data = parseResult.data;
 
-      // Check for duplicate invoice number for vendor
-      const existing = await prisma.purchaseInvoice.findUnique({
-        where: {
-          contactId_invoiceNumber: {
-            contactId: data.contactId,
-            invoiceNumber: data.invoiceNumber,
-          },
-        },
-      });
-
-      if (existing) {
-        return {
-          success: false,
-          error: "Invoice number already exists for this vendor",
-        };
-      }
-
-      // Fetch tax rates
-      const taxRates = await prisma.taxRate.findMany();
-
-      const itemsToCreate = data.items.map((item) => {
-        let taxRateSnapshot: number | undefined = undefined;
-        const taxAmount = item.tax || 0;
-
-        if (item.taxRateId) {
-          const rateObj = taxRates.find(r => r.id === item.taxRateId);
-          if (rateObj) {
-            taxRateSnapshot = Number(rateObj.rate);
-          }
-        }
-
-        const calculated = CalculationService.calculateLineItem(
-          {
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-            tax: taxAmount,
-          },
-          taxRateSnapshot
-        );
-
-        return {
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: calculated.total.toNumber(),
-          discount: item.discount,
-          tax: calculated.taxAmount.toNumber(),
-          taxRateId: item.taxRateId,
-          taxRateSnapshot: taxRateSnapshot,
-          productId: item.productId,
-          accountId: item.accountId,
-          purchaseOrderItemId: item.purchaseOrderItemId,
-          _calculated: calculated
-        };
-      });
-
-      const totals = CalculationService.calculateInvoiceTotals(
-        itemsToCreate.map(i => i._calculated),
-        data.globalDiscount,
-        data.shippingCost,
-        data.handlingCost
-      );
-
-      // Remove internal field before creating
-      const itemsData = itemsToCreate.map(({ _calculated, ...rest }) => rest);
-
-      const result = await prisma.purchaseInvoice.create({
-        data: {
-          invoiceNumber: data.invoiceNumber,
-          contactId: data.contactId,
-          purchaseOrderId: data.purchaseOrderId,
-          invoiceDate: data.invoiceDate,
-          dueDate: data.dueDate,
-          notes: data.notes,
-          status: "DRAFT", // Default to DRAFT
-          totalAmount: totals.totalAmount.toNumber(),
-          globalDiscount: data.globalDiscount,
-          totalTax: totals.totalTax.toNumber(),
-          shippingCost: data.shippingCost,
-          handlingCost: data.handlingCost,
-          departmentId: data.departmentId,
-          projectId: data.projectId,
-          items: {
-            create: itemsData,
-          },
-          attachments: {
-            connect: data.attachmentIds?.map((id) => ({ id })) || [],
-          },
-        },
-        include: {
-          items: true,
-        },
-      });
+      const result = await PurchaseInvoiceService.create(parseResult.data, session.userId);
 
       revalidatePath("/purchase/invoices");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Invoice:", error);
-      return { success: false, error: "Failed to create Purchase Invoice" };
+      return { success: false, error: error instanceof Error ? error.message : "Failed to create Purchase Invoice" };
     }
   },
 );

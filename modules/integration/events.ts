@@ -118,6 +118,114 @@ export type SalesOrderCreatedPayload = z.infer<
   typeof salesOrderCreatedPayloadSchema
 >;
 
+export const salesInvoiceCreatedPayloadSchema = z.object({
+  invoiceId: z.string().min(1),
+  invoiceNumber: z.string().min(1),
+  totalAmount: z.string().min(1),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type SalesInvoiceCreatedPayload = z.infer<
+  typeof salesInvoiceCreatedPayloadSchema
+>;
+
+export const salesPaymentCreatedPayloadSchema = z.object({
+  paymentId: z.string().min(1),
+  paymentNumber: z.string().min(1),
+  amount: z.string().min(1),
+  salesInvoiceId: z.string().min(1),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type SalesPaymentCreatedPayload = z.infer<
+  typeof salesPaymentCreatedPayloadSchema
+>;
+
+export const salesReturnCreatedPayloadSchema = z.object({
+  returnId: z.string().min(1),
+  returnNumber: z.string().min(1),
+  totalAmount: z.string().min(1),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type SalesReturnCreatedPayload = z.infer<
+  typeof salesReturnCreatedPayloadSchema
+>;
+
+export const salesShipmentCreatedPayloadSchema = z.object({
+  shipmentId: z.string().min(1),
+  shipmentNumber: z.string().min(1),
+  salesOrderId: z.string().optional(),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type SalesShipmentCreatedPayload = z.infer<
+  typeof salesShipmentCreatedPayloadSchema
+>;
+
+export const purchaseOrderCreatedPayloadSchema = z.object({
+  orderId: z.string().min(1),
+  orderNumber: z.string().min(1),
+  totalAmount: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type PurchaseOrderCreatedPayload = z.infer<
+  typeof purchaseOrderCreatedPayloadSchema
+>;
+
+export const purchaseInvoiceCreatedPayloadSchema = z.object({
+  invoiceId: z.string().min(1),
+  invoiceNumber: z.string().min(1),
+  totalAmount: z.string().min(1),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type PurchaseInvoiceCreatedPayload = z.infer<
+  typeof purchaseInvoiceCreatedPayloadSchema
+>;
+
+export const purchasePaymentCreatedPayloadSchema = z.object({
+  paymentId: z.string().min(1),
+  paymentNumber: z.string().min(1),
+  amount: z.string().min(1),
+  purchaseInvoiceId: z.string().min(1),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type PurchasePaymentCreatedPayload = z.infer<
+  typeof purchasePaymentCreatedPayloadSchema
+>;
+
+export const purchaseReceiveCreatedPayloadSchema = z.object({
+  receiveId: z.string().min(1),
+  receiveNumber: z.string().min(1),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type PurchaseReceiveCreatedPayload = z.infer<
+  typeof purchaseReceiveCreatedPayloadSchema
+>;
+
+export const purchaseReturnCreatedPayloadSchema = z.object({
+  returnId: z.string().min(1),
+  returnNumber: z.string().min(1),
+  totalAmount: z.string().min(1),
+  contactId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export type PurchaseReturnCreatedPayload = z.infer<
+  typeof purchaseReturnCreatedPayloadSchema
+>;
+
 export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("SALES_INVOICE_ISSUED"),
@@ -150,6 +258,42 @@ export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("SALES_ORDER_CREATED"),
     payload: salesOrderCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("SALES_INVOICE_CREATED"),
+    payload: salesInvoiceCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("SALES_PAYMENT_CREATED"),
+    payload: salesPaymentCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("SALES_RETURN_CREATED"),
+    payload: salesReturnCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("SALES_SHIPMENT_CREATED"),
+    payload: salesShipmentCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("PURCHASE_ORDER_CREATED"),
+    payload: purchaseOrderCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("PURCHASE_INVOICE_CREATED"),
+    payload: purchaseInvoiceCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("PURCHASE_PAYMENT_CREATED"),
+    payload: purchasePaymentCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("PURCHASE_RECEIVE_CREATED"),
+    payload: purchaseReceiveCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("PURCHASE_RETURN_CREATED"),
+    payload: purchaseReturnCreatedPayloadSchema,
   }),
 ]);
 

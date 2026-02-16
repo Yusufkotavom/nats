@@ -160,75 +160,23 @@ export async function getSalesInvoicesForReturn() {
   return SuperJSON.serialize(invoices);
 }
 
-// Helper to generate Return Number
-async function generateReturnNumber() {
-  const count = await prisma.salesReturn.count();
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `RET-${year}${month}-${sequence}`;
-}
+import { SalesReturnService } from "@/modules/sales/services/sales-return.service";
 
 export const createSalesReturn = authorizedAction(
   "sales.create",
   async (data: SalesReturnInput) => {
     try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
 
-      let returnNumber = data.returnNumber;
-      if (!returnNumber) {
-        returnNumber = await generateReturnNumber();
-      }
-
-      const existing = await prisma.salesReturn.findUnique({
-        where: { returnNumber: returnNumber },
-      });
-
-      if (existing) {
-        return { success: false, error: "Return number already exists" };
-      }
-
-      let totalAmount = 0;
-      data.items.forEach((item) => {
-        totalAmount += item.quantity * item.unitPrice;
-      });
-
-      const result = await prisma.salesReturn.create({
-        data: {
-          returnNumber: returnNumber,
-          contactId: data.contactId,
-          salesOrderId: data.salesOrderId || undefined,
-          salesInvoiceId: data.salesInvoiceId || undefined,
-          departmentId: data.departmentId,
-          projectId: data.projectId,
-          returnDate: data.returnDate,
-          notes: data.notes,
-          status: "DRAFT",
-          totalAmount,
-          items: {
-            create: data.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice: item.quantity * item.unitPrice,
-            })),
-          },
-          attachments: data.attachmentIds
-            ? {
-              connect: data.attachmentIds.map((id) => ({ id })),
-            }
-            : undefined,
-        },
-        include: {
-          items: true,
-        },
-      });
+      const result = await SalesReturnService.create(data, session.userId);
 
       revalidatePath("/sales/returns");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Return:", error);
-      return { success: false, error: "Failed to create Sales Return" };
+      const message = error instanceof Error ? error.message : "Failed to create Sales Return";
+      return { success: false, error: message };
     }
   },
 );

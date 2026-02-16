@@ -12,6 +12,7 @@ import { getPurchaseOrder } from "../orders/actions";
 import { getPurchaseInvoice } from "../invoices/actions";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { PurchaseReturnService } from "@/modules/purchase/services/purchase-return.service";
 
 export { getPurchaseOrder, getPurchaseInvoice };
 
@@ -180,53 +181,19 @@ export const createPurchaseReturn = authorizedAction(
   "purchase.create",
   async (data: PurchaseReturnInput) => {
     try {
-      const existing = await prisma.purchaseReturn.findUnique({
-        where: { returnNumber: data.returnNumber },
-      });
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
 
-      if (existing) {
-        return { success: false, error: "Return number already exists" };
-      }
-
-      let totalAmount = 0;
-      data.items.forEach((item) => {
-        totalAmount += item.quantity * item.unitPrice;
-      });
-
-      const result = await prisma.purchaseReturn.create({
-        data: {
-          returnNumber: data.returnNumber,
-          contactId: data.contactId,
-          purchaseOrderId: data.purchaseOrderId || undefined,
-          purchaseInvoiceId: data.purchaseInvoiceId || undefined,
-          departmentId: data.departmentId,
-          projectId: data.projectId,
-          returnDate: data.returnDate,
-          notes: data.notes,
-          status: "DRAFT",
-          totalAmount,
-          items: {
-            create: data.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice: item.quantity * item.unitPrice,
-            })),
-          },
-          attachments: {
-            connect: data.attachmentIds?.map((id) => ({ id })) || [],
-          },
-        },
-        include: {
-          items: true,
-        },
-      });
+      const result = await PurchaseReturnService.create(data, session.userId);
 
       revalidatePath("/purchase/returns");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Return:", error);
-      return { success: false, error: "Failed to create Purchase Return" };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to create Purchase Return",
+      };
     }
   },
 );

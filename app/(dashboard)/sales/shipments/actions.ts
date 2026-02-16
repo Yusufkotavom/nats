@@ -148,15 +148,7 @@ export async function getSalesOrdersForSelect() {
   return SuperJSON.serialize(orders);
 }
 
-// Helper to generate Shipment Number
-async function generateShipmentNumber() {
-  const count = await prisma.salesShipment.count();
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `SHP-${year}${month}-${sequence}`;
-}
+import { SalesShipmentService } from "@/modules/sales/services/sales-shipment.service";
 
 import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
@@ -165,48 +157,17 @@ export const createSalesShipment = authorizedAction(
   "sales.create",
   async (data: SalesShipmentInput) => {
     try {
-      const shipmentNumber = await generateShipmentNumber();
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
 
-      const result = await prisma.$transaction(async (tx) => {
-        // Create Shipment
-        const shipment = await tx.salesShipment.create({
-          data: {
-            shipmentNumber,
-            contactId: data.contactId,
-            salesOrderId: data.salesOrderId,
-            departmentId: data.departmentId,
-            projectId: data.projectId,
-            shipmentDate: data.shipmentDate,
-            notes: data.notes,
-            trackingNumber: data.trackingNumber,
-            carrier: data.carrier,
-            status: "DRAFT", // Default to DRAFT
-            items: {
-              create: data.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                salesOrderItemId: item.salesOrderItemId,
-              })),
-            },
-            attachments: data.attachmentIds
-              ? {
-                connect: data.attachmentIds.map((id) => ({ id })),
-              }
-              : undefined,
-          },
-          include: {
-            items: true,
-          },
-        });
-
-        return shipment;
-      });
+      const result = await SalesShipmentService.create(data, session.userId);
 
       revalidatePath("/sales/shipments");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Shipment:", error);
-      return { success: false, error: "Failed to create Sales Shipment" };
+      const message = error instanceof Error ? error.message : "Failed to create Sales Shipment";
+      return { success: false, error: message };
     }
   },
 );

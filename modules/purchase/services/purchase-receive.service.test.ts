@@ -1,0 +1,103 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const enqueueIntegrationEventMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@/modules/integration/outbox", () => ({
+    enqueueIntegrationEvent: enqueueIntegrationEventMock,
+}));
+
+const prismaMock = vi.hoisted(() => ({
+    purchaseReceive: {
+        count: vi.fn(),
+    },
+    $transaction: vi.fn(),
+}));
+
+vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+
+import { PurchaseReceiveService } from "./purchase-receive.service";
+
+const MOCK_USER_ID = "user-001";
+
+const MOCK_RECEIVE_INPUT = {
+    contactId: "contact-001",
+    purchaseOrderId: "po-001",
+    receiveDate: new Date("2026-02-16"),
+    notes: "Test receive",
+    items: [
+        { productId: "prod-001", quantity: 5 },
+        { productId: "prod-002", quantity: 3 },
+    ],
+};
+
+describe("PurchaseReceiveService", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    describe("create", () => {
+        it("creates receive with DRAFT status and generated number", async () => {
+            prismaMock.purchaseReceive.count.mockResolvedValue(5);
+
+            const createdReceive = {
+                id: "rcv-001",
+                receiveNumber: "RCV-2602-0006",
+                status: "DRAFT",
+            };
+
+            prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
+                const tx = {
+                    purchaseReceive: {
+                        create: vi.fn().mockResolvedValue(createdReceive),
+                    },
+                    integrationOutbox: {
+                        create: vi.fn().mockResolvedValue({ id: "outbox-001" }),
+                    },
+                };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (cb as any)(tx);
+            });
+
+            const result = await PurchaseReceiveService.create(MOCK_RECEIVE_INPUT, MOCK_USER_ID);
+
+            expect(result.id).toBe("rcv-001");
+            expect(prismaMock.purchaseReceive.count).toHaveBeenCalledOnce();
+        });
+
+        it("enqueues PURCHASE_RECEIVE_CREATED integration event", async () => {
+            prismaMock.purchaseReceive.count.mockResolvedValue(0);
+
+            const createdReceive = {
+                id: "rcv-002",
+                receiveNumber: "RCV-2602-0001",
+            };
+
+            prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
+                const tx = {
+                    purchaseReceive: {
+                        create: vi.fn().mockResolvedValue(createdReceive),
+                    },
+                    integrationOutbox: {
+                        create: vi.fn().mockResolvedValue({ id: "outbox-002" }),
+                    },
+                };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (cb as any)(tx);
+            });
+
+            await PurchaseReceiveService.create(MOCK_RECEIVE_INPUT, MOCK_USER_ID);
+
+            expect(enqueueIntegrationEventMock).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.objectContaining({
+                    type: "PURCHASE_RECEIVE_CREATED",
+                    aggregateType: "PurchaseReceive",
+                    payload: expect.objectContaining({
+                        receiveId: "rcv-002",
+                        userId: MOCK_USER_ID,
+                    }),
+                }),
+            );
+        });
+    });
+});

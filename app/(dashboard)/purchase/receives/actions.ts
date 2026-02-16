@@ -14,6 +14,7 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { JournalService } from "@/lib/accounting/journal-service";
 import { Decimal } from "decimal.js";
+import { PurchaseReceiveService } from "@/modules/purchase/services/purchase-receive.service";
 
 export { getPurchaseOrder };
 
@@ -150,55 +151,14 @@ export async function getPurchaseOrdersForSelect() {
   return SuperJSON.serialize(orders);
 }
 
-// Helper to generate Receive Number
-async function generateReceiveNumber() {
-  const count = await prisma.purchaseReceive.count();
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `RCV-${year}${month}-${sequence}`;
-}
-
 export const createPurchaseReceive = authorizedAction(
   "purchase.create",
   async (data: PurchaseReceiveInput) => {
     try {
-      const receiveNumber = await generateReceiveNumber();
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
 
-      const result = await prisma.$transaction(async (tx) => {
-        // Create Receive
-        const receive = await tx.purchaseReceive.create({
-          data: {
-            receiveNumber,
-            contactId: data.contactId,
-            purchaseOrderId: data.purchaseOrderId,
-            departmentId: data.departmentId,
-            projectId: data.projectId,
-            receiveDate: data.receiveDate,
-            notes: data.notes,
-            status: "DRAFT", // Default to DRAFT
-            items: {
-              create: data.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                purchaseOrderItemId: item.purchaseOrderItemId,
-              })),
-            },
-            attachments: {
-              connect: data.attachmentIds?.map((id) => ({ id })) || [],
-            },
-          },
-          include: {
-            items: true,
-          },
-        });
-
-        // TODO: If we allow creating as COMPLETED immediately, handle inventory and PO updates here.
-        // For now, we assume creation is DRAFT, then status change happens in update.
-
-        return receive;
-      });
+      const result = await PurchaseReceiveService.create(data, session.userId);
 
       revalidatePath("/purchase/receives");
       return { success: true, data: SuperJSON.serialize(result) };

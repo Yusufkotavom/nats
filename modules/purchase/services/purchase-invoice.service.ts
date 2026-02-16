@@ -1,0 +1,135 @@
+import { prisma } from "@/lib/prisma";
+import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
+import { PurchaseInvoiceInput } from "@/app/(dashboard)/purchase/invoices/types";
+import { CalculationService } from "@/lib/utils/calculation-service";
+
+const INITIAL_DRAFT_STATUS = "DRAFT" as const;
+
+export class PurchaseInvoiceService {
+    static async create(data: PurchaseInvoiceInput, userId: string) {
+        await this.assertUniqueInvoiceNumber(data.invoiceNumber, data.contactId);
+
+        const taxRates = await prisma.taxRate.findMany();
+        const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
+
+        return await prisma.$transaction(async (tx) => {
+            const result = await tx.purchaseInvoice.create({
+                data: {
+                    invoiceNumber: data.invoiceNumber,
+                    contactId: data.contactId,
+                    purchaseOrderId: data.purchaseOrderId,
+                    invoiceDate: data.invoiceDate,
+                    dueDate: data.dueDate,
+                    notes: data.notes,
+                    status: INITIAL_DRAFT_STATUS,
+                    totalAmount: totals.totalAmount.toNumber(),
+                    globalDiscount: data.globalDiscount,
+                    totalTax: totals.totalTax.toNumber(),
+                    shippingCost: data.shippingCost,
+                    handlingCost: data.handlingCost,
+                    departmentId: data.departmentId,
+                    projectId: data.projectId,
+                    items: {
+                        create: itemsData,
+                    },
+                    attachments: {
+                        connect: data.attachmentIds?.map((id) => ({ id })) || [],
+                    },
+                },
+                include: {
+                    items: true,
+                },
+            });
+
+            await enqueueIntegrationEvent(tx, {
+                topic: "purchase",
+                type: "PURCHASE_INVOICE_CREATED",
+                aggregateType: "PurchaseInvoice",
+                aggregateId: result.id,
+                payload: {
+                    invoiceId: result.id,
+                    invoiceNumber: result.invoiceNumber,
+                    totalAmount: result.totalAmount.toString(),
+                    contactId: data.contactId,
+                    userId,
+                },
+            });
+
+            return result;
+        });
+    }
+
+    private static async assertUniqueInvoiceNumber(
+        invoiceNumber: string,
+        contactId: string,
+    ): Promise<void> {
+        const existing = await prisma.purchaseInvoice.findUnique({
+            where: {
+                contactId_invoiceNumber: {
+                    contactId,
+                    invoiceNumber,
+                },
+            },
+        });
+
+        if (existing) {
+            throw new Error("Invoice number already exists for this vendor");
+        }
+    }
+
+    private static calculateItemsAndTotals(
+        data: Pick<PurchaseInvoiceInput, "items" | "globalDiscount" | "shippingCost" | "handlingCost">,
+        taxRates: { id: string; rate: unknown }[],
+    ) {
+        const itemsWithCalculations = data.items.map((item) => {
+            let taxRateSnapshot: number | undefined = undefined;
+            const taxAmount = item.tax || 0;
+
+            if (item.taxRateId) {
+                const rateObj = taxRates.find((r) => r.id === item.taxRateId);
+                if (rateObj) {
+                    taxRateSnapshot = Number(rateObj.rate);
+                }
+            }
+
+            const calculated = CalculationService.calculateLineItem(
+                {
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    discount: item.discount,
+                    tax: taxAmount,
+                },
+                taxRateSnapshot,
+            );
+
+            return {
+                itemData: {
+                    description: item.description,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    totalPrice: calculated.total.toNumber(),
+                    discount: item.discount,
+                    tax: calculated.taxAmount.toNumber(),
+                    taxRateId: item.taxRateId,
+                    taxRateSnapshot,
+                    productId: (item as PurchaseInvoiceInput["items"][number] & { productId?: string }).productId,
+                    accountId: item.accountId,
+                    purchaseOrderItemId: (item as PurchaseInvoiceInput["items"][number] & { purchaseOrderItemId?: string }).purchaseOrderItemId,
+                },
+                calculated,
+            };
+        });
+
+        const totals = CalculationService.calculateInvoiceTotals(
+            itemsWithCalculations.map((i) => i.calculated),
+            data.globalDiscount,
+            data.shippingCost,
+            data.handlingCost,
+        );
+
+        return {
+            itemsData: itemsWithCalculations.map((i) => i.itemData),
+            totals,
+        };
+    }
+}

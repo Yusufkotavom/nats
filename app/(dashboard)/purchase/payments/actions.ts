@@ -15,6 +15,7 @@ import {
   enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+import { PurchasePaymentService } from "@/modules/purchase/services/purchase-payment.service";
 
 type PostPurchasePaymentResult = {
   processed: boolean;
@@ -142,80 +143,15 @@ export const createPurchasePayment = authorizedAction(
   "purchase.payments",
   async (rawData: PurchasePaymentInput) => {
     try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
+
       const parseResult = purchasePaymentSchema.safeParse(rawData);
       if (!parseResult.success) {
         return { success: false, error: parseResult.error.message };
       }
-      const data = parseResult.data;
 
-      const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
-
-      // 1. Validate inputs
-      const invoice = await prisma.purchaseInvoice.findUnique({
-        where: { id: data.purchaseInvoiceId },
-        include: { payments: true },
-      });
-
-      if (!invoice) throw new Error("Invoice not found");
-
-      const cashAccount = await prisma.cashAccount.findUnique({
-        where: { id: data.cashAccountId },
-      });
-
-      if (!cashAccount) throw new Error("Cash account not found");
-
-      // 2. Check if overpaying
-      // Calculate total paid so far
-      const totalPaid = invoice.payments.reduce(
-        (sum, p) => sum + Number(p.amount),
-        0
-      );
-      const remaining = Number(invoice.totalAmount) - totalPaid;
-
-      // Allow small float error margin
-      if (data.amount > remaining + 0.01) {
-        throw new Error(`Amount exceeds remaining balance of ${remaining}`);
-      }
-
-      // 3. Create Transaction
-      const result = await prisma.$transaction(async (tx) => {
-        // Create Purchase Payment
-        const paymentNumber = data.paymentNumber || `PAY-${Date.now()}`;
-        const payment = await tx.purchasePayment.create({
-          data: {
-            paymentNumber,
-            contactId: data.contactId,
-            purchaseInvoiceId: data.purchaseInvoiceId,
-            paymentDate: data.paymentDate,
-            amount: data.amount,
-            reference: data.reference,
-            notes: data.notes,
-            departmentId: data.departmentId,
-            projectId: data.projectId,
-            cashAccountId: data.cashAccountId,
-            attachments: {
-              connect: data.attachmentIds?.map((id) => ({ id })),
-            },
-          },
-        });
-
-        // Update Invoice Status
-        const newTotalPaid = totalPaid + Number(data.amount);
-        const newStatus =
-          newTotalPaid >= Number(invoice.totalAmount) - 0.01
-            ? "PAID"
-            : "PARTIALLY_PAID";
-
-        await tx.purchaseInvoice.update({
-          where: { id: invoice.id },
-          data: {
-            status: newStatus,
-          },
-        });
-
-        return payment;
-      });
+      const result = await PurchasePaymentService.create(parseResult.data, session.userId);
 
       revalidatePath("/purchase/payments");
       revalidatePath("/purchase/invoices");

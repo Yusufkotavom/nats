@@ -137,17 +137,8 @@ export async function getCashAccounts() {
   return SuperJSON.serialize(accounts);
 }
 
-// Helper to generate Payment Number
-async function generatePaymentNumber() {
-  const count = await prisma.salesPayment.count();
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `PAY-IN-${year}${month}-${sequence}`;
-}
-
 import { salesPaymentSchema } from "@/lib/validation/schemas";
+import { SalesPaymentService } from "@/modules/sales/services/sales-payment.service";
 
 export const createSalesPayment = authorizedAction(
   "sales.payments",
@@ -162,75 +153,7 @@ export const createSalesPayment = authorizedAction(
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
 
-      // 1. Validate inputs
-      const invoice = await prisma.salesInvoice.findUnique({
-        where: { id: data.salesInvoiceId },
-        include: { payments: true },
-      });
-
-      if (!invoice) throw new Error("Invoice not found");
-
-      const cashAccount = await prisma.cashAccount.findUnique({
-        where: { id: data.cashAccountId },
-      });
-
-      if (!cashAccount) throw new Error("Cash account not found");
-
-      // 2. Check if overpaying
-      const totalPaid = invoice.payments.reduce(
-        (sum, p) => sum + Number(p.amount),
-        0
-      );
-      const remaining = Number(invoice.totalAmount) - totalPaid;
-
-      // Allow small float error margin
-      if (data.amount > remaining + 0.01) {
-        throw new Error(`Amount exceeds remaining balance of ${remaining}`);
-      }
-
-      let paymentNumber = data.paymentNumber;
-      if (!paymentNumber) {
-        paymentNumber = await generatePaymentNumber();
-      }
-
-      // 3. Create Transaction
-      const result = await prisma.$transaction(async (tx) => {
-        // Create Sales Payment
-        const payment = await tx.salesPayment.create({
-          data: {
-            paymentNumber: paymentNumber,
-            contactId: data.contactId,
-            salesInvoiceId: data.salesInvoiceId,
-            paymentDate: data.paymentDate,
-            amount: data.amount,
-            reference: data.reference,
-            notes: data.notes,
-            method: data.method,
-            departmentId: data.departmentId,
-            projectId: data.projectId,
-            cashAccountId: data.cashAccountId,
-            attachments: {
-              connect: data.attachmentIds?.map((id) => ({ id })),
-            },
-          },
-        });
-
-        // Update Invoice Status
-        const newTotalPaid = totalPaid + Number(data.amount);
-        const newStatus =
-          newTotalPaid >= Number(invoice.totalAmount) - 0.01
-            ? "PAID"
-            : "PARTIALLY_PAID";
-
-        await tx.salesInvoice.update({
-          where: { id: invoice.id },
-          data: {
-            status: newStatus,
-          },
-        });
-
-        return payment;
-      });
+      const result = await SalesPaymentService.create(data, session.userId);
 
       revalidatePath("/sales/payments");
       revalidatePath("/sales/invoices");

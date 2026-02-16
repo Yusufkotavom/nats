@@ -2,18 +2,13 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { InventoryService } from '@/app/(dashboard)/inventory/inventory-service';
 import { getSession } from '@/lib/auth/auth';
-import { MovementType } from "@/prisma/generated/prisma/client";
-import { Decimal } from "decimal.js";
 import { hasPermission } from "@/lib/permissions/utils";
-import {
-  enqueueIntegrationEventOnce,
-  maybeProcessIntegrationOutboxEvent,
-} from "@/modules/integration/outbox";
-
 import { SuperJSON } from "@/lib/superjson";
 import type { ActionResponse } from "@/lib/permissions/protected-action";
+import { POSTransactionService } from "@/modules/pos/services/pos-transaction.service";
+import { POSSessionService } from "@/modules/pos/services/pos-session.service";
+import { HeldOrderService } from "@/modules/pos/services/held-order.service";
 
 // Types
 export type POSProduct = {
@@ -185,24 +180,7 @@ export async function openPOSSession(openingCash: number, warehouseId: string) {
   const userId = session?.userId;
   if (!userId || !hasPermission(session.permissions, "pos.access")) throw new Error('Unauthorized');
 
-  // Close any existing open sessions for this user just in case
-  await prisma.pOSSession.updateMany({
-    where: { cashierId: userId, status: 'OPEN' },
-    data: { status: 'CLOSED', endTime: new Date() },
-  });
-
-  const sessionNumber = `SES-${Date.now()}`;
-
-  const newSession = await prisma.pOSSession.create({
-    data: {
-      sessionNumber,
-      cashierId: userId,
-      openingCash: new Decimal(openingCash),
-      status: 'OPEN',
-      startTime: new Date(),
-      warehouseId,
-    },
-  });
+  const newSession = await POSSessionService.open(userId, openingCash, warehouseId);
 
   revalidatePath('/pos');
   return SuperJSON.serialize(newSession);
@@ -211,36 +189,10 @@ export async function openPOSSession(openingCash: number, warehouseId: string) {
 export async function closePOSSession(sessionId: string, actualCash: number, notes?: string) {
   const sessionUser = await getSession();
   if (!sessionUser || !hasPermission(sessionUser.permissions, "pos.access")) {
-     throw new Error("Unauthorized");
+    throw new Error("Unauthorized");
   }
 
-  const payments = await prisma.salesPayment.findMany({
-    where: {
-      posSessionId: sessionId,
-      method: 'CASH',
-    }
-  });
-
-  const session = await prisma.pOSSession.findUnique({
-    where: { id: sessionId },
-  });
-
-  if (!session) throw new Error('Session not found');
-
-  const cashSales = payments.reduce((acc, p) => acc.add(p.amount), new Decimal(0));
-  const systemCash = new Decimal(session.openingCash).add(cashSales);
-
-  await prisma.pOSSession.update({
-    where: { id: sessionId },
-    data: {
-      status: 'CLOSED',
-      endTime: new Date(),
-      actualCash: new Decimal(actualCash),
-      closingCash: systemCash,
-      difference: new Decimal(actualCash).sub(systemCash),
-      notes,
-    },
-  });
+  await POSSessionService.close(sessionId, actualCash, notes);
 
   revalidatePath('/pos');
 }
@@ -279,225 +231,18 @@ export async function processPOSTransaction(
   }>
 > {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-    // 1. Validate Session
-    const session = await tx.pOSSession.findUnique({
-      where: { id: sessionId },
-    });
-    if (!session || session.status !== 'OPEN') throw new Error('Session is not open');
-
-    // 2. Resolve Customer
-    let contactId = customerId;
-    if (!contactId) {
-      const walkIn = await tx.contact.findFirst({
-        where: { name: 'Walk-in Customer', type: 'CUSTOMER' },
-      });
-      if (walkIn) {
-        contactId = walkIn.id;
-      } else {
-        const newWalkIn = await tx.contact.create({
-          data: {
-            name: 'Walk-in Customer',
-            type: 'CUSTOMER',
-          },
-        });
-        contactId = newWalkIn.id;
-      }
-    }
-
-    // 3. Create Sales Order
-    const orderNumber = `SO-POS-${Date.now()}`;
-    const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const totalItemDiscounts = items.reduce((acc, item) => acc + item.discount, 0);
-    const totalDiscount = new Decimal(totalItemDiscounts).add(globalDiscount);
-    const totalAmount = new Decimal(subtotal).sub(totalDiscount);
-
-    const salesOrder = await tx.salesOrder.create({
-      data: {
-        orderNumber,
-        contactId: contactId!,
-        status: 'SHIPPED', // Direct shipped for POS
-        orderDate: new Date(),
-        subtotal: new Decimal(subtotal),
-        discountAmount: totalDiscount,
-        totalAmount: totalAmount,
-        posSessionId: sessionId,
-        items: {
-          create: items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: new Decimal(item.price),
-            totalPrice: new Decimal(item.price * item.quantity - item.discount),
-            discountRate: new Decimal(0), // We don't have rate calculated, storing net in totalPrice
-          })),
-        },
-      },
-      include: { items: true },
-    });
-
-    // 4. Create Sales Invoice
-    const invoiceNumber = `INV-POS-${Date.now()}`;
-    const invoiceDate = new Date();
-    const salesInvoice = await tx.salesInvoice.create({
-      data: {
-        invoiceNumber,
-        contactId: contactId!,
-        salesOrderId: salesOrder.id,
-        invoiceDate,
-        dueDate: invoiceDate, // Immediate payment
-        status: 'PAID',
-        subtotal: new Decimal(subtotal),
-        globalDiscount: new Decimal(globalDiscount),
-        totalAmount: totalAmount,
-        balanceDue: new Decimal(0),
-        posSessionId: sessionId,
-        items: {
-          create: items.map(item => ({
-            description: 'POS Item',
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: new Decimal(item.price),
-            totalPrice: new Decimal(item.price * item.quantity - item.discount),
-            discount: new Decimal(item.discount),
-          })),
-        },
-      },
-      include: { items: true },
-    });
-
-    // 5. Create Payment
-    const paymentNumber = `PAY-POS-${Date.now()}`;
-    const cashAccount = await tx.cashAccount.findFirst({
-      where: { type: paymentMethod === 'CASH' ? 'CASH' : 'BANK' },
-    });
-
-    if (!cashAccount) throw new Error('No Cash/Bank account configured');
-
-    const paymentDate = new Date();
-    const payment = await tx.salesPayment.create({
-      data: {
-        paymentNumber,
-        contactId: contactId!,
-        amount: new Decimal(totalAmount),
-        paymentDate,
-        method: paymentMethod,
-        reference: invoiceNumber,
-        cashAccountId: cashAccount.id,
-        posSessionId: sessionId,
-        salesInvoiceId: salesInvoice.id,
-      },
-    });
-
-    // 6. Create Shipment
-    const shipmentNumber = `SHP-POS-${Date.now()}`;
-    const shipment = await tx.salesShipment.create({
-      data: {
-        shipmentNumber,
-        salesOrderId: salesOrder.id,
-        contactId: contactId!,
-        status: 'COMPLETED',
-        shipmentDate: new Date(),
-        items: {
-          create: salesOrder.items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            salesOrderItemId: item.id,
-          })),
-        },
-      },
-      include: { items: true },
-    });
-
-    // 7. Inventory Movement. Need to fix to use specific warehouse
-    await InventoryService.createInventoryMovement(tx, {
-      type: MovementType.OUT,
-      reference: shipment.shipmentNumber,
-      items: shipment.items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-      })),
-      notes: `POS Sale ${orderNumber}`,
-      transactionDate: new Date(),
-      warehouseId: session.warehouseId || undefined,
-    });
-
-    const invoiceOutbox = await enqueueIntegrationEventOnce(tx, {
-      topic: "sales",
-      type: "SALES_INVOICE_ISSUED",
-      aggregateType: "SalesInvoice",
-      aggregateId: salesInvoice.id,
-      payload: {
-        invoiceId: salesInvoice.id,
-        invoiceNumber: salesInvoice.invoiceNumber,
-        invoiceDate: invoiceDate.toISOString(),
-        contactId: contactId!,
-        userId: session.cashierId,
-        totalAmount: salesInvoice.totalAmount.toString(),
-        globalDiscount: salesInvoice.globalDiscount?.toString(),
-        shippingCost: undefined,
-        items: items.map((item) => {
-          const subtotal = new Decimal(item.price).mul(item.quantity);
-          const discountPercent =
-            subtotal.gt(0) && item.discount > 0
-              ? new Decimal(item.discount).div(subtotal).mul(100)
-              : new Decimal(0);
-
-          return {
-            description: `POS Item - ${item.productId}`,
-            quantity: item.quantity,
-            unitPrice: new Decimal(item.price).toString(),
-            discount: discountPercent.toString(),
-            tax: undefined,
-            accountId: undefined,
-          };
-        }),
-      },
-    });
-
-    const paymentOutbox = await enqueueIntegrationEventOnce(tx, {
-      topic: "sales",
-      type: "SALES_PAYMENT_POSTED",
-      aggregateType: "SalesPayment",
-      aggregateId: payment.id,
-      payload: {
-        paymentId: payment.id,
-        paymentNumber: payment.paymentNumber,
-        paymentDate: paymentDate.toISOString(),
-        amount: payment.amount.toString(),
-        reference: payment.reference ?? undefined,
-        notes: undefined,
-        cashAccountId: payment.cashAccountId,
-        contactId: payment.contactId,
-        salesInvoiceId: payment.salesInvoiceId,
-        userId: session.cashierId,
-      },
-    });
-
-    const outboxIds = [invoiceOutbox.id, paymentOutbox.id];
-    const alreadyQueuedIds = [
-      ...(invoiceOutbox.alreadyQueued ? [invoiceOutbox.id] : []),
-      ...(paymentOutbox.alreadyQueued ? [paymentOutbox.id] : []),
-    ];
-
-    return { invoiceId: salesInvoice.id, outboxIds, alreadyQueuedIds };
-  });
-
-    const processingResults = await Promise.all(
-      result.outboxIds.map((outboxId) => maybeProcessIntegrationOutboxEvent(outboxId)),
+    const result = await POSTransactionService.process(
+      sessionId,
+      items,
+      paymentMethod,
+      amountPaid,
+      globalDiscount,
+      customerId
     );
-
-    const processedAll = processingResults.every((r) => r.processed);
 
     return {
       success: true,
-      data: {
-        invoiceId: result.invoiceId,
-        outbox: {
-          outboxIds: result.outboxIds,
-          alreadyQueuedIds: result.alreadyQueuedIds,
-          processed: processedAll,
-        },
-      },
+      data: result,
     };
   } catch (error) {
     return {
@@ -519,30 +264,15 @@ export async function holdOrder(
   const userId = session?.userId;
   if (!userId) throw new Error('Unauthorized');
 
-  const posSession = await prisma.pOSSession.findFirst({
-    where: { cashierId: userId, status: 'OPEN' },
-  });
-
-  const holdId = `HOLD-${Date.now().toString().slice(-6)}`;
-
-  // Store structured data to include globalDiscount
-  const orderData = {
+  const heldOrder = await HeldOrderService.hold(
+    userId,
     cart,
+    totalAmount,
+    note,
+    customerId,
+    customerName,
     globalDiscount
-  };
-
-  const heldOrder = await prisma.heldOrder.create({
-    data: {
-      holdId,
-      userId,
-      posSessionId: posSession?.id,
-      items: orderData as any,
-      totalAmount: new Decimal(totalAmount),
-      note,
-      customerId,
-      customerName,
-    },
-  });
+  );
 
   revalidatePath('/pos');
   return SuperJSON.serialize(heldOrder);
@@ -574,13 +304,7 @@ export async function getHeldOrders() {
   const session = await getSession();
   if (!session?.userId) throw new Error('Unauthorized');
 
-  // Cleanup old held orders (> 24h)
-  const expirationDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  await prisma.heldOrder.deleteMany({
-    where: {
-      createdAt: { lt: expirationDate },
-    },
-  });
+  await HeldOrderService.cleanupExpired();
 
   const heldOrders = await prisma.heldOrder.findMany({
     orderBy: { createdAt: 'desc' },
@@ -628,15 +352,7 @@ export async function resumeOrder(heldOrderId: string) {
   const session = await getSession();
   if (!session?.userId) throw new Error('Unauthorized');
 
-  const heldOrder = await prisma.heldOrder.findUnique({
-    where: { id: heldOrderId },
-  });
-
-  if (!heldOrder) throw new Error('Held order not found');
-
-  await prisma.heldOrder.delete({
-    where: { id: heldOrderId },
-  });
+  const heldOrder = await HeldOrderService.resume(heldOrderId);
 
   revalidatePath('/pos');
   return SuperJSON.serialize(heldOrder);
@@ -646,9 +362,7 @@ export async function deleteHeldOrder(heldOrderId: string) {
   const session = await getSession();
   if (!session?.userId) throw new Error('Unauthorized');
 
-  await prisma.heldOrder.delete({
-    where: { id: heldOrderId },
-  });
+  await HeldOrderService.delete(heldOrderId);
 
   revalidatePath('/pos');
 }
