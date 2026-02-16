@@ -7,7 +7,6 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";
 
 import { getSession } from "@/lib/auth/auth";
-import { executeInventoryUpdate, processMovement } from "./logic";
 import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getCompanyProfile() {
@@ -127,6 +126,7 @@ export async function getMovements() {
 }
 
 import { inventoryMovementSchema } from "@/lib/validation/schemas";
+import { InventoryService } from "@/modules/inventory/services/inventory.service";
 
 export const createBatchMovement = authorizedAction(
   "inventory_movements.create",
@@ -142,36 +142,20 @@ export const createBatchMovement = authorizedAction(
 
     try {
       await prisma.$transaction(async (tx) => {
-        // 1. Create the Batch Header (Master)
-        const batch = await tx.inventoryMovement.create({
-          data: {
-            type,
-            reference,
-            notes,
-            status: "PENDING",
-            fromWarehouseId: fromWarehouseId || null,
-            toWarehouseId: toWarehouseId || null,
-          },
-        });
-
-        // 2. Process each movement item (Detail)
-        for (const item of items) {
-          await processMovement(tx, {
-            type,
+        await InventoryService.createInventoryMovement(tx, {
+          type,
+          items: items.map((item) => ({
             productId: item.productId,
-            fromWarehouseId,
-            toWarehouseId,
             quantity: item.quantity,
-            uomType: item.uomType,
             unitCost: item.unitCost,
-            locationId: item.locationId,
-            reference, // Can inherit from batch or be specific
-            notes: item.notes || notes,
             batchNumber: item.batchNumber,
-            inventoryMovementId: batch.id, // Link to the master
-            status: "PENDING",
-          });
-        }
+            notes: item.notes,
+          })),
+          warehouseId: type === "IN" ? toWarehouseId : fromWarehouseId, // Use appropriate warehouse based on type or let service resolve
+          reference,
+          notes,
+          status: "PENDING", // Create as PENDING initially
+        });
       });
 
       revalidatePath("/inventory/movements");
@@ -199,38 +183,7 @@ export const approveMovement = authorizedAction(
 
     try {
       await prisma.$transaction(async (tx) => {
-        const movement = await tx.inventoryMovement.findUniqueOrThrow({
-          where: { id: movementId },
-          include: { details: true },
-        });
-
-        if (movement.status !== "PENDING") {
-          throw new Error("Movement is not pending");
-        }
-
-        // Execute inventory updates for each detail
-        for (const detail of movement.details) {
-          await executeInventoryUpdate(tx, {
-            type: movement.type,
-            productId: detail.productId,
-            fromWarehouseId: movement.fromWarehouseId,
-            toWarehouseId: movement.toWarehouseId,
-            quantity: detail.quantity,
-            unitCost: detail.unitCost.toNumber(),
-            batchNumber: detail.batchNumber || "-",
-            locationId: null, // TODO: Store locationId in detail?
-          });
-        }
-
-        // Update status
-        await tx.inventoryMovement.update({
-          where: { id: movementId },
-          data: {
-            status: "COMPLETED",
-            approvedById: session.userId,
-            approvedAt: new Date(),
-          },
-        });
+        await InventoryService.approveMovement(tx, movementId, session.userId);
       });
 
       revalidatePath("/inventory/movements");

@@ -6,13 +6,36 @@ import { computeExponentialBackoffMs } from "@/modules/integration/backoff";
 
 type Tx = Prisma.TransactionClient;
 
-export type EnqueueIntegrationEventInput = {
-  topic: string;
-  type: string;
-  aggregateType: string;
-  aggregateId: string;
-  payload: unknown;
-};
+export type EnqueueIntegrationEventInput =
+  | {
+    topic: "INVENTORY";
+    type: "INVENTORY_MOVEMENT_CREATED";
+    aggregateType: "INVENTORY_MOVEMENT";
+    aggregateId: string;
+    payload: {
+      movementId: string;
+      type: string;
+      transactionDate: Date;
+    };
+  }
+  | {
+    topic: "INVENTORY";
+    type: "PRODUCT_CREATED";
+    aggregateType: "PRODUCT";
+    aggregateId: string;
+    payload: {
+      productId: string;
+      name: string;
+      sku: string;
+    };
+  }
+  | {
+    topic: string;
+    type: string;
+    aggregateType: string;
+    aggregateId: string;
+    payload: unknown;
+  };
 
 export async function enqueueIntegrationEvent(tx: Tx, input: EnqueueIntegrationEventInput) {
   return tx.integrationOutbox.create({

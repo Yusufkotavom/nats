@@ -128,41 +128,14 @@ export async function getProduct(id: string) {
   return SuperJSON.serialize(product);
 }
 
+import { ProductService } from "@/modules/inventory/services/product.service";
+
 export const createProduct = authorizedAction(
   "products.create",
   async (data: ProductInput) => {
     try {
       const product = await prisma.$transaction(async (tx) => {
-        const newProduct = await tx.product.create({
-          data: {
-            name: data.name,
-            sku: data.sku,
-            description: data.description,
-            image: data.image,
-            categoryId: data.categoryId,
-            price: data.price,
-            cost: data.cost,
-            minStock: data.minStock,
-            isActive: data.isActive,
-            baseUnitId: data.baseUnitId,
-            purchaseUnitId: data.purchaseUnitId,
-            purchaseConversionFactor: data.purchaseConversionFactor,
-            salesUnitId: data.salesUnitId,
-            salesConversionFactor: data.salesConversionFactor,
-            taxRateId: data.taxRateId,
-          },
-        });
-
-        // Add initial price history
-        await tx.priceHistory.create({
-          data: {
-            productId: newProduct.id,
-            price: data.price,
-            effectiveDate: new Date(),
-          },
-        });
-
-        return newProduct;
+        return await ProductService.createProduct(tx, data);
       });
 
       revalidatePath("/inventory/products");
@@ -181,52 +154,8 @@ export const updateProduct = authorizedAction(
   "products.edit",
   async (id: string, data: ProductInput) => {
     try {
-      const currentProduct = await prisma.product.findUnique({
-        where: { id },
-        select: { price: true },
-      });
-
-      if (!currentProduct) {
-        return { success: false, error: "Product not found" };
-      }
-
-      const newPrice = data.price;
-      const oldPrice = currentProduct.price;
-
-      // If price changed, we need to record history
-      // We can do this in a transaction to ensure data integrity
       const product = await prisma.$transaction(async (tx) => {
-        const updated = await tx.product.update({
-          where: { id },
-          data: {
-            name: data.name,
-            sku: data.sku,
-            description: data.description,
-            categoryId: data.categoryId,
-            price: newPrice,
-            cost: data.cost,
-            minStock: data.minStock,
-            isActive: data.isActive,
-            baseUnitId: data.baseUnitId,
-            purchaseUnitId: data.purchaseUnitId,
-            purchaseConversionFactor: data.purchaseConversionFactor,
-            salesUnitId: data.salesUnitId,
-            salesConversionFactor: data.salesConversionFactor,
-            taxRateId: data.taxRateId,
-          },
-        });
-
-        if (!oldPrice.equals(newPrice)) {
-          await tx.priceHistory.create({
-            data: {
-              productId: id,
-              price: newPrice,
-              effectiveDate: new Date(),
-            },
-          });
-        }
-
-        return updated;
+        return await ProductService.updateProduct(tx, id, data);
       });
 
       revalidatePath("/inventory/products");
@@ -245,8 +174,8 @@ export const deleteProduct = authorizedAction(
   "products.delete",
   async (id: string) => {
     try {
-      await prisma.product.delete({
-        where: { id },
+      await prisma.$transaction(async (tx) => {
+        await ProductService.deleteProduct(tx, id);
       });
       revalidatePath("/inventory/products");
       return { success: true };

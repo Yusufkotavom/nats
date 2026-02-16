@@ -43,12 +43,14 @@ export async function getWarehouses(page: number = 1, limit: number = 10) {
 
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
+import { WarehouseService } from "@/modules/inventory/services/warehouse.service";
+
 export const createWarehouse = authorizedAction(
   "warehouses.create",
   async (data: { name: string; location?: string }) => {
     try {
-      const warehouse = await prisma.warehouse.create({
-        data,
+      const warehouse = await prisma.$transaction(async (tx) => {
+        return await WarehouseService.createWarehouse(tx, data);
       });
       revalidatePath("/inventory/warehouses");
       return { success: true, data: warehouse };
@@ -63,9 +65,8 @@ export const updateWarehouse = authorizedAction(
   "warehouses.edit",
   async (id: string, data: { name: string; location?: string }) => {
     try {
-      const warehouse = await prisma.warehouse.update({
-        where: { id },
-        data,
+      const warehouse = await prisma.$transaction(async (tx) => {
+        return await WarehouseService.updateWarehouse(tx, id, data);
       });
       revalidatePath("/inventory/warehouses");
       return { success: true, data: warehouse };
@@ -80,8 +81,8 @@ export const deleteWarehouse = authorizedAction(
   "warehouses.delete",
   async (id: string) => {
     try {
-      await prisma.warehouse.delete({
-        where: { id },
+      await prisma.$transaction(async (tx) => {
+        await WarehouseService.deleteWarehouse(tx, id);
       });
       revalidatePath("/inventory/warehouses");
       return { success: true };
