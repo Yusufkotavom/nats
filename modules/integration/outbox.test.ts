@@ -168,8 +168,8 @@ describe("processIntegrationOutboxEvent", () => {
   });
 
   it("keeps successful consumer receipt when later consumer fails, then retries remaining consumer only", async () => {
-    const handleA = vi.fn(async () => {});
-    const handleB = vi.fn(async () => {
+    const handleA = vi.fn(async () => { });
+    const handleB = vi.fn<() => Promise<void>>(async () => {
       throw new Error("broke");
     });
     getIntegrationHandlersMock.mockReturnValue([
@@ -213,7 +213,7 @@ describe("processIntegrationOutboxEvent", () => {
     expect(handleB).toHaveBeenCalledTimes(1);
 
     phase = "retry";
-    handleB.mockImplementationOnce(async () => {});
+    handleB.mockImplementationOnce(async () => { });
 
     await processIntegrationOutboxEvent("outbox-1");
 

@@ -249,6 +249,36 @@ export const accountCreatedPayloadSchema = z.object({
   userId: z.string().min(1),
 });
 
+export const assetCreatedPayloadSchema = z.object({
+  assetId: z.string().min(1),
+  code: z.string().min(1),
+  name: z.string().min(1),
+  acquisitionCost: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export const assetUpdatedPayloadSchema = z.object({
+  assetId: z.string().min(1),
+  code: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export const assetDisposedPayloadSchema = z.object({
+  assetId: z.string().min(1),
+  code: z.string().min(1),
+  disposalAmount: z.string().min(1),
+  gainLoss: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export const depreciationPostedPayloadSchema = z.object({
+  scheduleId: z.string().min(1),
+  assetId: z.string().min(1),
+  amount: z.string().min(1),
+  date: z.string().min(1),
+  userId: z.string().min(1),
+});
+
 export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("SALES_INVOICE_ISSUED"),
@@ -329,6 +359,22 @@ export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("ACCOUNT_CREATED"),
     payload: accountCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("ASSET_CREATED"),
+    payload: assetCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("ASSET_UPDATED"),
+    payload: assetUpdatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("ASSET_DISPOSED"),
+    payload: assetDisposedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("DEPRECIATION_POSTED"),
+    payload: depreciationPostedPayloadSchema,
   }),
 ]);
 
