@@ -150,7 +150,7 @@ export async function getSalesOrdersForSelect() {
 
 import { SalesShipmentService } from "@/modules/sales/services/sales-shipment.service";
 
-import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+import { InventoryService } from "@/modules/inventory/services/inventory.service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
 
 export const createSalesShipment = authorizedAction(

@@ -1,6 +1,6 @@
 "use server";
 
-import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+import { InventoryService } from "@/modules/inventory/services/inventory.service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
 
 import { prisma } from "@/lib/prisma";

@@ -226,6 +226,29 @@ export type PurchaseReturnCreatedPayload = z.infer<
   typeof purchaseReturnCreatedPayloadSchema
 >;
 
+export const journalEntryCreatedPayloadSchema = z.object({
+  journalEntryId: z.string().min(1),
+  entryNumber: z.string().min(1),
+  transactionDate: z.string().min(1),
+  description: z.string().min(1),
+  totalAmount: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export const journalEntryPostedPayloadSchema = z.object({
+  journalEntryId: z.string().min(1),
+  entryNumber: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export const accountCreatedPayloadSchema = z.object({
+  accountId: z.string().min(1),
+  code: z.string().min(1),
+  name: z.string().min(1),
+  type: z.string().min(1),
+  userId: z.string().min(1),
+});
+
 export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("SALES_INVOICE_ISSUED"),
@@ -294,6 +317,18 @@ export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("PURCHASE_RETURN_CREATED"),
     payload: purchaseReturnCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("JOURNAL_ENTRY_CREATED"),
+    payload: journalEntryCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("JOURNAL_ENTRY_POSTED"),
+    payload: journalEntryPostedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("ACCOUNT_CREATED"),
+    payload: accountCreatedPayloadSchema,
   }),
 ]);
 

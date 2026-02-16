@@ -1,6 +1,6 @@
 "use server";
 
-import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+import { InventoryService } from "@/modules/inventory/services/inventory.service";
 
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { InventoryService } from "@/app/(dashboard)/inventory/inventory-service";
+import { InventoryService } from "@/modules/inventory/services/inventory.service";
 import { MovementType } from "@/prisma/generated/prisma/client";
 import { Decimal } from "decimal.js";
 import {
