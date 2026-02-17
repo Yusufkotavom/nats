@@ -62,11 +62,11 @@ export function SetupWizard({
     };
 
     return (
-        <div className="mx-auto max-w-4xl space-y-8">
+        <div className="mx-auto w-full space-y-8 mt-4">
             {/* Header */}
             <div className="text-center">
-                <h1 className="text-3xl font-bold tracking-tight">
-                    Welcome to NATS Accounting
+                <h1 className="text-2xl font-bold tracking-tight">
+                    New Company Setup
                 </h1>
                 <p className="text-muted-foreground mt-2 text-lg">
                     Let&apos;s set up your accounting system in a few easy steps.
@@ -88,10 +88,10 @@ export function SetupWizard({
                                 }}
                                 disabled={!isPast}
                                 className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors ${isActive
-                                        ? "bg-primary text-primary-foreground"
-                                        : isPast
-                                            ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
-                                            : "bg-muted text-muted-foreground"
+                                    ? "bg-primary text-primary-foreground"
+                                    : isPast
+                                        ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20"
+                                        : "bg-muted text-muted-foreground"
                                     }`}
                             >
                                 <Icon className="h-4 w-4" />
