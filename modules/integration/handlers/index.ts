@@ -25,6 +25,7 @@ import { purchasePaymentCreatedHandler } from "./purchase-payment-created";
 import { purchaseReceiveCreatedHandler } from "./purchase-receive-created";
 import { purchaseReturnCreatedHandler } from "./purchase-return-created";
 import { handleInventoryMovementCreated, handleProductCreated } from "./inventory-handlers";
+import { handlePayrollRunCompleted, handleSalarySlipPublished } from "./payroll.handlers";
 
 export const integrationHandlers = {
   SALES_INVOICE_ISSUED: [
@@ -111,6 +112,18 @@ export const integrationHandlers = {
       handle: handleProductCreated,
     },
   ],
+  PAYROLL_RUN_COMPLETED: [
+    {
+      consumer: "accounting",
+      handle: handlePayrollRunCompleted,
+    },
+  ],
+  SALARY_SLIP_PUBLISHED: [
+    {
+      consumer: "payroll",
+      handle: handleSalarySlipPublished,
+    },
+  ],
 } as const;
 
 export type IntegrationHandlerType = keyof typeof integrationHandlers;
@@ -118,3 +131,4 @@ export type IntegrationHandlerType = keyof typeof integrationHandlers;
 export function getIntegrationHandlers(type: string) {
   return integrationHandlers[type as IntegrationHandlerType] ?? null;
 }
+

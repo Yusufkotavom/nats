@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 import { SalaryStructureEditor } from "./_components/salary-structure-editor";
 import { ContactType } from "@/prisma/generated/prisma/client";
 
@@ -46,6 +46,14 @@ export default async function SalaryStructureDetailPage({ params }: PageProps) {
                         <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-transparent">
                             Employee
                         </Badge>
+                        <div className="ml-auto">
+                            <Link href={`/hr/payroll/salary-structures/${contactId}/print`}>
+                                <Button variant="outline" size="sm">
+                                    <Printer className="mr-2 h-4 w-4" />
+                                    Print Salary Slip
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                 </PageFormTitle>
             </PageFormHeader>

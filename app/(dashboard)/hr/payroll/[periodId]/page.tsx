@@ -18,34 +18,58 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowLeft, Printer, FileText } from "lucide-react";
 import { PayrollActions } from "./_components/payroll-actions";
+import {
+    PageListLayout,
+    PageListHeader,
+    PageListTitle,
+    PageListActions,
+    PageListContent,
+} from "@/components/layout/page/list-layout";
+
+const STATUS_BADGE_VARIANTS: Record<string, string> = {
+    DRAFT: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+    PROCESSING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    COMPLETED: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+};
+
+const SLIP_STATUS_VARIANTS: Record<string, string> = {
+    DRAFT: "bg-gray-100 text-gray-700",
+    PUBLISHED: "bg-blue-100 text-blue-800",
+    PAID: "bg-green-100 text-green-800",
+    CANCELLED: "bg-red-100 text-red-700",
+};
 
 export default async function PeriodDetailPage({
     params,
 }: {
-    params: { periodId: string };
+    params: Promise<{ periodId: string }>;
 }) {
+    const { periodId } = await params;
     const { userId } = await verifySession();
-    const { data: period } = await getPayrollPeriod(params.periodId);
+    const { data: period } = await getPayrollPeriod(periodId);
 
     if (!period) {
         notFound();
     }
 
-    // Calculate stats from slips for current status display
-    // Use DB values if run is completed, otherwise sum current slips
     let totalEarnings = 0;
     let totalDeductions = 0;
     let netPay = 0;
 
-    if (period.status === "COMPLETED" && period.payrollRuns.length > 0) {
-        // Should get from latest run ideally
-        const run = period.payrollRuns[period.payrollRuns.length - 1];
-        totalEarnings = Number(run.totalEarnings);
-        totalDeductions = Number(run.totalDeductions);
-        netPay = Number(run.netPay);
+    const latestRun = period.payrollRuns.length > 0
+        ? period.payrollRuns[period.payrollRuns.length - 1]
+        : null;
+
+    if (period.status === "COMPLETED" && latestRun) {
+        totalEarnings = Number(latestRun.totalEarnings);
+        totalDeductions = Number(latestRun.totalDeductions);
+        netPay = Number(latestRun.netPay);
     } else {
-        // Sum from current draft slips
         period.salarySlips.forEach((slip) => {
             totalEarnings += Number(slip.grossSalary);
             totalDeductions += Number(slip.totalDeductions);
@@ -54,22 +78,28 @@ export default async function PeriodDetailPage({
     }
 
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">{period.name}</h2>
-                    <p className="text-muted-foreground">
-                        {format(new Date(period.startDate), "PP")} -{" "}
+        <PageListLayout>
+            <PageListHeader>
+                <div className="flex items-center gap-4">
+                    <PageListTitle title={period.name} />
+                    <p className="text-muted-foreground text-sm">
+                        {format(new Date(period.startDate), "PP")} –{" "}
                         {format(new Date(period.endDate), "PP")}
                     </p>
+
                 </div>
-                <div className="flex items-center space-x-2">
-                    <Badge variant={period.status === "COMPLETED" ? "default" : "secondary"} className="mr-2">
-                        {period.status}
-                    </Badge>
-                    <PayrollActions periodId={period.id} status={period.status} userId={userId} />
-                </div>
-            </div>
+                <PageListActions>
+                    <div className="flex items-center gap-2">
+                        <Badge
+                            variant="outline"
+                            className={`border-transparent ${STATUS_BADGE_VARIANTS[period.status] ?? ""}`}
+                        >
+                            {period.status}
+                        </Badge>
+                        <PayrollActions periodId={period.id} status={period.status} userId={userId} />
+                    </div>
+                </PageListActions>
+            </PageListHeader>
 
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
@@ -85,7 +115,7 @@ export default async function PeriodDetailPage({
                         <CardTitle className="text-sm font-medium">Total Deductions</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalDeductions.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-red-600">{totalDeductions.toLocaleString()}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -93,58 +123,79 @@ export default async function PeriodDetailPage({
                         <CardTitle className="text-sm font-medium">Net Pay</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{netPay.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-green-600">{netPay.toLocaleString()}</div>
                     </CardContent>
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Salary Slips</CardTitle>
-                    <CardDescription>
-                        {period.salarySlips.length} slips generated
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Employee</TableHead>
-                                <TableHead className="text-right">Gross Salary</TableHead>
-                                <TableHead className="text-right">Deductions</TableHead>
-                                <TableHead className="text-right">Net Salary</TableHead>
-                                <TableHead>Status</TableHead>
+            {/* Journal Entry Link */}
+            {latestRun?.journalEntryId && (
+                <Card>
+                    <CardContent className="flex items-center gap-3 py-4">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium">Journal Entry created:</span>
+                        <Link href={`/accounting/journal-entries/${latestRun.journalEntryId}`}>
+                            <Button variant="link" size="sm" className="px-0">
+                                View Journal Entry →
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            )}
+
+            <PageListContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Employee</TableHead>
+                            <TableHead className="text-right">Gross Salary</TableHead>
+                            <TableHead className="text-right">Deductions</TableHead>
+                            <TableHead className="text-right">Net Salary</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {period.salarySlips.map((slip) => (
+                            <TableRow key={slip.id}>
+                                <TableCell className="font-medium">{slip.contact.name}</TableCell>
+                                <TableCell className="text-right">
+                                    {Number(slip.grossSalary).toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right text-red-600">
+                                    {Number(slip.totalDeductions).toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right font-semibold">
+                                    {Number(slip.netSalary).toLocaleString()}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge
+                                        variant="outline"
+                                        className={`border-transparent ${SLIP_STATUS_VARIANTS[slip.status] ?? ""}`}
+                                    >
+                                        {slip.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <Link href={`/hr/payroll/salary-structures/${slip.contactId}/print`}>
+                                        <Button variant="ghost" size="sm">
+                                            <Printer className="mr-2 h-4 w-4" />
+                                            Print Slip
+                                        </Button>
+                                    </Link>
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {period.salarySlips.map((slip) => (
-                                <TableRow key={slip.id}>
-                                    <TableCell>{slip.contact.name}</TableCell>
-                                    <TableCell className="text-right">
-                                        {Number(slip.grossSalary).toLocaleString()}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {Number(slip.totalDeductions).toLocaleString()}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {Number(slip.netSalary).toLocaleString()}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">{slip.status}</Badge>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {!period.salarySlips.length && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center">
-                                        No salary slips generated yet. Run payroll to generate.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </div>
+                        ))}
+                        {!period.salarySlips.length && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                    No salary slips generated yet. Run payroll to generate.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </PageListContent>
+        </PageListLayout>
     );
 }

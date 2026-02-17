@@ -23,9 +23,10 @@ import {
 export default async function PayrollPage({
     searchParams,
 }: {
-    searchParams: { page?: string };
+    searchParams: Promise<{ page?: string }>;
 }) {
-    const page = Number(searchParams.page) || 1;
+    const resolvedParams = await searchParams;
+    const page = Number(resolvedParams.page) || 1;
     const { data: periodsData } = await getPayrollPeriods(page);
 
     return (
