@@ -25,8 +25,8 @@ import { SuperJSONResult } from "superjson";
 import { PayrollPeriod, PayrollPeriodStatus } from "@/prisma/generated/prisma/client";
 
 type PayrollPeriodsResult = {
-    periods: (PayrollPeriod & {
-        payrollRuns: { totalSlips: number; totalAmount: any }[];
+    items: (PayrollPeriod & {
+        payrollRuns: any[];
     })[];
     total: number;
     totalPages: number;
@@ -68,7 +68,7 @@ export default async function PayrollPage({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {periodsData?.periods.map((period) => (
+                        {periodsData?.items.map((period) => (
                             <TableRow key={period.id}>
                                 <TableCell>{format(new Date(period.startDate), "PP")}</TableCell>
                                 <TableCell>{format(new Date(period.endDate), "PP")}</TableCell>
@@ -87,7 +87,7 @@ export default async function PayrollPage({
                                 </TableCell>
                             </TableRow>
                         ))}
-                        {!periodsData?.periods.length && (
+                        {!periodsData?.items.length && (
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center py-8">
                                     No payroll periods found.
