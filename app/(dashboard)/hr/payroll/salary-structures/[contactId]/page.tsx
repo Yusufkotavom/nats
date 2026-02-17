@@ -41,11 +41,6 @@ export default async function SalaryStructureDetailPage({ params }: PageProps) {
             <PageFormHeader>
                 <PageFormTitle>
                     <div className="flex items-center gap-4">
-                        <Link href="/hr/payroll/salary-structures">
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                        </Link>
                         <span>{contact.name}</span>
                         <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 border-transparent">
                             Employee

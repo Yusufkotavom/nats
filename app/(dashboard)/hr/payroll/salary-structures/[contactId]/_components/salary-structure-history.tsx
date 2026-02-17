@@ -26,7 +26,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { Loader2, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { SalaryStructure, SalaryStructureItem, SalaryComponent, User, SalaryComponentType } from "@/prisma/generated/prisma/client";
+import { SalaryStructure, SalaryStructureItem, SalaryComponent, User } from "@/prisma/generated/prisma/client";
 
 interface SalaryStructureHistoryProps {
     contactId: string;
@@ -143,14 +143,14 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
                                                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Earnings</h4>
                                                     <div className="border rounded-md divide-y">
                                                         {structure.items
-                                                            .filter(item => item.component.type === SalaryComponentType.EARNING)
+                                                            .filter(item => item.component.type === 'EARNING')
                                                             .map(item => (
                                                                 <div key={item.id} className="flex justify-between p-3">
                                                                     <span>{item.component.name}</span>
                                                                     <span className="font-medium text-green-600">+{Number(item.amount).toLocaleString()}</span>
                                                                 </div>
                                                             ))}
-                                                        {structure.items.filter(item => item.component.type === SalaryComponentType.EARNING).length === 0 && (
+                                                        {structure.items.filter(item => item.component.type === 'EARNING').length === 0 && (
                                                             <div className="p-3 text-sm text-muted-foreground text-center">No additional earnings</div>
                                                         )}
                                                     </div>
@@ -160,14 +160,14 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
                                                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Deductions</h4>
                                                     <div className="border rounded-md divide-y">
                                                         {structure.items
-                                                            .filter(item => item.component.type === SalaryComponentType.DEDUCTION)
+                                                            .filter(item => item.component.type === 'DEDUCTION')
                                                             .map(item => (
                                                                 <div key={item.id} className="flex justify-between p-3">
                                                                     <span>{item.component.name}</span>
                                                                     <span className="font-medium text-red-600">-{Number(item.amount).toLocaleString()}</span>
                                                                 </div>
                                                             ))}
-                                                        {structure.items.filter(item => item.component.type === SalaryComponentType.DEDUCTION).length === 0 && (
+                                                        {structure.items.filter(item => item.component.type === 'DEDUCTION').length === 0 && (
                                                             <div className="p-3 text-sm text-muted-foreground text-center">No deductions</div>
                                                         )}
                                                     </div>

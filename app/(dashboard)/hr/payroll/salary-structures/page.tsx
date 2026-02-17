@@ -22,8 +22,15 @@ import {
     PageListContent,
     PageListFilter,
 } from "@/components/layout/page/list-layout";
-import { Settings, Search, Loader2 } from "lucide-react";
+import { Settings, Search, Loader2, History } from "lucide-react";
 import { CustomInput } from "@/components/ui/custom-input";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { SalaryStructureHistory } from "./[contactId]/_components/salary-structure-history";
 
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
@@ -32,6 +39,7 @@ import { Contact, SalaryStructure } from "@/prisma/generated/prisma/client";
 
 export default function SalaryStructuresPage() {
     const [search, setSearch] = useState("");
+    const [historyContactId, setHistoryContactId] = useState<string | null>(null);
 
     const { data: employeesResult, isLoading } = useQuery({
         queryKey: ["employees", search],
@@ -104,12 +112,22 @@ export default function SalaryStructuresPage() {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Link href={`/hr/payroll/salary-structures/${employee.id}`}>
-                                                <Button variant="ghost" size="sm">
-                                                    <Settings className="mr-2 h-4 w-4" />
-                                                    Configure
+                                            <div className="flex items-center gap-2">
+                                                <Link href={`/hr/payroll/salary-structures/${employee.id}`}>
+                                                    <Button variant="ghost" size="sm">
+                                                        <Settings className="mr-2 h-4 w-4" />
+                                                        Configure
+                                                    </Button>
+                                                </Link>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setHistoryContactId(employee.id)}
+                                                >
+                                                    <History className="mr-2 h-4 w-4" />
+                                                    History
                                                 </Button>
-                                            </Link>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 );
@@ -125,6 +143,17 @@ export default function SalaryStructuresPage() {
                     </Table>
                 )}
             </PageListContent>
-        </PageListLayout>
+
+            <Dialog open={!!historyContactId} onOpenChange={(open) => !open && setHistoryContactId(null)}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Salary History</DialogTitle>
+                    </DialogHeader>
+                    {historyContactId && (
+                        <SalaryStructureHistory contactId={historyContactId} />
+                    )}
+                </DialogContent>
+            </Dialog>
+        </PageListLayout >
     );
 }
