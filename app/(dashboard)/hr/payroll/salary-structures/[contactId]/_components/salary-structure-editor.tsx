@@ -58,9 +58,12 @@ export function SalaryStructureEditor({ contactId, initialStructure }: SalaryStr
 
     useEffect(() => {
         if (initialStructure) {
-            setBaseSalary(Number(initialStructure.baseSalary));
+            const structure: any = SuperJSON.deserialize(initialStructure as SuperJSONResult);
+            if (!structure) return;
+
+            setBaseSalary(Number(structure.baseSalary));
             setItems(
-                initialStructure.items?.map((item: any) => ({
+                structure.items?.map((item: any) => ({
                     componentId: item.componentId,
                     amount: Number(item.amount),
                     formula: item.formula,
