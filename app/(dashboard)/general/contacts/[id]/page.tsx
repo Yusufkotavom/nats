@@ -8,6 +8,8 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+import { getSalaryStructure } from "@/app/(dashboard)/hr/payroll/actions";
+
 export default async function ContactDetailsPage({ params }: PageProps) {
   const { id } = await params;
   const contact = await getContact(id);
@@ -16,7 +18,15 @@ export default async function ContactDetailsPage({ params }: PageProps) {
     notFound();
   }
 
+  let salaryStructure = null;
+  if (contact.type === "EMPLOYEE") {
+    const res = await getSalaryStructure(contact.id);
+    if (res.success) {
+      salaryStructure = res.data;
+    }
+  }
+
   return (
-    <ContactDetailView contact={contact} />
+    <ContactDetailView contact={contact} salaryStructure={salaryStructure} />
   );
 }

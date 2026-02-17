@@ -24,17 +24,27 @@ import {
   SalesPaymentsList,
   JournalEntriesList,
 } from "./transaction-lists";
-import { ContactType } from "@/prisma/generated/prisma/browser";
 import { Mail, Phone, MapPin, Calendar, Clock } from "lucide-react";
 import { useFormatDate } from "@/hooks/use-format-date";
 
-interface ContactDetailViewProps {
-  contact: Contact;
+import { SalaryStructureTab } from "./salary-structure-tab";
+
+// Define locally to avoid importing prisma client in client component
+enum ContactType {
+  CUSTOMER = "CUSTOMER",
+  VENDOR = "VENDOR",
+  EMPLOYEE = "EMPLOYEE",
 }
 
-export function ContactDetailView({ contact }: ContactDetailViewProps) {
+interface ContactDetailViewProps {
+  contact: Contact;
+  salaryStructure?: any;
+}
+
+export function ContactDetailView({ contact, salaryStructure }: ContactDetailViewProps) {
   const formatDate = useFormatDate();
-  const getTypeBadgeColor = (type: ContactType) => {
+
+  const getTypeBadgeColor = (type: string) => {
     switch (type) {
       case ContactType.CUSTOMER:
         return "bg-blue-100 text-blue-800 hover:bg-blue-100/80 dark:bg-blue-900 dark:text-blue-300 border-transparent";
@@ -71,6 +81,9 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          {contact.type === "EMPLOYEE" && (
+            <TabsTrigger value="salary-structure">Salary Structure</TabsTrigger>
+          )}
           <TabsTrigger value="cash-transactions">Cash Transactions</TabsTrigger>
           <TabsTrigger value="sales-orders">Sales Orders</TabsTrigger>
           <TabsTrigger value="sales-invoices">Sales Invoices</TabsTrigger>
@@ -123,6 +136,12 @@ export function ContactDetailView({ contact }: ContactDetailViewProps) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {contact.type === "EMPLOYEE" && (
+          <TabsContent value="salary-structure">
+            <SalaryStructureTab contactId={contact.id} initialStructure={salaryStructure} />
+          </TabsContent>
+        )}
 
         <TabsContent value="cash-transactions">
           <Card>

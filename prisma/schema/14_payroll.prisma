@@ -1,0 +1,117 @@
+// PAYROLL MODULE
+
+enum SalaryComponentType {
+    EARNING
+    DEDUCTION
+}
+
+enum PayrollPeriodStatus {
+    DRAFT
+    PROCESSING
+    COMPLETED
+    CANCELLED
+}
+
+enum SalarySlipStatus {
+    DRAFT
+    PUBLISHED
+    PAID
+    CANCELLED
+}
+
+model PayrollPeriod {
+    id        String              @id @default(cuid())
+    name      String
+    startDate DateTime
+    endDate   DateTime
+    status    PayrollPeriodStatus @default(DRAFT)
+    createdAt DateTime            @default(now())
+    updatedAt DateTime            @updatedAt
+
+    payrollRuns PayrollRun[]
+    salarySlips SalarySlip[]
+}
+
+model SalaryComponent {
+    id          String              @id @default(cuid())
+    name        String
+    type        SalaryComponentType
+    isTaxable   Boolean             @default(true)
+    description String?
+    isActive    Boolean             @default(true)
+    createdAt   DateTime            @default(now())
+    updatedAt   DateTime            @updatedAt
+
+    structureItems SalaryStructureItem[]
+    slipItems      SalarySlipItem[]
+}
+
+model SalaryStructure {
+    id        String   @id @default(cuid())
+    name      String
+    contactId String
+    contact   Contact  @relation(fields: [contactId], references: [id])
+    isActive  Boolean  @default(true)
+    baseSalary Decimal @default(0)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    items SalaryStructureItem[]
+}
+
+model SalaryStructureItem {
+    id                String          @id @default(cuid())
+    structureId       String
+    structure         SalaryStructure @relation(fields: [structureId], references: [id])
+    componentId       String
+    component         SalaryComponent @relation(fields: [componentId], references: [id])
+    amount            Decimal         @default(0) // Fixed amount or base for formula
+    formula           String?         // Optional: formula for calculation
+    createdAt         DateTime        @default(now())
+    updatedAt         DateTime        @updatedAt
+}
+
+model PayrollRun {
+    id              String        @id @default(cuid())
+    periodId        String
+    period          PayrollPeriod @relation(fields: [periodId], references: [id])
+    runDate         DateTime      @default(now())
+    totalEarnings   Decimal       @default(0)
+    totalDeductions Decimal       @default(0)
+    netPay          Decimal       @default(0)
+    status          PayrollPeriodStatus @default(PROCESSING) // Reusing status enum for simplicity or define new one
+    
+    journalEntryId  String?       @unique
+    journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
+}
+
+model SalarySlip {
+    id              String        @id @default(cuid())
+    periodId        String
+    period          PayrollPeriod @relation(fields: [periodId], references: [id])
+    contactId       String
+    contact         Contact       @relation(fields: [contactId], references: [id])
+    grossSalary     Decimal       @default(0)
+    totalDeductions Decimal       @default(0)
+    netSalary       Decimal       @default(0)
+    status          SalarySlipStatus @default(DRAFT)
+    createdAt       DateTime      @default(now())
+    updatedAt       DateTime      @updatedAt
+
+    items SalarySlipItem[]
+}
+
+model SalarySlipItem {
+    id          String          @id @default(cuid())
+    slipId      String
+    slip        SalarySlip      @relation(fields: [slipId], references: [id])
+    componentId String
+    component   SalaryComponent @relation(fields: [componentId], references: [id])
+    amount      Decimal
+    type        SalaryComponentType
+    createdAt   DateTime        @default(now())
+    updatedAt   DateTime        @updatedAt
+}

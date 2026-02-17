@@ -60,6 +60,9 @@ model JournalEntry {
   depreciationSchedule DepreciationSchedule?
   assetDisposal        AssetDisposal?
 
+  // Payroll Module Relations
+  payrollRun           PayrollRun?
+
   @@index([transactionDate])
   @@index([status])
   @@index([userId])
@@ -122,6 +125,8 @@ enum DefaultAccountPurpose {
   UNCATEGORIZED_INCOME
   UNCATEGORIZED_ASSET
   EXCHANGE_GAIN_LOSS
+  SALARIES_EXPENSE
+  PAYROLL_LIABILITY
 }
 
 enum AccountType {

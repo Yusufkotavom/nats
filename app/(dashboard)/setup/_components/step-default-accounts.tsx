@@ -26,6 +26,8 @@ const PURPOSE_LABELS: Record<DefaultAccountPurpose, string> = {
     UNCATEGORIZED_INCOME: "Uncategorized Income",
     UNCATEGORIZED_ASSET: "Uncategorized Asset",
     EXCHANGE_GAIN_LOSS: "Exchange Gain/Loss",
+    SALARIES_EXPENSE: "Salaries Expense",
+    PAYROLL_LIABILITY: "Payroll Liability",
 };
 
 const PURPOSE_GROUPS: Record<string, DefaultAccountPurpose[]> = {
@@ -51,6 +53,7 @@ const PURPOSE_GROUPS: Record<string, DefaultAccountPurpose[]> = {
         "UNCATEGORIZED_INCOME",
         "EXCHANGE_GAIN_LOSS",
     ],
+    "Payroll": ["SALARIES_EXPENSE", "PAYROLL_LIABILITY"],
 };
 
 type AccountOption = {

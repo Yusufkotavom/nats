@@ -35,4 +35,8 @@ model Contact {
     salesReturns  SalesReturn[]
     salesPayments SalesPayment[]
     heldOrders    HeldOrder[]
+
+    // Employee relations
+    salaryStructures SalaryStructure[]
+    salarySlips      SalarySlip[]
 }

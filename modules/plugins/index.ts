@@ -4,6 +4,7 @@ import { aiPlugin } from "./ai";
 import { assetsPlugin } from "./assets";
 import { budgetingPlugin } from "./budgeting";
 import { cashBankPlugin } from "./cash-bank";
+import { hrPlugin } from "./hr";
 import { inventoryPlugin } from "./inventory";
 import { posPlugin } from "./pos";
 import { purchasePlugin } from "./purchase";
@@ -19,6 +20,7 @@ export const plugins = [
   accountingPlugin,
   budgetingPlugin,
   assetsPlugin,
+  hrPlugin,
   aiPlugin,
   adminPlugin,
 ];

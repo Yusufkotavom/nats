@@ -293,6 +293,21 @@ export const productCreatedPayloadSchema = z.object({
   sku: z.string().min(1),
 });
 
+// ... existing codes ...
+export const payrollRunCompletedPayloadSchema = z.object({
+  payrollRunId: z.string().min(1),
+  periodId: z.string().min(1),
+  totalAmount: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export const salarySlipPublishedPayloadSchema = z.object({
+  salarySlipId: z.string().min(1),
+  contactId: z.string().min(1),
+  netSalary: z.string().min(1),
+  userId: z.string().min(1),
+});
+
 export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("SALES_INVOICE_ISSUED"),
@@ -397,6 +412,14 @@ export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("PRODUCT_CREATED"),
     payload: productCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("PAYROLL_RUN_COMPLETED"),
+    payload: payrollRunCompletedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("SALES_SLIP_PUBLISHED"), // Typo fixed in next step or now? Wait "SALES_SLIP_PUBLISHED" -> "SALES_SLIP" no "SALARY_SLIP"
+    payload: salarySlipPublishedPayloadSchema,
   }),
 ]);
 

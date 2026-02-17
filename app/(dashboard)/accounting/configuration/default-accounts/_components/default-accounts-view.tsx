@@ -54,6 +54,8 @@ const PURPOSE_LABELS: Record<DefaultAccountPurpose, string> = {
   UNCATEGORIZED_INCOME: "Uncategorized Income",
   UNCATEGORIZED_ASSET: "Uncategorized Asset",
   EXCHANGE_GAIN_LOSS: "Exchange Gain/Loss",
+  SALARIES_EXPENSE: "Salaries Expense",
+  PAYROLL_LIABILITY: "Payroll Liability",
 }
 
 const PURPOSE_DESCRIPTIONS: Record<DefaultAccountPurpose, string> = {
@@ -74,6 +76,8 @@ const PURPOSE_DESCRIPTIONS: Record<DefaultAccountPurpose, string> = {
   UNCATEGORIZED_INCOME: "A holding account for income that hasn't been assigned a specific category yet.",
   UNCATEGORIZED_ASSET: "A holding account for assets that haven't been assigned a specific category yet.",
   EXCHANGE_GAIN_LOSS: "Tracks gains or losses resulting from fluctuations in exchange rates for foreign currency transactions.",
+  SALARIES_EXPENSE: "Expense account for employee salaries.",
+  PAYROLL_LIABILITY: "Liability account for payroll payable.",
 }
 
 const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
@@ -101,6 +105,10 @@ const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
     "UNCATEGORIZED_EXPENSE",
     "UNCATEGORIZED_INCOME",
     "EXCHANGE_GAIN_LOSS",
+  ],
+  "Payroll": [
+    "SALARIES_EXPENSE",
+    "PAYROLL_LIABILITY",
   ],
 }
 
