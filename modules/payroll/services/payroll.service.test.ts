@@ -14,6 +14,7 @@ vi.mock('@/lib/prisma', () => ({
         salaryStructure: {
             updateMany: vi.fn(),
             create: vi.fn(),
+            findMany: vi.fn(),
         },
         contact: {
             findMany: vi.fn(),
@@ -111,6 +112,38 @@ describe('PayrollService', () => {
                 data: { status: PayrollPeriodStatus.COMPLETED },
             });
             expect(enqueueIntegrationEvent).toHaveBeenCalledTimes(2); // 1 for run, 1 for slip
+        });
+    });
+
+
+    describe('getSalaryHistory', () => {
+        it('should return salary history for a contact', async () => {
+            const contactId = 'emp-1';
+            const history = [
+                { id: 'struct-1', isActive: false, createdAt: new Date() },
+                { id: 'struct-2', isActive: true, createdAt: new Date() },
+            ];
+            vi.mocked(prisma.salaryStructure.findMany).mockResolvedValue(history as any);
+
+            const result = await PayrollService.getSalaryHistory(contactId);
+
+            expect(prisma.salaryStructure.findMany).toHaveBeenCalledWith({
+                where: { contactId },
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    items: {
+                        include: { component: true }
+                    },
+                    createdBy: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true
+                        }
+                    }
+                }
+            });
+            expect(result).toHaveLength(2);
         });
     });
 });

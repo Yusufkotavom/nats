@@ -57,6 +57,9 @@ model SalaryStructure {
     updatedAt DateTime @updatedAt
 
     items SalaryStructureItem[]
+
+    createdById String?
+    createdBy   User?   @relation("SalaryStructureCreatedBy", fields: [createdById], references: [id])
 }
 
 model SalaryStructureItem {

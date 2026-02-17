@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { PayrollService } from '@/modules/payroll/services/payroll.service';
 import { CreatePayrollPeriodDTO, CreateSalaryStructureDTO } from '@/modules/payroll/types/payroll.types';
 import { prisma } from '@/lib/prisma';
+import { verifySession } from "@/lib/auth/auth";
 
 import { SuperJSON } from "@/lib/superjson";
 
@@ -19,7 +20,11 @@ export async function createPayrollPeriod(data: CreatePayrollPeriodDTO) {
 
 export async function configureSalaryStructure(data: CreateSalaryStructureDTO) {
     try {
-        const structure = await PayrollService.configureSalaryStructure(data);
+        const { userId } = await verifySession();
+        const structure = await PayrollService.configureSalaryStructure({
+            ...data,
+            createdById: userId,
+        });
         revalidatePath('/hr/payroll/salary-structures');
         revalidatePath(`/hr/payroll/salary-structures/${data.contactId}`);
         return { success: true, data: SuperJSON.serialize(structure) };
@@ -124,6 +129,15 @@ export async function createSalaryComponent(data: CreateSalaryComponentDTO) {
         const component = await SalaryComponentService.create(data);
         revalidatePath('/hr/payroll/components');
         return { success: true, data: SuperJSON.serialize(component) };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getSalaryHistory(contactId: string) {
+    try {
+        const history = await PayrollService.getSalaryHistory(contactId);
+        return { success: true, data: SuperJSON.serialize(history) };
     } catch (error: any) {
         return { success: false, error: error.message };
     }

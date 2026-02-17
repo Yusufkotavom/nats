@@ -19,6 +19,7 @@ export type CreateSalaryStructureDTO = {
     contactId: string;
     name: string;
     baseSalary: number;
+    createdById?: string;
     items: {
         componentId: string;
         amount: number;

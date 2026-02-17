@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer } from "lucide-react";
 import { SalaryStructureEditor } from "./_components/salary-structure-editor";
+import { SalaryStructureHistory } from "./_components/salary-structure-history";
 import { ContactType } from "@/prisma/generated/prisma/client";
 
 import { SuperJSON } from "@/lib/superjson";
@@ -62,6 +63,8 @@ export default async function SalaryStructureDetailPage({ params }: PageProps) {
             </PageFormHeader>
 
             <SalaryStructureEditor contactId={contactId} initialStructure={salaryStructure} />
+
+            <SalaryStructureHistory contactId={contactId} />
         </PageFormLayout>
     );
 }

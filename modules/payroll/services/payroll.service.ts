@@ -83,6 +83,7 @@ export class PayrollService {
                 name: data.name,
                 contactId: data.contactId,
                 baseSalary: data.baseSalary,
+                createdById: data.createdById,
                 items: {
                     create: data.items.map((item) => ({
                         componentId: item.componentId,
@@ -92,6 +93,25 @@ export class PayrollService {
                 },
             },
             include: { items: true },
+        });
+    }
+
+    static async getSalaryHistory(contactId: string) {
+        return prisma.salaryStructure.findMany({
+            where: { contactId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                items: {
+                    include: { component: true }
+                },
+                createdBy: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                }
+            }
         });
     }
 
