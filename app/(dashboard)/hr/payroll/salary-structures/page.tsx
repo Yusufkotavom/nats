@@ -1,6 +1,9 @@
+"use client";
 export const dynamic = "force-dynamic";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { getEmployees } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +20,20 @@ import {
     PageListHeader,
     PageListTitle,
     PageListContent,
+    PageListFilter,
 } from "@/components/layout/page/list-layout";
-import { Settings } from "lucide-react";
+import { Settings, Search, Loader2 } from "lucide-react";
+import { CustomInput } from "@/components/ui/custom-input";
 
-export default async function SalaryStructuresPage() {
-    const { data: employees } = await getEmployees();
+export default function SalaryStructuresPage() {
+    const [search, setSearch] = useState("");
+
+    const { data: employeesResult, isLoading } = useQuery({
+        queryKey: ["employees", search],
+        queryFn: () => getEmployees(search.toLowerCase()),
+    });
+
+    const employees = employeesResult?.data;
 
     return (
         <PageListLayout>
@@ -29,60 +41,78 @@ export default async function SalaryStructuresPage() {
                 <PageListTitle title="Salary Structures" />
             </PageListHeader>
 
+            <PageListFilter>
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <CustomInput
+                        placeholder="Search employees..."
+                        className="pl-8"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+            </PageListFilter>
+
             <PageListContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Employee</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Structure</TableHead>
-                            <TableHead></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {employees?.map((employee: any) => {
-                            const hasStructure = employee.salaryStructures?.length > 0;
-                            return (
-                                <TableRow key={employee.id}>
-                                    <TableCell className="font-medium">{employee.name}</TableCell>
-                                    <TableCell>{employee.email || "-"}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={employee.isActive ? "default" : "secondary"}>
-                                            {employee.isActive ? "Active" : "Inactive"}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {hasStructure ? (
-                                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                                                Configured
+                {isLoading ? (
+                    <div className="flex justify-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Employee</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Structure</TableHead>
+                                <TableHead></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {employees?.map((employee: any) => {
+                                const hasStructure = employee.salaryStructures?.length > 0;
+                                return (
+                                    <TableRow key={employee.id}>
+                                        <TableCell className="font-medium">{employee.name}</TableCell>
+                                        <TableCell>{employee.email || "-"}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={employee.isActive ? "default" : "secondary"}>
+                                                {employee.isActive ? "Active" : "Inactive"}
                                             </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
-                                                Not Configured
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Link href={`/hr/payroll/salary-structures/${employee.id}`}>
-                                            <Button variant="ghost" size="sm">
-                                                <Settings className="mr-2 h-4 w-4" />
-                                                Configure
-                                            </Button>
-                                        </Link>
+                                        </TableCell>
+                                        <TableCell>
+                                            {hasStructure ? (
+                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                                                    Configured
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800">
+                                                    Not Configured
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Link href={`/hr/payroll/salary-structures/${employee.id}`}>
+                                                <Button variant="ghost" size="sm">
+                                                    <Settings className="mr-2 h-4 w-4" />
+                                                    Configure
+                                                </Button>
+                                            </Link>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                            {employees?.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-8">
+                                        {search ? "No employees match your search." : "No employees found. Add employees in the Contacts module first."}
                                     </TableCell>
                                 </TableRow>
-                            );
-                        })}
-                        {!employees?.length && (
-                            <TableRow>
-                                <TableCell colSpan={5} className="text-center py-8">
-                                    No employees found. Add employees in the Contacts module first.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                            )}
+                        </TableBody>
+                    </Table>
+                )}
             </PageListContent>
         </PageListLayout>
     );

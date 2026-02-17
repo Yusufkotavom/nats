@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { getSalaryStructure } from "../../actions";
-
 import { prisma } from "@/lib/prisma";
 import {
     PageFormLayout,
@@ -14,7 +13,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { SalaryStructureEditor } from "./_components/salary-structure-editor";
-import { ContactType } from "@/prisma/generated/prisma/enums";
+import { ContactType } from "@/prisma/generated/prisma/client";
 
 interface PageProps {
     params: Promise<{ contactId: string }>;
