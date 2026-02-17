@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { getDepartments, getProjects } from "@/app/(dashboard)/general/actions";
 import { getAccounts } from "@/app/(dashboard)/budgeting/actions";
-import { BudgetForm } from "@/components/budgeting/budget-form";
+import { BudgetForm } from "@/app/(dashboard)/budgeting/_components/budget-form";
 
 export default async function NewBudgetPage() {
   const [departments, projects, accounts] = await Promise.all([

@@ -1,6 +1,6 @@
 import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
-import { SessionProvider } from "@/components/session-provider";
+import { SessionProvider } from "@/components/providers/session-provider";
 import { POSClickSound } from "./_components/pos-click-sound";
 
 export default async function POSLayout({
@@ -9,7 +9,7 @@ export default async function POSLayout({
   children: React.ReactNode;
 }) {
   const session = await verifySession();
-  
+
   const companyProfile = await prisma.companyProfile.findFirst();
 
   return (
@@ -19,19 +19,19 @@ export default async function POSLayout({
         permissions: session.permissions,
         companyProfile: companyProfile
           ? {
-              name: companyProfile.name,
-              address: companyProfile.address,
-              phone: companyProfile.phone,
-              email: companyProfile.email,
-              website: companyProfile.website,
-              taxId: companyProfile.taxId,
-              currency: companyProfile.currency,
-              currencySymbol: companyProfile.currencySymbol,
-              dateFormat: companyProfile.dateFormat,
-              currencyFormat: companyProfile.currencyFormat,
-              locale: companyProfile.locale,
-              timezone: companyProfile.timezone,
-            }
+            name: companyProfile.name,
+            address: companyProfile.address,
+            phone: companyProfile.phone,
+            email: companyProfile.email,
+            website: companyProfile.website,
+            taxId: companyProfile.taxId,
+            currency: companyProfile.currency,
+            currencySymbol: companyProfile.currencySymbol,
+            dateFormat: companyProfile.dateFormat,
+            currencyFormat: companyProfile.currencyFormat,
+            locale: companyProfile.locale,
+            timezone: companyProfile.timezone,
+          }
           : null,
       }}
     >

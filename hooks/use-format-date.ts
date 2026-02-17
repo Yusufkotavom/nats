@@ -1,4 +1,4 @@
-import { useCompanyProfile } from "@/components/session-provider";
+import { useCompanyProfile } from "@/components/providers/session-provider";
 import { formatDate } from "@/lib/utils";
 import { useCallback } from "react";
 

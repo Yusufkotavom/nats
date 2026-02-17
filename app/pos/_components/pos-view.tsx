@@ -25,7 +25,7 @@ import { HeldOrdersDialog } from './held-orders-dialog';
 import { POSHistoryDialog } from './pos-history-dialog';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
-import { useSession } from '@/components/session-provider';
+import { useSession } from '@/components/providers/session-provider';
 import Link from 'next/link';
 import { LayoutDashboard } from 'lucide-react';
 import { Clock } from './clock';

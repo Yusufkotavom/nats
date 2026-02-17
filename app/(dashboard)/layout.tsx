@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/layout/header/site-header";
 import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
 import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
-import { SessionProvider } from "@/components/session-provider";
+import { SessionProvider } from "@/components/providers/session-provider";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({

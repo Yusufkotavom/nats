@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "@/components/session-provider";
+import { useSession } from "@/components/providers/session-provider";
 import { hasPermission, Permission } from "@/lib/permissions/utils";
 
 export function usePermission(permission: Permission) {

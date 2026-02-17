@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { getBudgetById, getBudgetVariance } from "@/app/(dashboard)/budgeting/actions";
-import { BudgetItemsTable } from "@/components/budgeting/budget-items-table";
-import { BudgetActions } from "@/components/budgeting/budget-actions";
+import { BudgetItemsTable } from "@/app/(dashboard)/budgeting/_components/budget-items-table";
+import { BudgetActions } from "@/app/(dashboard)/budgeting/_components/budget-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
