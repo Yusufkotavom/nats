@@ -13,6 +13,7 @@ export const hrPlugin: ModulePlugin = {
                     icon: Users,
                     items: [
                         { title: "Payroll Periods", url: "/hr/payroll" },
+                        { title: "Salary Structures", url: "/hr/payroll/salary-structures" },
                         { title: "Salary Components", url: "/hr/payroll/components" },
                     ],
                 },

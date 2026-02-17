@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { PayrollService } from '@/modules/payroll/services/payroll.service';
 import { CreatePayrollPeriodDTO, CreateSalaryStructureDTO } from '@/modules/payroll/types/payroll.types';
+import { prisma } from '@/lib/prisma';
 
 export async function createPayrollPeriod(data: CreatePayrollPeriodDTO) {
     try {
@@ -17,8 +18,40 @@ export async function createPayrollPeriod(data: CreatePayrollPeriodDTO) {
 export async function configureSalaryStructure(data: CreateSalaryStructureDTO) {
     try {
         const structure = await PayrollService.configureSalaryStructure(data);
-        revalidatePath(`/general/contacts/${data.contactId}`);
+        revalidatePath('/hr/payroll/salary-structures');
+        revalidatePath(`/hr/payroll/salary-structures/${data.contactId}`);
         return { success: true, data: structure };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getEmployees(search = "") {
+    try {
+        const where: any = {
+            type: ContactType.EMPLOYEE,
+            ...(search
+                ? {
+                    OR: [
+                        { name: { contains: search, mode: "insensitive" } },
+                        { email: { contains: search, mode: "insensitive" } },
+                    ],
+                }
+                : {}),
+        };
+
+        const employees = await prisma.contact.findMany({
+            where,
+            orderBy: { name: "asc" },
+            include: {
+                salaryStructures: {
+                    take: 1,
+                    orderBy: { createdAt: "desc" },
+                },
+            },
+        });
+
+        return { success: true, data: employees };
     } catch (error: any) {
         return { success: false, error: error.message };
     }
@@ -73,6 +106,7 @@ export async function getPayrollPeriod(id: string) {
 
 import { SalaryComponentService } from '@/modules/payroll/services/salary-component.service';
 import { CreateSalaryComponentDTO } from '@/modules/payroll/types/payroll.types';
+import { ContactType } from '@/prisma/generated/prisma/client';
 
 export async function getSalaryComponents() {
     try {

@@ -5,7 +5,6 @@ import {
   PageFormHeader,
   PageFormTitle,
 } from "@/components/layout/page/form-layout";
-import { Contact } from "@/prisma/generated/prisma/client";
 import {
   Tabs,
   TabsContent,
@@ -26,22 +25,14 @@ import {
 } from "./transaction-lists";
 import { Mail, Phone, MapPin, Calendar, Clock } from "lucide-react";
 import { useFormatDate } from "@/hooks/use-format-date";
+import { Contact, ContactType } from "@/prisma/generated/prisma/browser";
 
-import { SalaryStructureTab } from "./salary-structure-tab";
-
-// Define locally to avoid importing prisma client in client component
-enum ContactType {
-  CUSTOMER = "CUSTOMER",
-  VENDOR = "VENDOR",
-  EMPLOYEE = "EMPLOYEE",
-}
 
 interface ContactDetailViewProps {
   contact: Contact;
-  salaryStructure?: any;
 }
 
-export function ContactDetailView({ contact, salaryStructure }: ContactDetailViewProps) {
+export function ContactDetailView({ contact }: ContactDetailViewProps) {
   const formatDate = useFormatDate();
 
   const getTypeBadgeColor = (type: string) => {
@@ -81,9 +72,6 @@ export function ContactDetailView({ contact, salaryStructure }: ContactDetailVie
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          {contact.type === "EMPLOYEE" && (
-            <TabsTrigger value="salary-structure">Salary Structure</TabsTrigger>
-          )}
           <TabsTrigger value="cash-transactions">Cash Transactions</TabsTrigger>
           <TabsTrigger value="sales-orders">Sales Orders</TabsTrigger>
           <TabsTrigger value="sales-invoices">Sales Invoices</TabsTrigger>
@@ -137,11 +125,6 @@ export function ContactDetailView({ contact, salaryStructure }: ContactDetailVie
           </Card>
         </TabsContent>
 
-        {contact.type === "EMPLOYEE" && (
-          <TabsContent value="salary-structure">
-            <SalaryStructureTab contactId={contact.id} initialStructure={salaryStructure} />
-          </TabsContent>
-        )}
 
         <TabsContent value="cash-transactions">
           <Card>

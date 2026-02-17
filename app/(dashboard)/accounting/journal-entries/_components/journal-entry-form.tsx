@@ -40,7 +40,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Account, Contact, Department, Project, Prisma } from "@/prisma/generated/prisma/browser";
+import { Account, Contact, Department, Project, Prisma, ContactType } from "@/prisma/generated/prisma/browser";
 import { uploadFile } from "@/app/(dashboard)/general/files/actions";
 import { CreateJournalEntryData } from "../../types";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
@@ -449,13 +449,13 @@ export function JournalEntryForm({
 
                                   let badgeClass =
                                     "bg-gray-100 text-gray-800 hover:bg-gray-200";
-                                  if (contact.type === "CUSTOMER") {
+                                  if (contact.type === ContactType.CUSTOMER) {
                                     badgeClass =
                                       "bg-blue-100 text-blue-800 hover:bg-blue-200";
-                                  } else if (contact.type === "VENDOR") {
+                                  } else if (contact.type === ContactType.VENDOR) {
                                     badgeClass =
                                       "bg-orange-100 text-orange-800 hover:bg-orange-200";
-                                  } else if (contact.type === "EMPLOYEE") {
+                                  } else if (contact.type === ContactType.EMPLOYEE) {
                                     badgeClass =
                                       "bg-green-100 text-green-800 hover:bg-green-200";
                                   }
