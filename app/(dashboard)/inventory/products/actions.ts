@@ -128,6 +128,36 @@ export async function getProduct(id: string) {
   return SuperJSON.serialize(product);
 }
 
+export async function getProductsByIds(ids: string[]) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "products.view")) {
+    return [];
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      id: { in: ids },
+    },
+    include: {
+      category: true,
+      baseUnit: true,
+      discounts: {
+        where: {
+          isActive: true,
+          startDate: { lte: new Date() },
+          OR: [
+            { endDate: null },
+            { endDate: { gte: new Date() } },
+          ],
+        },
+        orderBy: { priority: "desc" },
+      },
+    },
+  });
+
+  return SuperJSON.serialize(products);
+}
+
 import { ProductService } from "@/modules/inventory/services/product.service";
 
 export const createProduct = authorizedAction(

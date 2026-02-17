@@ -14,14 +14,14 @@ export const accountingPlugin: ModulePlugin = {
           items: [
             { title: "Dashboard", url: "/accounting/dashboard" },
             { title: "Chart of Accounts", url: "/accounting/accounts" },
-            { title: "Journal Entries", url: "/accounting/journal-entries" },
-            { title: "Account History", url: "/accounting/ledger" },
-            { title: "Trial Balance", url: "/accounting/trial-balance" },
-            { title: "Reports", url: "/accounting/reports" },
             {
               title: "Default Accounts",
               url: "/accounting/configuration/default-accounts",
             },
+            { title: "Journal Entries", url: "/accounting/journal-entries" },
+            { title: "Account History", url: "/accounting/ledger" },
+            { title: "Trial Balance", url: "/accounting/trial-balance" },
+            { title: "Reports", url: "/accounting/reports" },
             { title: "Tax Rates", url: "/accounting/configuration/taxes" },
           ],
         },

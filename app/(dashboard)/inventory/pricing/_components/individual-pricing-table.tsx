@@ -154,7 +154,71 @@ export function IndividualPricingTable() {
     }
   };
 
+  // Selection State
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+
+  // Selection Handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const newSelected = new Set(selectedProducts);
+      products.forEach((p) => {
+        if (p.id) newSelected.add(p.id);
+      });
+      setSelectedProducts(newSelected);
+    } else {
+      // Deselect current page items
+      const newSelected = new Set(selectedProducts);
+      products.forEach((p) => {
+        if (p.id) newSelected.delete(p.id);
+      });
+      setSelectedProducts(newSelected);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const newSelected = new Set(selectedProducts);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  const handlePrintLabels = () => {
+    const ids = Array.from(selectedProducts).join(",");
+    // Navigate to the print page (still in products directory as per plan, or move it if needed but user only asked to move feature access)
+    // The print page is at /inventory/products/print-labels
+    // We can use the same route.
+    window.open(`/inventory/products/print-labels?ids=${ids}`, '_blank');
+  };
+
+  const isAllSelected = products.length > 0 && products.every((p) => p.id && selectedProducts.has(p.id));
+  const isIndeterminate = products.some((p) => p.id && selectedProducts.has(p.id)) && !isAllSelected;
+
   const columns: Column<PricingProductWithDetails>[] = [
+    {
+      header: (
+        <input
+          type="checkbox"
+          className="translate-y-[2px]"
+          checked={isAllSelected}
+          ref={(input) => {
+            if (input) input.indeterminate = isIndeterminate;
+          }}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+        />
+      ),
+      cell: (product) => (
+        <input
+          type="checkbox"
+          className="translate-y-[2px]"
+          checked={selectedProducts.has(product.id as string)}
+          onChange={(e) => handleSelectOne(product.id as string, e.target.checked)}
+        />
+      ),
+      className: "w-[50px]",
+    },
     {
       header: "SKU",
       accessorKey: "sku",
@@ -274,6 +338,11 @@ export function IndividualPricingTable() {
               ))}
             </CustomSelect>
           </div>
+          {selectedProducts.size > 0 && (
+            <Button variant="outline" onClick={handlePrintLabels}>
+              Print Labels ({selectedProducts.size})
+            </Button>
+          )}
         </div>
       </div>
 

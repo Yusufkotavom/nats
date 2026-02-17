@@ -11,13 +11,13 @@ import { salesPlugin } from "./sales";
 import type { NavItem, NavSectionKey, PermissionDefinition } from "./types";
 
 export const plugins = [
-  purchasePlugin,
-  salesPlugin,
-  inventoryPlugin,
   posPlugin,
+  salesPlugin,
+  purchasePlugin,
+  cashBankPlugin,
+  inventoryPlugin,
   accountingPlugin,
   budgetingPlugin,
-  cashBankPlugin,
   assetsPlugin,
   aiPlugin,
   adminPlugin,

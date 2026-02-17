@@ -59,6 +59,8 @@ export default function ProductsPage() {
   const confirm = useConfirm();
   const queryClient = useQueryClient();
 
+
+
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["products", { page, search, categoryId }],
     queryFn: async () => {
@@ -84,6 +86,8 @@ export default function ProductsPage() {
     queryKey: ["categories"],
     queryFn: getCategories,
   });
+
+  const products = productsData?.products || [];
 
   const handleSearch = (term: string) => {
     const params = new URLSearchParams(searchParams);
@@ -126,7 +130,10 @@ export default function ProductsPage() {
     }
   }
 
+
+
   const columns: Column<ProductFormData>[] = [
+
     {
       header: "SKU/Name",
       cell: (product) => (
@@ -252,7 +259,7 @@ export default function ProductsPage() {
 
       <PageListContent>
         <DataTable
-          data={productsData?.products || []}
+          data={products}
           columns={columns}
           isLoading={isLoadingProducts}
           emptyMessage="No products found."
