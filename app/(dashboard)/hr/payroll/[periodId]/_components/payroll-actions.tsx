@@ -27,10 +27,18 @@ export function PayrollActions({
         try {
             const result = await runPayroll(periodId);
             if (result.success) {
-                toast({
-                    title: "Success",
-                    description: `Generated ${result.data?.totalSlips} salary slips`,
-                });
+                if (result.data?.totalSlips === 0) {
+                    toast({
+                        title: "No Slips Generated",
+                        description: "No active employees with Salary Structures found. Please configure salary structures first.",
+                        variant: "destructive",
+                    });
+                } else {
+                    toast({
+                        title: "Success",
+                        description: `Generated ${result.data?.totalSlips} salary slips`,
+                    });
+                }
             } else {
                 toast({
                     title: "Error",
