@@ -24,6 +24,7 @@ import { purchaseInvoiceCreatedHandler } from "./purchase-invoice-created";
 import { purchasePaymentCreatedHandler } from "./purchase-payment-created";
 import { purchaseReceiveCreatedHandler } from "./purchase-receive-created";
 import { purchaseReturnCreatedHandler } from "./purchase-return-created";
+import { handleInventoryMovementCreated, handleProductCreated } from "./inventory-handlers";
 
 export const integrationHandlers = {
   SALES_INVOICE_ISSUED: [
@@ -98,6 +99,18 @@ export const integrationHandlers = {
   PURCHASE_PAYMENT_CREATED: [purchasePaymentCreatedHandler],
   PURCHASE_RECEIVE_CREATED: [purchaseReceiveCreatedHandler],
   PURCHASE_RETURN_CREATED: [purchaseReturnCreatedHandler],
+  INVENTORY_MOVEMENT_CREATED: [
+    {
+      consumer: "inventory",
+      handle: handleInventoryMovementCreated,
+    },
+  ],
+  PRODUCT_CREATED: [
+    {
+      consumer: "inventory",
+      handle: handleProductCreated,
+    },
+  ],
 } as const;
 
 export type IntegrationHandlerType = keyof typeof integrationHandlers;

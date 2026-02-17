@@ -279,6 +279,20 @@ export const depreciationPostedPayloadSchema = z.object({
   userId: z.string().min(1),
 });
 
+export const inventoryMovementCreatedPayloadSchema = z.object({
+  movementId: z.string().min(1),
+  type: z.string().min(1),
+  transactionDate: z.union([z.string(), z.date()]).transform((val) =>
+    val instanceof Date ? val.toISOString() : val
+  ),
+});
+
+export const productCreatedPayloadSchema = z.object({
+  productId: z.string().min(1),
+  name: z.string().min(1),
+  sku: z.string().min(1),
+});
+
 export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("SALES_INVOICE_ISSUED"),
@@ -375,6 +389,14 @@ export const integrationEventSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("DEPRECIATION_POSTED"),
     payload: depreciationPostedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("INVENTORY_MOVEMENT_CREATED"),
+    payload: inventoryMovementCreatedPayloadSchema,
+  }),
+  z.object({
+    type: z.literal("PRODUCT_CREATED"),
+    payload: productCreatedPayloadSchema,
   }),
 ]);
 
