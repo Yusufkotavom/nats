@@ -10,20 +10,35 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { getSalaryHistory } from "@/app/(dashboard)/hr/payroll/actions";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SalaryStructure, SalaryStructureItem, SalaryComponent, User, SalaryComponentType } from "@/prisma/generated/prisma/client";
 
 interface SalaryStructureHistoryProps {
     contactId: string;
 }
 
+type HistoryItem = SalaryStructure & {
+    items: (SalaryStructureItem & { component: SalaryComponent })[];
+    createdBy: Pick<User, "id" | "name" | "email"> | null;
+};
+
 export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProps) {
-    const [history, setHistory] = useState<any[]>([]);
+    const [history, setHistory] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -31,8 +46,8 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
             setLoading(true);
             const result = await getSalaryHistory(contactId);
             if (result.success && result.data) {
-                const data = SuperJSON.deserialize(result.data as SuperJSONResult);
-                setHistory(data as any[]);
+                const data = SuperJSON.deserialize<HistoryItem[]>(result.data as SuperJSONResult);
+                setHistory(data);
             }
             setLoading(false);
         }
@@ -56,6 +71,9 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
         <Card className="mt-6">
             <CardHeader>
                 <CardTitle>Salary History</CardTitle>
+                <CardDescription>
+                    Historical record of salary structure changes.
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -66,6 +84,7 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
                             <TableHead>Total Components</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Created By</TableHead>
+                            <TableHead className="w-[100px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -81,7 +100,7 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
                                 <TableCell>
                                     <Badge
                                         variant={structure.isActive ? "default" : "secondary"}
-                                        className={!structure.isActive ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : ""}
+                                        className={!structure.isActive ? "bg-gray-100 text-gray-500 hover:bg-gray-200 border-gray-200" : ""}
                                     >
                                         {structure.isActive ? "Active" : "Archived"}
                                     </Badge>
@@ -98,6 +117,64 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
                                     ) : (
                                         <span className="text-muted-foreground text-sm">-</span>
                                     )}
+                                </TableCell>
+                                <TableCell>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" size="sm">
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                Details
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl">
+                                            <DialogHeader>
+                                                <DialogTitle>Salary Structure Details</DialogTitle>
+                                                <DialogDescription>
+                                                    {format(new Date(structure.createdAt), "PPP p")}
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="mt-4 space-y-4">
+                                                <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
+                                                    <span className="font-medium">Base Salary</span>
+                                                    <span className="font-bold text-lg">{Number(structure.baseSalary).toLocaleString()}</span>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Earnings</h4>
+                                                    <div className="border rounded-md divide-y">
+                                                        {structure.items
+                                                            .filter(item => item.component.type === SalaryComponentType.EARNING)
+                                                            .map(item => (
+                                                                <div key={item.id} className="flex justify-between p-3">
+                                                                    <span>{item.component.name}</span>
+                                                                    <span className="font-medium text-green-600">+{Number(item.amount).toLocaleString()}</span>
+                                                                </div>
+                                                            ))}
+                                                        {structure.items.filter(item => item.component.type === SalaryComponentType.EARNING).length === 0 && (
+                                                            <div className="p-3 text-sm text-muted-foreground text-center">No additional earnings</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Deductions</h4>
+                                                    <div className="border rounded-md divide-y">
+                                                        {structure.items
+                                                            .filter(item => item.component.type === SalaryComponentType.DEDUCTION)
+                                                            .map(item => (
+                                                                <div key={item.id} className="flex justify-between p-3">
+                                                                    <span>{item.component.name}</span>
+                                                                    <span className="font-medium text-red-600">-{Number(item.amount).toLocaleString()}</span>
+                                                                </div>
+                                                            ))}
+                                                        {structure.items.filter(item => item.component.type === SalaryComponentType.DEDUCTION).length === 0 && (
+                                                            <div className="p-3 text-sm text-muted-foreground text-center">No deductions</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </TableCell>
                             </TableRow>
                         ))}
