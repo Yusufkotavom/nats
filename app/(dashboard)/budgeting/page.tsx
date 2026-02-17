@@ -16,25 +16,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  PageListLayout,
+  PageListHeader,
+  PageListTitle,
+  PageListActions,
+  PageListContent,
+} from "@/components/layout/page/list-layout";
 
 export default async function BudgetingPage() {
   const budgets = await getBudgets();
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Budgeting</h2>
-        <div className="flex items-center space-x-2">
-          <Link href="/budgeting/configuration">
-            <Button variant="outline">Configuration</Button>
-          </Link>
-          <Link href="/budgeting/budgets/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Create Budget
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <PageListLayout>
+      <PageListHeader>
+        <PageListTitle title="Budgeting" />
+        <PageListActions>
+          <div className="flex items-center space-x-2">
+            <Link href="/budgeting/configuration">
+              <Button variant="outline">Configuration</Button>
+            </Link>
+            <Link href="/budgeting/budgets/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Create Budget
+              </Button>
+            </Link>
+          </div>
+        </PageListActions>
+      </PageListHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -52,11 +61,11 @@ export default async function BudgetingPage() {
         {/* Add more summary cards here later */}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Budgets</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <PageListContent>
+        <div className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-medium">Recent Budgets</h3>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -84,11 +93,17 @@ export default async function BudgetingPage() {
                     <TableCell>{budget.department?.name || "-"}</TableCell>
                     <TableCell>{budget.project?.name || "-"}</TableCell>
                     <TableCell>
-                      <Badge variant={
-                        budget.status === "APPROVED" ? "default" :
-                          budget.status === "REJECTED" ? "destructive" :
-                            budget.status === "PENDING_APPROVAL" ? "secondary" : "outline"
-                      }>
+                      <Badge
+                        variant={
+                          budget.status === "APPROVED"
+                            ? "default"
+                            : budget.status === "REJECTED"
+                              ? "destructive"
+                              : budget.status === "PENDING_APPROVAL"
+                                ? "secondary"
+                                : "outline"
+                        }
+                      >
                         {budget.status}
                       </Badge>
                     </TableCell>
@@ -105,8 +120,8 @@ export default async function BudgetingPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </PageListContent>
+    </PageListLayout>
   );
 }

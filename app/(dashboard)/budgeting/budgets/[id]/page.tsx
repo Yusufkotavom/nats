@@ -10,9 +10,17 @@ import { getSession } from "@/lib/auth/auth";
 import { notFound } from "next/navigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import {
+  PageListLayout,
+  PageListHeader,
+  PageListTitle,
+  PageListActions,
+  PageListContent,
+} from "@/components/layout/page/list-layout";
 
-export default async function BudgetDetailPage({ params }: { params: { id: string } }) {
-  const budget = await getBudgetById(params.id);
+export default async function BudgetDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const budget = await getBudgetById(id);
   if (!budget) return notFound();
 
   const [varianceData, session, companyProfile] = await Promise.all([
@@ -39,27 +47,29 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
   const percentage = totalBudgeted > 0 ? (totalActual / totalBudgeted) * 100 : 0;
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">{budget.name}</h2>
-          <p className="text-muted-foreground">
+    <PageListLayout>
+      <PageListHeader>
+        <div className="flex flex-col gap-1">
+          <PageListTitle title={budget.name} />
+          <p className="text-sm text-muted-foreground">
             Fiscal Year: {budget.fiscalYear} • {budget.department?.name || budget.project?.name || "Global"}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant={
-            budget.status === "APPROVED" ? "default" :
-              budget.status === "REJECTED" ? "destructive" :
-                budget.status === "PENDING_APPROVAL" ? "secondary" : "outline"
-          }>
-            {budget.status}
-          </Badge>
-          {session?.userId && (
-            <BudgetActions budget={budget} currentUserId={session.userId} />
-          )}
-        </div>
-      </div>
+        <PageListActions>
+          <div className="flex items-center space-x-2">
+            <Badge variant={
+              budget.status === "APPROVED" ? "default" :
+                budget.status === "REJECTED" ? "destructive" :
+                  budget.status === "PENDING_APPROVAL" ? "secondary" : "outline"
+            }>
+              {budget.status}
+            </Badge>
+            {session?.userId && (
+              <BudgetActions budget={budget} currentUserId={session.userId} />
+            )}
+          </div>
+        </PageListActions>
+      </PageListHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -100,14 +110,14 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Budget Items vs Actuals</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <PageListContent>
+        <div className="p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-medium">Budget Items vs Actuals</h3>
+          </div>
           <BudgetItemsTable items={varianceData} />
-        </CardContent>
-      </Card>
+        </div>
+      </PageListContent>
 
       {budget.approvals.length > 0 && (
         <Card>
@@ -145,6 +155,6 @@ export default async function BudgetDetailPage({ params }: { params: { id: strin
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageListLayout>
   );
 }
