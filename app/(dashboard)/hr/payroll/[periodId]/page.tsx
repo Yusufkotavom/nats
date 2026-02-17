@@ -60,8 +60,8 @@ export default async function PeriodDetailPage({
 }) {
     const { periodId } = await params;
     const { userId } = await verifySession();
-    const { data: serializedPeriod } = await getPayrollPeriod(periodId);
-    const period = serializedPeriod ? SuperJSON.deserialize<PeriodWithDetails>(serializedPeriod as SuperJSONResult) : null;
+    const response = await getPayrollPeriod(periodId);
+    const period = response.success && response.data ? SuperJSON.deserialize<PeriodWithDetails>(response.data) : null;
 
     if (!period) {
         notFound();

@@ -17,8 +17,8 @@ import { SuperJSONResult } from "superjson";
 import { SalaryComponent } from "@/prisma/generated/prisma/client";
 
 export default async function SalaryComponentsPage() {
-    const { data: serializedComponents } = await getSalaryComponents();
-    const components = serializedComponents ? SuperJSON.deserialize<SalaryComponent[]>(serializedComponents as SuperJSONResult) : [];
+    const response = await getSalaryComponents();
+    const components = response.success && response.data ? SuperJSON.deserialize<SalaryComponent[]>(response.data) : [];
 
     return (
         <PageListLayout>

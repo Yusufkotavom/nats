@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { ContactType } from "@/prisma/generated/prisma/client";
 import { getSalaryStructure } from "../../../actions";
 import { SalarySlip } from "./_components/salary-slip";
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 
 interface PageProps {
     params: Promise<{ contactId: string }>;
@@ -24,12 +26,13 @@ export default async function PrintSalarySlipPage({ params }: PageProps) {
         notFound();
     }
 
-    const { data: salaryStructure } = await getSalaryStructure(contactId);
+    const response = await getSalaryStructure(contactId);
+    const salaryStructure = response.success && response.data ? response.data : null;
 
     return (
         <SalarySlip
-            contact={contact}
-            companyProfile={companyProfile}
+            contact={SuperJSON.serialize(contact)}
+            companyProfile={companyProfile ? SuperJSON.serialize(companyProfile) : null}
             salaryStructure={salaryStructure}
         />
     );

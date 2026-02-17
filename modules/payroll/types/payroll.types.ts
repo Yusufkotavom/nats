@@ -39,3 +39,9 @@ export type PayrollRunResult = {
     totalSlips: number;
     totalAmount: number;
 };
+
+import { SuperJSONResult } from 'superjson';
+
+export type ActionResponse<T = SuperJSONResult> =
+    | { success: true; data: T }
+    | { success: false; error: string };

@@ -34,8 +34,8 @@ export default async function SalaryStructureDetailPage({ params }: PageProps) {
         notFound();
     }
 
-    const { data: serializedStructure } = await getSalaryStructure(contactId);
-    const salaryStructure = serializedStructure;
+    const response = await getSalaryStructure(contactId);
+    const salaryStructure = response.success ? response.data : null;
 
     return (
         <PageFormLayout>

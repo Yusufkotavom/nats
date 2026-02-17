@@ -7,23 +7,37 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { SalaryComponentType } from "@/prisma/generated/prisma/browser";
 
-interface SalarySlipProps {
-    contact: any;
-    companyProfile: any;
-    salaryStructure: any;
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+import { Contact, CompanyProfile, SalaryStructure, SalaryStructureItem, SalaryComponent } from "@/prisma/generated/prisma/client";
+
+interface SalaryStructureWithDetails extends SalaryStructure {
+    items: (SalaryStructureItem & {
+        component: SalaryComponent;
+    })[];
 }
 
-export function SalarySlip({ contact, companyProfile, salaryStructure }: SalarySlipProps) {
+interface SalarySlipProps {
+    contact: SuperJSONResult;
+    companyProfile: SuperJSONResult | null;
+    salaryStructure: SuperJSONResult | null;
+}
+
+export function SalarySlip({ contact: serializedContact, companyProfile: serializedProfile, salaryStructure: serializedStructure }: SalarySlipProps) {
     const printRef = useRef<HTMLDivElement>(null);
+
+    const contact = SuperJSON.deserialize<Contact>(serializedContact);
+    const companyProfile = serializedProfile ? SuperJSON.deserialize<CompanyProfile>(serializedProfile) : null;
+    const salaryStructure = serializedStructure ? SuperJSON.deserialize<SalaryStructureWithDetails>(serializedStructure) : null;
 
     const baseSalary = Number(salaryStructure?.baseSalary ?? 0);
     const items = salaryStructure?.items ?? [];
 
-    const earnings = items.filter((i: any) => i.component?.type === SalaryComponentType.EARNING);
-    const deductions = items.filter((i: any) => i.component?.type === SalaryComponentType.DEDUCTION);
+    const earnings = items.filter((i) => i.component?.type === SalaryComponentType.EARNING);
+    const deductions = items.filter((i) => i.component?.type === SalaryComponentType.DEDUCTION);
 
-    const totalEarnings = baseSalary + earnings.reduce((sum: number, i: any) => sum + Number(i.amount), 0);
-    const totalDeductions = deductions.reduce((sum: number, i: any) => sum + Number(i.amount), 0);
+    const totalEarnings = baseSalary + earnings.reduce((sum, i) => sum + Number(i.amount), 0);
+    const totalDeductions = deductions.reduce((sum, i) => sum + Number(i.amount), 0);
     const netSalary = totalEarnings - totalDeductions;
 
     const currentDate = format(new Date(), "MMMM yyyy");

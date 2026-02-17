@@ -42,9 +42,17 @@ interface SalaryItem {
     };
 }
 
+import { SalaryComponent, SalaryStructure, SalaryStructureItem } from "@/prisma/generated/prisma/client";
+
+interface SalaryStructureWithDetails extends SalaryStructure {
+    items: (SalaryStructureItem & {
+        component: SalaryComponent;
+    })[];
+}
+
 interface SalaryStructureEditorProps {
     contactId: string;
-    initialStructure: any;
+    initialStructure: SuperJSONResult | null;
 }
 
 export function SalaryStructureEditor({ contactId, initialStructure }: SalaryStructureEditorProps) {
@@ -54,19 +62,19 @@ export function SalaryStructureEditor({ contactId, initialStructure }: SalaryStr
 
     const [baseSalary, setBaseSalary] = useState<number>(0);
     const [items, setItems] = useState<SalaryItem[]>([]);
-    const [availableComponents, setAvailableComponents] = useState<any[]>([]);
+    const [availableComponents, setAvailableComponents] = useState<SalaryComponent[]>([]);
 
     useEffect(() => {
         if (initialStructure) {
-            const structure: any = SuperJSON.deserialize(initialStructure as SuperJSONResult);
+            const structure = SuperJSON.deserialize<SalaryStructureWithDetails>(initialStructure);
             if (!structure) return;
 
             setBaseSalary(Number(structure.baseSalary));
             setItems(
-                structure.items?.map((item: any) => ({
+                structure.items?.map((item) => ({
                     componentId: item.componentId,
                     amount: Number(item.amount),
-                    formula: item.formula,
+                    formula: item.formula || "",
                     component: item.component,
                 })) ?? []
             );
@@ -77,8 +85,8 @@ export function SalaryStructureEditor({ contactId, initialStructure }: SalaryStr
         async function fetchComponents() {
             const result = await getSalaryComponents();
             if (result.success) {
-                const data = result.data ? SuperJSON.deserialize(result.data as SuperJSONResult) : [];
-                setAvailableComponents(data as any[]);
+                const data = result.data ? SuperJSON.deserialize<SalaryComponent[]>(result.data) : [];
+                setAvailableComponents(data);
             }
         }
         if (isEditing) {
@@ -96,7 +104,7 @@ export function SalaryStructureEditor({ contactId, initialStructure }: SalaryStr
         setItems(newItems);
     };
 
-    const handleItemChange = (index: number, field: string, value: any) => {
+    const handleItemChange = (index: number, field: keyof SalaryItem, value: any) => {
         const newItems = [...items];
         if (field === "componentId") {
             const component = availableComponents.find((c) => c.id === value);

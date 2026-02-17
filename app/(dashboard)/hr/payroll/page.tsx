@@ -21,7 +21,6 @@ import {
 } from "@/components/layout/page/list-layout";
 
 import { SuperJSON } from "@/lib/superjson";
-import { SuperJSONResult } from "superjson";
 import { PayrollPeriod, PayrollPeriodStatus } from "@/prisma/generated/prisma/client";
 
 type PayrollPeriodsResult = {
@@ -39,8 +38,8 @@ export default async function PayrollPage({
 }) {
     const resolvedParams = await searchParams;
     const page = Number(resolvedParams.page) || 1;
-    const { data: serializedData } = await getPayrollPeriods(page);
-    const periodsData = serializedData ? SuperJSON.deserialize<PayrollPeriodsResult>(serializedData as SuperJSONResult) : null;
+    const response = await getPayrollPeriods(page);
+    const periodsData = response.success && response.data ? SuperJSON.deserialize<PayrollPeriodsResult>(response.data) : null;
 
     return (
         <PageListLayout>
