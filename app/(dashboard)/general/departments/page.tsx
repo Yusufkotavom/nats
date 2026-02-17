@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getDepartments } from "../actions";
-import { CreateDepartmentForm } from "@/components/general/department-form";
+import { CreateDepartmentForm } from "@/app/(dashboard)/general/_components/department-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   PageListContent,
