@@ -28,6 +28,14 @@ import { createEmployee, updateEmployee } from "../actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Loader2 } from "lucide-react";
+import {
+    PageFormLayout,
+    PageFormHeader,
+    PageFormTitle,
+    PageFormActions,
+    PageFormContent,
+} from "@/components/layout/page/form-layout";
 
 const employeeSchema = z.object({
     // Contact Info
@@ -139,17 +147,31 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <Tabs defaultValue="general" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="general">General Info</TabsTrigger>
-                        <TabsTrigger value="employment">Employment</TabsTrigger>
-                        <TabsTrigger value="personal">Personal Info</TabsTrigger>
-                        <TabsTrigger value="bank">Bank & Tax</TabsTrigger>
-                    </TabsList>
+                <PageFormLayout>
+                    <PageFormHeader>
+                        <PageFormTitle title={isEditing ? "Edit Employee" : "New Employee"} />
+                        <PageFormActions>
+                            <Button variant="outline" type="button" onClick={() => router.back()}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isLoading}>
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isEditing ? "Update Employee" : "Create Employee"}
+                            </Button>
+                        </PageFormActions>
+                    </PageFormHeader>
 
-                    <TabsContent value="general">
-                        <Card>
-                            <CardContent className="space-y-4 pt-6">
+
+                    <Tabs defaultValue="general" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="general">General Info</TabsTrigger>
+                            <TabsTrigger value="employment">Employment</TabsTrigger>
+                            <TabsTrigger value="personal">Personal Info</TabsTrigger>
+                            <TabsTrigger value="bank">Bank & Tax</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="general">
+                            <PageFormContent className="space-y-4">
                                 <FormField
                                     control={form.control}
                                     name="name"
@@ -204,272 +226,268 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                         </FormItem>
                                     )}
                                 />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                            </PageFormContent>
+                        </TabsContent>
 
-                    <TabsContent value="employment">
-                        <Card>
-                            <CardContent className="space-y-4 pt-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="jobTitle"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Job Title</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Software Engineer" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="department"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Department</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Engineering" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="employmentStatus"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Employment Status</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <TabsContent value="employment">
+                            <Card>
+                                <CardContent className="space-y-4 pt-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="jobTitle"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Job Title</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select status" />
-                                                        </SelectTrigger>
+                                                        <Input placeholder="Software Engineer" {...field} />
                                                     </FormControl>
-                                                    <SelectContent>
-                                                        {Object.values(EmploymentStatus).map((status) => (
-                                                            <SelectItem key={status} value={status}>
-                                                                {status.replace(/_/g, " ")}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="joinDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Join Date</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="date"
-                                                        value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                                                        onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="personal">
-                        <Card>
-                            <CardContent className="space-y-4 pt-6">
-                                <div className="grid grid-cols-3 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="dateOfBirth"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Date of Birth</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="date"
-                                                        value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                                                        onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="gender"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Gender</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="department"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Department</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select gender" />
-                                                        </SelectTrigger>
+                                                        <Input placeholder="Engineering" {...field} />
                                                     </FormControl>
-                                                    <SelectContent>
-                                                        {Object.values(Gender).map((g) => (
-                                                            <SelectItem key={g} value={g}>{g}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="maritalStatus"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Marital Status</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="employmentStatus"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Employment Status</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select status" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {Object.values(EmploymentStatus).map((status) => (
+                                                                <SelectItem key={status} value={status}>
+                                                                    {status.replace(/_/g, " ")}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="joinDate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Join Date</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select status" />
-                                                        </SelectTrigger>
+                                                        <Input
+                                                            type="date"
+                                                            value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                                                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
+                                                        />
                                                     </FormControl>
-                                                    <SelectContent>
-                                                        {Object.values(MaritalStatus).map((s) => (
-                                                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <Separator className="my-4" />
-                                <h4 className="text-sm font-medium">Emergency Contact</h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="emergencyContactName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Name</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Jane Doe" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="emergencyContactPhone"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Phone</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="+1234567890" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
 
-                    <TabsContent value="bank">
-                        <Card>
-                            <CardContent className="space-y-4 pt-6">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="nationalId"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>National ID</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="National ID" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="employeeTaxId"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Tax ID</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Tax ID" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <Separator className="my-4" />
-                                <h4 className="text-sm font-medium">Bank Details</h4>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="bankName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Bank Name</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Bank Name" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="bankAccount"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Account Number</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Account Number" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="bankHolder"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Account Holder</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Account Holder" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                        <TabsContent value="personal">
+                            <Card>
+                                <CardContent className="space-y-4 pt-6">
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="dateOfBirth"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Date of Birth</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="date"
+                                                            value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                                                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="gender"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Gender</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select gender" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {Object.values(Gender).map((g) => (
+                                                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="maritalStatus"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Marital Status</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select status" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {Object.values(MaritalStatus).map((s) => (
+                                                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <Separator className="my-4" />
+                                    <h4 className="text-sm font-medium">Emergency Contact</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="emergencyContactName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Jane Doe" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="emergencyContactPhone"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Phone</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="+1234567890" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
 
-                <div className="flex justify-end">
-                    <Button type="submit" disabled={isLoading}>
-                        {isLoading ? "Saving..." : isEditing ? "Update Employee" : "Create Employee"}
-                    </Button>
-                </div>
+                        <TabsContent value="bank">
+                            <Card>
+                                <CardContent className="space-y-4 pt-6">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="nationalId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>National ID</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="National ID" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="employeeTaxId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Tax ID</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Tax ID" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <Separator className="my-4" />
+                                    <h4 className="text-sm font-medium">Bank Details</h4>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="bankName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Bank Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Bank Name" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="bankAccount"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Account Number</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Account Number" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="bankHolder"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Account Holder</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Account Holder" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
+
+
+                </PageFormLayout>
             </form>
         </Form>
     );
