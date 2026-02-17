@@ -44,6 +44,15 @@ const SLIP_STATUS_VARIANTS: Record<string, string> = {
     CANCELLED: "bg-red-100 text-red-700",
 };
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+import { PayrollPeriod, PayrollRun, SalarySlip, Contact } from "@/prisma/generated/prisma/client";
+
+type PeriodWithDetails = PayrollPeriod & {
+    payrollRuns: PayrollRun[];
+    salarySlips: (SalarySlip & { contact: Contact })[];
+};
+
 export default async function PeriodDetailPage({
     params,
 }: {
@@ -51,7 +60,8 @@ export default async function PeriodDetailPage({
 }) {
     const { periodId } = await params;
     const { userId } = await verifySession();
-    const { data: period } = await getPayrollPeriod(periodId);
+    const { data: serializedPeriod } = await getPayrollPeriod(periodId);
+    const period = serializedPeriod ? SuperJSON.deserialize<PeriodWithDetails>(serializedPeriod as SuperJSONResult) : null;
 
     if (!period) {
         notFound();

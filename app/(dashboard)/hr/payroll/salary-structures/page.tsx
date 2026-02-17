@@ -25,15 +25,26 @@ import {
 import { Settings, Search, Loader2 } from "lucide-react";
 import { CustomInput } from "@/components/ui/custom-input";
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+
+import { Contact, SalaryStructure } from "@/prisma/generated/prisma/client";
+
 export default function SalaryStructuresPage() {
     const [search, setSearch] = useState("");
 
     const { data: employeesResult, isLoading } = useQuery({
         queryKey: ["employees", search],
-        queryFn: () => getEmployees(search.toLowerCase()),
+        queryFn: async () => {
+            const result = await getEmployees(search.toLowerCase());
+            if (result.success && result.data) {
+                return SuperJSON.deserialize<(Contact & { salaryStructures: SalaryStructure[] })[]>(result.data as SuperJSONResult);
+            }
+            return [];
+        },
     });
 
-    const employees = employeesResult?.data;
+    const employees = employeesResult;
 
     return (
         <PageListLayout>

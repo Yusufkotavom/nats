@@ -15,6 +15,8 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { SalaryStructureEditor } from "./_components/salary-structure-editor";
 import { ContactType } from "@/prisma/generated/prisma/client";
 
+import { SuperJSON } from "@/lib/superjson";
+
 interface PageProps {
     params: Promise<{ contactId: string }>;
 }
@@ -30,7 +32,8 @@ export default async function SalaryStructureDetailPage({ params }: PageProps) {
         notFound();
     }
 
-    const { data: salaryStructure } = await getSalaryStructure(contactId);
+    const { data: serializedStructure } = await getSalaryStructure(contactId);
+    const salaryStructure = serializedStructure ? SuperJSON.deserialize(serializedStructure) : null;
 
     return (
         <PageFormLayout>

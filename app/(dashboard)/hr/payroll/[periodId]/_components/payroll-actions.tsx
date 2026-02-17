@@ -1,5 +1,7 @@
 "use client";
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { runPayroll, approvePayrollRun } from "../../actions";
@@ -27,7 +29,9 @@ export function PayrollActions({
         try {
             const result = await runPayroll(periodId);
             if (result.success) {
-                if (result.data?.totalSlips === 0) {
+                const data = result.data ? SuperJSON.deserialize(result.data as SuperJSONResult) : null;
+                // @ts-ignore
+                if (data?.totalSlips === 0) {
                     toast({
                         title: "No Slips Generated",
                         description: "No active employees with Salary Structures found. Please configure salary structures first.",
@@ -36,7 +40,8 @@ export function PayrollActions({
                 } else {
                     toast({
                         title: "Success",
-                        description: `Generated ${result.data?.totalSlips} salary slips`,
+                        // @ts-ignore
+                        description: `Generated ${data?.totalSlips} salary slips`,
                     });
                 }
             } else {

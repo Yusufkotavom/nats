@@ -20,6 +20,18 @@ import {
     PageListContent,
 } from "@/components/layout/page/list-layout";
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+import { PayrollPeriod, PayrollPeriodStatus } from "@/prisma/generated/prisma/client";
+
+type PayrollPeriodsResult = {
+    periods: (PayrollPeriod & {
+        payrollRuns: { totalSlips: number; totalAmount: any }[];
+    })[];
+    total: number;
+    totalPages: number;
+};
+
 export default async function PayrollPage({
     searchParams,
 }: {
@@ -27,7 +39,8 @@ export default async function PayrollPage({
 }) {
     const resolvedParams = await searchParams;
     const page = Number(resolvedParams.page) || 1;
-    const { data: periodsData } = await getPayrollPeriods(page);
+    const { data: serializedData } = await getPayrollPeriods(page);
+    const periodsData = serializedData ? SuperJSON.deserialize<PayrollPeriodsResult>(serializedData as SuperJSONResult) : null;
 
     return (
         <PageListLayout>
@@ -55,7 +68,7 @@ export default async function PayrollPage({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {periodsData?.items.map((period) => (
+                        {periodsData?.periods.map((period) => (
                             <TableRow key={period.id}>
                                 <TableCell>{format(new Date(period.startDate), "PP")}</TableCell>
                                 <TableCell>{format(new Date(period.endDate), "PP")}</TableCell>
@@ -74,7 +87,7 @@ export default async function PayrollPage({
                                 </TableCell>
                             </TableRow>
                         ))}
-                        {!periodsData?.items.length && (
+                        {!periodsData?.periods.length && (
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center py-8">
                                     No payroll periods found.

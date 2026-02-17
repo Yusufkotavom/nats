@@ -1,5 +1,8 @@
 "use client";
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -72,7 +75,8 @@ export function SalaryStructureEditor({ contactId, initialStructure }: SalaryStr
         async function fetchComponents() {
             const result = await getSalaryComponents();
             if (result.success) {
-                setAvailableComponents(result.data || []);
+                const data = result.data ? SuperJSON.deserialize(result.data as SuperJSONResult) : [];
+                setAvailableComponents(data as any[]);
             }
         }
         if (isEditing) {
