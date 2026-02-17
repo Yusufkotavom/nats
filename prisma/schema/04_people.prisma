@@ -39,4 +39,5 @@ model Contact {
     // Employee relations
     salaryStructures SalaryStructure[]
     salarySlips      SalarySlip[]
+    employeeDetail   EmployeeDetail?
 }

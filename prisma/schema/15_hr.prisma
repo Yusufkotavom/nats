@@ -1,0 +1,54 @@
+// HR / EMPLOYEE MODULE
+
+enum EmploymentStatus {
+    FULL_TIME
+    PART_TIME
+    CONTRACT
+    INTERN
+    PROBATION
+}
+
+enum Gender {
+    MALE
+    FEMALE
+    OTHER
+}
+
+enum MaritalStatus {
+    SINGLE
+    MARRIED
+    DIVORCED
+    WIDOWED
+}
+
+model EmployeeDetail {
+    id        String      @id @default(cuid())
+    contactId String      @unique
+    contact   Contact     @relation(fields: [contactId], references: [id])
+    
+    // Employment Details
+    joinDate         DateTime
+    employmentStatus EmploymentStatus @default(FULL_TIME)
+    jobTitle         String
+    department       String
+    managerId        String?
+    
+    // Personal Info
+    dateOfBirth      DateTime?
+    gender           Gender?
+    maritalStatus    MaritalStatus?
+    nationalId       String?
+    taxId            String?
+    
+    // Emergency Contact
+    emergencyContactName  String?
+    emergencyContactPhone String?
+    
+    // Bank Details
+    bankName         String?
+    bankAccount      String?
+    bankHolder       String?
+    
+    createdAt        DateTime @default(now())
+    updatedAt        DateTime @updatedAt
+}
