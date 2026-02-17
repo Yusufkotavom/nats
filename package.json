@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest",
     "outbox:work": "tsx scripts/outbox-worker.ts",
     "outbox:work:http": "tsx scripts/outbox-worker-http.ts"
   },
