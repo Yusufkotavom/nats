@@ -80,7 +80,7 @@ function PrintPageContent() {
         }
       `}</style>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 print:block">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 print:block">
                 {products.map((product) => {
                     const price = new Decimal(product.price);
                     let finalPrice = price;

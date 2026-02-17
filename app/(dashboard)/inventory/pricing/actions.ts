@@ -84,6 +84,40 @@ export async function getPricingProducts(
   };
 }
 
+export async function getAllPricingProductIds(
+  search?: string,
+  categoryId?: string
+) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, 'products.view')) {
+    return [];
+  }
+
+  const where: Prisma.ProductWhereInput = {
+    AND: [],
+  };
+
+  if (search) {
+    (where.AND as unknown as Prisma.ProductWhereInput[]).push({
+      OR: [
+        { name: { contains: search, mode: 'insensitive' } },
+        { sku: { contains: search, mode: 'insensitive' } },
+      ],
+    });
+  }
+
+  if (categoryId && categoryId !== 'ALL') {
+    (where.AND as unknown as Prisma.ProductWhereInput[]).push({ categoryId });
+  }
+
+  const products = await prisma.product.findMany({
+    where,
+    select: { id: true },
+  });
+
+  return products.map((p) => p.id);
+}
+
 export const updateSinglePrice = authorizedAction(
   'products.edit',
   async (data: { id: string; price: number }) => {

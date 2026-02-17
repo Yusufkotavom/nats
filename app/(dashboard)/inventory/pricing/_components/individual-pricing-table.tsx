@@ -12,6 +12,7 @@ import {
   getPricingProducts,
   updateSinglePrice,
   getCategories,
+  getAllPricingProductIds,
 } from "../actions";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DiscountManager } from "./discount-manager";
@@ -158,20 +159,22 @@ export function IndividualPricingTable() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   // Selection Handlers
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = async (checked: boolean) => {
     if (checked) {
-      const newSelected = new Set(selectedProducts);
-      products.forEach((p) => {
-        if (p.id) newSelected.add(p.id);
-      });
-      setSelectedProducts(newSelected);
+      if (searchTerm || categoryFilter !== "ALL") {
+        // If filtering, we might want to select only filtered items, but "Select All" usually implies all currently listable items.
+        // The actions.ts update handles filters.
+      }
+
+      try {
+        const allIds = await getAllPricingProductIds(searchTerm, categoryFilter);
+        setSelectedProducts(new Set(allIds));
+      } catch (error) {
+        console.error("Failed to select all products", error);
+        // Fallback or error notification could be added here
+      }
     } else {
-      // Deselect current page items
-      const newSelected = new Set(selectedProducts);
-      products.forEach((p) => {
-        if (p.id) newSelected.delete(p.id);
-      });
-      setSelectedProducts(newSelected);
+      setSelectedProducts(new Set());
     }
   };
 
@@ -193,8 +196,8 @@ export function IndividualPricingTable() {
     window.open(`/inventory/products/print-labels?ids=${ids}`, '_blank');
   };
 
-  const isAllSelected = products.length > 0 && products.every((p) => p.id && selectedProducts.has(p.id));
-  const isIndeterminate = products.some((p) => p.id && selectedProducts.has(p.id)) && !isAllSelected;
+  const isAllSelected = totalEntries > 0 && selectedProducts.size === totalEntries;
+  const isIndeterminate = selectedProducts.size > 0 && !isAllSelected;
 
   const columns: Column<PricingProductWithDetails>[] = [
     {
