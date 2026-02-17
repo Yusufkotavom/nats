@@ -18,6 +18,7 @@ export default async function PrintSalarySlipPage({ params }: PageProps) {
     const [contact, companyProfile] = await Promise.all([
         prisma.contact.findUnique({
             where: { id: contactId, type: ContactType.EMPLOYEE },
+            include: { employeeDetail: true },
         }),
         prisma.companyProfile.findFirst(),
     ]);

@@ -9,7 +9,7 @@ import { SalaryComponentType } from "@/prisma/generated/prisma/browser";
 
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
-import { Contact, CompanyProfile, SalaryStructure, SalaryStructureItem, SalaryComponent } from "@/prisma/generated/prisma/client";
+import { Contact, CompanyProfile, SalaryStructure, SalaryStructureItem, SalaryComponent, EmployeeDetail } from "@/prisma/generated/prisma/client";
 
 interface SalaryStructureWithDetails extends SalaryStructure {
     items: (SalaryStructureItem & {
@@ -26,7 +26,7 @@ interface SalarySlipProps {
 export function SalarySlip({ contact: serializedContact, companyProfile: serializedProfile, salaryStructure: serializedStructure }: SalarySlipProps) {
     const printRef = useRef<HTMLDivElement>(null);
 
-    const contact = SuperJSON.deserialize<Contact>(serializedContact);
+    const contact = SuperJSON.deserialize<Contact & { employeeDetail: EmployeeDetail | null }>(serializedContact);
     const companyProfile = serializedProfile ? SuperJSON.deserialize<CompanyProfile>(serializedProfile) : null;
     const salaryStructure = serializedStructure ? SuperJSON.deserialize<SalaryStructureWithDetails>(serializedStructure) : null;
 
@@ -126,21 +126,41 @@ export function SalarySlip({ contact: serializedContact, companyProfile: seriali
                         <span>: {contact.name}</span>
                     </div>
                     <div className="flex">
+                        <span className="font-semibold w-32">Job Title</span>
+                        <span>: {contact.employeeDetail?.jobTitle || "-"}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="font-semibold w-32">Employee ID</span>
+                        <span>: {contact.id.slice(-6).toUpperCase()}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="font-semibold w-32">Department</span>
+                        <span>: {contact.employeeDetail?.department || "-"}</span>
+                    </div>
+                    {contact.employeeDetail?.joinDate && (
+                        <div className="flex">
+                            <span className="font-semibold w-32">Join Date</span>
+                            <span>: {format(new Date(contact.employeeDetail.joinDate), "dd MMM yyyy")}</span>
+                        </div>
+                    )}
+                    <div className="flex">
                         <span className="font-semibold w-32">Date</span>
                         <span>: {printDate}</span>
                     </div>
-                    {contact.email && (
+                    {contact.employeeDetail?.taxId && (
                         <div className="flex">
-                            <span className="font-semibold w-32">Email</span>
-                            <span>: {contact.email}</span>
+                            <span className="font-semibold w-32">Tax ID (NPWP)</span>
+                            <span>: {contact.employeeDetail.taxId}</span>
                         </div>
                     )}
-                    {contact.phone && (
-                        <div className="flex">
-                            <span className="font-semibold w-32">Phone</span>
-                            <span>: {contact.phone}</span>
-                        </div>
-                    )}
+                    <div className="flex">
+                        <span className="font-semibold w-32">Bank Name</span>
+                        <span>: {contact.employeeDetail?.bankName || "-"}</span>
+                    </div>
+                    <div className="flex">
+                        <span className="font-semibold w-32">Bank Account</span>
+                        <span>: {contact.employeeDetail?.bankAccount || "-"}</span>
+                    </div>
                 </div>
 
                 {/* Salary Table — side by side earnings/deductions */}

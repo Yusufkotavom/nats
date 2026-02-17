@@ -62,7 +62,10 @@ export const CurrencyInput = React.forwardRef<
       value={formatDisplayValue(value)}
       onChange={handleChange}
       onBlur={handleBlur}
-      onFocus={onFocus}
+      onFocus={(e) => {
+        e.target.select();
+        onFocus?.(e);
+      }}
     />
   );
 });
