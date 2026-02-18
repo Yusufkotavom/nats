@@ -62,15 +62,25 @@ interface BudgetFormData {
   items: BudgetItemData[];
 }
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+import { useMemo } from "react";
+
+// ... existing imports ...
+
 interface BudgetFormProps {
-  departments: Department[];
-  projects: Project[];
-  accounts: Account[];
+  departments: SuperJSONResult;
+  projects: SuperJSONResult;
+  accounts: SuperJSONResult;
   initialData?: any;
   isEdit?: boolean;
 }
 
-export function BudgetForm({ departments, projects, accounts, initialData, isEdit }: BudgetFormProps) {
+export function BudgetForm({ departments: departmentsData, projects: projectsData, accounts: accountsData, initialData, isEdit }: BudgetFormProps) {
+  const departments = useMemo(() => SuperJSON.deserialize<Department[]>(departmentsData) || [], [departmentsData]);
+  const projects = useMemo(() => SuperJSON.deserialize<Project[]>(projectsData) || [], [projectsData]);
+  const accounts = useMemo(() => SuperJSON.deserialize<Account[]>(accountsData) || [], [accountsData]);
+
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);

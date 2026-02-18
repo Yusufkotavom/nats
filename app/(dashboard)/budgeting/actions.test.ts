@@ -37,8 +37,11 @@ describe("checkBudgetAvailability", () => {
     // Request 600. Total = 500 + 600 = 1100 > 1000
     const result = await checkBudgetAvailability(null, null, date, 600);
 
-    expect(result.available).toBe(false);
-    expect(result.warning).toContain("Exceeds budget");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.available).toBe(false);
+      expect(result.data.warning).toContain("Exceeds budget");
+    }
   });
 
   it("should return warning if approaching limit", async () => {
@@ -57,8 +60,11 @@ describe("checkBudgetAvailability", () => {
     // Request 100. Total = 950. Remaining 50. 50 < 1000 * 0.1 (100)
     const result = await checkBudgetAvailability(null, null, date, 100);
 
-    expect(result.available).toBe(true);
-    expect(result.warning).toContain("approaching budget limit");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.available).toBe(true);
+      expect(result.data.warning).toContain("approaching budget limit");
+    }
   });
 
   it("should return available if within budget", async () => {
@@ -77,7 +83,11 @@ describe("checkBudgetAvailability", () => {
     // Request 100. Total = 200 < 1000.
     const result = await checkBudgetAvailability(null, null, date, 100);
 
-    expect(result.available).toBe(true);
-    expect(result.warning).toBeUndefined();
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.available).toBe(true);
+      expect(result.data.warning).toBeUndefined();
+    }
   });
 });
+

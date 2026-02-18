@@ -15,8 +15,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { SuperJSON } from "@/lib/superjson";
+
 export default async function BudgetsListPage() {
-  const budgets = await getBudgets();
+  const response = await getBudgets();
+  const budgets = response.success ? SuperJSON.deserialize<any[]>(response.data) : [];
+
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">

@@ -8,6 +8,8 @@ import { Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { getSession } from "@/lib/auth/auth";
+import { SuperJSON } from "@/lib/superjson";
 import {
   Table,
   TableBody,
@@ -25,7 +27,10 @@ import {
 } from "@/components/layout/page/list-layout";
 
 export default async function BudgetingPage() {
-  const budgets = await getBudgets();
+  const session = await getSession();
+  const response = await getBudgets();
+  const budgets = response.success ? SuperJSON.deserialize<any[]>(response.data) : [];
+
 
   return (
     <PageListLayout>

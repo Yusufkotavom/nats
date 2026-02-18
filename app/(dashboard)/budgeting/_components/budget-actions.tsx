@@ -11,12 +11,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
+import { SuperJSON } from "@/lib/superjson";
+import { SuperJSONResult } from "superjson";
+import { useMemo } from "react";
+
 interface BudgetActionsProps {
-  budget: Budget & { approvals: BudgetApproval[] };
-  currentUserId: string; // To check if user can approve
+  budget: SuperJSONResult;
+  currentUserId: string;
 }
 
-export function BudgetActions({ budget, currentUserId }: BudgetActionsProps) {
+export function BudgetActions({ budget: budgetData, currentUserId }: BudgetActionsProps) {
+  const budget = useMemo(() => SuperJSON.deserialize<Budget & { approvals: BudgetApproval[] }>(budgetData), [budgetData]);
+
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -26,12 +32,12 @@ export function BudgetActions({ budget, currentUserId }: BudgetActionsProps) {
   const latestApproval = budget.approvals[0];
   const isPendingApproval = budget.status === "PENDING_APPROVAL";
   const isDraft = budget.status === "DRAFT" || budget.status === "REJECTED";
-  
+
   // Logic to determine if current user can approve
   // This is simplified. Ideally we check roles.
   // For now, let's assume anyone can approve for demo purposes, or check if user is NOT the creator?
   // Real implementation: check if user.role matches approval.role (DEPT_HEAD, FINANCE, CFO)
-  const canApprove = isPendingApproval && latestApproval?.status === "PENDING"; 
+  const canApprove = isPendingApproval && latestApproval?.status === "PENDING";
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -99,10 +105,10 @@ export function BudgetActions({ budget, currentUserId }: BudgetActionsProps) {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Reason for Rejection</Label>
-                  <Textarea 
-                    value={rejectReason} 
-                    onChange={(e) => setRejectReason(e.target.value)} 
-                    placeholder="Please explain why..." 
+                  <Textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Please explain why..."
                   />
                 </div>
               </div>

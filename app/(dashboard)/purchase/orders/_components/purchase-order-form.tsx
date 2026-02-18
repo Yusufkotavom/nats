@@ -363,8 +363,12 @@ export function PurchaseOrderForm({
           formData.orderDate,
           totalAmount
         );
-        if (res.warning) setBudgetWarning(res.warning);
-        else setBudgetWarning(null);
+        if (res.success && res.data.warning) {
+          setBudgetWarning(res.data.warning);
+        } else {
+          setBudgetWarning(null);
+        }
+
       } else {
         setBudgetWarning(null);
       }

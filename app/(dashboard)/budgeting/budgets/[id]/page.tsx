@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { getBudgetById, getBudgetVariance } from "@/app/(dashboard)/budgeting/actions";
 import { BudgetItemsTable } from "@/app/(dashboard)/budgeting/_components/budget-items-table";
 import { BudgetActions } from "@/app/(dashboard)/budgeting/_components/budget-actions";
+import { SuperJSON } from "@/lib/superjson";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -20,14 +21,19 @@ import {
 
 export default async function BudgetDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const budget = await getBudgetById(id);
-  if (!budget) return notFound();
+  const budgetResponse = await getBudgetById(id);
+  if (!budgetResponse.success || !budgetResponse.data) return notFound();
 
-  const [varianceData, session, companyProfile] = await Promise.all([
+  const budget = SuperJSON.deserialize<any>(budgetResponse.data);
+
+  const [varianceResponse, session, companyProfile] = await Promise.all([
     getBudgetVariance(budget.id),
     getSession(),
     prisma.companyProfile.findFirst()
   ]);
+
+  const varianceData = varianceResponse.success ? SuperJSON.deserialize<any[]>(varianceResponse.data) : [];
+
 
   const currencyOptions = {
     currency: companyProfile?.currency,
@@ -65,13 +71,14 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
               {budget.status}
             </Badge>
             {session?.userId && (
-              <BudgetActions budget={budget} currentUserId={session.userId} />
+              <BudgetActions budget={budgetResponse.data} currentUserId={session.userId} />
             )}
           </div>
         </PageListActions>
       </PageListHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* ... (cards remain same) ... */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
@@ -126,7 +133,7 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {budget.approvals.map((approval, index) => (
+              {budget.approvals.map((approval: any, index: number) => (
                 <div key={approval.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
                   <div>
                     <div className="font-medium">
@@ -155,6 +162,7 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
           </CardContent>
         </Card>
       )}
+
     </PageListLayout>
   );
 }
