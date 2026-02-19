@@ -1,4 +1,4 @@
-import { BoxIcon } from "lucide-react";
+import { Archive } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const inventoryPlugin: ModulePlugin = {
@@ -8,17 +8,17 @@ export const inventoryPlugin: ModulePlugin = {
       section: "Operations",
       items: [
         {
-          title: "Inventory",
+          title: "Navigation.inventory",
           url: "#",
-          icon: BoxIcon,
+          icon: Archive,
           items: [
-            { title: "Overview", url: "/inventory" },
-            { title: "Products List", url: "/inventory/products" },
-            { title: "Pricing and Discount", url: "/inventory/pricing" },
-            { title: "Locations/Warehouses", url: "/inventory/warehouses" },
-            { title: "Stock Movements", url: "/inventory/movements" },
-            { title: "Product Categories", url: "/inventory/categories" },
-            { title: "Products Units (UOM)", url: "/inventory/uom" },
+            { title: "Inventory.dashboard", url: "/inventory/dashboard" },
+            { title: "Inventory.products", url: "/inventory/products" },
+            { title: "Inventory.warehouses", url: "/inventory/warehouses" },
+            { title: "Inventory.stock", url: "/inventory/stock" },
+            { title: "Inventory.movements", url: "/inventory/movements" },
+            { title: "Inventory.adjustments", url: "/inventory/adjustments" },
+            { title: "Products Units (UOM)", url: "/inventory/uom" }, // Kept this item as it was not explicitly replaced by a new key
           ],
         },
       ],

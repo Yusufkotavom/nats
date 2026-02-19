@@ -8,13 +8,14 @@ export const cashBankPlugin: ModulePlugin = {
       section: "Operations",
       items: [
         {
-          title: "Cash & Bank",
-          url: "/cash-bank",
+          title: "Navigation.cash_bank",
+          url: "#",
           icon: Landmark,
           items: [
-            { title: "Overview", url: "/cash-bank" },
-            { title: "Cash In & Out", url: "/cash-bank/transaction" },
-            { title: "Internal Transfers", url: "/cash-bank/transfer" },
+            { title: "CashBank.dashboard", url: "/cash-bank/dashboard" },
+            { title: "CashBank.accounts", url: "/cash-bank/accounts" },
+            { title: "CashBank.transactions", url: "/cash-bank/transactions" },
+            { title: "CashBank.transfers", url: "/cash-bank/transfers" },
           ],
         },
       ],

@@ -1,4 +1,4 @@
-import { Building2Icon, CogIcon, LayoutDashboard } from "lucide-react";
+import { Building2Icon, CogIcon, LayoutDashboard, Shield } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const adminPlugin: ModulePlugin = {
@@ -18,6 +18,16 @@ export const adminPlugin: ModulePlugin = {
             { title: "Projects", url: "/general/projects" },
             { title: "User Management", url: "/admin/users" },
             { title: "Role Definitions", url: "/admin/roles" }],
+        },
+        {
+          title: "Navigation.admin",
+          url: "#",
+          icon: Shield,
+          items: [
+            { title: "Admin.users", url: "/admin/users" },
+            { title: "Admin.roles", url: "/admin/roles" },
+            { title: "Admin.settings", url: "/admin/settings" },
+          ],
         },
         {
           title: "System",

@@ -8,14 +8,16 @@ export const hrPlugin: ModulePlugin = {
             section: "Operations",
             items: [
                 {
-                    title: "HR & Payroll",
+                    title: "Navigation.hr",
                     url: "#",
                     icon: Users,
                     items: [
-                        { title: "Employees", url: "/hr/employees" },
-                        { title: "Payroll Periods", url: "/hr/payroll" },
-                        { title: "Salary Structures", url: "/hr/payroll/salary-structures" },
-                        { title: "Salary Components", url: "/hr/payroll/components" },
+                        { title: "HR.dashboard", url: "/hr/dashboard" },
+                        { title: "HR.employees", url: "/hr/employees" },
+                        { title: "HR.departments", url: "/hr/departments" },
+                        { title: "HR.payroll", url: "/hr/payroll" },
+                        { title: "HR.attendance", url: "/hr/attendance" },
+                        { title: "HR.leaves", url: "/hr/leaves" },
                     ],
                 },
             ],

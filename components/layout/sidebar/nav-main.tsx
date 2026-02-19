@@ -2,7 +2,8 @@
 
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 
 import {
   Collapsible,
@@ -37,10 +38,11 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
 
   return (
     <SidebarGroup>
-      {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
+      {label && <SidebarGroupLabel>{t(label)}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => {
           const isActive =
@@ -56,9 +58,9 @@ export function NavMain({
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title} className="cursor-pointer">
+                  <SidebarMenuButton tooltip={t(item.title)} className="cursor-pointer">
                     {item.icon && <item.icon />}
-                    <span>{item.title}</span>
+                    <span>{t(item.title)}</span>
                     <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
@@ -71,7 +73,7 @@ export function NavMain({
                           isActive={pathname === subItem.url}
                         >
                           <Link href={subItem.url}>
-                            <span>{subItem.title}</span>
+                            <span>{t(subItem.title)}</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

@@ -51,13 +51,13 @@ export function AppSidebar({
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain label="Operations" items={navigation["Operations"]} />
+        <NavMain label="Navigation.operations" items={navigation["Operations"]} />
         <NavMain
-          label="Finance & Accounting"
+          label="Navigation.finance_accounting"
           items={navigation["Finance & Accounting"]}
         />
-        <NavMain label="Intelligence" items={navigation["Intelligence"]} />
-        <NavMain label="Administration" items={navigation["Administration"]} />
+        <NavMain label="Navigation.intelligence" items={navigation["Intelligence"]} />
+        <NavMain label="Navigation.administration" items={navigation["Administration"]} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

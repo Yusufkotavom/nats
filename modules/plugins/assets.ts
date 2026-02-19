@@ -1,4 +1,4 @@
-import { Building } from "lucide-react";
+import { Box } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const assetsPlugin: ModulePlugin = {
@@ -8,13 +8,14 @@ export const assetsPlugin: ModulePlugin = {
       section: "Finance & Accounting",
       items: [
         {
-          title: "Fixed Assets",
-          url: "/assets",
-          icon: Building,
+          title: "Navigation.assets",
+          url: "#",
+          icon: Box,
           items: [
-            { title: "Asset List", url: "/assets" },
-            { title: "Depreciation Run", url: "/assets/depreciation" },
-            { title: "Asset Categories", url: "/assets/categories" },
+            { title: "Assets.dashboard", url: "/assets/dashboard" },
+            { title: "Assets.fixed_assets", url: "/assets/fixed-assets" },
+            { title: "Assets.depreciation", url: "/assets/depreciation" },
+            { title: "Assets.categories", url: "/assets/categories" },
           ],
         },
       ],

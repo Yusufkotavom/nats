@@ -1,4 +1,4 @@
-import { Scale } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const accountingPlugin: ModulePlugin = {
@@ -8,21 +8,15 @@ export const accountingPlugin: ModulePlugin = {
       section: "Finance & Accounting",
       items: [
         {
-          title: "General Ledger",
+          title: "Navigation.accounting",
           url: "#",
-          icon: Scale,
+          icon: BookOpen,
           items: [
-            { title: "Dashboard", url: "/accounting/dashboard" },
-            { title: "Chart of Accounts", url: "/accounting/accounts" },
-            {
-              title: "Default Accounts",
-              url: "/accounting/configuration/default-accounts",
-            },
-            { title: "Journal Entries", url: "/accounting/journal-entries" },
-            { title: "Account History", url: "/accounting/ledger" },
-            { title: "Trial Balance", url: "/accounting/trial-balance" },
-            { title: "Reports", url: "/accounting/reports" },
-            { title: "Tax Rates", url: "/accounting/configuration/taxes" },
+            { title: "Accounting.dashboard", url: "/accounting/dashboard" },
+            { title: "Accounting.journal", url: "/accounting/journal" },
+            { title: "Accounting.ledger", url: "/accounting/ledger" },
+            { title: "Accounting.chart_of_accounts", url: "/accounting/chart-of-accounts" },
+            { title: "Accounting.reports", url: "/accounting/reports" },
           ],
         },
       ],

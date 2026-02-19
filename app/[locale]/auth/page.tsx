@@ -8,9 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Loader2, GalleryVerticalEnd } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
   const [state, action, isPending] = useActionState(login, undefined);
+  const t = useTranslations('Auth');
+  const tCommon = useTranslations('Common');
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
@@ -27,15 +30,15 @@ export default function LoginPage() {
           <div className="w-full max-w-xs">
             <form action={action} className="flex flex-col gap-6">
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Login to your account</h1>
+                <h1 className="text-2xl font-bold">{t('login_title')}</h1>
                 <p className="text-balance text-sm text-muted-foreground">
-                  Enter your email below to login to your account
+                  {t('login_description')}
                 </p>
               </div>
               <div className="grid gap-6">
                 <div className="grid gap-2">
                   <CustomInput
-                    label="Email"
+                    label={t('email_label')}
                     id="email"
                     name="email"
                     type="email"
@@ -49,12 +52,12 @@ export default function LoginPage() {
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">{t('password_label')}</Label>
                     <Link
                       href="#"
                       className="ml-auto text-sm underline-offset-4 hover:underline"
                     >
-                      Forgot your password?
+                      {t('forgot_password')}
                     </Link>
                   </div>
                   <CustomInput
@@ -74,23 +77,24 @@ export default function LoginPage() {
                   {isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
+                      {t('logging_in')}
                     </>
                   ) : (
-                    "Login"
+                    t('login_button')
                   )}
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
+                {t('no_account')}{" "}
                 <Link href="#" className="underline underline-offset-4">
-                  Sign up
+                  {t('sign_up')}
                 </Link>
               </div>
             </form>
           </div>
         </div>
       </div>
+//...
       <div className="relative hidden bg-muted lg:block">
         <Image
           src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"

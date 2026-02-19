@@ -1,4 +1,4 @@
-import { Bot } from "lucide-react";
+import { Bot, Sparkles } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const aiPlugin: ModulePlugin = {
@@ -8,13 +8,15 @@ export const aiPlugin: ModulePlugin = {
       section: "Intelligence",
       items: [
         {
-          title: "AI Assistant",
-          url: "/ai/chat",
-          icon: Bot,
-          items: [{ title: "Chat", url: "/ai/chat" }],
+          title: "Navigation.ai",
+          url: "/ai",
+          icon: Sparkles,
+          items: [
+            { title: "AI.dashboard", url: "/ai/dashboard" },
+            { title: "AI.assistants", url: "/ai/assistants" },
+          ],
         },
       ],
     },
   ],
 };
-

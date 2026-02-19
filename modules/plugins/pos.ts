@@ -8,12 +8,12 @@ export const posPlugin: ModulePlugin = {
       section: "Operations",
       items: [
         {
-          title: "Point of Sale",
-          url: "/pos",
+          title: "Navigation.pos",
+          url: "#",
           icon: StoreIcon,
           items: [
-            { title: "Terminal", url: "/pos" },
-            { title: "Sessions", url: "/pos/sessions" },
+            { title: "POS.cashier", url: "/pos" },
+            { title: "POS.sessions", url: "/pos/sessions" },
           ],
         },
       ],
@@ -27,4 +27,3 @@ export const posPlugin: ModulePlugin = {
     },
   ],
 };
-

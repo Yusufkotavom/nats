@@ -8,16 +8,16 @@ export const salesPlugin: ModulePlugin = {
       section: "Operations",
       items: [
         {
-          title: "Sales",
+          title: "Navigation.sales",
           url: "#",
           icon: Rocket,
           items: [
-            { title: "Dashboard", url: "/sales/dashboard" },
-            { title: "Sales Order", url: "/sales/orders" },
-            { title: "Sales Invoice", url: "/sales/invoices" },
-            { title: "Sales Return", url: "/sales/returns" },
-            { title: "Sales Shipments", url: "/sales/shipments" },
-            { title: "Sales Payments", url: "/sales/payments" },
+            { title: "Sales.dashboard", url: "/sales/dashboard" },
+            { title: "Sales.orders", url: "/sales/orders" },
+            { title: "Sales.invoices", url: "/sales/invoices" },
+            { title: "Sales.returns", url: "/sales/returns" },
+            { title: "Sales.shipments", url: "/sales/shipments" },
+            { title: "Sales.payments", url: "/sales/payments" },
           ],
         },
       ],

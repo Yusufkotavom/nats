@@ -119,6 +119,21 @@
         "variance": "Analisis Varians",
         "dashboard": "Dasbor Penganggaran"
     },
+    "Admin": {
+        "users": "Pengguna",
+        "roles": "Peran & Izin",
+        "settings": "Pengaturan"
+    },
+    "AI": {
+        "dashboard": "Dasbor AI",
+        "assistants": "Asisten"
+    },
+    "CashBank": {
+        "dashboard": "Dasbor Kas & Bank",
+        "accounts": "Akun",
+        "transactions": "Transaksi",
+        "transfers": "Transfer"
+    },
     "POS": {
         "cashier": "Kasir",
         "sessions": "Sesi",

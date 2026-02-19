@@ -35,6 +35,7 @@
         "intelligence": "Intelligence",
         "administration": "Administration",
         "dashboard": "Dashboard",
+        "cash_bank": "Cash & Bank",
         "pos": "POS",
         "sales": "Sales",
         "purchase": "Purchase",
@@ -118,6 +119,21 @@
         "plans": "Budget Plans",
         "variance": "Variance Analysis",
         "dashboard": "Budgeting Dashboard"
+    },
+    "Admin": {
+        "users": "Users",
+        "roles": "Roles & Permissions",
+        "settings": "Settings"
+    },
+    "AI": {
+        "dashboard": "AI Dashboard",
+        "assistants": "Assistants"
+    },
+    "CashBank": {
+        "dashboard": "Cash & Bank Dashboard",
+        "accounts": "Accounts",
+        "transactions": "Transactions",
+        "transfers": "Transfers"
     },
     "POS": {
         "cashier": "Cashier",

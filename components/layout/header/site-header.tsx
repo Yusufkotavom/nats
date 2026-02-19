@@ -14,27 +14,42 @@ import { usePathname } from "next/navigation";
 import React from "react";
 import { ModeToggle } from "@/components/layout/others/mode-toggle";
 import { ThemeCustomizer } from "@/components/layout/others/theme-customizer";
+import { useTranslations } from "next-intl";
 import { toTitleCase } from "@/lib/utils";
+
+// ...
 
 export function SiteHeader() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter((segment) => segment !== "");
+  const t = useTranslations();
 
   const breadcrumbs = segments.filter((_, index) => index > 0).map((segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
     const isLast = index === segments.length - 1;
-    const title = segment.charAt(0).toUpperCase() + segment.slice(1);
+
+    // Try to get translation from Navigation, fall back to title case
+    // Note: We need a way to check if key exists or just let it return key?
+    // next-intl returns key if missing.
+    // For now, let's assume we want to translate mostly known segments.
+    // Or just use title case if translation is missing (not easy to check without extra config).
+    // Let's use t('Navigation.' + segment) and rely on us populating Navigation keys.
+    // However, segment might be an ID (uuid).
+    // If segment looks like UUID, don't translate.
+    // Simple check: length > 20?
+    const isUuid = segment.length > 20 && segment.includes('-');
+    const title = isUuid ? segment : t(`Navigation.${segment}`);
 
     return (
       <React.Fragment key={href}>
         <BreadcrumbItem>
           {isLast ? (
             <BreadcrumbPage>
-              {toTitleCase(title.replace("-", " "))}
+              {isUuid ? segment : toTitleCase(title === `Navigation.${segment}` ? segment.replace("-", " ") : title)}
             </BreadcrumbPage>
           ) : (
             <BreadcrumbLink href={href}>
-              {toTitleCase(title.replace("-", " "))}
+              {isUuid ? segment : toTitleCase(title === `Navigation.${segment}` ? segment.replace("-", " ") : title)}
             </BreadcrumbLink>
           )}
         </BreadcrumbItem>
@@ -54,7 +69,7 @@ export function SiteHeader() {
               breadcrumbs
             ) : (
               <BreadcrumbItem>
-                <BreadcrumbPage>Home</BreadcrumbPage>
+                <BreadcrumbPage>{t('Common.home')}</BreadcrumbPage>
               </BreadcrumbItem>
             )}
           </BreadcrumbList>
