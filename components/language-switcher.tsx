@@ -24,8 +24,7 @@ export function LanguageSwitcher() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
-                    <Languages className="h-[1.2rem] w-[1.2rem]" />
-                    <span className="sr-only">Switch Language</span>
+                    <span>{locale.toUpperCase()}</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
