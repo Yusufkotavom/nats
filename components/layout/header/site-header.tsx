@@ -19,7 +19,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter((segment) => segment !== "");
 
-  const breadcrumbs = segments.map((segment, index) => {
+  const breadcrumbs = segments.filter((_, index) => index > 0).map((segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
     const isLast = index === segments.length - 1;
     const title = segment.charAt(0).toUpperCase() + segment.slice(1);
