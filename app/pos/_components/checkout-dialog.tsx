@@ -1,5 +1,4 @@
-'use client';
-
+// ... existing imports ...
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +12,8 @@ import {
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
-import { Loader2, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { Loader2, CreditCard, Banknote, QrCode, Keyboard } from 'lucide-react';
+import { NumPad } from './numpad';
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -24,17 +24,21 @@ interface CheckoutDialogProps {
 
 export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: CheckoutDialogProps) {
   const [method, setMethod] = useState<'CASH' | 'CARD' | 'QRIS'>('CASH');
-  const [amountPaid, setAmountPaid] = useState<number>(0);
+  // Use string state to support keypad input (e.g., "10.")
+  const [amountPaidStr, setAmountPaidStr] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [showKeypad, setShowKeypad] = useState(false);
   const formatCurrency = useFormatCurrency();
 
-  // Reset amount paid when dialog opens or total changes
+  // Reset state when dialog opens or total changes
   useEffect(() => {
     if (open) {
-      setAmountPaid(0);
+      setAmountPaidStr('');
+      setShowKeypad(false);
     }
-  }, [open]);
+  }, [open, totalAmount]);
 
+  const amountPaid = parseFloat(amountPaidStr) || 0;
   const change = Math.max(0, amountPaid - totalAmount);
   const isValid = method !== 'CASH' || amountPaid >= totalAmount;
 
@@ -51,9 +55,24 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
     }
   };
 
+  const handleKeypadPress = (key: string) => {
+    setAmountPaidStr((prev) => {
+      if (key === 'CLEAR') return '';
+      if (key === 'BACKSPACE') return prev.slice(0, -1);
+      if (key === '.') {
+        if (prev.includes('.')) return prev;
+        return prev ? prev + '.' : '0.';
+      }
+      // Validation to prevent multiple leading zeros
+      if (prev === '0' && key === '0') return prev;
+      if (prev === '0' && key !== '.') return key;
+      return prev + key;
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className={showKeypad ? "sm:max-w-[800px]" : "sm:max-w-[500px]"}>
         <DialogHeader>
           <DialogTitle>Payment</DialogTitle>
           <DialogDescription>
@@ -61,76 +80,95 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 py-4">
-          <div className="flex flex-col items-center justify-center space-y-2 rounded-lg bg-muted/50 p-4">
-            <span className="text-sm text-muted-foreground">Total Amount</span>
-            <span className="text-4xl font-bold text-primary">
-              {formatCurrency(totalAmount)}
-            </span>
-          </div>
+        <div className={`grid gap-6 py-4 ${showKeypad ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <div className="space-y-6">
+            <div className="flex flex-col items-center justify-center space-y-2 rounded-lg bg-muted/50 p-4">
+              <span className="text-sm text-muted-foreground">Total Amount</span>
+              <span className="text-4xl font-bold text-primary">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div
-              onClick={() => setMethod('CASH')}
-              className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'CASH' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
-            >
-              <Banknote className="mb-3 h-6 w-6" />
-              <span className="text-sm font-medium">Cash</span>
+            <div className="grid grid-cols-3 gap-4">
+              <div
+                onClick={() => setMethod('CASH')}
+                className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'CASH' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
+              >
+                <Banknote className="mb-3 h-6 w-6" />
+                <span className="text-sm font-medium">Cash</span>
+              </div>
+              <div
+                onClick={() => setMethod('CARD')}
+                className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'CARD' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
+              >
+                <CreditCard className="mb-3 h-6 w-6" />
+                <span className="text-sm font-medium">Card</span>
+              </div>
+              <div
+                onClick={() => setMethod('QRIS')}
+                className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'QRIS' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
+              >
+                <QrCode className="mb-3 h-6 w-6" />
+                <span className="text-sm font-medium">QRIS</span>
+              </div>
             </div>
-            <div
-              onClick={() => setMethod('CARD')}
-              className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'CARD' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
-            >
-              <CreditCard className="mb-3 h-6 w-6" />
-              <span className="text-sm font-medium">Card</span>
-            </div>
-            <div
-              onClick={() => setMethod('QRIS')}
-              className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'QRIS' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
-            >
-              <QrCode className="mb-3 h-6 w-6" />
-              <span className="text-sm font-medium">QRIS</span>
-            </div>
-          </div>
 
-          {method === 'CASH' && (
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="amountPaid">Amount Paid</Label>
-                <CurrencyInput
-                  id="amountPaid"
-                  placeholder="Enter amount..."
-                  value={amountPaid}
-                  onChange={(val) => setAmountPaid(val || 0)}
-                  className="text-lg"
-                  autoFocus
-                />
-              </div>
-              <div className="flex justify-between rounded-lg border p-3">
-                <span className="font-medium">Change Due:</span>
-                <span className="font-bold text-green-600">
-                  {formatCurrency(change)}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {[10, 20, 50, 100].map((amt) => (
+            {method === 'CASH' && (
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="amountPaid">Amount Paid</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowKeypad(!showKeypad)}
+                      className="h-8 px-2"
+                    >
+                      <Keyboard className="mr-2 h-4 w-4" />
+                      {showKeypad ? 'Hide Keypad' : 'Show Keypad'}
+                    </Button>
+                  </div>
+                  <CurrencyInput
+                    id="amountPaid"
+                    placeholder="Enter amount..."
+                    value={amountPaidStr}
+                    onChange={(val) => setAmountPaidStr(val ? val.toString() : '')}
+                    className="text-lg"
+                    autoFocus={!showKeypad}
+                  />
+                </div>
+                <div className="flex justify-between rounded-lg border p-3">
+                  <span className="font-medium">Change Due:</span>
+                  <span className="font-bold text-green-600">
+                    {formatCurrency(change)}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  {[10, 20, 50, 100].map((amt) => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAmountPaidStr((amountPaid + amt).toString())}
+                    >
+                      +{amt}
+                    </Button>
+                  ))}
                   <Button
-                    key={amt}
                     variant="outline"
                     size="sm"
-                    onClick={() => setAmountPaid(amountPaid + amt)}
+                    onClick={() => setAmountPaidStr(totalAmount.toString())}
                   >
-                    {formatCurrency(amt)}
+                    Exact
                   </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAmountPaid(totalAmount)}
-                >
-                  Exact
-                </Button>
+                </div>
               </div>
+            )}
+          </div>
+
+          {showKeypad && method === 'CASH' && (
+            <div className="border-l pl-6">
+              <NumPad onKeyPress={handleKeypadPress} className="h-full" />
             </div>
           )}
         </div>
