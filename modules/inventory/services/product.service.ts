@@ -1,6 +1,6 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { enqueueIntegrationEventOnce } from "@/modules/integration/outbox";
-import { ProductInput } from "@/app/(dashboard)/inventory/types";
+import { ProductInput } from "@/app/[locale]/(dashboard)/inventory/types";
 
 export class ProductService {
     static async createProduct(tx: Prisma.TransactionClient, data: ProductInput) {

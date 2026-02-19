@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { PurchaseInvoiceInput } from "@/app/(dashboard)/purchase/invoices/types";
+import { PurchaseInvoiceInput } from "@/app/[locale]/(dashboard)/purchase/invoices/types";
 import { CalculationService } from "@/lib/utils/calculation-service";
 
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;

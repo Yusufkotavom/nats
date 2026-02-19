@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { PurchaseOrderInput } from "@/app/(dashboard)/purchase/orders/types";
+import { PurchaseOrderInput } from "@/app/[locale]/(dashboard)/purchase/orders/types";
 
 export class PurchaseOrderService {
     static async create(data: PurchaseOrderInput, userId: string) {

@@ -5,6 +5,7 @@ import {
   GalleryVerticalEnd,
 } from "lucide-react";
 
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { NavMain } from "@/components/layout/sidebar/nav-main";
 import {
   Sidebar,
@@ -60,6 +61,9 @@ export function AppSidebar({
         <NavMain label="Administration" items={navigation["Administration"]} />
       </SidebarContent>
       <SidebarFooter>
+        <div className="flex justify-end px-2">
+          <LanguageSwitcher />
+        </div>
         <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />

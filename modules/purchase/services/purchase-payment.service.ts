@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { PurchasePaymentInput } from "@/app/(dashboard)/purchase/payments/types";
+import { PurchasePaymentInput } from "@/app/[locale]/(dashboard)/purchase/payments/types";
 
 const OVERPAYMENT_TOLERANCE = 0.01;
 

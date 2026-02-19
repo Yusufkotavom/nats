@@ -1,16 +1,16 @@
-import { getSalesOrderData } from "@/app/(dashboard)/sales/_reports/sales-order/data";
-import { getPurchaseOrderData } from "@/app/(dashboard)/purchase/_reports/purchase-order/data";
-import { getSalesInvoiceData } from "@/app/(dashboard)/sales/_reports/sales-invoice/data";
-import { getJournalEntryData } from "@/app/(dashboard)/accounting/_reports/journal-entry/data";
-import { getPOSReceiptData } from "@/app/pos/_reports/receipt/data";
+import { getSalesOrderData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-order/data";
+import { getPurchaseOrderData } from "@/app/[locale]/(dashboard)/purchase/_reports/purchase-order/data";
+import { getSalesInvoiceData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-invoice/data";
+import { getJournalEntryData } from "@/app/[locale]/(dashboard)/accounting/_reports/journal-entry/data";
+import { getPOSReceiptData } from "@/app/[locale]/pos/_reports/receipt/data";
 import {
   fetchProfitLossData,
   fetchBalanceSheetData,
   fetchCashFlowData,
   fetchEquityData,
   fetchRatiosData,
-} from "@/app/(dashboard)/accounting/reports/data";
-import { fetchBudgetTrackingData } from "@/app/(dashboard)/budgeting/_reports/budget-tracking/data";
+} from "@/app/[locale]/(dashboard)/accounting/reports/data";
+import { fetchBudgetTrackingData } from "@/app/[locale]/(dashboard)/budgeting/_reports/budget-tracking/data";
 
 export const serverRegistry = {
   SALES_ORDER: { fetchData: getSalesOrderData },

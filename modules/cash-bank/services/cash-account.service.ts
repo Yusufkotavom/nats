@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { CashAccountFormData } from "@/app/(dashboard)/cash-bank/types";
+import { CashAccountFormData } from "@/app/[locale]/(dashboard)/cash-bank/types";
 
 export class CashAccountService {
     static async createAccount(data: CashAccountFormData) {

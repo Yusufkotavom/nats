@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { PurchaseReceiveInput } from "@/app/(dashboard)/purchase/receives/types";
+import { PurchaseReceiveInput } from "@/app/[locale]/(dashboard)/purchase/receives/types";
 
 const RECEIVE_NUMBER_PREFIX = "RCV";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;

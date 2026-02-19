@@ -25,7 +25,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { logout } from "@/app/auth/actions";
+import { logout } from "@/app/[locale]/auth/actions";
 
 export function NavUser({
   user,

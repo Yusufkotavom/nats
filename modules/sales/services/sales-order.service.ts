@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { SalesOrderInput } from "@/app/(dashboard)/sales/orders/types";
+import { SalesOrderInput } from "@/app/[locale]/(dashboard)/sales/orders/types";
 
 export class SalesOrderService {
   static async create(data: SalesOrderInput, userId: string) {

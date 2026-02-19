@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { SalesReturnInput } from "@/app/(dashboard)/sales/returns/types";
+import { SalesReturnInput } from "@/app/[locale]/(dashboard)/sales/returns/types";
 
 const RETURN_NUMBER_PREFIX = "RET";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;

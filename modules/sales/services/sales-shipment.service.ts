@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { SalesShipmentInput } from "@/app/(dashboard)/sales/shipments/types";
+import { SalesShipmentInput } from "@/app/[locale]/(dashboard)/sales/shipments/types";
 
 const SHIPMENT_NUMBER_PREFIX = "SHP";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;

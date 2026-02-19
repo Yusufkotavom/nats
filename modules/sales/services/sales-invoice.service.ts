@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { SalesInvoiceInput } from "@/app/(dashboard)/sales/invoices/types";
+import { SalesInvoiceInput } from "@/app/[locale]/(dashboard)/sales/invoices/types";
 import { CalculationService } from "@/lib/utils/calculation-service";
 
 const INVOICE_NUMBER_PREFIX = "INV";

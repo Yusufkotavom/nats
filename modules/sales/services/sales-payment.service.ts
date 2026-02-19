@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
-import { SalesPaymentInput } from "@/app/(dashboard)/sales/payments/types";
+import { SalesPaymentInput } from "@/app/[locale]/(dashboard)/sales/payments/types";
 
 const PAYMENT_NUMBER_PREFIX = "PAY-IN";
 const OVERPAYMENT_TOLERANCE = 0.01;
