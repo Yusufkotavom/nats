@@ -1,3 +1,128 @@
 {
-    "Hello": "Hello world!"
+    "Common": {
+        "login": "Login",
+        "logout": "Logout",
+        "register": "Register",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "create": "Create",
+        "update": "Update",
+        "back": "Back",
+        "actions": "Actions",
+        "search": "Search",
+        "loading": "Loading...",
+        "success": "Success",
+        "error": "Error",
+        "confirm": "Confirm",
+        "home": "Home",
+        "submit": "Submit",
+        "reset": "Reset",
+        "view": "View",
+        "details": "Details",
+        "status": "Status",
+        "date": "Date",
+        "amount": "Amount",
+        "description": "Description",
+        "total": "Total",
+        "quantity": "Quantity",
+        "price": "Price"
+    },
+    "Navigation": {
+        "operations": "Operations",
+        "finance_accounting": "Finance & Accounting",
+        "intelligence": "Intelligence",
+        "administration": "Administration",
+        "dashboard": "Dashboard",
+        "pos": "POS",
+        "sales": "Sales",
+        "purchase": "Purchase",
+        "inventory": "Inventory",
+        "accounting": "Accounting",
+        "budgeting": "Budgeting",
+        "assets": "Assets",
+        "hr": "HR",
+        "ai": "AI",
+        "admin": "Admin",
+        "settings": "Settings"
+    },
+    "Auth": {
+        "login_title": "Login to your account",
+        "login_description": "Enter your email below to login to your account",
+        "email_label": "Email",
+        "password_label": "Password",
+        "forgot_password": "Forgot your password?",
+        "login_button": "Login",
+        "logging_in": "Logging in...",
+        "no_account": "Don't have an account?",
+        "sign_up": "Sign up"
+    },
+    "Theme": {
+        "customize": "Customize",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+    },
+    "Sales": {
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "payments": "Payments",
+        "shipments": "Shipments",
+        "returns": "Returns",
+        "customers": "Customers",
+        "dashboard": "Sales Dashboard"
+    },
+    "Purchase": {
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "payments": "Payments",
+        "receives": "Receives",
+        "returns": "Returns",
+        "vendors": "Vendors",
+        "dashboard": "Purchase Dashboard"
+    },
+    "Inventory": {
+        "products": "Products",
+        "warehouses": "Warehouses",
+        "stock": "Stock",
+        "movements": "Movements",
+        "adjustments": "Adjustments",
+        "dashboard": "Inventory Dashboard"
+    },
+    "Accounting": {
+        "journal": "Journal Entries",
+        "ledger": "General Ledger",
+        "chart_of_accounts": "Chart of Accounts",
+        "reports": "Reports",
+        "balance_sheet": "Balance Sheet",
+        "profit_loss": "Profit & Loss",
+        "dashboard": "Accounting Dashboard"
+    },
+    "HR": {
+        "employees": "Employees",
+        "departments": "Departments",
+        "payroll": "Payroll",
+        "attendance": "Attendance",
+        "leaves": "Leaves",
+        "dashboard": "HR Dashboard"
+    },
+    "Assets": {
+        "fixed_assets": "Fixed Assets",
+        "depreciation": "Depreciation",
+        "categories": "Asset Categories",
+        "dashboard": "Assets Dashboard"
+    },
+    "Budgeting": {
+        "budgets": "Budgets",
+        "plans": "Budget Plans",
+        "variance": "Variance Analysis",
+        "dashboard": "Budgeting Dashboard"
+    },
+    "POS": {
+        "cashier": "Cashier",
+        "sessions": "Sessions",
+        "orders": "POS Orders",
+        "dashboard": "POS Dashboard"
+    }
 }

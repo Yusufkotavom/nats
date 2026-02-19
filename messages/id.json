@@ -1,3 +1,128 @@
 {
-    "Hello": "Halo dunia!"
+    "Common": {
+        "login": "Masuk",
+        "logout": "Keluar",
+        "register": "Daftar",
+        "save": "Simpan",
+        "cancel": "Batal",
+        "delete": "Hapus",
+        "edit": "Ubah",
+        "create": "Buat",
+        "update": "Perbarui",
+        "back": "Kembali",
+        "actions": "Aksi",
+        "search": "Cari",
+        "loading": "Memuat...",
+        "success": "Berhasil",
+        "error": "Masalah",
+        "confirm": "Konfirmasi",
+        "home": "Beranda",
+        "submit": "Kirim",
+        "reset": "Atur Ulang",
+        "view": "Lihat",
+        "details": "Rincian",
+        "status": "Status",
+        "date": "Tanggal",
+        "amount": "Jumlah",
+        "description": "Deskripsi",
+        "total": "Total",
+        "quantity": "Kuantitas",
+        "price": "Harga"
+    },
+    "Navigation": {
+        "operations": "Operasional",
+        "finance_accounting": "Keuangan & Akuntansi",
+        "intelligence": "Intelijen",
+        "administration": "Administrasi",
+        "dashboard": "Dasbor",
+        "pos": "Kasir (POS)",
+        "sales": "Penjualan",
+        "purchase": "Pembelian",
+        "inventory": "Inventaris",
+        "accounting": "Akuntansi",
+        "budgeting": "Penganggaran",
+        "assets": "Aset",
+        "hr": "SDM",
+        "ai": "AI",
+        "admin": "Admin",
+        "settings": "Pengaturan"
+    },
+    "Auth": {
+        "login_title": "Masuk ke akun Anda",
+        "login_description": "Masukkan email Anda di bawah untuk masuk",
+        "email_label": "Email",
+        "password_label": "Kata Sandi",
+        "forgot_password": "Lupa kata sandi?",
+        "login_button": "Masuk",
+        "logging_in": "Sedang masuk...",
+        "no_account": "Belum punya akun?",
+        "sign_up": "Daftar"
+    },
+    "Theme": {
+        "customize": "Kustomisasi",
+        "light": "Terang",
+        "dark": "Gelap",
+        "system": "Sistem"
+    },
+    "Sales": {
+        "orders": "Pesanan",
+        "invoices": "Faktur",
+        "payments": "Pembayaran",
+        "shipments": "Pengiriman",
+        "returns": "Retur",
+        "customers": "Pelanggan",
+        "dashboard": "Dasbor Penjualan"
+    },
+    "Purchase": {
+        "orders": "Pesanan",
+        "invoices": "Faktur",
+        "payments": "Pembayaran",
+        "receives": "Penerimaan",
+        "returns": "Retur",
+        "vendors": "Pemasok",
+        "dashboard": "Dasbor Pembelian"
+    },
+    "Inventory": {
+        "products": "Produk",
+        "warehouses": "Gudang",
+        "stock": "Stok",
+        "movements": "Perpindahan",
+        "adjustments": "Penyesuaian",
+        "dashboard": "Dasbor Inventaris"
+    },
+    "Accounting": {
+        "journal": "Entri Jurnal",
+        "ledger": "Buku Besar",
+        "chart_of_accounts": "Bagan Akun",
+        "reports": "Laporan",
+        "balance_sheet": "Neraca",
+        "profit_loss": "Laba Rugi",
+        "dashboard": "Dasbor Akuntansi"
+    },
+    "HR": {
+        "employees": "Karyawan",
+        "departments": "Departemen",
+        "payroll": "Penggajian",
+        "attendance": "Kehadiran",
+        "leaves": "Cuti",
+        "dashboard": "Dasbor SDM"
+    },
+    "Assets": {
+        "fixed_assets": "Aset Tetap",
+        "depreciation": "Penyusutan",
+        "categories": "Kategori Aset",
+        "dashboard": "Dasbor Aset"
+    },
+    "Budgeting": {
+        "budgets": "Anggaran",
+        "plans": "Rencana Anggaran",
+        "variance": "Analisis Varians",
+        "dashboard": "Dasbor Penganggaran"
+    },
+    "POS": {
+        "cashier": "Kasir",
+        "sessions": "Sesi",
+        "orders": "Pesanan POS",
+        "dashboard": "Dasbor POS"
+    }
 }
