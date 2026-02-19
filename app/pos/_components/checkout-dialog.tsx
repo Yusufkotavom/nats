@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { Loader2, CreditCard, Banknote, QrCode } from 'lucide-react';
@@ -97,12 +97,11 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
             <div className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="amountPaid">Amount Paid</Label>
-                <Input
+                <CurrencyInput
                   id="amountPaid"
-                  type="number"
                   placeholder="Enter amount..."
                   value={amountPaid}
-                  onChange={(e) => setAmountPaid(parseFloat(e.target.value) || 0)}
+                  onChange={(val) => setAmountPaid(val || 0)}
                   className="text-lg"
                   autoFocus
                 />
