@@ -1,6 +1,7 @@
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -59,6 +60,7 @@ export function SiteHeader() {
           </BreadcrumbList>
         </Breadcrumb>
         <div className="ml-auto flex items-center gap-2">
+          <LanguageSwitcher />
           <ThemeCustomizer />
           <ModeToggle />
         </div>

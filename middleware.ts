@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { decrypt } from "@/lib/auth/auth";
 import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
 
-const intlMiddleware = createMiddleware({
-  locales: ["en", "id"],
-  defaultLocale: "en",
-});
+const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const protectedRoutes = ["/dashboard", "/accounting", "/admin"];

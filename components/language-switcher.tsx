@@ -1,7 +1,6 @@
 "use client";
 
-import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -10,39 +9,31 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Languages } from "lucide-react";
+import { useLocale } from "next-intl";
 
 export function LanguageSwitcher() {
     const pathname = usePathname();
     const router = useRouter();
+    const locale = useLocale();
 
     const switchLocale = (newLocale: string) => {
-        // pathname starts with /en or /id
-        // split("/") gives ["", "en", "dashboard", ...]
-        const segments = pathname.split("/");
-        if (segments.length > 1) {
-            segments[1] = newLocale;
-            const newPath = segments.join("/");
-            router.push(newPath);
-        } else {
-            // Fallback if something is weird, though middleware ensures locale
-            router.push(`/${newLocale}`);
-        }
+        router.replace(pathname, { locale: newLocale });
     };
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="outline" size="icon">
                     <Languages className="h-[1.2rem] w-[1.2rem]" />
                     <span className="sr-only">Switch Language</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => switchLocale("en")}>
+                <DropdownMenuItem onClick={() => switchLocale("en")} className="cursor-pointer" disabled={locale === "en"}>
                     English
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => switchLocale("id")}>
-                    Bahasa Indonesia
+                <DropdownMenuItem onClick={() => switchLocale("id")} className="cursor-pointer" disabled={locale === "id"}>
+                    Indonesia
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
