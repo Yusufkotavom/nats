@@ -23,6 +23,7 @@ import { Printer, Loader2 } from 'lucide-react';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { useFormatDate } from '@/hooks/use-format-date';
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
+import { useTranslations } from 'next-intl';
 
 interface POSHistoryDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ interface POSHistoryDialogProps {
 }
 
 export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: POSHistoryDialogProps) {
+  const t = useTranslations('POS');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const formatCurrency = useFormatCurrency();
@@ -56,7 +58,7 @@ export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Session Transactions</DialogTitle>
+            <DialogTitle>{t('session_transactions')}</DialogTitle>
           </DialogHeader>
 
           {isLoading ? (
@@ -65,18 +67,18 @@ export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: 
             </div>
           ) : transactions.length === 0 ? (
             <div className="text-center text-muted-foreground p-8">
-              No transactions in this session yet.
+              {t('no_transactions')}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead className="text-right">Items</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('time')}</TableHead>
+                  <TableHead>{t('invoice')}</TableHead>
+                  <TableHead>{t('customer')}</TableHead>
+                  <TableHead className="text-right">{t('items')}</TableHead>
+                  <TableHead className="text-right">{t('total')}</TableHead>
+                  <TableHead className="text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -90,7 +92,7 @@ export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: 
                       {formatDate(tx.createdAt, "HH:mm:ss")}
                     </TableCell>
                     <TableCell>{tx.invoiceNumber}</TableCell>
-                    <TableCell>{tx.contact?.name || 'Walk-in'}</TableCell>
+                    <TableCell>{tx.contact?.name || t('walk_in_customer')}</TableCell>
                     <TableCell className="text-right">
                       {tx.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0}
                     </TableCell>
@@ -105,7 +107,7 @@ export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: 
                           e.stopPropagation();
                           handlePrint(tx.id);
                         }}
-                        title="Print Receipt"
+                        title={t('print_receipt')}
                       >
                         <Printer className="h-4 w-4" />
                       </Button>
@@ -123,7 +125,7 @@ export function POSHistoryDialog({ open, onOpenChange, sessionId, onRowClick }: 
         onOpenChange={setIsReceiptOpen}
         code="POS_RECEIPT"
         input={{ invoiceId: selectedInvoiceId }}
-        title="POS Receipt"
+        title={t('pos_receipt')}
       />
     </>
   );

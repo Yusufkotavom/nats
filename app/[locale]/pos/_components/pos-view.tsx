@@ -29,6 +29,7 @@ import { useSession } from '@/components/providers/session-provider';
 import Link from 'next/link';
 import { LayoutDashboard } from 'lucide-react';
 import { Clock } from './clock';
+import { useTranslations } from 'next-intl';
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -37,6 +38,7 @@ interface POSViewProps {
 }
 
 export function POSView({ initialProducts: serializedProducts, categories: serializedCategories, session: serializedSession }: POSViewProps) {
+  const t = useTranslations('POS');
   const initialProducts = SuperJSON.deserialize<POSProduct[]>(serializedProducts);
   const categories = SuperJSON.deserialize<any[]>(serializedCategories);
   const session = SuperJSON.deserialize<any>(serializedSession);
@@ -113,13 +115,13 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
   };
 
   const handleCloseSession = async () => {
-    if (confirm('Are you sure you want to close this session?')) {
+    if (confirm(t('confirm_close_session'))) {
       try {
         await closePOSSession(session.id, 0); // TODO: Dialog to enter actual cash
-        toast({ title: 'Session Closed' });
+        toast({ title: t('session_closed') });
         router.refresh();
       } catch (e) {
-        toast({ variant: 'destructive', title: 'Error closing session' });
+        toast({ variant: 'destructive', title: t('error_closing') });
       }
     }
   };
@@ -130,17 +132,17 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
         await holdOrder(
           cart,
           cart.reduce((acc, item) => acc + item.price * item.quantity, 0) - globalDiscount, // Approx total
-          "Auto-held for history view",
+          t('auto_held_history'),
           undefined,
           "Walk-in Customer",
           globalDiscount
         );
-        toast({ title: 'Current order auto-held' });
+        toast({ title: t('order_held') });
         setCart([]);
         setGlobalDiscount(0);
       } catch (e) {
         console.error(e);
-        toast({ variant: 'destructive', title: 'Failed to auto-hold order' });
+        toast({ variant: 'destructive', title: t('failed_hold') });
         return; // Don't navigate if hold fails
       }
     }
@@ -167,7 +169,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
     if (resumedGlobalDiscount !== undefined) {
       setGlobalDiscount(resumedGlobalDiscount);
     }
-    toast({ title: 'Order items added to cart' });
+    toast({ title: t('items_added') });
   };
 
   return (
@@ -175,11 +177,11 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
       {/* Header */}
       <header className="flex h-16 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">POS</h1>
+          <h1 className="text-xl font-bold">{t('pos')}</h1>
           <div className="relative w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search products..."
+              placeholder={t('search_products')}
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -193,7 +195,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             trigger={
               <Button variant="outline" size="sm" className="relative mr-2">
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Held Orders
+                {t('held_orders')}
                 {heldOrders.length > 0 && (
                   <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
                     {heldOrders.length}
@@ -205,7 +207,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
 
           <Button variant="outline" size="sm" className="mr-2" onClick={() => setHistoryOpen(true)}>
             <History className="mr-2 h-4 w-4" />
-            History
+            {t('history')}
           </Button>
 
           <div className="text-sm text-muted-foreground">
@@ -214,11 +216,11 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
                 {session.cashier.name}
               </span>
             )}
-            Session: {session.sessionNumber}
+            {t('session')}: {session.sessionNumber}
           </div>
           {session.warehouse && (
             <Badge variant="outline" className="text-sm font-normal">
-              Location: {session.warehouse.name}
+              {t('location')}: {session.warehouse.name}
             </Badge>
           )}
 
@@ -226,7 +228,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             <Button variant="outline" size="sm" asChild>
               <Link href="/accounting/dashboard">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
-                Dashboard
+                {t('dashboard')}
               </Link>
             </Button>
           )}
@@ -246,7 +248,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Cashier</p>
+                  <p className="text-sm font-medium leading-none">{t('cashier')}</p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {session.cashier?.name}
                   </p>
@@ -255,7 +257,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleCloseSession}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Close Session</span>
+                <span>{t('close_session')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -272,7 +274,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
               onClick={() => setSelectedCategory(null)}
               className="whitespace-nowrap"
             >
-              All Items
+              {t('all_items')}
             </Button>
             {categories.map(cat => (
               <Button

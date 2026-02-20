@@ -16,6 +16,7 @@ import { ProductImage } from './product-image';
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from 'next-intl';
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -29,6 +30,7 @@ interface CartViewProps {
 }
 
 export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdateQuantity, onUpdateDiscount, onRemove, onClear, session }: CartViewProps) {
+  const t = useTranslations('POS');
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [holdOpen, setHoldOpen] = useState(false);
   const [discountOpen, setDiscountOpen] = useState(false);
@@ -78,12 +80,12 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
       }
 
       toast({
-        title: 'Transaction Successful',
+        title: t('transaction_success'),
         description: result.data?.outbox.processed ? (
-          `Paid ${formatCurrency(amount)} via ${method}`
+          t('paid_via', { amount: formatCurrency(amount), method })
         ) : (
           <span>
-            Paid {formatCurrency(amount)} via {method}. Queued for processing.{" "}
+            {t('paid_via', { amount: formatCurrency(amount), method })}. Queued for processing.{" "}
             {result.data?.outbox.outboxIds?.[0] ? (
               <Link
                 href={`/admin/integrations/outbox?search=${encodeURIComponent(
@@ -110,7 +112,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Transaction Failed',
+        title: t('transaction_failed'),
         description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
@@ -122,13 +124,13 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
     setHolding(true);
     try {
       await holdOrder(cart, total, note, undefined, customerName, globalDiscount);
-      toast({ title: 'Order Held Successfully' });
+      toast({ title: t('order_held_success') });
       onClear();
       setHoldOpen(false);
       queryClient.invalidateQueries({ queryKey: ['heldOrders'] });
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Failed to hold order' });
+      toast({ variant: 'destructive', title: t('failed_hold_order') });
     } finally {
       setHolding(false);
     }
@@ -196,11 +198,11 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
       <div className="flex items-center justify-between border-b p-4">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <ShoppingCart className="h-5 w-5" />
-          Current Order
+          {t('current_order')}
         </h2>
         <Button variant="ghost" size="sm" onClick={() => { onClear(); }} disabled={cart.length === 0} className="text-destructive hover:text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
-          Clear
+          {t('clear')}
         </Button>
       </div>
 
@@ -208,7 +210,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         {cart.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-muted-foreground opacity-50">
             <ShoppingCart className="mb-4 h-12 w-12" />
-            <p>Cart is empty</p>
+            <p>{t('cart_empty')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -265,7 +267,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
                     onClick={() => openItemDiscount(item.id)}
                   >
                     <Tag className="mr-1 h-3 w-3" />
-                    {item.discount > 0 ? `Discount: -${formatCurrency(item.discount)}` : 'Add Discount'}
+                    {item.discount > 0 ? `${t('discount')}: -${formatCurrency(item.discount)}` : t('add_discount')}
                   </Button>
                   {item.discount > 0 && (
                     <div className="text-sm font-medium text-green-600">
@@ -282,12 +284,12 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
       <div className="border-t bg-muted/10 p-4">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Subtotal</span>
+            <span className="text-muted-foreground">{t('subtotal')}</span>
             <span>{formatCurrency(subtotal)}</span>
           </div>
           {totalItemDiscounts > 0 && (
             <div className="flex justify-between text-sm text-green-600">
-              <span>Item Discounts</span>
+              <span>{t('item_discounts')}</span>
               <span>-{formatCurrency(totalItemDiscounts)}</span>
             </div>
           )}
@@ -299,19 +301,19 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
               onClick={openGlobalDiscount}
               disabled={cart.length === 0}
             >
-              {globalDiscount > 0 ? 'Global Discount' : 'Add Global Discount'}
+              {globalDiscount > 0 ? t('global_discount') : t('add_global_discount')}
             </Button>
             {globalDiscount > 0 && (
               <span className="text-green-600">-{formatCurrency(globalDiscount)}</span>
             )}
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Tax</span>
+            <span className="text-muted-foreground">{t('tax')}</span>
             <span>{formatCurrency(tax)}</span>
           </div>
           <Separator className="my-2" />
           <div className="flex justify-between text-lg font-bold">
-            <span>Total</span>
+            <span>{t('total')}</span>
             <span>{formatCurrency(total)}</span>
           </div>
         </div>
@@ -325,7 +327,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
             onClick={() => setHoldOpen(true)}
           >
             <PauseCircle className="mr-2 h-4 w-4" />
-            Hold
+            {t('hold')}
           </Button>
           <Button
             className="flex-[2]"
@@ -333,7 +335,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
             disabled={cart.length === 0}
             onClick={() => setCheckoutOpen(true)}
           >
-            Checkout
+            {t('checkout')}
           </Button>
         </div>
       </div>
@@ -356,7 +358,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         open={discountOpen}
         onOpenChange={setDiscountOpen}
         onApply={handleApplyDiscount}
-        title={selectedItemId ? "Item Discount" : "Global Discount"}
+        title={selectedItemId ? t('item_discount') : t('global_discount')}
         productId={selectedItemId}
         initialValue={getActiveDiscountValue()}
         initialType="FIXED" // Default to fixed, or we could track type if needed
@@ -371,7 +373,7 @@ export function CartView({ cart, globalDiscount, onUpdateGlobalDiscount, onUpdat
         onOpenChange={setIsReceiptOpen}
         code="POS_RECEIPT"
         input={{ invoiceId: lastInvoiceId }}
-        title="POS Receipt"
+        title={t('pos_receipt')}
       />
     </div>
   );

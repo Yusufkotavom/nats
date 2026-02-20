@@ -16,8 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { validateDiscountCode } from '../actions';
 import { SuperJSON } from "@/lib/superjson";
 import { Loader2 } from 'lucide-react';
-
 import { Badge } from '@/components/ui/badge';
+import { useTranslations } from 'next-intl';
 
 interface DiscountDialogProps {
   open: boolean;
@@ -40,11 +40,12 @@ export function DiscountDialog({
   open,
   onOpenChange,
   onApply,
-  title = 'Apply Discount Code',
+  title,
   productId,
   initialValue = 0,
   availableDiscounts = [],
 }: DiscountDialogProps) {
+  const t = useTranslations('POS');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -71,24 +72,27 @@ export function DiscountDialog({
       if (productId) {
         // Item Discount Mode
         if (!isGlobal && !productIds.includes(productId)) {
-          throw new Error('This discount code does not apply to this product.');
+          throw new Error(t('discount_not_applicable_product'));
         }
       } else {
         // Global Discount Mode
         if (!isGlobal) {
-          throw new Error('This code is for specific products, not a global discount.');
+          throw new Error(t('discount_not_applicable_global'));
         }
       }
 
       onApply(Number(discount.value), discount.type === 'FIXED_AMOUNT' ? 'FIXED' : 'PERCENTAGE');
       onOpenChange(false);
       setCode('');
-      toast({ title: 'Discount Applied', description: `${discount.type === 'PERCENTAGE' ? `${discount.value}%` : `Amount ${discount.value}`} off` });
+      toast({
+        title: t('discount_applied'),
+        description: `${discount.type === 'PERCENTAGE' ? `${discount.value}%` : `Amount ${discount.value}`} off`
+      });
 
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Invalid Discount Code',
+        title: t('invalid_discount'),
         description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
@@ -100,20 +104,20 @@ export function DiscountDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{title || t('apply_discount')}</DialogTitle>
           <DialogDescription>
-            Enter a valid discount code to apply.
+            {t('discount_description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
           <div className="grid gap-2">
-            <Label htmlFor="discount-code">Discount Code</Label>
+            <Label htmlFor="discount-code">{t('discount_code')}</Label>
             <Input
               id="discount-code"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="e.g. SUMMER2025"
+              placeholder={t('discount_placeholder')}
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleApply();
@@ -123,7 +127,7 @@ export function DiscountDialog({
 
           {availableDiscounts.length > 0 && (
             <div className="mt-4">
-              <Label className="text-xs text-muted-foreground mb-2 block">Available Coupons:</Label>
+              <Label className="text-xs text-muted-foreground mb-2 block">{t('available_coupons')}</Label>
               <div className="flex flex-wrap gap-2">
                 {availableDiscounts.map((d) => (
                   <Badge
@@ -142,16 +146,16 @@ export function DiscountDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('Common.cancel')}
           </Button>
           {initialValue > 0 && (
             <Button variant="destructive" onClick={() => { onApply(0, 'FIXED'); onOpenChange(false); }}>
-              Remove Discount
+              {t('remove_discount')}
             </Button>
           )}
           <Button onClick={() => handleApply()} disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Apply
+            {t('apply')}
           </Button>
         </DialogFooter>
       </DialogContent>

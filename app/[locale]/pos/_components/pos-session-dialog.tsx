@@ -26,12 +26,14 @@ import {
 } from "@/components/ui/select"
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
+import { useTranslations } from 'next-intl';
 
 interface POSSessionDialogProps {
   warehouses: SuperJSONResult;
 }
 
 export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessionDialogProps) {
+  const t = useTranslations('POS');
   const warehouses = SuperJSON.deserialize<any[]>(serializedWarehouses);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,8 +50,8 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
       if (isNaN(openingCash) || openingCash < 0) {
         toast({
           variant: 'destructive',
-          title: 'Invalid Amount',
-          description: 'Please enter a valid opening cash amount.',
+          title: t('invalid_amount'),
+          description: t('invalid_amount_desc'),
         });
         setLoading(false);
         return;
@@ -58,8 +60,8 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
       if (!selectedWarehouseId) {
         toast({
           variant: 'destructive',
-          title: 'Warehouse Required',
-          description: 'Please select a warehouse to start the session.',
+          title: t('warehouse_required'),
+          description: t('warehouse_required_desc'),
         });
         setLoading(false);
         return;
@@ -68,8 +70,8 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
       await openPOSSession(openingCash, selectedWarehouseId);
 
       toast({
-        title: 'Session Opened',
-        description: 'You can now start selling.',
+        title: t('session_opened'),
+        description: t('session_opened_desc'),
       });
       setOpen(false);
       router.refresh();
@@ -77,8 +79,8 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to open session. Please try again.',
+        title: t('error'),
+        description: t('error_open_session'),
       });
     } finally {
       setLoading(false);
@@ -89,26 +91,26 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button size="lg" className="w-full">Start Shift</Button>
+          <Button size="lg" className="w-full">{t('start_shift')}</Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Start POS Session</DialogTitle>
+            <DialogTitle>{t('start_pos_session')}</DialogTitle>
             <DialogDescription>
-              Select a location and enter the opening cash amount.
+              {t('session_description')}
             </DialogDescription>
           </DialogHeader>
           <form action={handleOpenSession}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="warehouse" className="text-right">
-                  Location
+                  {t('location')}
                 </Label>
                 <div className="col-span-3">
                   <input type="hidden" name="warehouseId" value={warehouseId} />
                   <Select onValueChange={setWarehouseId} value={warehouseId}>
                     <SelectTrigger id="warehouse">
-                      <SelectValue placeholder="Select location" />
+                      <SelectValue placeholder={t('select_location')} />
                     </SelectTrigger>
                     <SelectContent>
                       {warehouses.map((w) => (
@@ -122,7 +124,7 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="openingCash" className="text-right">
-                  Opening Cash
+                  {t('opening_cash')}
                 </Label>
                 <Input
                   id="openingCash"
@@ -138,7 +140,7 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
             <DialogFooter>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Open Session
+                {t('open_session')}
               </Button>
             </DialogFooter>
           </form>
@@ -148,7 +150,7 @@ export function POSSessionDialog({ warehouses: serializedWarehouses }: POSSessio
       <div className='w-full'>
         <Button variant="outline" size="lg" className="w-full" onClick={() => router.push('/')}>
           <DoorClosedIcon className="mr-2 h-4 w-4" />
-          Return to Dashboard
+          {t('return_dashboard')}
         </Button>
       </div>
     </>
