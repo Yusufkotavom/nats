@@ -154,6 +154,7 @@
     "POS": {
         "cashier": "Cashier",
         "sessions": "Sessions",
+        "pos_sessions": "POS Sessions",
         "orders": "POS Orders",
         "dashboard": "POS Dashboard",
         "open_session": "Open POS Session",
@@ -260,6 +261,13 @@
         "remove_discount": "Remove Discount",
         "apply": "Apply",
         "discount_not_applicable_product": "This discount code does not apply to this product.",
-        "discount_not_applicable_global": "This code is for specific products, not a global discount."
+        "discount_not_applicable_global": "This code is for specific products, not a global discount.",
+        "session_id": "Session ID",
+        "start_time": "Start Time",
+        "end_time": "End Time",
+        "closing_cash": "Closing Cash",
+        "difference": "Difference",
+        "no_sessions_found": "No sessions found.",
+        "status": "Status"
     }
 }

@@ -154,6 +154,7 @@
     "POS": {
         "cashier": "Kasir",
         "sessions": "Sesi",
+        "pos_sessions": "Sesi POS",
         "orders": "Pesanan POS",
         "dashboard": "Dasbor POS",
         "open_session": "Buka Sesi POS",
@@ -260,6 +261,13 @@
         "remove_discount": "Hapus Diskon",
         "apply": "Terapkan",
         "discount_not_applicable_product": "Kode diskon ini tidak berlaku untuk produk ini.",
-        "discount_not_applicable_global": "Kode ini untuk produk tertentu, bukan diskon global."
+        "discount_not_applicable_global": "Kode ini untuk produk tertentu, bukan diskon global.",
+        "session_id": "ID Sesi",
+        "start_time": "Waktu Mulai",
+        "end_time": "Waktu Berakhir",
+        "closing_cash": "Kas Akhir",
+        "difference": "Selisih",
+        "no_sessions_found": "Sesi tidak ditemukan.",
+        "status": "Status"
     }
 }

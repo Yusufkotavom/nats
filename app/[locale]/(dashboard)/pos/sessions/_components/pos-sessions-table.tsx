@@ -12,6 +12,7 @@ import {
 import { format } from "date-fns";
 import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
+import { useTranslations } from "next-intl";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 
 interface POSSessionsTableProps {
@@ -19,6 +20,7 @@ interface POSSessionsTableProps {
 }
 
 export function POSSessionsTable({ sessions: serializedSessions }: POSSessionsTableProps) {
+  const t = useTranslations("POS");
   const sessions = SuperJSON.deserialize<any[]>(serializedSessions);
   const formatCurrency = useFormatCurrency();
 
@@ -27,22 +29,22 @@ export function POSSessionsTable({ sessions: serializedSessions }: POSSessionsTa
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Session ID</TableHead>
-            <TableHead>Cashier</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Start Time</TableHead>
-            <TableHead>End Time</TableHead>
-            <TableHead className="text-right">Opening Cash</TableHead>
-            <TableHead className="text-right">Closing Cash</TableHead>
-            <TableHead className="text-right">Difference</TableHead>
-            <TableHead className="text-center">Status</TableHead>
+            <TableHead>{t("session_id")}</TableHead>
+            <TableHead>{t("cashier")}</TableHead>
+            <TableHead>{t("location")}</TableHead>
+            <TableHead>{t("start_time")}</TableHead>
+            <TableHead>{t("end_time")}</TableHead>
+            <TableHead className="text-right">{t("opening_cash")}</TableHead>
+            <TableHead className="text-right">{t("closing_cash")}</TableHead>
+            <TableHead className="text-right">{t("difference")}</TableHead>
+            <TableHead className="text-center">{t("status")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sessions.length === 0 ? (
             <TableRow>
               <TableCell colSpan={9} className="h-24 text-center">
-                No sessions found.
+                {t("no_sessions_found")}
               </TableCell>
             </TableRow>
           ) : (
@@ -70,7 +72,7 @@ export function POSSessionsTable({ sessions: serializedSessions }: POSSessionsTa
                     : "-"}
                 </TableCell>
                 <TableCell className={`text-right ${session.difference?.isNegative() ? "text-red-500" : "text-green-500"}`}>
-                   {session.difference
+                  {session.difference
                     ? formatCurrency(session.difference)
                     : "-"}
                 </TableCell>
