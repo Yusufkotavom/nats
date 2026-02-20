@@ -8,16 +8,15 @@ export const adminPlugin: ModulePlugin = {
       section: "Administration",
       items: [
         {
-          title: "Company",
+          title: "Navigation.company",
           url: "#",
           icon: Building2Icon,
           items: [
-            { title: "Company Settings", url: "/admin/settings" },
-            { title: "Contacts", url: "/general/contacts" },
-            { title: "Departments", url: "/general/departments" },
-            { title: "Projects", url: "/general/projects" },
-            { title: "User Management", url: "/admin/users" },
-            { title: "Role Definitions", url: "/admin/roles" }],
+            { title: "Company.settings", url: "/admin/settings" },
+            { title: "Company.contacts", url: "/general/contacts" },
+            { title: "Company.departments", url: "/general/departments" },
+            { title: "Company.projects", url: "/general/projects" }
+          ],
         },
         {
           title: "Navigation.admin",
@@ -30,14 +29,14 @@ export const adminPlugin: ModulePlugin = {
           ],
         },
         {
-          title: "System",
+          title: "Navigation.system",
           url: "#",
           icon: CogIcon,
           items: [
-            { title: "File Manager", url: "/general/files" },
-            { title: "AI Configuration", url: "/admin/settings/ai" },
-            { title: "Events Dashboard", url: "/admin/dashboard" },
-            { title: "Integration Outbox", url: "/admin/integrations/outbox" },
+            { title: "System.files", url: "/general/files" },
+            { title: "System.ai-configuration", url: "/admin/settings/ai" },
+            { title: "System.events-dashboard", url: "/admin/dashboard" },
+            { title: "System.integration-outbox", url: "/admin/integrations/outbox" },
           ],
         },
       ],

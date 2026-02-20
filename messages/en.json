@@ -44,9 +44,12 @@
         "budgeting": "Budgeting",
         "assets": "Assets",
         "hr": "HR",
-        "ai": "AI",
+        "ai": "AI Assistant",
         "admin": "Admin",
-        "settings": "Settings"
+        "settings": "Settings",
+        "sessions": "Sessions",
+        "system": "System",
+        "company": "Company"
     },
     "Auth": {
         "login_title": "Login to your account",
@@ -89,7 +92,8 @@
         "stock": "Stock",
         "movements": "Movements",
         "adjustments": "Adjustments",
-        "dashboard": "Inventory Dashboard"
+        "dashboard": "Inventory Dashboard",
+        "uom": "Unit of Measurement (UOM)"
     },
     "Accounting": {
         "journal": "Journal Entries",
@@ -120,10 +124,22 @@
         "variance": "Variance Analysis",
         "dashboard": "Budgeting Dashboard"
     },
+    "Company": {
+        "settings": "Settings",
+        "contacts": "Contacts",
+        "departments": "Departments",
+        "projects": "Projects"
+    },
     "Admin": {
         "users": "Users",
         "roles": "Roles & Permissions",
         "settings": "Settings"
+    },
+    "System": {
+        "files": "Files",
+        "ai-configuration": "AI Configuration",
+        "events-dashboard": "Events Dashboard",
+        "integration-outbox": "Integration Outbox"
     },
     "AI": {
         "dashboard": "AI Dashboard",

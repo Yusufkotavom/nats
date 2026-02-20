@@ -14,13 +14,13 @@
         "search": "Cari",
         "loading": "Memuat...",
         "success": "Berhasil",
-        "error": "Masalah",
+        "error": "Galat",
         "confirm": "Konfirmasi",
         "home": "Beranda",
         "submit": "Kirim",
         "reset": "Atur Ulang",
         "view": "Lihat",
-        "details": "Rincian",
+        "details": "Detail",
         "status": "Status",
         "date": "Tanggal",
         "amount": "Jumlah",
@@ -30,36 +30,40 @@
         "price": "Harga"
     },
     "Navigation": {
-        "operations": "Operasional",
+        "operations": "Operasi",
         "finance_accounting": "Keuangan & Akuntansi",
         "intelligence": "Intelijen",
         "administration": "Administrasi",
         "dashboard": "Dasbor",
-        "pos": "Kasir (POS)",
+        "cash_bank": "Kas & Bank",
+        "pos": "POS",
         "sales": "Penjualan",
         "purchase": "Pembelian",
-        "inventory": "Inventaris",
+        "inventory": "Persediaan",
         "accounting": "Akuntansi",
-        "budgeting": "Penganggaran",
-        "assets": "Aset",
+        "budgeting": "Anggaran",
+        "assets": "Aset Tetap",
         "hr": "SDM",
-        "ai": "AI",
+        "ai": "Asisten AI",
         "admin": "Admin",
-        "settings": "Pengaturan"
+        "settings": "Pengaturan",
+        "sessions": "Sesi",
+        "system": "Sistem",
+        "company": "Perusahaan"
     },
     "Auth": {
         "login_title": "Masuk ke akun Anda",
-        "login_description": "Masukkan email Anda di bawah untuk masuk",
+        "login_description": "Masukkan email Anda di bawah untuk masuk ke akun Anda",
         "email_label": "Email",
         "password_label": "Kata Sandi",
-        "forgot_password": "Lupa kata sandi?",
+        "forgot_password": "Lupa kata sandi Anda?",
         "login_button": "Masuk",
-        "logging_in": "Sedang masuk...",
+        "logging_in": "Masuk...",
         "no_account": "Belum punya akun?",
         "sign_up": "Daftar"
     },
     "Theme": {
-        "customize": "Kustomisasi",
+        "customize": "Sesuaikan",
         "light": "Terang",
         "dark": "Gelap",
         "system": "Sistem"
@@ -86,9 +90,10 @@
         "products": "Produk",
         "warehouses": "Gudang",
         "stock": "Stok",
-        "movements": "Perpindahan",
+        "movements": "Pergerakan",
         "adjustments": "Penyesuaian",
-        "dashboard": "Dasbor Inventaris"
+        "dashboard": "Dasbor Persediaan",
+        "uom": "Satuan Ukuran (UOM)"
     },
     "Accounting": {
         "journal": "Entri Jurnal",
@@ -96,14 +101,14 @@
         "chart_of_accounts": "Bagan Akun",
         "reports": "Laporan",
         "balance_sheet": "Neraca",
-        "profit_loss": "Laba Rugi",
+        "profit_loss": "Laba & Rugi",
         "dashboard": "Dasbor Akuntansi"
     },
     "HR": {
         "employees": "Karyawan",
         "departments": "Departemen",
         "payroll": "Penggajian",
-        "attendance": "Kehadiran",
+        "attendance": "Absensi",
         "leaves": "Cuti",
         "dashboard": "Dasbor SDM"
     },
@@ -116,13 +121,25 @@
     "Budgeting": {
         "budgets": "Anggaran",
         "plans": "Rencana Anggaran",
-        "variance": "Analisis Varians",
+        "variance": "Analisis Varian",
         "dashboard": "Dasbor Penganggaran"
+    },
+    "Company": {
+        "settings": "Pengaturan",
+        "contacts": "Kontak",
+        "departments": "Departemen",
+        "projects": "Proyek"
     },
     "Admin": {
         "users": "Pengguna",
         "roles": "Peran & Izin",
         "settings": "Pengaturan"
+    },
+    "System": {
+        "files": "Berkas",
+        "ai-configuration": "Konfigurasi AI",
+        "events-dashboard": "Dasbor Acara",
+        "integration-outbox": "Outbox Integrasi"
     },
     "AI": {
         "dashboard": "Dasbor AI",
