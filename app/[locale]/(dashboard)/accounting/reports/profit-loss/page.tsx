@@ -100,7 +100,11 @@ const ReportSection = ({
   );
 };
 
+import { useTranslations } from "next-intl";
+
 export default function ProfitLossPage() {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
   const [startDate, setStartDate] = useState(
@@ -181,9 +185,9 @@ export default function ProfitLossPage() {
     };
 
     const data = [
-      ...flatten(report.revenue, "Revenue"),
-      ...flatten(report.expenses, "Expense"),
-      { Type: "Total", Account: "Net Income", Amount: report.netIncome, Previous: report.previousNetIncome || 0, Change: netIncomeChange, ChangePercent: netIncomePercent.toFixed(1) + "%" }
+      ...flatten(report.revenue, t("revenue")),
+      ...flatten(report.expenses, t("expenses")),
+      { Type: tCommon("total"), Account: t("net_income"), Amount: report.netIncome, Previous: report.previousNetIncome || 0, Change: netIncomeChange, ChangePercent: netIncomePercent.toFixed(1) + "%" }
     ];
 
     downloadCSV(data, `profit-loss-${startDate}-${endDate}`);
@@ -193,7 +197,7 @@ export default function ProfitLossPage() {
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-lg font-bold">Profit and Loss</h1>
+          <h1 className="text-lg font-bold">{t("profit_loss")}</h1>
           <div className="flex items-center gap-4">
             <ExportButton
               onExportCSV={handleExportCSV}
@@ -205,13 +209,13 @@ export default function ProfitLossPage() {
                 comparativeStartDate: showComparative ? comparativeStartDate : undefined,
                 comparativeEndDate: showComparative ? comparativeEndDate : undefined,
               }}
-              reportTitle="Profit & Loss Statement"
+              reportTitle={t("income_statement")}
             />
             <Button onClick={() => refetch()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                "Run Report"
+                t("run_report")
               )}
             </Button>
           </div>
@@ -220,7 +224,7 @@ export default function ProfitLossPage() {
         {/* Date Filters */}
         <div className="flex flex-wrap items-center gap-4 bg-muted/20 p-4 rounded-lg border">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">From:</span>
+            <span className="text-sm font-medium">{t("from")}:</span>
             <CustomInput
               type="date"
               value={startDate}
@@ -229,7 +233,7 @@ export default function ProfitLossPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">To:</span>
+            <span className="text-sm font-medium">{t("to")}:</span>
             <CustomInput
               type="date"
               value={endDate}
@@ -246,14 +250,14 @@ export default function ProfitLossPage() {
               checked={showComparative}
               onCheckedChange={(c) => setShowComparative(!!c)}
             />
-            <Label htmlFor="comparative">Compare</Label>
+            <Label htmlFor="comparative">{t("compare")}</Label>
           </div>
 
           {showComparative && (
             <>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">
-                  Comp. From:
+                  {t("comp_from")}:
                 </span>
                 <CustomInput
                   type="date"
@@ -264,7 +268,7 @@ export default function ProfitLossPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">
-                  Comp. To:
+                  {t("comp_to")}:
                 </span>
                 <CustomInput
                   type="date"
@@ -282,29 +286,29 @@ export default function ProfitLossPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-center text-2xl">
-              Income Statement
+              {t("income_statement")}
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              For the period {formatDate(startDate)} to {formatDate(endDate)}
+              {t("for_the_period")} {formatDate(startDate)} {t("to")} {formatDate(endDate)}
               {showComparative &&
-                ` compared to ${formatDate(
+                ` ${t("compared_to")} ${formatDate(
                   comparativeStartDate
-                )} to ${formatDate(comparativeEndDate)}`}
+                )} ${t("to")} ${formatDate(comparativeEndDate)}`}
             </p>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[300px]">Account</TableHead>
-                  <TableHead className="text-right">Current</TableHead>
+                  <TableHead className="w-[300px]">{t("account")}</TableHead>
+                  <TableHead className="text-right">{t("current")}</TableHead>
                   {showComparative && (
                     <>
                       <TableHead className="text-right text-muted-foreground">
-                        Previous
+                        {t("previous")}
                       </TableHead>
                       <TableHead className="text-right text-muted-foreground">
-                        Change
+                        {t("change")}
                       </TableHead>
                       <TableHead className="text-right text-muted-foreground">
                         %
@@ -315,25 +319,25 @@ export default function ProfitLossPage() {
               </TableHeader>
               <TableBody>
                 <ReportSection
-                  title="Revenue"
+                  title={t("revenue")}
                   data={report.revenue}
                   total={report.totalRevenue}
-                  totalLabel="Total Revenue"
+                  totalLabel={t("total_revenue")}
                   previousTotal={report.previousTotalRevenue}
                   showComparative={showComparative}
                 />
 
                 <ReportSection
-                  title="Expenses"
+                  title={t("expenses")}
                   data={report.expenses}
                   total={report.totalExpenses}
-                  totalLabel="Total Expenses"
+                  totalLabel={t("total_expenses")}
                   previousTotal={report.previousTotalExpenses}
                   showComparative={showComparative}
                 />
 
                 <TableRow className="bg-muted font-bold text-lg border-t-4 border-double border-black">
-                  <TableCell>Net Income</TableCell>
+                  <TableCell>{t("net_income")}</TableCell>
                   <TableCell
                     className={cn(
                       "text-right",

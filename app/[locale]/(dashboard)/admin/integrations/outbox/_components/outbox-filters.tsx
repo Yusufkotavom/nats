@@ -8,16 +8,11 @@ import { Search } from "lucide-react";
 
 const ALL_STATUSES_VALUE = "__ALL_STATUSES__";
 
-const statusOptions = [
-  { label: "All Statuses", value: ALL_STATUSES_VALUE },
-  { label: "PENDING", value: "PENDING" },
-  { label: "PROCESSING", value: "PROCESSING" },
-  { label: "PROCESSED", value: "PROCESSED" },
-  { label: "FAILED", value: "FAILED" },
-  { label: "DEAD", value: "DEAD" },
-];
+import { useTranslations } from "next-intl";
 
 export function OutboxFilters() {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -31,6 +26,15 @@ export function OutboxFilters() {
   const [search, setSearch] = useState(initialSearch);
   const [topic, setTopic] = useState(initialTopic);
   const [type, setType] = useState(initialType);
+
+  const statusOptions = [
+    { label: tCommon("all_statuses"), value: ALL_STATUSES_VALUE },
+    { label: "PENDING", value: "PENDING" },
+    { label: "PROCESSING", value: "PROCESSING" },
+    { label: "PROCESSED", value: "PROCESSED" },
+    { label: "FAILED", value: "FAILED" },
+    { label: "DEAD", value: "DEAD" },
+  ];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -71,7 +75,7 @@ export function OutboxFilters() {
         <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <CustomInput
-            placeholder="Search id, type, aggregateId, error..."
+            placeholder={tCommon("search_placeholder") || "Search id, type, aggregateId, error..."}
             className="pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -85,13 +89,13 @@ export function OutboxFilters() {
             onValueChange={(value) =>
               setStatus(value === ALL_STATUSES_VALUE ? "" : value)
             }
-            placeholder="Status"
+            placeholder={tCommon("status")}
           />
         </div>
 
         <div className="w-full md:w-56">
           <CustomInput
-            placeholder="Topic (exact)"
+            placeholder={`${t("topic")} (exact)`}
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
           />
@@ -99,7 +103,7 @@ export function OutboxFilters() {
 
         <div className="w-full md:w-56">
           <CustomInput
-            placeholder="Type (contains)"
+            placeholder={`${tCommon("type")} (contains)`}
             value={type}
             onChange={(e) => setType(e.target.value)}
           />

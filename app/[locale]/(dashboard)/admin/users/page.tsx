@@ -38,7 +38,12 @@ import { useFormatDate } from "@/hooks";
 
 type User = Awaited<ReturnType<typeof getUsers>>["data"][number];
 
+import { useTranslations } from "next-intl";
+
 export default function UsersPage() {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
+  const tAuth = useTranslations("Auth");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
   const [page, setPage] = useState(1);
@@ -63,10 +68,9 @@ export default function UsersPage() {
   const handleDeleteClick = async (user: User) => {
     if (
       await confirm({
-        title: "Are you absolutely sure?",
-        description:
-          "This action cannot be undone. This will permanently delete the user account and remove their data from our servers.",
-        confirmText: "Delete",
+        title: t("delete_user_confirm"),
+        description: t("delete_user_desc"),
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -89,11 +93,11 @@ export default function UsersPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="User Management" />
+        <PageListTitle title={t("user_management")} />
         <PageListActions>
           <Protect permission="users.create">
             <Button onClick={handleAddUser}>
-              <Plus className="mr-2 h-4 w-4" /> Add User
+              <Plus className="mr-2 h-4 w-4" /> {t("add_user")}
             </Button>
           </Protect>
         </PageListActions>
@@ -103,18 +107,18 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tCommon("name")}</TableHead>
+              <TableHead>{tAuth("email_label")}</TableHead>
+              <TableHead>{t("role")}</TableHead>
+              <TableHead>{tCommon("created_at")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  No users found.
+                  {t("no_users_found")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -128,18 +132,18 @@ export default function UsersPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
+                          <span className="sr-only">{tCommon("open_menu")}</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
                         <Protect permission="users.edit">
                           <DropdownMenuItem
                             onClick={() => handleEditUser(user)}
                           >
                             <Pencil className="mr-2 h-4 w-4" />
-                            Edit
+                            {tCommon("edit")}
                           </DropdownMenuItem>
                         </Protect>
                         <DropdownMenuSeparator />
@@ -149,7 +153,7 @@ export default function UsersPage() {
                             onClick={() => handleDeleteClick(user)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            {tCommon("delete")}
                           </DropdownMenuItem>
                         </Protect>
                       </DropdownMenuContent>

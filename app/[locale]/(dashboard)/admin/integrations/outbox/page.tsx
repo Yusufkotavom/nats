@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useMemo, useState, useTransition } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { SuperJSON } from "@/lib/superjson";
 import { Protect } from "@/components/ui/protect";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import {
   Play,
   RotateCcw,
   Send,
+  ChevronDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -97,27 +99,30 @@ function statusVariant(status: string) {
 }
 
 export default function IntegrationOutboxPage() {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
   const confirm = useConfirm();
   const formatDate = useFormatDate();
+  const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
-  const [auditPage, setAuditPage] = useState(1);
-  const auditPageSize = 10;
 
-  const page = Number(searchParams.get("page")) || 1;
-  const search = searchParams.get("search") || "";
+  // Filters from URL
   const status = searchParams.get("status") || "";
+  const search = searchParams.get("search") || "";
   const topic = searchParams.get("topic") || "";
   const type = searchParams.get("type") || "";
+  const page = parseInt(searchParams.get("page") || "1", 10);
 
   const [dialog, setDialog] = useState<{
     open: boolean;
     title: string;
     content: unknown;
-  }>({ open: false, title: "", content: null });
+    event?: OutboxEvent | null;
+  }>({ open: false, title: "", content: null, event: null });
 
+  // Queries
   const queryKey = useMemo(
     () => ["admin-outbox", page, search, status, topic, type],
     [page, search, status, topic, type]
@@ -133,7 +138,9 @@ export default function IntegrationOutboxPage() {
         type,
       });
       return {
-        events: Array.isArray(result.events) ? result.events : SuperJSON.deserialize<OutboxEvent[]>(result.events),
+        events: Array.isArray(result.events)
+          ? result.events
+          : SuperJSON.deserialize<OutboxEvent[]>(result.events),
         total: result.total,
         totalPages: result.totalPages,
       };
@@ -143,335 +150,206 @@ export default function IntegrationOutboxPage() {
   });
 
   const { data: auditData, isLoading: isLoadingAudit } = useQuery({
-    queryKey: ["admin-outbox-audit", auditPage],
+    queryKey: ["admin-outbox-audit", 1], // Just first page for simplified view
     queryFn: async () => {
-      const result = await getOutboxAuditLogs({
-        page: auditPage,
-        pageSize: auditPageSize,
-      });
-      if (!result.success || !result.data) {
-        return {
-          logs: [] as OutboxAuditLog[],
-          total: 0,
-          totalPages: 0,
-          page: auditPage,
-          pageSize: auditPageSize,
-        };
-      }
-
+      const result = await getOutboxAuditLogs({ page: 1, pageSize: 15 });
+      if (!result.success || !result.data) return { logs: [], total: 0 };
       const logs = Array.isArray(result.data.logs)
         ? result.data.logs
         : SuperJSON.deserialize<OutboxAuditLog[]>(result.data.logs);
-
-      return {
-        logs,
-        total: result.data.total,
-        totalPages: result.data.totalPages,
-        page: result.data.page,
-        pageSize: result.data.pageSize,
-      };
+      return { logs, total: result.data.total };
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   const { data: errorsData, isLoading: isLoadingErrors } = useQuery({
     queryKey: ["admin-outbox-errors", topic, type],
-    queryFn: async () => getIntegrationOutboxTopErrors({ topic: topic || undefined, type: type || undefined, limit: 8 }),
-    staleTime: 0,
-    refetchOnMount: true,
+    queryFn: async () => getIntegrationOutboxTopErrors({
+      topic: topic || undefined,
+      type: type || undefined,
+      limit: 8
+    }),
   });
-
-  const openErrorText = (error: string) => {
-    setDialog({
-      open: true,
-      title: "Error group",
-      content: error,
-    });
-  };
-
-  const openPayload = (event: OutboxEvent) => {
-    setDialog({
-      open: true,
-      title: `Payload: ${event.type}`,
-      content: event.payload,
-    });
-  };
-
-  const openError = (event: OutboxEvent) => {
-    setDialog({
-      open: true,
-      title: `Last Error: ${event.type}`,
-      content: event.lastError ?? "",
-    });
-  };
-
-  const openDetails = (event: OutboxEvent) => {
-    startTransition(async () => {
-      const detail = await getIntegrationOutboxEventDetail(event.id);
-      if (!detail) {
-        toast({ title: "Failed", description: "Unable to load event details", variant: "destructive" });
-        return;
-      }
-
-      setDialog({
-        open: true,
-        title: `Details: ${event.type}`,
-        content: SuperJSON.deserialize(detail),
-      });
-    });
-  };
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ["admin-outbox"] });
     await queryClient.invalidateQueries({ queryKey: ["admin-outbox-errors"] });
+    await queryClient.invalidateQueries({ queryKey: ["admin-outbox-audit"] });
   };
 
-  const handleRequeue = async (id: string, options: { resetAttempts: boolean }) => {
-    if (
-      !(await confirm({
-        title: "Requeue outbox event",
-        description:
-          "This will reset the event for processing and clear its error and lock state.",
-      }))
-    ) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await requeueIntegrationOutboxEvent(id, options);
-      if (result.success) {
-        toast({ title: "Requeued" });
-        await invalidate();
-      } else {
-        toast({ title: "Failed to requeue", description: result.error, variant: "destructive" });
-      }
-    });
-  };
-
-  const handleUnlock = async (id: string) => {
-    if (
-      !(await confirm({
-        title: "Unlock outbox event",
-        description:
-          "This will clear the lock and make it retryable again (sets status to FAILED).",
-      }))
-    ) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await unlockIntegrationOutboxEvent(id);
-      if (result.success) {
-        toast({ title: "Unlocked" });
-        await invalidate();
-      } else {
-        toast({ title: "Failed to unlock", description: result.error, variant: "destructive" });
-      }
-    });
-  };
-
-  const handleForceDead = async (id: string) => {
-    if (
-      !(await confirm({
-        title: "Move to dead-letter",
-        description:
-          "This marks the event as DEAD and prevents automatic retries until you requeue it.",
-        confirmText: "Mark DEAD",
-        variant: "destructive",
-      }))
-    ) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await forceDeadIntegrationOutboxEvent(id);
-      if (result.success) {
-        toast({ title: "Marked DEAD" });
-        await invalidate();
-      } else {
-        toast({ title: "Failed", description: result.error, variant: "destructive" });
-      }
-    });
-  };
-
-  const handleRunNow = async (id: string) => {
+  // Actions
+  const handleRunNow = (id: string) => {
     startTransition(async () => {
       const result = await runIntegrationOutboxEventNow(id);
       if (result.success) {
-        toast({ title: "Processed" });
+        toast({ title: t("dispatched") });
         await invalidate();
       } else {
-        toast({ title: "Failed", description: result.error, variant: "destructive" });
-        await invalidate();
+        toast({ title: tCommon("error"), description: result.error, variant: "destructive" });
       }
     });
   };
 
-  const handleDispatchBatch = async () => {
+  const handleDispatchBatch = () => {
     startTransition(async () => {
       const result = await dispatchIntegrationOutboxBatch(50);
       if (result.success) {
         toast({
-          title: "Dispatched",
-          description: `Attempted ${(result as any).attempted}, processed ${(result as any).processed}, failed ${(result as any).failed}`,
+          title: t("dispatched"),
+          description: t("dispatch_desc", {
+            attempted: (result as any).result?.attempted ?? 0,
+            processed: (result as any).result?.processed ?? 0,
+            failed: (result as any).result?.failed ?? 0
+          })
         });
         await invalidate();
       } else {
-        toast({ title: "Failed to dispatch", description: result.error, variant: "destructive" });
+        toast({ title: t("failed_dispatch"), variant: "destructive" });
       }
     });
   };
 
-  const handleBulkUnlockStuck = async () => {
-    if (
-      !(await confirm({
-        title: "Bulk unlock stuck events",
-        description:
-          "This will unlock stale PROCESSING events (older than lock timeout) and set them to FAILED, so they can be retried.",
-      }))
-    ) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await bulkUnlockStuckIntegrationOutboxEvents({
-        topic: topic || undefined,
-        type: type || undefined,
+  const handleBulkUnlock = async () => {
+    if (await confirm({
+      title: t("unlock_stuck"),
+      description: t("bulk_unlock_stuck_desc"),
+      confirmText: t("unlock"),
+    })) {
+      startTransition(async () => {
+        const result = await bulkUnlockStuckIntegrationOutboxEvents({ topic: topic || undefined, type: type || undefined });
+        if (result.success) {
+          toast({ title: t("bulk_unlocked"), description: t("updated_count", { count: (result as any).count ?? 0 }) });
+          await invalidate();
+        }
       });
-      if (result.success) {
-        toast({ title: "Bulk unlocked", description: `Updated ${(result as any).count} events` });
-        await invalidate();
-      } else {
-        toast({ title: "Failed", description: result.error, variant: "destructive" });
-      }
-    });
+    }
   };
 
-  const handleBulkRequeue = async (fromStatus: "FAILED" | "DEAD", resetAttempts: boolean) => {
-    if (
-      !(await confirm({
-        title: `Bulk requeue ${fromStatus} events`,
-        description:
-          "This will reset matching events to PENDING and clear error/lock state. Use with care in production.",
-      }))
-    ) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await bulkRequeueIntegrationOutboxEvents({
-        fromStatus,
-        resetAttempts,
-        topic: topic || undefined,
-        type: type || undefined,
+  const handleBulkRequeue = async (fromStatus: "FAILED" | "DEAD", reset: boolean) => {
+    if (await confirm({
+      title: reset ? t("requeue_reset") : t("requeue_keep"),
+      description: t("bulk_requeue_desc"),
+      confirmText: reset ? t("requeue_reset") : t("requeue_keep"),
+    })) {
+      startTransition(async () => {
+        const result = await bulkRequeueIntegrationOutboxEvents({
+          fromStatus,
+          resetAttempts: reset,
+          topic: topic || undefined,
+          type: type || undefined
+        });
+        if (result.success) {
+          toast({ title: t("bulk_requeued"), description: t("updated_count", { count: (result as any).count ?? 0 }) });
+          await invalidate();
+        }
       });
-      if (result.success) {
-        toast({ title: "Bulk requeued", description: `Updated ${(result as any).count} events` });
-        await invalidate();
-      } else {
-        toast({ title: "Failed", description: result.error, variant: "destructive" });
-      }
-    });
+    }
   };
 
-  const handleBulkRequeueError = async (fromStatus: "FAILED" | "DEAD", error: string, resetAttempts: boolean) => {
-    if (
-      !(await confirm({
-        title: `Bulk requeue ${fromStatus} events for this error`,
-        description:
-          "This will reset matching events to PENDING and clear error/lock state. This action uses exact error matching.",
-      }))
-    ) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await bulkRequeueIntegrationOutboxEvents({
-        fromStatus,
-        resetAttempts,
-        topic: topic || undefined,
-        type: type || undefined,
-        lastErrorExact: error,
+  const handleBulkMarkDeadByError = async (error: string) => {
+    if (await confirm({
+      title: t("mark_dead"),
+      description: t("bulk_dead_error_desc"),
+      confirmText: t("mark_dead"),
+      variant: "destructive",
+    })) {
+      startTransition(async () => {
+        const result = await bulkForceDeadIntegrationOutboxEvents({
+          lastErrorExact: error,
+          topic: topic || undefined,
+          type: type || undefined
+        });
+        if (result.success) {
+          toast({ title: t("bulk_marked_dead"), description: t("updated_count", { count: (result as any).count ?? 0 }) });
+          await invalidate();
+        }
       });
-      if (result.success) {
-        toast({ title: "Bulk requeued", description: `Updated ${(result as any).count} events` });
-        await invalidate();
-      } else {
-        toast({ title: "Failed", description: result.error, variant: "destructive" });
-      }
-    });
+    }
   };
 
-  const handleBulkDeadError = async (error: string) => {
-    if (
-      !(await confirm({
-        title: "Bulk mark DEAD for this error",
-        description:
-          "This will move matching FAILED events to DEAD. This action uses exact error matching.",
-        confirmText: "Mark DEAD",
-        variant: "destructive",
-      }))
-    ) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await bulkForceDeadIntegrationOutboxEvents({
-        topic: topic || undefined,
-        type: type || undefined,
-        lastErrorExact: error,
+  const handleRequeueEvent = async (id: string, reset: boolean) => {
+    if (await confirm({
+      title: t("requeue_event"),
+      description: t("requeue_desc"),
+      confirmText: reset ? t("requeue_reset") : t("requeue_keep"),
+    })) {
+      startTransition(async () => {
+        const result = await requeueIntegrationOutboxEvent(id, { resetAttempts: reset });
+        if (result.success) {
+          toast({ title: tCommon("success") });
+          await invalidate();
+        }
       });
-      if (result.success) {
-        toast({ title: "Bulk marked DEAD", description: `Updated ${(result as any).count} events` });
-        await invalidate();
-      } else {
-        toast({ title: "Failed", description: result.error, variant: "destructive" });
-      }
-    });
+    }
+  };
+
+  const handleUnlockEvent = async (id: string) => {
+    if (await confirm({
+      title: t("unlock_event"),
+      description: t("unlock_desc"),
+      confirmText: t("unlock"),
+    })) {
+      startTransition(async () => {
+        const result = await unlockIntegrationOutboxEvent(id);
+        if (result.success) {
+          toast({ title: tCommon("success") });
+          await invalidate();
+        }
+      });
+    }
+  };
+
+  const handleMarkDead = async (id: string) => {
+    if (await confirm({
+      title: t("move_dead_letter"),
+      description: t("move_dead_desc"),
+      confirmText: t("mark_dead"),
+      variant: "destructive",
+    })) {
+      startTransition(async () => {
+        const result = await forceDeadIntegrationOutboxEvent(id);
+        if (result.success) {
+          toast({ title: tCommon("success") });
+          await invalidate();
+        }
+      });
+    }
   };
 
   const columns: Column<OutboxEvent>[] = [
     {
-      header: "Status",
+      header: tCommon("status"),
       cell: (item) => <Badge variant={statusVariant(item.status)}>{item.status}</Badge>,
       className: "w-[120px]",
     },
     {
-      header: "Type",
+      header: tCommon("type"),
       cell: (item) => (
         <div className="min-w-[240px]">
-          <div className="font-medium">{item.type}</div>
-          <div className="text-xs text-muted-foreground">{item.topic}</div>
+          <div className="font-medium text-xs">{item.type}</div>
+          <div className="text-[10px] text-muted-foreground font-mono">{item.topic}</div>
         </div>
       ),
     },
     {
       header: "Aggregate",
       cell: (item) => (
-        <div className="min-w-[240px]">
-          <div className="font-medium">{item.aggregateType}</div>
-          <div className="text-xs text-muted-foreground">{item.aggregateId}</div>
+        <div className="min-w-[150px] font-mono text-xs">
+          {item.aggregateId || "—"}
         </div>
       ),
     },
     {
-      header: "Attempts",
+      header: tCommon("attempts"),
       cell: (item) => (
-        <div className="w-[120px]">
-          <div className="font-medium">{item.attempts}</div>
-          {item.nextAttemptAt ? (
-            <div className="text-xs text-muted-foreground">
-              Next: {formatDate(item.nextAttemptAt)}
-            </div>
-          ) : null}
+        <div className="w-[80px] text-right">
+          {item.attempts}
         </div>
       ),
     },
     {
-      header: "Created",
+      header: tCommon("created_at"),
       cell: (item) => (
-        <div className="w-[160px] text-sm">{formatDate(item.createdAt)}</div>
+        <div className="w-[160px] text-xs font-light">{formatDate(item.createdAt)}</div>
       ),
     },
     {
@@ -481,56 +359,42 @@ export default function IntegrationOutboxPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => openDetails(item)}>
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => openPayload(item)}>
-                <Eye className="mr-2 h-4 w-4" />
-                View Payload
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={!item.lastError}
-                onClick={() => openError(item)}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                View Error
+              <DropdownMenuItem onClick={() => setDialog({
+                open: true,
+                title: t("view_details"),
+                content: item,
+                event: item
+              })}>
+                <Eye className="mr-2 h-4 w-4" /> {t("view_details")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <Protect permission="integrations.outbox.dispatch">
                 <DropdownMenuItem onClick={() => handleRunNow(item.id)}>
-                  <Play className="mr-2 h-4 w-4" />
-                  Run Now
+                  <Play className="mr-2 h-4 w-4 text-green-500" /> {t("run_now")}
                 </DropdownMenuItem>
               </Protect>
               <Protect permission="integrations.outbox.retry">
-                <DropdownMenuItem onClick={() => handleRequeue(item.id, { resetAttempts: true })}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Requeue (Reset)
+                <DropdownMenuItem onClick={() => handleRequeueEvent(item.id, true)}>
+                  <RotateCcw className="mr-2 h-4 w-4" /> {t("requeue_reset")}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleRequeue(item.id, { resetAttempts: false })}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Requeue (Keep)
+                <DropdownMenuItem onClick={() => handleRequeueEvent(item.id, false)}>
+                  <RotateCcw className="mr-2 h-4 w-4" /> {t("requeue_keep")}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={item.status !== "PROCESSING"}
-                  onClick={() => handleUnlock(item.id)}
-                >
-                  <LockOpen className="mr-2 h-4 w-4" />
-                  Unlock
-                </DropdownMenuItem>
+                {item.status === "PROCESSING" && (
+                  <DropdownMenuItem onClick={() => handleUnlockEvent(item.id)}>
+                    <LockOpen className="mr-2 h-4 w-4" /> {t("unlock")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleForceDead(item.id)}>
-                  <Ban className="mr-2 h-4 w-4" />
-                  Mark DEAD
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => handleMarkDead(item.id)}
+                >
+                  <Ban className="mr-2 h-4 w-4" /> {t("mark_dead")}
                 </DropdownMenuItem>
               </Protect>
             </DropdownMenuContent>
@@ -541,102 +405,39 @@ export default function IntegrationOutboxPage() {
     },
   ];
 
-  const auditColumns: Column<OutboxAuditLog>[] = [
-    {
-      header: "Action",
-      cell: (item) => <div className="font-medium">{item.action}</div>,
-      className: "min-w-[180px]",
-    },
-    {
-      header: "User",
-      cell: (item) => (
-        <div className="min-w-[220px]">
-          <div className="font-medium">{item.user?.name ?? item.user?.email ?? item.user?.id}</div>
-          <div className="text-xs text-muted-foreground">{item.user?.email ?? item.user?.id}</div>
-        </div>
-      ),
-    },
-    {
-      header: "Entity",
-      cell: (item) => (
-        <div className="min-w-[200px]">
-          <div className="font-medium">{item.entityType}</div>
-          <div className="text-xs text-muted-foreground">{item.entityId ?? "-"}</div>
-        </div>
-      ),
-    },
-    {
-      header: "Time",
-      cell: (item) => (
-        <div className="w-[160px] text-sm">{formatDate(item.createdAt)}</div>
-      ),
-    },
-    {
-      header: "",
-      cell: (item) => (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            setDialog({
-              open: true,
-              title: `Audit ${item.action}`,
-              content: item.metadata ?? {},
-            })
-          }
-        >
-          <Eye className="mr-2 h-4 w-4" />
-          View
-        </Button>
-      ),
-      className: "w-[100px]",
-    },
-  ];
-
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Integration Outbox" />
+        <PageListTitle title={t("integration_outbox")} />
         <PageListActions className="space-x-1">
           <Protect permission="integrations.outbox.retry">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={isPending}>
-                  <MoreHorizontal className="mr-2 h-4 w-4" />
-                  Bulk Actions
+                  {t("bulk_actions")} <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Filtered by</DropdownMenuLabel>
-                <DropdownMenuItem disabled>
-                  {topic ? `topic=${topic}` : "topic=any"}
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled>
-                  {type ? `type~=${type}` : "type=any"}
-                </DropdownMenuItem>
+                <DropdownMenuLabel>
+                  {t("filtered_by")}: topic={topic || "any"}
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleBulkUnlockStuck}>
-                  <LockOpen className="mr-2 h-4 w-4" />
-                  Unlock stuck processing
+                <DropdownMenuItem onClick={handleBulkUnlock}>
+                  <LockOpen className="mr-2 h-4 w-4" /> {t("unlock_stuck")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleBulkRequeue("FAILED", true)}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Requeue FAILED (Reset)
+                  <RotateCcw className="mr-2 h-4 w-4" /> {t("requeue_failed_reset")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleBulkRequeue("FAILED", false)}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Requeue FAILED (Keep)
+                  <RotateCcw className="mr-2 h-4 w-4" /> {t("requeue_failed_keep")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleBulkRequeue("DEAD", true)}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Requeue DEAD (Reset)
+                  <RotateCcw className="mr-2 h-4 w-4" /> {t("requeue_dead_reset")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleBulkRequeue("DEAD", false)}>
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Requeue DEAD (Keep)
+                  <RotateCcw className="mr-2 h-4 w-4" /> {t("requeue_dead_keep")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -648,7 +449,7 @@ export default function IntegrationOutboxPage() {
               ) : (
                 <Send className="mr-2 h-4 w-4" />
               )}
-              Dispatch Pending
+              {t("dispatch_pending")}
             </Button>
           </Protect>
         </PageListActions>
@@ -657,84 +458,8 @@ export default function IntegrationOutboxPage() {
       <PageListFilter>
         <OutboxFilters />
       </PageListFilter>
-      <PageListContent className="border-0">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Top Failed Errors</CardTitle>
-            <div className="text-xs text-muted-foreground">
-              {topic ? `topic=${topic}` : "topic=any"} · {type ? `type~=${type}` : "type=any"}
-            </div>
-          </CardHeader>
-          <CardContent className="text-sm">
-            {isLoadingErrors ? (
-              <div className="text-muted-foreground">Loading error groups…</div>
-            ) : errorsData?.errors?.length ? (
-              <div className="flex flex-col gap-2">
-                {errorsData.errors.map((e) => (
-                  <div key={e.lastError} className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate">{e.lastError}</div>
-                      <div className="text-xs text-muted-foreground">{e.count} events</div>
-                    </div>
-                    <div className="flex shrink-0 gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => openErrorText(e.lastError)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View
-                      </Button>
-                      <Protect permission="integrations.outbox.retry">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleBulkRequeueError("FAILED", e.lastError, true)}
-                        >
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Requeue
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleBulkDeadError(e.lastError)}
-                        >
-                          <Ban className="mr-2 h-4 w-4" />
-                          Dead
-                        </Button>
-                      </Protect>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-muted-foreground">No failed error groups for the current filter.</div>
-            )}
-          </CardContent>
-        </Card>
 
-      </PageListContent>
-      <PageListContent className="border-0">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Audit Trail</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm">
-            <DataTable
-              data={auditData?.logs ?? []}
-              columns={auditColumns}
-              isLoading={isLoadingAudit}
-              emptyMessage="No audit logs yet."
-              pagination={{
-                totalEntries: auditData?.total ?? 0,
-                pageSize: auditPageSize,
-                currentPage: auditPage,
-                onPageChange: setAuditPage,
-              }}
-            />
-          </CardContent>
-        </Card>
-      </PageListContent>
       <PageListContent>
-
         <DataTable
           data={data?.events ?? []}
           columns={columns}
@@ -747,11 +472,89 @@ export default function IntegrationOutboxPage() {
         />
       </PageListContent>
 
+      <PageListContent className="border-0 grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle>{t("top_failed_errors")}</CardTitle>
+            <div className="text-[10px] text-muted-foreground">
+              {topic ? `topic=${topic}` : "topic=any"}
+            </div>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {isLoadingErrors ? (
+              <div className="text-muted-foreground">{tCommon("loading")}...</div>
+            ) : errorsData?.errors?.length ? (
+              <div className="flex flex-col gap-3">
+                {errorsData.errors.map((e, idx) => (
+                  <div key={idx} className="flex items-start justify-between gap-2 border-b pb-2 last:border-0">
+                    <div className="flex-1 overflow-hidden">
+                      <code className="block truncate bg-muted p-1 text-[10px] font-mono whitespace-pre-wrap break-all max-h-[60px] overflow-y-auto">
+                        {e.lastError}
+                      </code>
+                      <div className="mt-1 flex items-center gap-2 text-[10px]">
+                        <span className="font-bold text-destructive">
+                          {e.count} {t("events")}
+                        </span>
+
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Protect permission="integrations.outbox.retry">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="h-7 w-7"
+                          onClick={() => handleBulkMarkDeadByError(e.lastError)}
+                          title={t("mark_dead")}
+                        >
+                          <Ban className="h-3 w-3" />
+                        </Button>
+                      </Protect>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-muted-foreground">{t("no_failed_errors")}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("audit_trail")}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs">
+            {isLoadingAudit ? (
+              <div className="text-muted-foreground">{tCommon("loading")}...</div>
+            ) : auditData?.logs?.length ? (
+              <div className="space-y-3">
+                {auditData.logs.map((log) => (
+                  <div key={log.id} className="flex flex-col gap-0.5 border-b pb-1.5 last:border-0">
+                    <div className="flex items-center justify-between font-medium">
+                      <span>{log.action}</span>
+                      <span className="text-[10px] font-normal text-muted-foreground font-mono">
+                        {formatDate(log.createdAt)}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground leading-snug">
+                      {log.user?.email || "System"} • {log.ipAddress || "local"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-muted-foreground">{t("no_audit_logs")}</div>
+            )}
+          </CardContent>
+        </Card>
+      </PageListContent>
+
       <OutboxEventDialog
+        event={dialog.event ?? null}
         open={dialog.open}
         onOpenChange={(open) => setDialog((d) => ({ ...d, open }))}
-        title={dialog.title}
-        content={dialog.content}
       />
     </PageListLayout>
   );

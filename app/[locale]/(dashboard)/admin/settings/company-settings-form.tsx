@@ -23,11 +23,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { useTranslations } from "next-intl";
+
 export function CompanySettingsForm({
   initialData,
 }: {
   initialData: Awaited<ReturnType<typeof getCompanyProfile>>;
 }) {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
+  const tAuth = useTranslations("Auth");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -71,9 +76,9 @@ export function CompanySettingsForm({
     startTransition(async () => {
       const result = await updateCompanyProfile(data);
       if (result.success) {
-        setSuccess("Company profile updated successfully");
+        setSuccess(t("company_profile_updated"));
       } else {
-        setError(result.error || "Failed to update company profile");
+        setError(result.error || t("failed_update_company"));
       }
     });
   };
@@ -81,16 +86,16 @@ export function CompanySettingsForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Company Profile</CardTitle>
+        <CardTitle>{t("company_profile")}</CardTitle>
         <CardDescription>
-          Manage your company details and configuration.
+          {t("manage_company_details")}
         </CardDescription>
       </CardHeader>
       <form onSubmit={onSubmit}>
         <CardContent className="space-y-4 pb-10">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Company Name</Label>
+              <Label htmlFor="name">{t("company_name")}</Label>
               <Input
                 id="name"
                 name="name"
@@ -99,7 +104,7 @@ export function CompanySettingsForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="taxId">Tax ID / VAT Number</Label>
+              <Label htmlFor="taxId">{t("tax_id")}</Label>
               <Input
                 id="taxId"
                 name="taxId"
@@ -107,7 +112,7 @@ export function CompanySettingsForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{tAuth("email_label")}</Label>
               <Input
                 id="email"
                 name="email"
@@ -116,7 +121,7 @@ export function CompanySettingsForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">{tCommon("phone")}</Label>
               <Input
                 id="phone"
                 name="phone"
@@ -124,7 +129,7 @@ export function CompanySettingsForm({
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">{tCommon("address")}</Label>
               <Input
                 id="address"
                 name="address"
@@ -132,7 +137,7 @@ export function CompanySettingsForm({
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website">{t("website")}</Label>
               <Input
                 id="website"
                 name="website"
@@ -143,17 +148,17 @@ export function CompanySettingsForm({
           </div>
 
           <div className="space-y-2 pt-4">
-            <h3 className="text-lg font-medium">Regional Settings</h3>
+            <h3 className="text-lg font-medium">{t("regional_settings")}</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
+                <Label htmlFor="currency">{t("currency")}</Label>
                 <Select
                   name="currency"
                   defaultValue={initialData?.currency}
                   onValueChange={handleCurrencyChange}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select currency" />
+                    <SelectValue placeholder={t("select_currency")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="USD">USD ($)</SelectItem>
@@ -165,7 +170,7 @@ export function CompanySettingsForm({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="currencySymbol">Currency Symbol</Label>
+                <Label htmlFor="currencySymbol">{t("currency_symbol")}</Label>
                 <Input
                   id="currencySymbol"
                   name="currencySymbol"
@@ -174,13 +179,13 @@ export function CompanySettingsForm({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="currencyFormat">Currency Format</Label>
+                <Label htmlFor="currencyFormat">{t("currency_format")}</Label>
                 <Select
                   name="currencyFormat"
                   defaultValue={initialData?.currencyFormat || "standard"}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select currency format" />
+                    <SelectValue placeholder={t("select_currency_format")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="standard">
@@ -194,13 +199,13 @@ export function CompanySettingsForm({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="dateFormat">Date Format</Label>
+                <Label htmlFor="dateFormat">{t("date_format")}</Label>
                 <Select
                   name="dateFormat"
                   defaultValue={initialData?.dateFormat || "MM/dd/yyyy"}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select date format" />
+                    <SelectValue placeholder={t("select_date_format")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MM/dd/yyyy">
@@ -219,10 +224,10 @@ export function CompanySettingsForm({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="locale">Locale</Label>
+                <Label htmlFor="locale">{t("locale")}</Label>
                 <Select name="locale" defaultValue={initialData?.locale}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select locale" />
+                    <SelectValue placeholder={t("select_locale")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="en-US">English (US)</SelectItem>
@@ -232,10 +237,10 @@ export function CompanySettingsForm({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="timezone">Timezone</Label>
+                <Label htmlFor="timezone">{t("timezone")}</Label>
                 <Select name="timezone" defaultValue={initialData?.timezone}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select timezone" />
+                    <SelectValue placeholder={t("select_timezone")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UTC">UTC</SelectItem>
@@ -251,14 +256,14 @@ export function CompanySettingsForm({
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>{tCommon("error")}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
           {success && (
             <Alert className="border-green-500 text-green-500">
               <CheckCircle2 className="h-4 w-4 stroke-green-500" />
-              <AlertTitle>Success</AlertTitle>
+              <AlertTitle>{tCommon("success")}</AlertTitle>
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
@@ -268,7 +273,7 @@ export function CompanySettingsForm({
             {isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin cursor-pointer" />
             )}
-            Save Changes
+            {tCommon("save_changes")}
           </Button>
         </CardFooter>
       </form>

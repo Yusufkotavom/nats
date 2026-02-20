@@ -15,11 +15,15 @@ import { JournalEntryWithDetails } from "../../types";
 import { useState } from "react";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 
+import { useTranslations } from "next-intl";
+
 export function JournalEntryDetails({
   entry,
 }: {
   entry: JournalEntryWithDetails;
 }) {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
@@ -44,32 +48,32 @@ export function JournalEntryDetails({
 
   const columns: Column<any>[] = [
     {
-      header: "Account Code",
+      header: t("account_code"),
       accessorKey: "account",
       cell: (line) => line.account.code,
     },
     {
-      header: "Account Name",
+      header: t("account_name"),
       accessorKey: "account",
       cell: (line) => line.account.name,
     },
     {
-      header: "Description",
+      header: t("description"),
       accessorKey: "description",
       cell: (line) => line.description || "-",
     },
     {
-      header: "Department",
+      header: t("department"),
       accessorKey: "department",
       cell: (line) => line.department?.name || "-",
     },
     {
-      header: "Project",
+      header: t("project"),
       accessorKey: "project",
       cell: (line) => line.project?.name || "-",
     },
     {
-      header: "Relevant Contact",
+      header: t("relevant_contact"),
       accessorKey: "contact",
       cell: (line) =>
         line.contact ? (
@@ -84,7 +88,7 @@ export function JournalEntryDetails({
         ),
     },
     {
-      header: "Debit",
+      header: tCommon("debit") || "Debit",
       headerClassName: "text-right",
       className: "text-right",
       cell: (line) => {
@@ -96,7 +100,7 @@ export function JournalEntryDetails({
       },
     },
     {
-      header: "Credit",
+      header: tCommon("credit") || "Credit",
       headerClassName: "text-right",
       className: "text-right",
       cell: (line) => {
@@ -116,7 +120,7 @@ export function JournalEntryDetails({
           <div className="flex items-center gap-4 justify-between w-full">
             <div className="flex flex-col">
               <h2 className="text-lg font-bold tracking-tight">
-                Journal Entry
+                {t("journal_entry")}
               </h2>
               <div className="flex items-center text-sm gap-2 text-muted-foreground mt-1">
                 <span>{entry.entryNumber}</span>
@@ -135,7 +139,7 @@ export function JournalEntryDetails({
                 onClick={() => setIsReportPreviewOpen(true)}
               >
                 <PrinterIcon className="mr-2 h-4 w-4" />
-                Print
+                {tCommon("print") || "Print"}
               </Button>
               <Button
                 type="button"
@@ -143,14 +147,14 @@ export function JournalEntryDetails({
                 onClick={() => router.back()}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
+                {tCommon("back")}
               </Button>
             </div>
           </div>
           {entry.status === "draft" && (
             <Link href={`/accounting/journal-entries/${entry.id}/edit`} target="_blank">
               <Button className="ml-2">
-                <Pencil className="mr-2 h-4 w-4" /> Edit Entry
+                <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
               </Button>
             </Link>
           )}
@@ -159,14 +163,14 @@ export function JournalEntryDetails({
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
           <div>
             <h3 className="text-sm font-medium text-muted-foreground">
-              Description
+              {t("description")}
             </h3>
             <p className="mt-1 text-lg">{entry.description || "-"}</p>
           </div>
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-4">
-              Lines
+              {t("lines")}
             </h3>
             <div className="rounded-md border">
               <DataTable
@@ -176,7 +180,7 @@ export function JournalEntryDetails({
                   <TableFooter>
                     <TableRow className="font-bold bg-muted/50">
                       <TableCell colSpan={6} className="text-right">
-                        Total
+                        {tCommon("total")}
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(Number(totalDebit))}
@@ -194,7 +198,7 @@ export function JournalEntryDetails({
           {entry.notes && (
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                Notes
+                {t("notes")}
               </h3>
               <div className="rounded-md border p-4 bg-muted/30">
                 <p className="whitespace-pre-wrap text-sm">{entry.notes}</p>
@@ -204,7 +208,7 @@ export function JournalEntryDetails({
 
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-4">
-              Attachments
+              {t("attachments")}
             </h3>
             {entry.attachments && entry.attachments.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -222,17 +226,17 @@ export function JournalEntryDetails({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No attachments</p>
+              <p className="text-sm text-muted-foreground">{t("no_attachments")}</p>
             )}
           </div>
 
           <div className="text-sm text-muted-foreground">
             <p>
-              Created by {entry.user.name} on{" "}
+              {t("created_by")} {entry.user.name} {t("on")}{" "}
               {formatDate(entry.createdAt, { includeTime: true })}
             </p>
             {entry.status === "posted" && entry.postedAt && (
-              <p>Posted on {formatDate(entry.postedAt, { includeTime: true })}</p>
+              <p>{t("posted_on")} {formatDate(entry.postedAt, { includeTime: true })}</p>
             )}
           </div>
         </div>
@@ -241,7 +245,7 @@ export function JournalEntryDetails({
           onOpenChange={setIsReportPreviewOpen}
           code="JOURNAL_ENTRY"
           input={{ entryId: entry.id }}
-          title={`Journal Entry #${entry.entryNumber}`}
+          title={`${t("journal_entry")} #${entry.entryNumber}`}
         />
       </div>
     )

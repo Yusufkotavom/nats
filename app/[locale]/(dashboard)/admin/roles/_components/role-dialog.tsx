@@ -24,7 +24,11 @@ interface RoleDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+import { useTranslations } from "next-intl";
+
 export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const [loading, setLoading] = useState(false);
   const isEditing = !!role;
   const [isActive, setIsActive] = useState(true);
@@ -73,27 +77,27 @@ export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Role" : "Add Role"}</DialogTitle>
+          <DialogTitle>{isEditing ? t("edit_role") : t("add_role")}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Edit role details." : "Create a new role."}
+            {isEditing ? t("role_details") : t("create_new_role")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <CustomInput
-            label="Name"
+            label={tCommon("name")}
             id="name"
             name="name"
             defaultValue={role?.name}
-            placeholder="e.g. Accountant"
+            placeholder={t("role_name_placeholder")}
             required
             containerClassName="grid gap-2"
           />
           <CustomTextarea
-            label="Description"
+            label={tCommon("description")}
             id="description"
             name="description"
             defaultValue={role?.description || ""}
-            placeholder="Describe the role..."
+            placeholder={t("role_description_placeholder")}
             containerClassName="grid gap-2"
           />
 
@@ -103,13 +107,13 @@ export function RoleDialog({ role, open, onOpenChange }: RoleDialogProps) {
               checked={isActive}
               onCheckedChange={setIsActive}
             />
-            <Label htmlFor="isActive">Active</Label>
+            <Label htmlFor="isActive">{tCommon("active")}</Label>
           </div>
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save Changes" : "Create Role"}
+              {isEditing ? tCommon("save_changes") : t("create_role")}
             </Button>
           </DialogFooter>
         </form>

@@ -26,7 +26,11 @@ import {
 } from "@/components/layout/page/list-layout";
 import { useQuery } from "@tanstack/react-query";
 
+import { useTranslations } from "next-intl";
+
 export default function TrialBalancePage() {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const [date, setDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -60,19 +64,6 @@ export default function TrialBalancePage() {
           initialExpanded[item.accountId] = true;
         }
       });
-      // Only set if expanded is empty (initial load) or we want to reset? 
-      // The original code reset expansion on every fetch. 
-      // "Default expand all" comment suggests this.
-      // However, resetting expansion on every date change might be annoying if user collapsed something.
-      // But since data structure might change, it's safer to re-expand.
-      // Or we can merge. But let's follow original behavior for now.
-
-      // Original logic:
-      // const initialExpanded: Record<string, boolean> = {};
-      // res.data.items.forEach(...)
-      // setExpanded(initialExpanded);
-
-      // So yes, it resets.
       // eslint-disable-next-line
       setExpanded(initialExpanded);
     }
@@ -122,19 +113,19 @@ export default function TrialBalancePage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Trial Balance" />
+        <PageListTitle title={t("trial_balance")} />
         <PageListActions>
           <Button size="sm" onClick={() => refetch()} disabled={loading}>
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
             />
-            Refresh
+            {t("refresh")}
           </Button>
         </PageListActions>
       </PageListHeader>
       <PageListActions>
         <div className="flex flex-col space-y-2 max-w-xs">
-          <Label htmlFor="date">As of Date</Label>
+          <Label htmlFor="date">{t("as_of_date")}</Label>
           <CustomInput
             id="date"
             type="date"
@@ -147,11 +138,11 @@ export default function TrialBalancePage() {
         <Table>
           <TableHeader className="bg-muted">
             <TableRow>
-              <TableHead className="w-[100px] rounded-tl-lg">Code</TableHead>
-              <TableHead>Account Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Debit</TableHead>
-              <TableHead className="text-right rounded-tr-lg">Credit</TableHead>
+              <TableHead className="w-[100px] rounded-tl-lg">{tCommon("code")}</TableHead>
+              <TableHead>{t("account_name")}</TableHead>
+              <TableHead>{tCommon("type")}</TableHead>
+              <TableHead className="text-right">{tCommon("debit")}</TableHead>
+              <TableHead className="text-right rounded-tr-lg">{tCommon("credit")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -164,7 +155,7 @@ export default function TrialBalancePage() {
             ) : items.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  No accounts found.
+                  {t("no_accounts_found")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -217,7 +208,7 @@ export default function TrialBalancePage() {
                 ))}
                 <TableRow className="bg-muted/50 font-bold">
                   <TableCell colSpan={3} className="text-right">
-                    Total
+                    {tCommon("total")}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(totals.debit)}

@@ -54,7 +54,11 @@ interface LedgerClientPageProps {
   };
 }
 
+import { useTranslations } from "next-intl";
+
 export default function LedgerClientPage({ initialAccount }: LedgerClientPageProps) {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [selectedAccount, setSelectedAccount] = useState(initialAccount);
 
@@ -135,15 +139,15 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
 
   const columns: Column<LedgerEntry>[] = [
     {
-      header: "Posted At",
-      cell: (entry) => formatDate(entry.journalEntry.postedAt || "Draft"),
+      header: t("posted_at"),
+      cell: (entry) => formatDate(entry.journalEntry.postedAt || t("draft")),
     },
     {
-      header: "Trans. Date",
+      header: t("trans_date"),
       cell: (entry) => formatDate(entry.journalEntry.transactionDate),
     },
     {
-      header: "Entry #",
+      header: t("entry_number"),
       cell: (entry) => (
         <Link
           href={`/accounting/journal-entries/${entry.journalEntryId}`}
@@ -155,7 +159,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
       ),
     },
     {
-      header: "Description",
+      header: t("description"),
       cell: (entry) => (
         <div className="flex flex-col">
           <span className="text-xs text-muted-foreground">
@@ -166,7 +170,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
       ),
     },
     {
-      header: "Debit",
+      header: tCommon("debit") || "Debit",
       className: "text-right",
       headerClassName: "text-right",
       cell: (entry) =>
@@ -175,7 +179,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
           : "-",
     },
     {
-      header: "Credit",
+      header: tCommon("credit") || "Credit",
       className: "text-right",
       headerClassName: "text-right",
       cell: (entry) =>
@@ -184,13 +188,13 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
           : "-",
     },
     {
-      header: "Balance",
+      header: t("balance"),
       className: "text-right",
       headerClassName: "text-right",
       cell: (entry) => formatCurrency(Number(entry.runningBalance)),
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       className: "text-center",
       headerClassName: "text-center",
       cell: (entry) => <StatusBadge status={entry.journalEntry.status} />,
@@ -200,7 +204,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="General Ledger" />
+        <PageListTitle title={t("ledger")} />
       </PageListHeader>
 
       {selectedAccount?.id && (
@@ -213,7 +217,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
                 ) : (
                   <TrendingDownIcon />
                 )}
-                <span>Total Debit</span>
+                <span>{t("total_debit")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -234,7 +238,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
                 ) : (
                   <TrendingDownIcon />
                 )}
-                <span>Total Credit</span>
+                <span>{t("total_credit")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -251,7 +255,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
             <CardHeader>
               <CardTitle className="text-sm font-medium flex gap-2">
                 <ScaleIcon />
-                <span>Net Balance</span>
+                <span>{t("net_balance")}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -274,9 +278,9 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
         <div className="flex items-end gap-4 flex-wrap p-4">
           {accounts && (
             <div className="space-y-1">
-              <Label>Account</Label>
+              <Label>{t("account")}</Label>
               <SearchableSelect
-                placeholder="Select Account"
+                placeholder={t("select_account")}
                 value={selectedAccount?.id}
                 onValueChange={(val) =>
                   handleAccountChange(val || "", accounts)
@@ -290,7 +294,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
             </div>
           )}
           <CustomInput
-            label="Start Date"
+            label={tCommon("start_date")}
             type="date"
             value={startDate}
             onChange={(e) => {
@@ -299,7 +303,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
             }}
           />
           <CustomInput
-            label="End Date"
+            label={tCommon("end_date")}
             type="date"
             value={endDate}
             onChange={(e) => {
@@ -316,7 +320,7 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
                 setPage(1);
               }}
             />
-            <Label htmlFor="showDraft">Show Draft</Label>
+            <Label htmlFor="showDraft">{t("show_draft")}</Label>
           </div>
         </div>
         <div className="px-4">
@@ -326,8 +330,8 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
             isLoading={loading}
             emptyMessage={
               selectedAccount?.id
-                ? "No transactions found."
-                : "Select an account to view transactions."
+                ? t("no_transactions_found")
+                : t("select_account_to_view")
             }
             pagination={
               entries?.pagination.total

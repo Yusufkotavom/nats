@@ -112,7 +112,11 @@ const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
   ],
 }
 
+import { useTranslations } from "next-intl"
+
 export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccountsViewProps) {
+  const t = useTranslations("Accounting")
+  const tCommon = useTranslations("Common")
   const [isEditing, setIsEditing] = useState(false)
   const [changes, setChanges] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
@@ -137,8 +141,8 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
     }
 
     if (await confirm({
-      title: "Save Changes",
-      description: "Are you sure you want to apply these changes? Previous configuration will be disabled."
+      title: t("save_changes"),
+      description: t("save_changes_desc")
     })) {
       setIsSaving(true)
       try {
@@ -150,14 +154,14 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
         const result = await saveDefaultAccounts(updates)
         if (result.success) {
           toast({
-            title: "Success",
-            description: "Default accounts updated successfully",
+            title: tCommon("success"),
+            description: t("default_accounts_updated"),
           })
           setIsEditing(false)
           setChanges({})
         } else {
           toast({
-            title: "Error",
+            title: tCommon("error"),
             description: result.error || "Failed to update default accounts",
             variant: "destructive",
           })
@@ -165,7 +169,7 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
       } catch (error) {
         console.error(error)
         toast({
-          title: "Error",
+          title: tCommon("error"),
           description: "An error occurred",
           variant: "destructive",
         })
@@ -190,16 +194,24 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
     return defaultAccounts.find(da => da.purpose === purpose)?.accountId || null
   }
 
+  const CATEGORY_LABELS: Record<string, string> = {
+    "Sales & Receivables": t("categories.sales_receivables"),
+    "Purchases & Payables": t("categories.purchases_payables"),
+    "Cash & Bank": t("categories.cash_bank"),
+    "Equity & Others": t("categories.equity_others"),
+    "Payroll": t("categories.payroll"),
+  }
+
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Default Accounts" />
+        <PageListTitle title={t("default_accounts")} />
         <PageListActions className="flex justify-end gap-1">
           {isEditing ? (
             <>
               <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
                 <X className="mr-2 h-4 w-4" />
-                Cancel
+                {tCommon("cancel")}
               </Button>
               <Button onClick={handleSave} disabled={isSaving}>
                 {isSaving ? (
@@ -207,18 +219,18 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
                 ) : (
                   <Save className="mr-2 h-4 w-4" />
                 )}
-                Save Changes
+                {t("save_changes")}
               </Button>
             </>
           ) : (
             <>
               <Button onClick={handleEdit} disabled={!canEdit}>
                 <LockIcon className="h-4 w-4" />
-                Edit
+                {tCommon("edit")}
               </Button>
               <Button variant="outline" onClick={() => router.back()} disabled={!canEdit}>
                 <ArrowLeftIcon className="h-4 w-4" />
-                Back
+                {tCommon("back")}
               </Button>
             </>
           )}
@@ -229,9 +241,9 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[20%]">Purpose</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="w-[30%]">Default Account</TableHead>
+              <TableHead className="w-[20%]">{t("purpose")}</TableHead>
+              <TableHead>{t("description")}</TableHead>
+              <TableHead className="w-[30%]">{t("default_accounts")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -239,16 +251,16 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
               <Fragment key={category}>
                 <TableRow key={category} className="bg-muted hover:bg-muted">
                   <TableCell colSpan={3} className="font-semibold">
-                    {category}
+                    {CATEGORY_LABELS[category] || category}
                   </TableCell>
                 </TableRow>
                 {purposes.map((purpose) => (
                   <TableRow key={purpose}>
                     <TableCell className="font-medium align-middle">
-                      {PURPOSE_LABELS[purpose]}
+                      {t(`purposes.${purpose}`)}
                     </TableCell>
                     <TableCell className="text-muted-foreground align-middle">
-                      {PURPOSE_DESCRIPTIONS[purpose]}
+                      {t(`purpose_descriptions.${purpose}`)}
                     </TableCell>
                     <TableCell className="align-top">
                       <div className="relative">
@@ -256,7 +268,7 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
                           options={accountOptions}
                           value={getDefaultAccountId(purpose)}
                           onValueChange={(val) => handleChange(purpose, val)}
-                          placeholder="Select account..."
+                          placeholder={t("select_account_placeholder")}
                           disabled={!isEditing || isSaving}
                         />
                       </div>

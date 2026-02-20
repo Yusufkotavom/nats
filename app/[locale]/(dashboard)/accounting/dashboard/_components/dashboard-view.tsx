@@ -35,7 +35,11 @@ interface DashboardViewProps {
   companyProfile: CompanyProfile | null;
 }
 
+import { useTranslations } from "next-intl";
+
 export function DashboardView({ companyProfile }: DashboardViewProps) {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const currencyOptions = {
     currency: companyProfile?.currency,
     currencySymbol: companyProfile?.currencySymbol || undefined,
@@ -52,12 +56,12 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
       return res.success
         ? res.data
         : {
-            totalRevenue: 0,
-            totalExpenses: 0,
-            netIncome: 0,
-            accountsReceivable: 0,
-            accountsPayable: 0,
-          };
+          totalRevenue: 0,
+          totalExpenses: 0,
+          netIncome: 0,
+          accountsReceivable: 0,
+          accountsPayable: 0,
+        };
     },
   });
 
@@ -89,19 +93,19 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
     <div className="flex flex-1 flex-col gap-4 px-4">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-xl font-bold tracking-tight">
-          Accounting Dashboard
+          {t("dashboard")}
         </h2>
         <div className="flex items-center space-x-2">
           <Button asChild>
             <Link href="/accounting/journal-entries/create">
               <PlusCircle className="mr-2 h-4 w-4" />
-              New Journal Entry
+              {t("new_entry")}
             </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href="/accounting/reports">
               <FileText className="mr-2 h-4 w-4" />
-              Reports
+              {t("reports")}
             </Link>
           </Button>
         </div>
@@ -111,20 +115,20 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
       <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("total_revenue")}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {format(summary?.totalRevenue || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Current Month</p>
+            <p className="text-xs text-muted-foreground">{t("current_month")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Expenses
+              {t("total_expenses")}
             </CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -132,24 +136,24 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
             <div className="text-2xl font-bold">
               {format(summary?.totalExpenses || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Current Month</p>
+            <p className="text-xs text-muted-foreground">{t("current_month")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Income</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("net_income")}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {format(summary?.netIncome || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Current Month</p>
+            <p className="text-xs text-muted-foreground">{t("current_month")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receivables</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("receivables")}</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -157,7 +161,7 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
               {format(summary?.accountsReceivable || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Outstanding Invoices
+              {t("outstanding_invoices")}
             </p>
           </CardContent>
         </Card>
@@ -167,9 +171,9 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Financial Trends</CardTitle>
+            <CardTitle>{t("financial_trends")}</CardTitle>
             <CardDescription>
-              Revenue vs Expenses for the last 6 months
+              {t("financial_trends_desc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
@@ -178,9 +182,9 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Expense Breakdown</CardTitle>
+            <CardTitle>{t("expense_breakdown")}</CardTitle>
             <CardDescription>
-              Top 5 expenses for the current month
+              {t("expense_breakdown_desc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -192,8 +196,8 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
       {/* Recent Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>Latest posted journal entries.</CardDescription>
+          <CardTitle>{t("recent_transactions")}</CardTitle>
+          <CardDescription>{t("recent_transactions_desc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <RecentTransactions data={transactions || []} />

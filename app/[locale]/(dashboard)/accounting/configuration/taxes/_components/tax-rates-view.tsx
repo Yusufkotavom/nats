@@ -27,7 +27,11 @@ interface TaxRatesViewProps {
   taxRates: TaxRate[]
 }
 
+import { useTranslations } from "next-intl"
+
 export function TaxRatesView({ taxRates }: TaxRatesViewProps) {
+  const t = useTranslations("Accounting")
+  const tCommon = useTranslations("Common")
   const [open, setOpen] = useState(false)
   const [selectedTaxRate, setSelectedTaxRate] = useState<TaxRate | undefined>(undefined)
 
@@ -49,26 +53,26 @@ export function TaxRatesView({ taxRates }: TaxRatesViewProps) {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Tax Rates" />
+        <PageListTitle title={t("tax_rates")} />
         <PageListActions>
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            New Tax Rate
+            {t("new_tax_rate")}
           </Button>
         </PageListActions>
       </PageListHeader>
-      
+
       <PageListContent>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Rate (%)</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead>{tCommon("code")}</TableHead>
+                <TableHead>{tCommon("name")}</TableHead>
+                <TableHead>{t("rate_percent")}</TableHead>
+                <TableHead>{tCommon("description")}</TableHead>
+                <TableHead>{tCommon("status")}</TableHead>
+                <TableHead className="w-[100px]">{tCommon("actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -81,11 +85,11 @@ export function TaxRatesView({ taxRates }: TaxRatesViewProps) {
                   <TableCell>
                     {taxRate.isActive ? (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Active
+                        {tCommon("active")}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                        Inactive
+                        {tCommon("inactive")}
                       </Badge>
                     )}
                   </TableCell>
@@ -99,7 +103,7 @@ export function TaxRatesView({ taxRates }: TaxRatesViewProps) {
               {taxRates.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                    No tax rates found. Create one to get started.
+                    {t("no_tax_rates_found")}
                   </TableCell>
                 </TableRow>
               )}
@@ -111,9 +115,9 @@ export function TaxRatesView({ taxRates }: TaxRatesViewProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedTaxRate ? "Edit Tax Rate" : "New Tax Rate"}</DialogTitle>
+            <DialogTitle>{selectedTaxRate ? t("edit_tax_rate") : t("new_tax_rate")}</DialogTitle>
             <DialogDescription>
-              Configure tax rate details. Code must be unique.
+              {t("configure_tax_rate")}
             </DialogDescription>
           </DialogHeader>
           <TaxRateForm taxRate={selectedTaxRate} onSuccess={handleSuccess} />

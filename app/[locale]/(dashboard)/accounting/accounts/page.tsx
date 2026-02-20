@@ -38,7 +38,11 @@ import { useConfirm, useToast } from "@/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
+import { useTranslations } from "next-intl";
+
 export default function AccountListPage() {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -70,18 +74,18 @@ export default function AccountListPage() {
     onSuccess: (res) => {
       if (res.success) {
         toast({
-          title: "Success",
-          description: "Account updated successfully",
+          title: tCommon("success"),
+          description: t("account_updated_success"),
         });
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
         setEditingId(null);
         setDraftName("");
       } else {
-        setError(res.error || "Failed to update account");
+        setError(res.error || tCommon("error"));
       }
     },
     onError: () => {
-      setError("Failed to update account");
+      setError(tCommon("error"));
     },
   });
 
@@ -92,14 +96,14 @@ export default function AccountListPage() {
     onSuccess: (res) => {
       if (res.success) {
         toast({
-          title: "Success",
-          description: "Account deleted successfully",
+          title: tCommon("success"),
+          description: t("account_deleted_success"),
         });
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
       } else {
         toast({
-          title: "Error",
-          description: res.error || "Failed to delete account",
+          title: tCommon("error"),
+          description: res.error || tCommon("error"),
           variant: "destructive",
         });
       }
@@ -147,11 +151,10 @@ export default function AccountListPage() {
   async function handleDelete(a: Account) {
     if (
       await confirm({
-        title: "Are you sure?",
+        title: tCommon("are_you_sure") || "Are you sure?",
         description: (
           <>
-            This action cannot be undone. This will permanently delete the
-            account
+            {t("delete_account_desc")}
             <span className="font-medium text-foreground">
               {" "}
               {a.code} — {a.name}
@@ -159,7 +162,7 @@ export default function AccountListPage() {
             .
           </>
         ),
-        confirmText: "Delete",
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -181,9 +184,9 @@ export default function AccountListPage() {
     const isUsed = (a._count?.journalEntryLines || 0) > 0;
     const canDelete = !isUsed && !hasChildren;
 
-    let deleteTooltip = "Delete account";
-    if (isUsed) deleteTooltip = "Cannot delete: used in transactions";
-    else if (hasChildren) deleteTooltip = "Cannot delete: has child accounts";
+    let deleteTooltip = tCommon("delete");
+    if (isUsed) deleteTooltip = `${tCommon("cannot_delete") || "Cannot delete"}: ${t("used_in_transactions")}`;
+    else if (hasChildren) deleteTooltip = `${tCommon("cannot_delete") || "Cannot delete"}: ${t("has_child_accounts")}`;
 
     const row = (
       <TableRow key={a.id} className="border-b last:border-b-0">
@@ -225,7 +228,7 @@ export default function AccountListPage() {
                   autoFocus
                 />
                 <Button size="sm" onClick={() => commitEdit(a)}>
-                  Save
+                  {tCommon("save")}
                 </Button>
                 <Button
                   size="sm"
@@ -235,7 +238,7 @@ export default function AccountListPage() {
                     setDraftName("");
                   }}
                 >
-                  Cancel
+                  {tCommon("cancel")}
                 </Button>
               </>
             ) : (
@@ -246,7 +249,7 @@ export default function AccountListPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => beginEdit(a)}
-                    title="Edit name"
+                    title={t("edit_name")}
                     className="opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Pencil />
@@ -284,16 +287,16 @@ export default function AccountListPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Chart of Accounts"></PageListTitle>
+        <PageListTitle title={t("chart_of_accounts")}></PageListTitle>
         <PageListActions className="space-x-1">
           <Button variant="outline" onClick={() => router.push("/accounting/configuration/default-accounts")}>
-            <CogIcon /> Default Accounts
+            <CogIcon /> {t("default_accounts")}
           </Button>
           <Button variant="outline" onClick={() => router.push("/accounting/configuration/beginning-balance")}>
-            <CalculatorIcon /> Opening Balance
+            <CalculatorIcon /> {t("opening_balance")}
           </Button>
           <Button onClick={() => setIsAdding(true)} >
-            <Plus /> Add Account
+            <Plus /> {t("add_account")}
           </Button>
 
         </PageListActions>
@@ -306,11 +309,11 @@ export default function AccountListPage() {
           <TableHeader className="bg-muted">
             <TableRow className="text-left text-sm text-muted-foreground">
               <TableHead className="w-12 rounded-tl-lg"> </TableHead>
-              <TableHead className="w-28">Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead className="w-28">{t("code")}</TableHead>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("type")}</TableHead>
               <TableHead className="w-24 text-right rounded-tr-lg">
-                Actions
+                {tCommon("actions")}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -325,8 +328,8 @@ export default function AccountListPage() {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["accounts"] });
           toast({
-            title: "Success",
-            description: "Account created successfully",
+            title: tCommon("success"),
+            description: t("account_created_success"),
           });
           setIsAdding(false);
         }}

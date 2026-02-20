@@ -26,7 +26,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useTranslations } from "next-intl";
+
 export default function BalanceSheetPage() {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
   const [asOfDate, setAsOfDate] = useState(
@@ -106,7 +110,7 @@ export default function BalanceSheetPage() {
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-lg font-bold">Balance Sheet</h1>
+          <h1 className="text-lg font-bold">{t("balance_sheet")}</h1>
           <div className="flex items-center gap-4">
             <ExportButton
               onExportCSV={() => {
@@ -131,10 +135,10 @@ export default function BalanceSheetPage() {
                 };
 
                 const data = [
-                  ...flatten(report.assets, "Asset"),
-                  ...flatten(report.liabilities, "Liability"),
-                  ...flatten(report.equity, "Equity"),
-                  { Type: "Total", Account: "Total Liabilities and Equity", Amount: report.totalLiabilitiesAndEquity }
+                  ...flatten(report.assets, t("assets")),
+                  ...flatten(report.liabilities, t("liabilities")),
+                  ...flatten(report.equity, t("equity")),
+                  { Type: tCommon("total"), Account: t("total_liab_equity"), Amount: report.totalLiabilitiesAndEquity }
                 ];
                 downloadCSV(data, `balance-sheet-${asOfDate}`);
               }}
@@ -144,13 +148,13 @@ export default function BalanceSheetPage() {
                 date: asOfDate,
                 comparativeDate: showComparative ? comparativeDate : undefined,
               }}
-              reportTitle="Balance Sheet"
+              reportTitle={t("balance_sheet")}
             />
             <Button onClick={() => refetch()} disabled={loading}>
               {loading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                "Run Report"
+                t("run_report")
               )}
             </Button>
           </div>
@@ -159,7 +163,7 @@ export default function BalanceSheetPage() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-4 bg-muted/20 p-4 rounded-lg border">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">As Of:</span>
+            <span className="text-sm font-medium">{t("as_of")}:</span>
             <CustomInput
               type="date"
               value={asOfDate}
@@ -176,13 +180,13 @@ export default function BalanceSheetPage() {
               checked={showComparative}
               onCheckedChange={(c) => setShowComparative(!!c)}
             />
-            <Label htmlFor="comparative">Compare</Label>
+            <Label htmlFor="comparative">{t("compare")}</Label>
           </div>
 
           {showComparative && (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">
-                Comp. Date:
+                {t("comp_date")}:
               </span>
               <CustomInput
                 type="date"
@@ -199,26 +203,26 @@ export default function BalanceSheetPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-center text-2xl">
-              Statement of Financial Position
+              {t("statement_financial_position")}
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              As of {formatDate(asOfDate)}
-              {showComparative && ` compared to ${formatDate(comparativeDate)}`}
+              {t("as_of")} {formatDate(asOfDate)}
+              {showComparative && ` ${t("compared_to")} ${formatDate(comparativeDate)}`}
             </p>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[300px]">Account</TableHead>
-                  <TableHead className="text-right">Current</TableHead>
+                  <TableHead className="w-[300px]">{t("account")}</TableHead>
+                  <TableHead className="text-right">{t("current")}</TableHead>
                   {showComparative && (
                     <>
                       <TableHead className="text-right text-muted-foreground">
-                        Previous
+                        {t("previous")}
                       </TableHead>
                       <TableHead className="text-right text-muted-foreground">
-                        Change
+                        {t("change")}
                       </TableHead>
                       <TableHead className="text-right text-muted-foreground">
                         %
@@ -234,7 +238,7 @@ export default function BalanceSheetPage() {
                     colSpan={showComparative ? 5 : 2}
                     className="font-bold text-lg"
                   >
-                    Assets
+                    {t("assets")}
                   </TableCell>
                 </TableRow>
                 {report.assets.map((node) => (
@@ -245,7 +249,7 @@ export default function BalanceSheetPage() {
                   />
                 ))}
                 {renderTotalLine(
-                  "Total Assets",
+                  t("total_assets"),
                   report.totalAssets,
                   report.previousTotalAssets
                 )}
@@ -256,7 +260,7 @@ export default function BalanceSheetPage() {
                     colSpan={showComparative ? 5 : 2}
                     className="font-bold text-lg"
                   >
-                    Liabilities
+                    {t("liabilities")}
                   </TableCell>
                 </TableRow>
                 {report.liabilities.map((node) => (
@@ -267,7 +271,7 @@ export default function BalanceSheetPage() {
                   />
                 ))}
                 {renderTotalLine(
-                  "Total Liabilities",
+                  t("total_liabilities"),
                   report.totalLiabilities,
                   report.previousTotalLiabilities
                 )}
@@ -278,7 +282,7 @@ export default function BalanceSheetPage() {
                     colSpan={showComparative ? 5 : 2}
                     className="font-bold text-lg"
                   >
-                    Equity
+                    {t("equity")}
                   </TableCell>
                 </TableRow>
                 {report.equity.map((node) => (
@@ -289,14 +293,14 @@ export default function BalanceSheetPage() {
                   />
                 ))}
                 {renderTotalLine(
-                  "Total Equity",
+                  t("total_equity"),
                   report.totalEquity,
                   report.previousTotalEquity
                 )}
 
                 {/* Total Liabilities and Equity */}
                 <TableRow className="bg-muted font-bold text-lg border-t-4 border-double border-black">
-                  <TableCell>Total Liabilities and Equity</TableCell>
+                  <TableCell>{t("total_liab_equity")}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(report.totalLiabilitiesAndEquity)}
                   </TableCell>

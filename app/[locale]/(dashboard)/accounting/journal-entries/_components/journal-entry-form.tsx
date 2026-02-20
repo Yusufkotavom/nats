@@ -68,6 +68,8 @@ interface JournalEntryFormProps {
   onCancel: () => void;
 }
 
+import { useTranslations } from "next-intl";
+
 export function JournalEntryForm({
   initialData,
   accounts,
@@ -78,6 +80,8 @@ export function JournalEntryForm({
   isSubmitting,
   onCancel,
 }: JournalEntryFormProps) {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const leafAccounts = accounts.filter((a) => a.isPosting);
   const [formData, setFormData] = useState<CreateJournalEntryData>(
@@ -235,12 +239,12 @@ export function JournalEntryForm({
     setError(null);
 
     if (!formData.transactionDate) {
-      setError("Transaction date is required");
+      setError(t("error_date_required"));
       return;
     }
 
     if (!isBalanced) {
-      setError("Journal entry must be balanced (Total Debit = Total Credit)");
+      setError(t("error_not_balanced"));
       return;
     }
 
@@ -257,7 +261,7 @@ export function JournalEntryForm({
     });
 
     if (validLines.length < 2) {
-      setError("At least two lines with accounts and amounts are required");
+      setError(t("error_min_lines"));
       return;
     }
 
@@ -320,8 +324,8 @@ export function JournalEntryForm({
         <PageFormHeader>
           <PageFormTitle>
             {initialData?.entryNumber
-              ? `Edit Journal Entry`
-              : "New Journal Entry"}
+              ? t("edit_journal_entry")
+              : t("new_entry")}
           </PageFormTitle>
           <PageFormActions>
             <Button
@@ -331,7 +335,7 @@ export function JournalEntryForm({
               disabled={isSubmitting}
             >
               <ArrowLeft />
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button
               type="submit"
@@ -339,7 +343,7 @@ export function JournalEntryForm({
               disabled={isSubmitting || !isBalanced}
             >
               <Save />
-              {isSubmitting ? "Saving..." : "Save"}
+              {isSubmitting ? t("saving") : tCommon("save")}
             </Button>
           </PageFormActions>
         </PageFormHeader>
@@ -348,7 +352,7 @@ export function JournalEntryForm({
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex gap-4">
               <CustomInput
-                label="Entry No"
+                label={t("entry_no")}
                 id="entry_no"
                 type="text"
                 value={formData.entryNumber}
@@ -357,7 +361,7 @@ export function JournalEntryForm({
                 containerClassName="space-y-2"
               />
               <CustomInput
-                label="Transaction Date"
+                label={t("transaction_date")}
                 id="date"
                 type="date"
                 value={formData.transactionDate.toISOString().split("T")[0]}
@@ -371,13 +375,13 @@ export function JournalEntryForm({
                 containerClassName="space-y-2"
               />
               <CustomInput
-                label="Description"
+                label={t("description")}
                 id="description"
                 value={formData.description || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                placeholder="General transaction description"
+                placeholder={t("general_trans_desc")}
                 containerClassName="space-y-2 flex-1"
               />
             </div>
@@ -392,15 +396,15 @@ export function JournalEntryForm({
                   <TableHeader className="bg-muted">
                     <TableRow>
                       <TableHead className="w-[40px]"></TableHead>
-                      <TableHead className="w-[300px]">Account</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="w-[150px]">Department</TableHead>
-                      <TableHead className="w-[150px]">Project</TableHead>
+                      <TableHead className="w-[300px]">{t("account")}</TableHead>
+                      <TableHead>{t("description")}</TableHead>
+                      <TableHead className="w-[150px]">{t("department")}</TableHead>
+                      <TableHead className="w-[150px]">{t("project")}</TableHead>
                       <TableHead className="w-[150px] text-right">
-                        Debit
+                        {tCommon("debit") || "Debit"}
                       </TableHead>
                       <TableHead className="w-[150px] text-right">
-                        Credit
+                        {tCommon("credit") || "Credit"}
                       </TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
@@ -421,7 +425,7 @@ export function JournalEntryForm({
                               onValueChange={(val) =>
                                 updateLine(index, "accountId", val || "")
                               }
-                              placeholder="Search Account"
+                              placeholder={t("search_account")}
                               className="w-full border-0"
                               options={leafAccounts.map((account) => ({
                                 value: account.id,
@@ -438,7 +442,7 @@ export function JournalEntryForm({
                                 }
                                 onKeyDown={handleKeyDown}
                                 className="flex-1 bg-transparent border-0 outline-none text-sm h-8 w-full placeholder:text-muted-foreground"
-                                placeholder="Detailed description (@ to mention)"
+                                placeholder={t("detailed_desc_mention")}
                               />
                               {line.contactId &&
                                 (() => {
@@ -488,7 +492,7 @@ export function JournalEntryForm({
                               onValueChange={(val) =>
                                 updateLine(index, "departmentId", val || null)
                               }
-                              placeholder="Department"
+                              placeholder={t("department")}
                               className="w-full border-0"
                               options={departments.map((d) => ({
                                 value: d.id,
@@ -502,7 +506,7 @@ export function JournalEntryForm({
                               onValueChange={(val) =>
                                 updateLine(index, "projectId", val || null)
                               }
-                              placeholder="Project"
+                              placeholder={t("project")}
                               className="w-full border-0"
                               options={projects.map((p) => ({
                                 value: p.id,
@@ -564,7 +568,7 @@ export function JournalEntryForm({
                   <TableFooter>
                     <TableRow>
                       <TableCell colSpan={5} className="font-bold">
-                        Total
+                        {tCommon("total")}
                       </TableCell>
                       <TableCell className="text-right font-bold">
                         {formatCurrency(totalDebit.toNumber())}
@@ -580,7 +584,7 @@ export function JournalEntryForm({
                           colSpan={3}
                           className="font-bold text-red-600"
                         >
-                          Difference
+                          {t("difference")}
                         </TableCell>
                         <TableCell
                           colSpan={2}
@@ -603,7 +607,7 @@ export function JournalEntryForm({
             <div className="flex justify-start border-t pt-4">
               <div className="flex items-start gap-2">
                 <Button type="button" variant="outline" onClick={addLine}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Line
+                  <Plus className="mr-2 h-4 w-4" /> {t("add_line")}
                 </Button>
 
                 <div className="flex items-center gap-2">
@@ -616,8 +620,8 @@ export function JournalEntryForm({
                   >
                     <Paperclip className="mr-2 h-3 w-3" />
                     {(formData.attachments?.length || 0) > 0
-                      ? `${formData.attachments?.length} Attachments`
-                      : "Attach File"}
+                      ? `${formData.attachments?.length} ${t("attachments")}`
+                      : t("attach_file")}
                   </Button>
                   <Button
                     type="button"
@@ -627,7 +631,7 @@ export function JournalEntryForm({
                     onClick={() => setIsNoteDialogOpen(true)}
                   >
                     <StickyNote className="mr-2 h-3 w-3" />
-                    {formData.notes ? "Edit Note" : "Add Note"}
+                    {formData.notes ? t("edit_note") : t("add_note")}
                   </Button>
                 </div>
 

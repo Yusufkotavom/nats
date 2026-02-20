@@ -24,11 +24,15 @@ import {
 } from "@/components/ui/card";
 import React from "react";
 
+import { useTranslations } from "next-intl";
+
 export function RolePermissionForm({
   role,
 }: {
   role: Awaited<ReturnType<typeof getRole>>;
 }) {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
@@ -93,13 +97,13 @@ export function RolePermissionForm({
         <div className="flex items-center gap-4">
           <div>
             <h2 className="text-lg font-bold tracking-tight">
-              Manage Permissions
+              {t("manage_permissions")}
             </h2>
           </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.back()}>
-            Cancel
+            {tCommon("cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? (
@@ -107,16 +111,16 @@ export function RolePermissionForm({
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            Save Changes
+            {tCommon("save_changes")}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Permissions Registry</CardTitle>
+          <CardTitle>{t("permissions_registry")}</CardTitle>
           <CardDescription>
-            Select the permissions you want to assign to this role.
+            {t("select_permissions_desc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -125,8 +129,8 @@ export function RolePermissionForm({
               <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead></TableHead>
-                  <TableHead className="w-[50px]">Permission</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead className="w-[50px]">{t("permission")}</TableHead>
+                  <TableHead>{tCommon("description")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

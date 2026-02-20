@@ -9,11 +9,14 @@ interface AccountTreeRowProps {
   showComparative?: boolean;
 }
 
+import { useTranslations } from "next-intl";
+
 export function AccountTreeRow({
   node,
   level = 0,
   showComparative = false,
 }: AccountTreeRowProps) {
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const hasChildren = node.children && node.children.length > 0;
   const paddingLeft = level * 20 + (hasChildren ? 0 : 20);
@@ -73,7 +76,7 @@ export function AccountTreeRow({
               style={{ paddingLeft: `${paddingLeft}px` }}
               className="truncate"
             >
-              Total {node.name}
+              {tCommon("total")} {node.name}
             </TableCell>
             <TableCell className="text-right border-t border-black/20">
               {formatCurrency(node.amount)}

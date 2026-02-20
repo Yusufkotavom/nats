@@ -53,7 +53,11 @@ import { SuperJSON } from "@/lib/superjson";
 import { JournalEntryWithDetails } from "../types";
 import { Decimal } from "decimal.js";
 
+import { useTranslations } from "next-intl";
+
 export default function JournalEntryPage() {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const queryClient = useQueryClient();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -109,7 +113,7 @@ export default function JournalEntryPage() {
         queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
       } else {
         alert({
-          title: "Error",
+          title: tCommon("error"),
           description: "error" in res ? res.error : "Unknown error",
         });
       }
@@ -123,7 +127,7 @@ export default function JournalEntryPage() {
         queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
       } else {
         alert({
-          title: "Error",
+          title: tCommon("error"),
           description: "error" in res ? res.error : "Unknown error",
         });
       }
@@ -134,11 +138,10 @@ export default function JournalEntryPage() {
     () => async (entry: JournalEntryWithDetails) => {
       if (
         await confirm({
-          title: "Are you sure?",
+          title: tCommon("are_you_sure") || "Are you sure?",
           description: (
             <>
-              This action cannot be undone. This will permanently delete the
-              journal entry
+              {t("delete_account_desc")}
               <span className="font-medium text-foreground">
                 {" "}
                 #{entry.entryNumber}
@@ -146,39 +149,38 @@ export default function JournalEntryPage() {
               .
             </>
           ),
-          confirmText: "Delete",
+          confirmText: tCommon("delete"),
           variant: "destructive",
         })
       ) {
         deleteMutation.mutate(entry.id);
       }
     },
-    [confirm, deleteMutation],
+    [confirm, deleteMutation, tCommon, t],
   );
 
   const handlePost = useMemo(
     () => async (id: string) => {
       if (
         await confirm({
-          title: "Post Journal Entry",
-          description:
-            "Are you sure you want to post this journal entry? This action cannot be undone.",
+          title: t("post_journal_entry"),
+          description: t("post_entry_desc"),
         })
       ) {
         postMutation.mutate(id);
       }
     },
-    [confirm, postMutation],
+    [confirm, postMutation, t],
   );
 
   const columns: Column<JournalEntryWithDetails>[] = useMemo(
     () => [
       {
-        header: "Date",
+        header: tCommon("date"),
         cell: (entry) => formatDate(entry.transactionDate),
       },
       {
-        header: "Number",
+        header: t("entry_number"),
         cell: (entry) => (
           <Link
             href={`/accounting/journal-entries/${entry.id}`}
@@ -191,15 +193,15 @@ export default function JournalEntryPage() {
         className: "font-medium",
       },
       {
-        header: "Description",
+        header: t("description"),
         accessorKey: "description",
       },
       {
-        header: "Created By",
+        header: t("created_by"),
         cell: (entry) => entry.user?.name || "Unknown",
       },
       {
-        header: "Amount",
+        header: t("amount"),
         cell: (entry) =>
           formatCurrency(
             entry.lines.reduce((acc, line) => {
@@ -212,11 +214,11 @@ export default function JournalEntryPage() {
           ),
       },
       {
-        header: "Status",
+        header: tCommon("status"),
         cell: (entry) => <StatusBadge status={entry.status} />,
       },
       {
-        header: "Actions",
+        header: tCommon("actions"),
         className: "text-right",
         headerClassName: "text-right",
         cell: (entry) => (
@@ -231,7 +233,7 @@ export default function JournalEntryPage() {
               <DropdownMenuItem asChild>
                 <Link href={`/accounting/journal-entries/${entry.id}`} target="_blank">
                   <Eye className="mr-2 h-4 w-4" />
-                  Details
+                  {tCommon("details")}
                 </Link>
               </DropdownMenuItem>
               {entry.status === "draft" && (
@@ -242,14 +244,14 @@ export default function JournalEntryPage() {
                         href={`/accounting/journal-entries/${entry.id}/edit`}
                       >
                         <Pencil className="mr-2 h-4 w-4" />
-                        Edit
+                        {tCommon("edit")}
                       </Link>
                     </DropdownMenuItem>
                   </Protect>
                   <Protect permission="journal_entries.create">
                     <DropdownMenuItem onClick={() => handlePost(entry.id)}>
                       <CheckCircle className="mr-2 h-4 w-4" />
-                      Post Entry
+                      {t("post_journal_entry")}
                     </DropdownMenuItem>
                   </Protect>
                   <Protect permission="journal_entries.delete">
@@ -258,7 +260,7 @@ export default function JournalEntryPage() {
                       onClick={() => handleDelete(entry)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      {tCommon("delete")}
                     </DropdownMenuItem>
                   </Protect>
                 </>
@@ -268,18 +270,18 @@ export default function JournalEntryPage() {
         ),
       },
     ],
-    [formatDate, formatCurrency, handleDelete, handlePost],
+    [formatDate, formatCurrency, handleDelete, handlePost, t, tCommon],
   );
 
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Journal Entries" />
+        <PageListTitle title={t("journal")} />
         <PageListActions>
           <Protect permission="journal_entries.create">
             <Link href="/accounting/journal-entries/create">
               <Button>
-                <Plus className="mr-2 h-4 w-4" /> New Entry
+                <Plus className="mr-2 h-4 w-4" /> {t("new_entry")}
               </Button>
             </Link>
           </Protect>
@@ -289,18 +291,18 @@ export default function JournalEntryPage() {
       <PageListFilter>
         <div className="grid items-center gap-1.5 flex-1 min-w-[200px]">
           <CustomInput
-            label="Search"
+            label={tCommon("search")}
             id="search"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search by description or entry #"
+            placeholder={t("search_desc_entry")}
           />
         </div>
         <CustomInput
-          label="Start Date"
+          label={tCommon("start_date")}
           type="date"
           id="startDate"
           value={startDate}
@@ -310,7 +312,7 @@ export default function JournalEntryPage() {
           }}
         />
         <CustomInput
-          label="End Date"
+          label={tCommon("end_date")}
           type="date"
           id="endDate"
           value={endDate}
@@ -320,16 +322,16 @@ export default function JournalEntryPage() {
           }}
         />
         <CustomSelect
-          label="Status"
+          label={tCommon("status")}
           value={status}
           onValueChange={(val) => {
             setStatus(val);
             setPage(1);
           }}
         >
-          <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="draft">Draft</SelectItem>
-          <SelectItem value="posted">Posted</SelectItem>
+          <SelectItem value="all">{t("all_status")}</SelectItem>
+          <SelectItem value="draft">{t("draft")}</SelectItem>
+          <SelectItem value="posted">{t("posted")}</SelectItem>
         </CustomSelect>
       </PageListFilter>
 
@@ -338,7 +340,7 @@ export default function JournalEntryPage() {
           data={entries}
           columns={columns}
           isLoading={isLoading}
-          emptyMessage="No journal entries found."
+          emptyMessage={t("no_journal_entries_found")}
           pagination={{
             totalEntries: total,
             pageSize: 20,

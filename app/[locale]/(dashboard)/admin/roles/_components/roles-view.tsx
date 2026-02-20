@@ -16,11 +16,15 @@ import { RoleDialog } from "./role-dialog";
 import { getRoles, toggleRoleStatus } from "../actions";
 import { Role } from "@/prisma/generated/prisma/browser";
 
+import { useTranslations } from "next-intl";
+
 export function RolesView({
   roles,
 }: {
   roles: Awaited<ReturnType<typeof getRoles>>;
 }) {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined);
@@ -50,10 +54,10 @@ export function RolesView({
   return (
     <>
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold tracking-tight">Role Definitions</h2>
+        <h2 className="text-lg font-bold tracking-tight">{t("role_definitions")}</h2>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Role
+          {t("add_role")}
         </Button>
       </div>
 
@@ -66,11 +70,11 @@ export function RolesView({
                   {role.name}
                   {role.name === "superadmin" && (
                     <Badge variant="default" className="bg-primary">
-                      System
+                      {tCommon("system")}
                     </Badge>
                   )}
                   {!role.isActive && (
-                    <Badge variant="destructive">Inactive</Badge>
+                    <Badge variant="destructive">{tCommon("inactive")}</Badge>
                   )}
                 </CardTitle>
                 <div className="flex items-center gap-2">
@@ -80,7 +84,7 @@ export function RolesView({
                         variant="ghost"
                         size="icon"
                         onClick={() => handlePermissions(role)}
-                        title="Manage Permissions"
+                        title={t("manage_permissions")}
                       >
                         <ShieldCheck className="h-4 w-4" />
                       </Button>
@@ -88,7 +92,7 @@ export function RolesView({
                         variant="ghost"
                         size="icon"
                         onClick={() => handleToggleStatus(role)}
-                        title={role.isActive ? "Deactivate" : "Activate"}
+                        title={role.isActive ? t("deactivate") : t("activate")}
                       >
                         {role.isActive ? (
                           <Ban className="h-4 w-4 text-orange-500" />
@@ -112,7 +116,7 @@ export function RolesView({
             <CardContent>
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">
-                  Permissions ({role.permissions.length})
+                  {t("permissions_count", { count: role.permissions.length })}
                 </h4>
                 <div className="flex flex-wrap gap-2 max-h-[100px] overflow-hidden relative">
                   {role.permissions.slice(0, 10).map((permission) => (
@@ -122,7 +126,7 @@ export function RolesView({
                   ))}
                   {role.permissions.length > 10 && (
                     <Badge variant="outline">
-                      +{role.permissions.length - 10} more
+                      +{role.permissions.length - 10} {t("more")}
                     </Badge>
                   )}
                 </div>

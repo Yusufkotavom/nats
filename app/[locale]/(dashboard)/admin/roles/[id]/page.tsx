@@ -6,7 +6,10 @@ import { notFound, useParams } from "next/navigation";
 import { RolePermissionForm } from "../_components/role-permission-form";
 import { getRole } from "../actions";
 
+import { useTranslations } from "next-intl";
+
 export default function RolePage() {
+  const tCommon = useTranslations("Common");
   const params = useParams<{ id: string }>();
   const [role, setRole] = useState<Awaited<ReturnType<typeof getRole>>>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +30,7 @@ export default function RolePage() {
   }, [params.id]);
 
   if (loading) {
-    return <div className="p-4">Loading...</div>;
+    return <div className="p-4">{tCommon("loading")}</div>;
   }
 
   if (!role) {

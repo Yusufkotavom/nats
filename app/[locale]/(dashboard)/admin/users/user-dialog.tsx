@@ -32,12 +32,17 @@ interface UserDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+import { useTranslations } from "next-intl";
+
 export function UserDialog({
   user,
   roles,
   open,
   onOpenChange,
 }: UserDialogProps) {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
+  const tAuth = useTranslations("Auth");
   const [loading, setLoading] = useState(false);
   const isEditing = !!user;
   const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(
@@ -87,24 +92,24 @@ export function UserDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit User" : "Add User"}</DialogTitle>
+          <DialogTitle>{isEditing ? t("edit_user") : t("add_user")}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Make changes to the user profile here."
-              : "Add a new user to the system."}
+              ? t("user_profile_changes")
+              : t("add_new_user")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <CustomInput
-              label="Name"
+              label={tCommon("name")}
               id="name"
               name="name"
               defaultValue={user?.name}
               required
             />
             <CustomInput
-              label="Email"
+              label={tAuth("email_label")}
               id="email"
               name="email"
               type="email"
@@ -113,30 +118,30 @@ export function UserDialog({
             />
             {!isEditing && (
               <CustomInput
-                label="Password"
+                label={tAuth("password_label")}
                 id="password"
                 name="password"
                 type="password"
                 required={!isEditing}
-                placeholder={isEditing ? "Leave blank to keep current" : ""}
+                placeholder={isEditing ? t("leave_blank_password") : ""}
               />
             )}
             {isEditing && (
               <CustomInput
-                label="Password"
+                label={tAuth("password_label")}
                 id="password"
                 name="password"
                 type="password"
-                placeholder="Leave blank to keep current"
+                placeholder={t("leave_blank_password")}
               />
             )}
 
             <CustomSelect
-              label="Role"
+              label={t("role")}
               name="roleId"
               value={selectedRoleId}
               onValueChange={setSelectedRoleId}
-              placeholder="Select a role"
+              placeholder={t("select_role")}
             >
               {roles.map((role) => (
                 <SelectItem key={role.id} value={role.id}>
@@ -153,7 +158,7 @@ export function UserDialog({
           <DialogFooter>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Save changes" : "Create User"}
+              {isEditing ? tCommon("save_changes") : t("create_user")}
             </Button>
           </DialogFooter>
         </form>

@@ -28,7 +28,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { BeginningBalanceItem, getBeginningBalances, BeginningBalanceInput, saveBeginningBalances } from "../actions";
 
+import { useTranslations } from "next-intl";
+
 export function BeginningBalanceForm() {
+  const t = useTranslations("Accounting");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -97,8 +101,8 @@ export function BeginningBalanceForm() {
   const handleSubmit = async () => {
     if (!isBalanced) {
       toast({
-        title: "Validation Error",
-        description: "Total Debit and Credit must be equal.",
+        title: t("validation_error"),
+        description: t("debit_credit_equal"),
         variant: "destructive"
       });
       return;
@@ -117,12 +121,12 @@ export function BeginningBalanceForm() {
 
       if (res.success) {
         toast({
-          title: "Success",
-          description: "Opening balances updated."
+          title: tCommon("success"),
+          description: t("opening_balances_updated")
         });
       } else {
         toast({
-          title: "Error",
+          title: tCommon("error"),
           description: res.error || "Failed to save changes",
           variant: "destructive"
         });
@@ -130,7 +134,7 @@ export function BeginningBalanceForm() {
     } catch (error) {
       console.error(error);
       toast({
-        title: "Error",
+        title: tCommon("error"),
         description: "Something went wrong",
         variant: "destructive"
       });
@@ -150,7 +154,7 @@ export function BeginningBalanceForm() {
   if (isError) {
     return (
       <div className="flex h-[400px] items-center justify-center text-destructive">
-        Failed to load accounts. Please try again.
+        {t("failed_load_accounts")}
       </div>
     );
   }
@@ -158,7 +162,7 @@ export function BeginningBalanceForm() {
   return (
     <PageFormLayout>
       <PageFormHeader>
-        <PageFormTitle>Opening Balances</PageFormTitle>
+        <PageFormTitle>{t("opening_balances")}</PageFormTitle>
         <PageFormActions>
           <Button
             type="button"
@@ -167,7 +171,7 @@ export function BeginningBalanceForm() {
             disabled={saving}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            {tCommon("back")}
           </Button>
           <Button
             type="button"
@@ -180,7 +184,7 @@ export function BeginningBalanceForm() {
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            Save Changes
+            {t("save_changes")}
           </Button>
         </PageFormActions>
       </PageFormHeader>
@@ -189,17 +193,17 @@ export function BeginningBalanceForm() {
         <div className="space-y-4">
           <div className="bg-muted/50 p-4 rounded-md border text-sm text-muted-foreground">
             <p>
-              Enter the beginning balance for each account. <strong>Total Debit must equal Total Credit.</strong>
+              {t("enter_beginning_balance")}
             </p>
           </div>
 
           {!isBalanced && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Unbalanced</AlertTitle>
+              <AlertTitle>{t("unbalanced")}</AlertTitle>
               <AlertDescription>
-                Total Debit ({formatCurrency(totals.debit)}) does not match Total Credit ({formatCurrency(totals.credit)}).
-                Difference: {formatCurrency(Math.abs(totals.debit - totals.credit))}.
+                {tCommon("total")} {tCommon("debit")} ({formatCurrency(totals.debit)}) {t("does_not_match")} {tCommon("total")} {tCommon("credit")} ({formatCurrency(totals.credit)}).
+                {t("difference_val")}: {formatCurrency(Math.abs(totals.debit - totals.credit))}.
               </AlertDescription>
             </Alert>
           )}
@@ -208,19 +212,19 @@ export function BeginningBalanceForm() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px]">Account Code</TableHead>
-                  <TableHead className="min-w-[200px]">Account Name</TableHead>
-                  <TableHead className="w-[150px] text-right">System Balance</TableHead>
-                  <TableHead className="w-[150px] text-right">Target Debit</TableHead>
-                  <TableHead className="w-[150px] text-right">Target Credit</TableHead>
-                  <TableHead className="w-[150px] text-right">Adjustment</TableHead>
+                  <TableHead className="w-[120px]">{tCommon("code")}</TableHead>
+                  <TableHead className="min-w-[200px]">{t("account_name")}</TableHead>
+                  <TableHead className="w-[150px] text-right">{t("system_balance")}</TableHead>
+                  <TableHead className="w-[150px] text-right">{t("target_debit")}</TableHead>
+                  <TableHead className="w-[150px] text-right">{t("target_credit")}</TableHead>
+                  <TableHead className="w-[150px] text-right">{t("adjustment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No posting accounts found.
+                      {t("no_posting_accounts")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -262,7 +266,7 @@ export function BeginningBalanceForm() {
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={3} className="font-bold">Total</TableCell>
+                  <TableCell colSpan={3} className="font-bold">{tCommon("total")}</TableCell>
                   <TableCell className={cn("text-right font-bold", !isBalanced && "text-destructive")}>{formatCurrency(totals.debit)}</TableCell>
                   <TableCell className={cn("text-right font-bold", !isBalanced && "text-destructive")}>{formatCurrency(totals.credit)}</TableCell>
                   <TableCell className="text-right font-bold">

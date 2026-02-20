@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button";
 import { useFormatDate } from "@/hooks";
 import { Activity, AlertTriangle, Inbox, Skull } from "lucide-react";
 
+import { useTranslations } from "next-intl";
+
 export default function AdminDashboardPage() {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const formatDate = useFormatDate();
 
   const { data, isLoading } = useQuery({
@@ -36,19 +40,19 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 px-4 py-4">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-xl font-bold tracking-tight">Admin Dashboard</h2>
+        <h2 className="text-xl font-bold tracking-tight">{t("dashboard")}</h2>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">
-            <Link href="/admin/integrations/outbox">Open Outbox</Link>
+            <Link href="/admin/integrations/outbox">{t("open_outbox")}</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/admin/integrations/outbox?status=PENDING">Pending</Link>
+            <Link href="/admin/integrations/outbox?status=PENDING">PENDING</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/admin/integrations/outbox?status=FAILED">Failed</Link>
+            <Link href="/admin/integrations/outbox?status=FAILED">FAILED</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/admin/integrations/outbox?status=DEAD">Dead</Link>
+            <Link href="/admin/integrations/outbox?status=DEAD">DEAD</Link>
           </Button>
         </div>
       </div>
@@ -56,33 +60,33 @@ export default function AdminDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Outbox Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">Outbox PENDING</CardTitle>
             <Inbox className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {isLoading ? "…" : data?.allowed ? data.counts.pending : "—"}
             </div>
-            <p className="text-xs text-muted-foreground">Ready to be processed</p>
+            <p className="text-xs text-muted-foreground">{t("ready_processed")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Outbox Failed</CardTitle>
+            <CardTitle className="text-sm font-medium">Outbox FAILED</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {isLoading ? "…" : data?.allowed ? data.counts.failed : "—"}
             </div>
-            <p className="text-xs text-muted-foreground">Retryable failures</p>
+            <p className="text-xs text-muted-foreground">{t("retryable_failures")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Processing</CardTitle>
+            <CardTitle className="text-sm font-medium">PROCESSING</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -92,34 +96,34 @@ export default function AdminDashboardPage() {
               </div>
               {!isLoading && data?.allowed && data.counts.stuckProcessing > 0 ? (
                 <Badge variant="destructive">
-                  Stuck: {data.counts.stuckProcessing}
+                  {t("stuck")}: {data.counts.stuckProcessing}
                 </Badge>
               ) : null}
             </div>
-            <p className="text-xs text-muted-foreground">In progress (locked)</p>
+            <p className="text-xs text-muted-foreground">{t("in_progress_locked")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Dead-letter</CardTitle>
+            <CardTitle className="text-sm font-medium">DEAD</CardTitle>
             <Skull className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {isLoading ? "…" : data?.allowed ? data.counts.dead : "—"}
             </div>
-            <p className="text-xs text-muted-foreground">Needs manual recovery</p>
+            <p className="text-xs text-muted-foreground">{t("manual_recovery")}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>Outbox Health</CardTitle>
+          <CardTitle>{t("outbox_health")}</CardTitle>
           {!isLoading && data?.allowed ? (
             <Badge variant={data.counts.failed > 0 || data.counts.dead > 0 ? "destructive" : "default"}>
-              {data.counts.failed > 0 || data.counts.dead > 0 ? "Attention" : "OK"}
+              {data.counts.failed > 0 || data.counts.dead > 0 ? t("attention") : "OK"}
             </Badge>
           ) : null}
         </CardHeader>
@@ -127,37 +131,37 @@ export default function AdminDashboardPage() {
           {!isLoading && data?.allowed ? (
             <div className="flex flex-col gap-1">
               <div>
-                Oldest retryable event:{" "}
+                {t("oldest_retryable")}:{" "}
                 {data.oldestRetryableCreatedAt ? formatDate(data.oldestRetryableCreatedAt) : "—"}
               </div>
               <div>
-                Oldest pending event:{" "}
+                {t("oldest_pending")}:{" "}
                 {data.oldestPendingCreatedAt ? formatDate(data.oldestPendingCreatedAt) : "—"}
                 {" "}({formatAgeSeconds(data.oldestPendingAgeSeconds)})
               </div>
               <div>
-                Oldest failed event:{" "}
+                {t("oldest_failed")}:{" "}
                 {data.oldestFailedCreatedAt ? formatDate(data.oldestFailedCreatedAt) : "—"}
                 {" "}({formatAgeSeconds(data.oldestFailedAgeSeconds)})
               </div>
-              <div>Retrying (attempts &gt; 0): {data.retrying}</div>
+              <div>{t("retrying_count", { count: data.retrying })}</div>
               <div>
-                Last hour: processed {data.processedLastHour}, failed {data.failedLastHour}
+                {t("last_hour", { processed: data.processedLastHour, failed: data.failedLastHour })}
               </div>
               {data.counts.dead > 0 || data.counts.stuckProcessing > 0 ? (
                 <div className="text-destructive">
-                  Action needed: {data.counts.dead > 0 ? "dead-letter present" : null}
+                  {t("action_needed")}: {data.counts.dead > 0 ? t("dead_letter_present") : null}
                   {data.counts.dead > 0 && data.counts.stuckProcessing > 0 ? ", " : null}
-                  {data.counts.stuckProcessing > 0 ? "stuck processing present" : null}
+                  {data.counts.stuckProcessing > 0 ? t("stuck_processing_present") : null}
                 </div>
               ) : null}
               <div>
-                Tip: Use “Unlock” for stuck PROCESSING, and “Mark DEAD” for poison messages.
+                {t("outbox_tip")}
               </div>
             </div>
           ) : (
             <div>
-              {isLoading ? "Loading outbox health…" : "No access to outbox health."}
+              {isLoading ? t("loading_outbox_health") : t("no_access_outbox")}
             </div>
           )}
         </CardContent>
@@ -165,22 +169,22 @@ export default function AdminDashboardPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>Outbox by Topic</CardTitle>
+          <CardTitle>{t("outbox_by_topic")}</CardTitle>
           {!isLoading && data?.allowed ? (
-            <Badge variant="outline">{data.topics.length} topics</Badge>
+            <Badge variant="outline">{t("topics_count", { count: data.topics.length })}</Badge>
           ) : null}
         </CardHeader>
         <CardContent className="text-sm">
           {!isLoading && data?.allowed ? (
             <div className="flex flex-col gap-2">
               <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground">
-                <div>Topic</div>
-                <div className="text-right">Pending</div>
-                <div className="text-right">Failed</div>
-                <div className="text-right">Processing</div>
-                <div className="text-right">Dead</div>
-                <div className="text-right">Stuck</div>
-                <div className="text-right">Oldest pending</div>
+                <div>{t("topic")}</div>
+                <div className="text-right">PENDING</div>
+                <div className="text-right">FAILED</div>
+                <div className="text-right">PROCESSING</div>
+                <div className="text-right">DEAD</div>
+                <div className="text-right">{t("stuck")}</div>
+                <div className="text-right">{t("oldest_pending")}</div>
               </div>
               {data.topics.map((t) => (
                 <div key={t.topic} className="grid grid-cols-7 gap-2">
@@ -203,7 +207,7 @@ export default function AdminDashboardPage() {
             </div>
           ) : (
             <div className="text-muted-foreground">
-              {isLoading ? "Loading topic breakdown…" : "No access to outbox health."}
+              {isLoading ? t("loading_topic_breakdown") : t("no_access_outbox")}
             </div>
           )}
         </CardContent>
