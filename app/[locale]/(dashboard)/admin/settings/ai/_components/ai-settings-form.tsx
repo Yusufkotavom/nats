@@ -26,7 +26,11 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+import { useTranslations } from "next-intl";
+
 export function AISettingsForm({ initialData }: { initialData: any }) {
+  const t = useTranslations("Admin");
+  const tCommon = useTranslations("Common");
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -53,13 +57,13 @@ export function AISettingsForm({ initialData }: { initialData: any }) {
     try {
       const result = await saveAISettings(data);
       if (result.success) {
-        toast({ title: "Settings saved" });
+        toast({ title: t("settings_saved") });
         router.refresh();
       } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
+        toast({ title: tCommon("error"), description: result.error, variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to save settings", variant: "destructive" });
+      toast({ title: tCommon("error"), description: t("ai_settings_failed"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -69,15 +73,15 @@ export function AISettingsForm({ initialData }: { initialData: any }) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Provider Settings</CardTitle>
-          <CardDescription>Configure the AI provider and API key</CardDescription>
+          <CardTitle>{t("provider_settings")}</CardTitle>
+          <CardDescription>{t("configure_ai_provider")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-row items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label className="text-base">Enable AI Assistant</Label>
+              <Label className="text-base">{t("enable_ai_assistant")}</Label>
               <div className="text-sm text-muted-foreground">
-                Turn on/off the AI features globally.
+                {t("enable_ai_desc")}
               </div>
             </div>
             <Controller
@@ -93,14 +97,14 @@ export function AISettingsForm({ initialData }: { initialData: any }) {
           </div>
 
           <div className="space-y-2">
-            <Label>Provider</Label>
+            <Label>{t("provider")}</Label>
             <Controller
               control={control}
               name="provider"
               render={({ field }) => (
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a provider" />
+                    <SelectValue placeholder={t("select_provider")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="openai">OpenAI</SelectItem>
@@ -115,20 +119,20 @@ export function AISettingsForm({ initialData }: { initialData: any }) {
           </div>
 
           <div className="space-y-2">
-            <Label>API Key</Label>
+            <Label>{t("api_key")}</Label>
             <Input
               type="password"
-              placeholder="sk-..."
+              placeholder={t("api_key_placeholder")}
               {...register("apiKey")}
             />
             <p className="text-sm text-muted-foreground">
-              Leave blank to use the environment variable default.
+              {t("api_key_desc")}
             </p>
             {errors.apiKey && <p className="text-sm text-red-500">{errors.apiKey.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label>Model</Label>
+            <Label>{t("model")}</Label>
             <Input
               placeholder="gpt-4o-mini"
               {...register("model")}
@@ -143,12 +147,12 @@ export function AISettingsForm({ initialData }: { initialData: any }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Generation Parameters</CardTitle>
-          <CardDescription>Fine-tune the model behavior</CardDescription>
+          <CardTitle>{t("generation_parameters")}</CardTitle>
+          <CardDescription>{t("fine_tune_model")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Temperature</Label>
+            <Label>{t("temperature")}</Label>
             <Input
               type="number"
               step="0.1"
@@ -157,13 +161,13 @@ export function AISettingsForm({ initialData }: { initialData: any }) {
               {...register("temperature", { valueAsNumber: true })}
             />
             <p className="text-sm text-muted-foreground">
-              Controls randomness: 0 is deterministic, 1 is creative.
+              {t("temperature_desc")}
             </p>
             {errors.temperature && <p className="text-sm text-red-500">{errors.temperature.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label>Max Tokens</Label>
+            <Label>{t("max_tokens")}</Label>
             <Input
               type="number"
               {...register("maxTokens", { valueAsNumber: true })}
@@ -175,7 +179,7 @@ export function AISettingsForm({ initialData }: { initialData: any }) {
 
       <Button type="submit" disabled={loading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Save Configuration
+        {t("save_configuration")}
       </Button>
     </form>
   );
