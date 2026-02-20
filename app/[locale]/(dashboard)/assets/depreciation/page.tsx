@@ -34,7 +34,11 @@ type ScheduleWithAsset = DepreciationSchedule & {
   };
 };
 
+import { useTranslations } from "next-intl";
+
 export default function DepreciationRunPage() {
+  const t = useTranslations("Assets");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
   const { toast } = useToast();
@@ -73,14 +77,14 @@ export default function DepreciationRunPage() {
       const userId = "user_1";
       const result = await postDepreciationRun(selectedIds, userId);
       if (result.success) {
-        toast({ title: `Posted ${result.count} entries` });
+        toast({ title: t("posted_entries", { count: result.count ?? 0 }) });
         setSelectedIds([]);
         refetch();
       } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
+        toast({ title: tCommon("error"), description: result.error, variant: "destructive" });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to post", variant: "destructive" });
+      toast({ title: tCommon("error"), description: "Failed to post", variant: "destructive" });
     } finally {
       setIsPosting(false);
     }
@@ -90,13 +94,13 @@ export default function DepreciationRunPage() {
     <PageListLayout>
       <PageListHeader>
         <div className="flex items-center gap-4">
-          <PageListTitle title="Depreciation Run" />
+          <PageListTitle title={t("depreciation_run")} />
         </div>
         <PageListActions>
           <Button onClick={handlePost} disabled={selectedIds.length === 0 || isPosting}>
             {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <CheckCircle className="mr-2 h-4 w-4" />
-            Post Selected ({selectedIds.length})
+            {t("post_selected")} ({selectedIds.length})
           </Button>
         </PageListActions>
       </PageListHeader>
@@ -116,18 +120,18 @@ export default function DepreciationRunPage() {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Asset</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Book Value After</TableHead>
+                <TableHead>{tCommon("date")}</TableHead>
+                <TableHead>{tCommon("asset") || "Asset"}</TableHead>
+                <TableHead>{t("category")}</TableHead>
+                <TableHead className="text-right">{tCommon("amount")}</TableHead>
+                <TableHead className="text-right">{t("book_value")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {schedules?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
-                    No pending depreciation found.
+                    {t("no_pending_depreciation")}
                   </TableCell>
                 </TableRow>
               )}

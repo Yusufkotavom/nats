@@ -76,7 +76,11 @@ interface EmployeeFormProps {
     isEditing?: boolean;
 }
 
+import { useTranslations } from "next-intl";
+
 export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormProps) {
+    const t = useTranslations("HR");
+    const tCommon = useTranslations("Common");
     const router = useRouter();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
@@ -116,10 +120,10 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
 
             if (response.success) {
                 toast({
-                    title: isEditing ? "Employee updated" : "Employee created",
+                    title: isEditing ? t("employee_updated") : t("employee_created"),
                     description: isEditing
-                        ? "Employee details have been updated successfully."
-                        : "New employee has been added to the system.",
+                        ? t("employee_updated_desc")
+                        : t("employee_created_desc"),
                 });
                 if (!isEditing) {
                     router.push(`/hr/employees/${response.data.id}`);
@@ -129,14 +133,14 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
             } else {
                 toast({
                     variant: "destructive",
-                    title: "Error",
+                    title: tCommon("error"),
                     description: response.error,
                 });
             }
         } catch (error) {
             toast({
                 variant: "destructive",
-                title: "Error",
+                title: tCommon("error"),
                 description: "Something went wrong. Please try again.",
             });
         } finally {
@@ -149,14 +153,14 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <PageFormLayout>
                     <PageFormHeader>
-                        <PageFormTitle title={isEditing ? "Edit Employee" : "New Employee"} />
+                        <PageFormTitle title={isEditing ? t("edit_employee") : t("new_employee")} />
                         <PageFormActions>
                             <Button variant="outline" type="button" onClick={() => router.back()}>
-                                Cancel
+                                {tCommon("cancel")}
                             </Button>
                             <Button type="submit" disabled={isLoading}>
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isEditing ? "Update Employee" : "Create Employee"}
+                                {isEditing ? t("update_employee") : t("create_employee")}
                             </Button>
                         </PageFormActions>
                     </PageFormHeader>
@@ -164,10 +168,10 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
 
                     <Tabs defaultValue="general" className="w-full">
                         <TabsList className="grid w-full grid-cols-4">
-                            <TabsTrigger value="general">General Info</TabsTrigger>
-                            <TabsTrigger value="employment">Employment</TabsTrigger>
-                            <TabsTrigger value="personal">Personal Info</TabsTrigger>
-                            <TabsTrigger value="bank">Bank & Tax</TabsTrigger>
+                            <TabsTrigger value="general">{t("general_info")}</TabsTrigger>
+                            <TabsTrigger value="employment">{t("employment")}</TabsTrigger>
+                            <TabsTrigger value="personal">{t("personal_info")}</TabsTrigger>
+                            <TabsTrigger value="bank">{t("bank_tax")}</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="general">
@@ -177,7 +181,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                     name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Full Name</FormLabel>
+                                            <FormLabel>{t("full_name")}</FormLabel>
                                             <FormControl>
                                                 <Input placeholder="John Doe" {...field} />
                                             </FormControl>
@@ -191,7 +195,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                         name="email"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Email</FormLabel>
+                                                <FormLabel>{t("email")}</FormLabel>
                                                 <FormControl>
                                                     <Input placeholder="john@example.com" {...field} />
                                                 </FormControl>
@@ -204,7 +208,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                         name="phone"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Phone</FormLabel>
+                                                <FormLabel>{t("phone")}</FormLabel>
                                                 <FormControl>
                                                     <Input placeholder="+1234567890" {...field} />
                                                 </FormControl>
@@ -218,7 +222,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                     name="address"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Address</FormLabel>
+                                            <FormLabel>{t("address")}</FormLabel>
                                             <FormControl>
                                                 <Input placeholder="123 Main St" {...field} />
                                             </FormControl>
@@ -238,7 +242,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="jobTitle"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Job Title</FormLabel>
+                                                    <FormLabel>{t("job_title")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="Software Engineer" {...field} />
                                                     </FormControl>
@@ -251,7 +255,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="department"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Department</FormLabel>
+                                                    <FormLabel>{t("department")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="Engineering" {...field} />
                                                     </FormControl>
@@ -266,7 +270,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="employmentStatus"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Employment Status</FormLabel>
+                                                    <FormLabel>{t("employment_status")}</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -290,7 +294,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="joinDate"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Join Date</FormLabel>
+                                                    <FormLabel>{t("join_date")}</FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             type="date"
@@ -316,7 +320,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="dateOfBirth"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Date of Birth</FormLabel>
+                                                    <FormLabel>{t("date_of_birth")}</FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             type="date"
@@ -333,7 +337,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="gender"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Gender</FormLabel>
+                                                    <FormLabel>{t("gender")}</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -355,7 +359,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="maritalStatus"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Marital Status</FormLabel>
+                                                    <FormLabel>{t("marital_status")}</FormLabel>
                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger>
@@ -374,14 +378,14 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                         />
                                     </div>
                                     <Separator className="my-4" />
-                                    <h4 className="text-sm font-medium">Emergency Contact</h4>
+                                    <h4 className="text-sm font-medium">{t("emergency_contact")}</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField
                                             control={form.control}
                                             name="emergencyContactName"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Name</FormLabel>
+                                                    <FormLabel>{t("name")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="Jane Doe" {...field} />
                                                     </FormControl>
@@ -394,7 +398,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="emergencyContactPhone"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Phone</FormLabel>
+                                                    <FormLabel>{t("phone")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="+1234567890" {...field} />
                                                     </FormControl>
@@ -416,7 +420,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="nationalId"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>National ID</FormLabel>
+                                                    <FormLabel>{t("national_id")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="National ID" {...field} />
                                                     </FormControl>
@@ -429,7 +433,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="employeeTaxId"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Tax ID</FormLabel>
+                                                    <FormLabel>{t("tax_id")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="Tax ID" {...field} />
                                                     </FormControl>
@@ -439,14 +443,14 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                         />
                                     </div>
                                     <Separator className="my-4" />
-                                    <h4 className="text-sm font-medium">Bank Details</h4>
+                                    <h4 className="text-sm font-medium">{t("bank_details")}</h4>
                                     <div className="grid grid-cols-3 gap-4">
                                         <FormField
                                             control={form.control}
                                             name="bankName"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Bank Name</FormLabel>
+                                                    <FormLabel>{t("bank_name")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="Bank Name" {...field} />
                                                     </FormControl>
@@ -459,7 +463,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="bankAccount"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Account Number</FormLabel>
+                                                    <FormLabel>{t("account_number")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="Account Number" {...field} />
                                                     </FormControl>
@@ -472,7 +476,7 @@ export function EmployeeForm({ initialData, isEditing = false }: EmployeeFormPro
                                             name="bankHolder"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Account Holder</FormLabel>
+                                                    <FormLabel>{t("account_holder")}</FormLabel>
                                                     <FormControl>
                                                         <Input placeholder="Account Holder" {...field} />
                                                     </FormControl>

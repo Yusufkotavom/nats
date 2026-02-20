@@ -27,7 +27,11 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 
+import { useTranslations } from "next-intl";
+
 export function CreatePeriodDialog() {
+    const t = useTranslations("HR");
+    const tCommon = useTranslations("Common");
     const [open, setOpen] = useState(false);
     const [name, setName] = useState("");
     const [startDate, setStartDate] = useState<Date>();
@@ -49,8 +53,8 @@ export function CreatePeriodDialog() {
 
             if (result.success) {
                 toast({
-                    title: "Success",
-                    description: "Payroll period created successfully",
+                    title: tCommon("success"),
+                    description: t("period_created_success"),
                 });
                 setOpen(false);
                 setName("");
@@ -58,14 +62,14 @@ export function CreatePeriodDialog() {
                 setEndDate(undefined);
             } else {
                 toast({
-                    title: "Error",
+                    title: tCommon("error"),
                     description: result.error,
                     variant: "destructive",
                 });
             }
         } catch (error) {
             toast({
-                title: "Error",
+                title: tCommon("error"),
                 description: "Something went wrong",
                 variant: "destructive",
             });
@@ -78,19 +82,19 @@ export function CreatePeriodDialog() {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button>
-                    <Plus className="mr-2 h-4 w-4" /> New Period
+                    <Plus className="mr-2 h-4 w-4" /> {t("new_period")}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>New Payroll Period</DialogTitle>
+                    <DialogTitle>{t("new_payroll_period")}</DialogTitle>
                     <DialogDescription>
-                        Create a new payroll period by selecting the date range.
+                        {t("payroll_period_desc")}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="name">{t("name")}</Label>
                         <Input
                             id="name"
                             value={name}
@@ -100,7 +104,7 @@ export function CreatePeriodDialog() {
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label>Start Date</Label>
+                        <Label>{t("start_date")}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -111,7 +115,7 @@ export function CreatePeriodDialog() {
                                     )}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                                    {startDate ? format(startDate, "PPP") : <span>{t("pick_date")}</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -125,7 +129,7 @@ export function CreatePeriodDialog() {
                         </Popover>
                     </div>
                     <div className="grid gap-2">
-                        <Label>End Date</Label>
+                        <Label>{t("end_date")}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -136,7 +140,7 @@ export function CreatePeriodDialog() {
                                     )}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                                    {endDate ? format(endDate, "PPP") : <span>{t("pick_date")}</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -151,7 +155,7 @@ export function CreatePeriodDialog() {
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
-                            {loading ? "Creating..." : "Create Period"}
+                            {loading ? t("creating") : t("create_period")}
                         </Button>
                     </DialogFooter>
                 </form>

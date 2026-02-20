@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -14,13 +13,16 @@ import {
 import { DataTable } from "@/components/ui/data-table";
 import { getEmployees } from "./actions";
 import { SuperJSON } from "@/lib/superjson";
-import { columns, Employee } from "./columns";
+import { getColumns, Employee } from "./columns";
+import { getTranslations } from "next-intl/server";
 
 export default async function EmployeesPage({
     searchParams,
 }: {
     searchParams: Promise<{ page?: string; search?: string }>;
 }) {
+    const t = await getTranslations("HR");
+    const tCommon = await getTranslations("Common");
     const params = await searchParams;
     const page = Number(params.page) || 1;
     const search = params.search || "";
@@ -31,7 +33,7 @@ export default async function EmployeesPage({
         return (
             <div className="p-6">
                 <div className="bg-destructive/15 text-destructive p-4 rounded-md">
-                    Error loading employees: {result.error}
+                    {tCommon("error")}: {result.error}
                 </div>
             </div>
         );
@@ -39,14 +41,16 @@ export default async function EmployeesPage({
 
     const { items: employees, totalPages, total } = (SuperJSON.deserialize(result.data) as { items: Employee[]; totalPages: number; total: number }) || { items: [], totalPages: 0, total: 0 };
 
+    const columns = getColumns(t, tCommon);
+
     return (
         <PageListLayout>
             <PageListHeader>
-                <PageListTitle title="Employees" />
+                <PageListTitle title={t("employees")} />
                 <PageListActions>
                     <Button asChild>
                         <Link href="/hr/employees/new">
-                            <Plus className="mr-2 h-4 w-4" /> Add Employee
+                            <Plus className="mr-2 h-4 w-4" /> {t("add_employee")}
                         </Link>
                     </Button>
                 </PageListActions>
@@ -57,7 +61,7 @@ export default async function EmployeesPage({
                     <form>
                         <Input
                             name="search"
-                            placeholder="Search employees..."
+                            placeholder={t("search_employees")}
                             defaultValue={search}
                             className="max-w-sm"
                         />
@@ -74,6 +78,7 @@ export default async function EmployeesPage({
                         pageSize: 10,
                         // Do not pass currentPage to use URL mode in CustomPagination
                     }}
+                    emptyMessage={t("no_employees_found")}
                 />
             </PageListContent>
         </PageListLayout>

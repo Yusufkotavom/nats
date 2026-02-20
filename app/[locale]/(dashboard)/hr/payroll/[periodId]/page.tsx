@@ -53,12 +53,16 @@ type PeriodWithDetails = PayrollPeriod & {
     salarySlips: (SalarySlip & { contact: Contact })[];
 };
 
+import { getTranslations } from "next-intl/server";
+
 export default async function PeriodDetailPage({
     params,
 }: {
     params: Promise<{ periodId: string }>;
 }) {
     const { periodId } = await params;
+    const t = await getTranslations("HR");
+    const tCommon = await getTranslations("Common");
     const { userId } = await verifySession();
     const response = await getPayrollPeriod(periodId);
     const period = response.success && response.data ? SuperJSON.deserialize<PeriodWithDetails>(response.data) : null;
@@ -114,7 +118,7 @@ export default async function PeriodDetailPage({
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t("total_earnings")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{totalEarnings.toLocaleString()}</div>
@@ -122,7 +126,7 @@ export default async function PeriodDetailPage({
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Deductions</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t("total_deductions")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{totalDeductions.toLocaleString()}</div>
@@ -130,7 +134,7 @@ export default async function PeriodDetailPage({
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Net Pay</CardTitle>
+                        <CardTitle className="text-sm font-medium">{t("net_pay")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600">{netPay.toLocaleString()}</div>
@@ -143,10 +147,10 @@ export default async function PeriodDetailPage({
                 <Card>
                     <CardContent className="flex items-center gap-3 py-4">
                         <FileText className="h-5 w-5 text-blue-600" />
-                        <span className="text-sm font-medium">Journal Entry created:</span>
+                        <span className="text-sm font-medium">{t("journal_entry_created")}:</span>
                         <Link href={`/accounting/journal-entries/${latestRun.journalEntryId}`}>
                             <Button variant="link" size="sm" className="px-0">
-                                View Journal Entry →
+                                {t("view_journal_entry")} →
                             </Button>
                         </Link>
                     </CardContent>
@@ -157,11 +161,11 @@ export default async function PeriodDetailPage({
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Employee</TableHead>
-                            <TableHead className="text-right">Gross Salary</TableHead>
-                            <TableHead className="text-right">Deductions</TableHead>
-                            <TableHead className="text-right">Net Salary</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>{t("employee")}</TableHead>
+                            <TableHead className="text-right">{t("gross_salary")}</TableHead>
+                            <TableHead className="text-right">{t("total_deductions")}</TableHead>
+                            <TableHead className="text-right">{t("net_salary")}</TableHead>
+                            <TableHead>{tCommon("status")}</TableHead>
                             <TableHead></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -190,7 +194,7 @@ export default async function PeriodDetailPage({
                                     <Link href={`/hr/payroll/salary-structures/${slip.contactId}/print`}>
                                         <Button variant="ghost" size="sm">
                                             <Printer className="mr-2 h-4 w-4" />
-                                            Print Slip
+                                            {t("print_slip")}
                                         </Button>
                                     </Link>
                                 </TableCell>
@@ -199,7 +203,7 @@ export default async function PeriodDetailPage({
                         {!period.salarySlips.length && (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                    No salary slips generated yet. Run payroll to generate.
+                                    {t("no_slips_generated")}
                                 </TableCell>
                             </TableRow>
                         )}

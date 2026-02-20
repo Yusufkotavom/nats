@@ -10,9 +10,9 @@ export type Employee = Contact & {
     employeeDetail: EmployeeDetail | null;
 };
 
-export const columns: Column<Employee>[] = [
+export const getColumns = (t: any, tCommon: any): Column<Employee>[] => [
     {
-        header: "Name",
+        header: t("name"),
         cell: (item) => (
             <Link
                 href={`/hr/employees/${item.id}`}
@@ -23,33 +23,33 @@ export const columns: Column<Employee>[] = [
         ),
     },
     {
-        header: "Department",
+        header: t("department"),
         cell: (item) => item.employeeDetail?.department || "-",
     },
     {
-        header: "Job Title",
+        header: t("job_title"),
         cell: (item) => item.employeeDetail?.jobTitle || "-",
     },
     {
-        header: "Status",
+        header: tCommon("status"),
         cell: (item) => (
             <Badge variant={item.isActive ? "default" : "secondary"}>
-                {item.isActive ? "Active" : "Inactive"}
+                {item.isActive ? t("active") : t("inactive")}
             </Badge>
         ),
     },
     {
-        header: "Email",
+        header: t("email"),
         accessorKey: "email",
         cell: (item) => item.email || "-",
     },
     {
-        header: "Actions",
+        header: tCommon("actions"),
         className: "text-right",
         cell: (item) => (
             <div className="text-right">
                 <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/hr/employees/${item.id}`}>View</Link>
+                    <Link href={`/hr/employees/${item.id}`}>{tCommon("view")}</Link>
                 </Button>
             </div>
         ),

@@ -33,7 +33,11 @@ type CategoryWithAccounts = AssetCategory & {
   depreciationExpenseAccount: Account;
 };
 
+import { useTranslations } from "next-intl";
+
 export default function AssetCategoriesPage() {
+  const t = useTranslations("Assets");
+  const tCommon = useTranslations("Common");
   const [search, setSearch] = useState("");
 
   const { data: categories, isLoading } = useQuery({
@@ -53,13 +57,13 @@ export default function AssetCategoriesPage() {
     <PageListLayout>
       <PageListHeader>
         <div className="flex items-center gap-4">
-          <PageListTitle title="Asset Categories" />
+          <PageListTitle title={t("asset_categories")} />
         </div>
         <PageListActions>
           <Link href="/assets/categories/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Category
+              {t("new_category")}
             </Button>
           </Link>
         </PageListActions>
@@ -69,7 +73,7 @@ export default function AssetCategoriesPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <CustomInput
-            placeholder="Search categories..."
+            placeholder={t("search_categories")}
             className="pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -86,18 +90,18 @@ export default function AssetCategoriesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Asset Account</TableHead>
-                <TableHead>Accum. Dep. Account</TableHead>
-                <TableHead>Dep. Expense Account</TableHead>
+                <TableHead>{t("code")}</TableHead>
+                <TableHead>{t("name")}</TableHead>
+                <TableHead>{t("asset_account")}</TableHead>
+                <TableHead>{t("accum_dep_account")}</TableHead>
+                <TableHead>{t("dep_expense_account")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredCategories?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8">
-                    No categories found.
+                    {t("no_categories_found")}
                   </TableCell>
                 </TableRow>
               )}

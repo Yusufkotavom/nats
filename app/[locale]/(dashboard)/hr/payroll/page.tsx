@@ -22,6 +22,7 @@ import {
 
 import { SuperJSON } from "@/lib/superjson";
 import { PayrollPeriod, PayrollPeriodStatus } from "@/prisma/generated/prisma/client";
+import { getTranslations } from "next-intl/server";
 
 type PayrollPeriodsResult = {
     items: (PayrollPeriod & {
@@ -36,6 +37,8 @@ export default async function PayrollPage({
 }: {
     searchParams: Promise<{ page?: string }>;
 }) {
+    const t = await getTranslations("HR");
+    const tCommon = await getTranslations("Common");
     const resolvedParams = await searchParams;
     const page = Number(resolvedParams.page) || 1;
     const response = await getPayrollPeriods(page);
@@ -44,12 +47,12 @@ export default async function PayrollPage({
     return (
         <PageListLayout>
             <PageListHeader>
-                <PageListTitle title="Payroll" />
+                <PageListTitle title={t("payroll")} />
                 <PageListActions>
                     <div className="flex items-center gap-2">
                         <CreatePeriodDialog />
                         <Link href="/hr/payroll/components">
-                            <Button variant="outline">Manage Components</Button>
+                            <Button variant="outline">{t("manage_components")}</Button>
                         </Link>
                     </div>
                 </PageListActions>
@@ -59,10 +62,10 @@ export default async function PayrollPage({
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Start Date</TableHead>
-                            <TableHead>End Date</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>{t("start_date")}</TableHead>
+                            <TableHead>{t("end_date")}</TableHead>
+                            <TableHead>{t("name")}</TableHead>
+                            <TableHead>{tCommon("status")}</TableHead>
                             <TableHead></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -80,7 +83,7 @@ export default async function PayrollPage({
                                 <TableCell>
                                     <Link href={`/hr/payroll/${period.id}`}>
                                         <Button variant="ghost" size="sm">
-                                            View
+                                            {tCommon("view")}
                                         </Button>
                                     </Link>
                                 </TableCell>
@@ -89,7 +92,7 @@ export default async function PayrollPage({
                         {!periodsData?.items.length && (
                             <TableRow>
                                 <TableCell colSpan={5} className="text-center py-8">
-                                    No payroll periods found.
+                                    {t("no_periods_found")}
                                 </TableCell>
                             </TableRow>
                         )}

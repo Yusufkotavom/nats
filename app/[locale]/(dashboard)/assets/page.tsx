@@ -33,7 +33,11 @@ type AssetWithCategory = Asset & {
   category: AssetCategory;
 };
 
+import { useTranslations } from "next-intl";
+
 export default function AssetsPage() {
+  const t = useTranslations("Assets");
+  const tCommon = useTranslations("Common");
   const [search, setSearch] = useState("");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
@@ -54,13 +58,13 @@ export default function AssetsPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Assets" />
+        <PageListTitle title={t("fixed_assets")} />
         <PageListActions>
           <div className="flex gap-2">
             <Link href="/assets/new">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                New Asset
+                {t("new_asset")}
               </Button>
             </Link>
           </div>
@@ -71,7 +75,7 @@ export default function AssetsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <CustomInput
-            placeholder="Search assets..."
+            placeholder={t("search_assets")}
             className="pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -88,13 +92,13 @@ export default function AssetsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Purchase Date</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Book Value</TableHead>
+                <TableHead>{t("code")}</TableHead>
+                <TableHead>{t("name")}</TableHead>
+                <TableHead>{t("category")}</TableHead>
+                <TableHead>{tCommon("status")}</TableHead>
+                <TableHead>{t("purchase_date")}</TableHead>
+                <TableHead className="text-right">{t("acquisition_cost")}</TableHead>
+                <TableHead className="text-right">{t("book_value")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -102,7 +106,7 @@ export default function AssetsPage() {
               {filteredAssets?.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8">
-                    No assets found.
+                    {t("no_assets_found")}
                   </TableCell>
                 </TableRow>
               )}
@@ -129,7 +133,7 @@ export default function AssetsPage() {
                   </TableCell>
                   <TableCell>
                     <Link href={`/assets/${asset.id}`}>
-                      <Button variant="ghost" size="sm">View</Button>
+                      <Button variant="ghost" size="sm">{tCommon("view")}</Button>
                     </Link>
                   </TableCell>
                 </TableRow>
