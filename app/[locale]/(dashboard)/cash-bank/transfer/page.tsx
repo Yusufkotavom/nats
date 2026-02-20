@@ -51,7 +51,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { TransferFilters } from "./_components/transfer-filters";
 
+import { useTranslations } from "next-intl";
+
 export default function TransferPage() {
+  const t = useTranslations("CashBank");
+  const tCommon = useTranslations("Common");
+  const tSales = useTranslations("Sales");
   const searchParams = useSearchParams();
   const search = searchParams.get("search") || "";
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -94,9 +99,8 @@ export default function TransferPage() {
   const handleDelete = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Transfer",
-        description:
-          "Are you sure you want to delete this transfer? This action cannot be undone.",
+        title: t("delete_transfer"),
+        description: t("delete_transfer_desc"),
       })
     ) {
       startTransition(async () => {
@@ -104,12 +108,12 @@ export default function TransferPage() {
           await deleteCashTransfer(id);
           queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           toast({
-            title: "Success",
-            description: "Transfer deleted successfully",
+            title: tCommon("success"),
+            description: t("transfer_deleted"),
           });
         } catch (error) {
           toast({
-            title: "Error",
+            title: tCommon("error"),
             description:
               error instanceof Error ? error.message : "Failed to delete",
             variant: "destructive",
@@ -122,9 +126,8 @@ export default function TransferPage() {
   const handleApprove = async (id: string) => {
     if (
       await confirm({
-        title: "Approve Transfer",
-        description:
-          "Are you sure you want to approve this transfer? This will post the journal entries.",
+        title: t("approve_transfer"),
+        description: t("approve_transfer_desc"),
       })
     ) {
       startTransition(async () => {
@@ -135,14 +138,14 @@ export default function TransferPage() {
           }
           queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           toast({
-            title: "Success",
+            title: tCommon("success"),
             description: result.data?.processed ? (
-              "Transfer approved successfully"
+              t("transfer_approved")
             ) : (
               <span>
                 {result.data?.alreadyQueued
-                  ? "Transfer approval already queued."
-                  : "Transfer approval queued for processing."}{" "}
+                  ? tSales("already_queued")
+                  : tSales("queued_for_processing")}{" "}
                 {result.data?.outboxId ? (
                   <Link
                     href={`/admin/integrations/outbox?search=${encodeURIComponent(
@@ -150,7 +153,7 @@ export default function TransferPage() {
                     )}`}
                     className="underline"
                   >
-                    View outbox
+                    {tSales("view_outbox")}
                   </Link>
                 ) : null}
               </span>
@@ -158,7 +161,7 @@ export default function TransferPage() {
           });
         } catch (error) {
           toast({
-            title: "Error",
+            title: tCommon("error"),
             description:
               error instanceof Error ? error.message : "Failed to approve",
             variant: "destructive",
@@ -170,15 +173,15 @@ export default function TransferPage() {
 
   const columns: Column<CashTransfer>[] = [
     {
-      header: "Date",
+      header: tCommon("date"),
       cell: (transfer) => formatDate(transfer.date),
     },
     {
-      header: "Reference",
+      header: t("reference"),
       cell: (transfer) => transfer.reference || "-",
     },
     {
-      header: "From - To",
+      header: `${t("from")} - ${t("to")}`,
       cell: (transfer) =>
       (
         <div className="flex items-center">
@@ -192,7 +195,7 @@ export default function TransferPage() {
       ),
     },
     {
-      header: "Description",
+      header: tCommon("description"),
       cell: (transfer) => (
         <div className="flex flex-col">
           <span>{transfer.description}</span>
@@ -207,12 +210,11 @@ export default function TransferPage() {
                       className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
                     >
                       <Paperclip className="h-3 w-3" />
-                      {transfer.journalEntry.attachments.length} Attachment
-                      {transfer.journalEntry.attachments.length > 1 ? "s" : ""}
+                      {transfer.journalEntry.attachments.length} {t("attachments")}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                    <DropdownMenuLabel>Attachments</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("attachments")}</DropdownMenuLabel>
                     {transfer.journalEntry.attachments.map((file: any) => (
                       <DropdownMenuItem key={file.id} asChild>
                         <a
@@ -236,12 +238,12 @@ export default function TransferPage() {
       ),
     },
     {
-      header: "Amount",
+      header: tCommon("amount"),
       className: "font-medium",
       cell: (transfer) => formatCurrency(Number(transfer.amount)),
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       cell: (transfer) => (
         <Badge
           variant={
@@ -268,20 +270,20 @@ export default function TransferPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => handleView(transfer)}>
                 <Eye className="mr-2 h-4 w-4" />
-                View
+                {tCommon("view")}
               </DropdownMenuItem>
               {transfer.status === TransferStatus.PENDING && (
                 <>
                   <DropdownMenuItem onClick={() => handleApprove(transfer.id)}>
                     <Check className="mr-2 h-4 w-4" />
-                    Approve
+                    {tSales("post")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleEdit(transfer)}>
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {tCommon("edit")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -289,7 +291,7 @@ export default function TransferPage() {
                     onClick={() => handleDelete(transfer.id)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    {tCommon("delete")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -303,7 +305,7 @@ export default function TransferPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Transfer" />
+        <PageListTitle title={t("transfer")} />
         <PageListActions>
           <Button
             onClick={() => {
@@ -313,7 +315,7 @@ export default function TransferPage() {
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
-            New Transfer
+            {t("new_transfer")}
           </Button>
         </PageListActions>
       </PageListHeader>
@@ -326,7 +328,7 @@ export default function TransferPage() {
         <DataTable
           data={transfers}
           columns={columns}
-          emptyMessage="No transfers found."
+          emptyMessage={t("no_recent_transactions")}
         />
       </PageListContent>
 

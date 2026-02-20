@@ -60,7 +60,12 @@ interface TransactionWithDetails extends CashTransaction {
   contact?: Contact | null;
 }
 
+import { useTranslations } from "next-intl";
+
 export default function CashTransactionListPage() {
+  const t = useTranslations("CashBank");
+  const tCommon = useTranslations("Common");
+  const tSales = useTranslations("Sales");
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -90,9 +95,8 @@ export default function CashTransactionListPage() {
   const handleApprove = async (id: string) => {
     if (
       await confirm({
-        title: "Approve Transaction",
-        description:
-          "Are you sure you want to approve this transaction? This will post the journal entries and lock the transaction.",
+        title: t("approve_transaction"),
+        description: t("approve_transaction_desc"),
       })
     ) {
       startTransition(async () => {
@@ -106,14 +110,14 @@ export default function CashTransactionListPage() {
             queryKey: ["cash-bank", "dashboard-stats"],
           });
           toast({
-            title: "Success",
+            title: tCommon("success"),
             description: result.data?.processed ? (
-              "Transaction approved successfully"
+              t("transaction_approved")
             ) : (
               <span>
                 {result.data?.alreadyQueued
-                  ? "Transaction approval already queued."
-                  : "Transaction approval queued for processing."}{" "}
+                  ? tSales("already_queued")
+                  : tSales("queued_for_processing")}{" "}
                 {result.data?.outboxId ? (
                   <Link
                     href={`/admin/integrations/outbox?search=${encodeURIComponent(
@@ -121,7 +125,7 @@ export default function CashTransactionListPage() {
                     )}`}
                     className="underline"
                   >
-                    View outbox
+                    {tSales("view_outbox")}
                   </Link>
                 ) : null}
               </span>
@@ -129,7 +133,7 @@ export default function CashTransactionListPage() {
           });
         } catch (error) {
           toast({
-            title: "Error",
+            title: tCommon("error"),
             description:
               error instanceof Error ? error.message : "Failed to approve",
             variant: "destructive",
@@ -142,9 +146,8 @@ export default function CashTransactionListPage() {
   const handleDelete = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Transaction",
-        description:
-          "Are you sure you want to delete this transaction? This action cannot be undone.",
+        title: t("delete_transaction"),
+        description: t("delete_transaction_desc"),
       })
     ) {
       startTransition(async () => {
@@ -155,12 +158,12 @@ export default function CashTransactionListPage() {
             queryKey: ["cash-bank", "dashboard-stats"],
           });
           toast({
-            title: "Success",
-            description: "Transaction deleted successfully",
+            title: tCommon("success"),
+            description: t("transaction_deleted"),
           });
         } catch (error) {
           toast({
-            title: "Error",
+            title: tCommon("error"),
             description:
               error instanceof Error ? error.message : "Failed to delete",
             variant: "destructive",
@@ -172,7 +175,7 @@ export default function CashTransactionListPage() {
 
   const columns: Column<TransactionWithDetails>[] = [
     {
-      header: "Date/Reference",
+      header: `${tCommon("date")}/${t("reference")}`,
       cell: (tx) => (
         <div className="flex flex-col">
           <span className="font-medium text-sm">{formatDate(tx.date)}</span>
@@ -183,7 +186,7 @@ export default function CashTransactionListPage() {
       ),
     },
     {
-      header: "Type",
+      header: tCommon("type"),
       cell: (tx) => (
         <div className="flex flex-col">
           <Badge variant={tx.type === "INCOME" ? "default" : "destructive"}>
@@ -197,7 +200,7 @@ export default function CashTransactionListPage() {
       ),
     },
     {
-      header: "Contact",
+      header: tCommon("customer") + "/" + tCommon("vendor"), // Or just tCommon("contact") if I add it
       accessorKey: "contact",
       cell: (tx) =>
         tx.contact ? (
@@ -212,11 +215,11 @@ export default function CashTransactionListPage() {
         ),
     },
     {
-      header: "Description",
+      header: tCommon("description"),
       accessorKey: "description",
     },
     {
-      header: "Amount",
+      header: tCommon("amount"),
       className: "text-right",
       headerClassName: "text-right",
       cell: (tx) => {
@@ -228,7 +231,7 @@ export default function CashTransactionListPage() {
       },
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       cell: (tx) => (
         <Badge
           variant={
@@ -244,7 +247,7 @@ export default function CashTransactionListPage() {
       ),
     },
     {
-      header: "Actions",
+      header: tCommon("actions"),
       cell: (tx) => {
         return (
           <DropdownMenu>
@@ -255,24 +258,24 @@ export default function CashTransactionListPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
               {tx.status === "APPROVED" ? (
                 <DropdownMenuItem asChild>
                   <Link href={`/cash-bank/transaction/${tx.id}`}>
                     <Eye className="mr-2 h-4 w-4" />
-                    View
+                    {tCommon("view")}
                   </Link>
                 </DropdownMenuItem>
               ) : (
                 <>
                   <DropdownMenuItem onClick={() => handleApprove(tx.id)}>
                     <Check className="mr-2 h-4 w-4" />
-                    Approve
+                    {tSales("post")}
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href={`/cash-bank/transaction/${tx.id}`}>
                       <Pencil className="mr-2 h-4 w-4" />
-                      Edit
+                      {tCommon("edit")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -281,7 +284,7 @@ export default function CashTransactionListPage() {
                     onClick={() => handleDelete(tx.id)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    {tCommon("delete")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -295,11 +298,11 @@ export default function CashTransactionListPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Cash In & Out" />
+        <PageListTitle title={t("cash_in_out")} />
         <PageListActions>
           <Button asChild>
             <Link href="/cash-bank/transaction/new">
-              <Plus className="mr-2 h-4 w-4" /> New Transaction
+              <Plus className="mr-2 h-4 w-4" /> {t("new_transaction")}
             </Link>
           </Button>
         </PageListActions>
@@ -319,7 +322,7 @@ export default function CashTransactionListPage() {
               pageSize: 20,
               currentPage: page,
             }}
-            emptyMessage="No transactions found."
+            emptyMessage={t("no_recent_transactions")}
           />
         )}
       </PageListContent>

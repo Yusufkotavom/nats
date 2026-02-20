@@ -38,7 +38,11 @@ type CategoryWithCount = Category & {
   _count: { products: number };
 };
 
+import { useTranslations } from "next-intl";
+
 export default function CategoriesPage() {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -93,8 +97,8 @@ export default function CategoriesPage() {
   async function handleDelete(id: string) {
     if (
       await confirm({
-        title: "Delete Category",
-        description: "Are you sure you want to delete this category?",
+        title: t("delete_category"),
+        description: t("delete_category_desc"),
       })
     ) {
       await deleteCategory(id);
@@ -104,20 +108,20 @@ export default function CategoriesPage() {
 
   const columns: Column<CategoryWithCount>[] = [
     {
-      header: "Name",
+      header: tCommon("name"),
       accessorKey: "name",
       className: "font-medium",
     },
     {
-      header: "Description",
+      header: tCommon("description"),
       cell: (item) => item.description || "-",
     },
     {
-      header: "Products",
+      header: t("products"),
       cell: (item) => item._count.products,
     },
     {
-      header: "Actions",
+      header: tCommon("actions"),
       className: "w-[100px]",
       cell: (category) => (
         <DropdownMenu>
@@ -128,10 +132,10 @@ export default function CategoriesPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <Protect permission="categories.edit">
               <DropdownMenuItem onClick={() => handleEdit(category)}>
-                <Pencil className="mr-2 h-4 w-4" /> Edit
+                <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
               </DropdownMenuItem>
             </Protect>
             <DropdownMenuSeparator />
@@ -140,7 +144,7 @@ export default function CategoriesPage() {
                 className="text-destructive focus:text-destructive"
                 onClick={() => handleDelete(category.id)}
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
               </DropdownMenuItem>
             </Protect>
           </DropdownMenuContent>
@@ -152,11 +156,11 @@ export default function CategoriesPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Categories" />
+        <PageListTitle title={t("categories")} />
         <PageListActions>
           <Protect permission="categories.create">
             <Button onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" /> Create Category
+              <Plus className="mr-2 h-4 w-4" /> {t("create_category")}
             </Button>
           </Protect>
         </PageListActions>
@@ -166,7 +170,7 @@ export default function CategoriesPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <CustomInput
-            placeholder="Search by name or description..."
+            placeholder={t("search_categories")}
             className="pl-8"
             defaultValue={search}
             onChange={(e) => handleSearch(e.target.value)}
@@ -179,7 +183,7 @@ export default function CategoriesPage() {
           data={data?.categories || []}
           columns={columns}
           isLoading={isLoading}
-          emptyMessage="No categories found."
+          emptyMessage={t("no_categories_found")}
           pagination={{
             totalEntries: data?.total || 0,
             pageSize,

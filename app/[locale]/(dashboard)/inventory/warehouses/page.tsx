@@ -45,7 +45,11 @@ type WarehouseWithInventory = Warehouse & {
   })[];
 };
 
+import { useTranslations } from "next-intl";
+
 export default function WarehousesPage() {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -78,8 +82,8 @@ export default function WarehousesPage() {
   async function handleDelete(id: string) {
     if (
       await confirm({
-        title: "Delete Warehouse",
-        description: "Are you sure you want to delete this warehouse?",
+        title: t("delete_warehouse"),
+        description: t("delete_warehouse_desc"),
       })
     ) {
       await deleteWarehouse(id);
@@ -100,17 +104,17 @@ export default function WarehousesPage() {
 
   const columns: Column<WarehouseWithInventory>[] = [
     {
-      header: "Name",
+      header: tCommon("name"),
       accessorKey: "name",
       className: "font-medium",
     },
     {
-      header: "Address",
+      header: t("address"),
       accessorKey: "location",
       cell: (item) => item.location || "-",
     },
     {
-      header: "Total Value",
+      header: tCommon("total"), // Actually total valuation? en.json has total valuation
       cell: (item) => {
         const totalValue = item.inventory.reduce(
           (sum, inv) => sum + inv.quantity * inv.product.cost.toNumber(),
@@ -120,7 +124,7 @@ export default function WarehousesPage() {
       },
     },
     {
-      header: "Items",
+      header: t("items"),
       cell: (item) => item.inventory.length,
     },
     {
@@ -135,11 +139,11 @@ export default function WarehousesPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <Protect permission="warehouses.view">
               <DropdownMenuItem asChild>
                 <Link href={`/inventory/warehouses/${item.id}`}>
-                  <Eye className="mr-2 h-4 w-4" /> View Details
+                  <Eye className="mr-2 h-4 w-4" /> {t("view_details")}
                 </Link>
               </DropdownMenuItem>
             </Protect>
@@ -150,7 +154,7 @@ export default function WarehousesPage() {
                   setIsDialogOpen(true);
                 }}
               >
-                <Pencil className="mr-2 h-4 w-4" /> Edit
+                <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
               </DropdownMenuItem>
             </Protect>
             <Protect permission="warehouses.delete">
@@ -158,7 +162,7 @@ export default function WarehousesPage() {
                 className="text-destructive focus:text-destructive"
                 onClick={() => handleDelete(item.id)}
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
               </DropdownMenuItem>
             </Protect>
           </DropdownMenuContent>
@@ -170,11 +174,11 @@ export default function WarehousesPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Locations" />
+        <PageListTitle title={t("locations")} />
         <PageListActions>
           <Protect permission="warehouses.create">
             <Button onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" /> Add Location
+              <Plus className="mr-2 h-4 w-4" /> {t("add_location")}
             </Button>
           </Protect>
         </PageListActions>
@@ -185,7 +189,7 @@ export default function WarehousesPage() {
           data={data?.warehouses || []}
           columns={columns}
           isLoading={isLoading}
-          emptyMessage="No locations found."
+          emptyMessage={t("no_locations_found")}
           pagination={{
             totalEntries: data?.total || 0,
             pageSize,

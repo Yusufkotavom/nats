@@ -34,7 +34,11 @@ import {
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useFormatDate } from "@/hooks";
 
+import { useTranslations } from "next-intl";
+
 export default function UomPage() {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -76,8 +80,8 @@ export default function UomPage() {
   const handleDeleteClick = async (unit: Unit) => {
     if (
       await confirm({
-        title: "Delete Unit",
-        description: "Are you sure you want to delete this unit?",
+        title: t("delete_unit"),
+        description: t("delete_unit_desc"),
         variant: "destructive",
       })
     ) {
@@ -88,16 +92,16 @@ export default function UomPage() {
 
   const columns: Column<Unit>[] = [
     {
-      header: "Name",
+      header: tCommon("name"),
       accessorKey: "name",
       className: "font-medium",
     },
     {
-      header: "Symbol",
+      header: t("symbol"),
       accessorKey: "symbol",
     },
     {
-      header: "Last Updated",
+      header: t("last_updated"),
       cell: (unit) => formatDate(unit.updatedAt),
     },
     {
@@ -112,10 +116,10 @@ export default function UomPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <Protect permission="inventory_products.edit">
               <DropdownMenuItem onClick={() => handleEditUnit(unit)}>
-                <Pencil className="mr-2 h-4 w-4" /> Edit
+                <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
               </DropdownMenuItem>
             </Protect>
             <DropdownMenuSeparator />
@@ -124,7 +128,7 @@ export default function UomPage() {
                 className="text-destructive focus:text-destructive"
                 onClick={() => handleDeleteClick(unit)}
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
               </DropdownMenuItem>
             </Protect>
           </DropdownMenuContent>
@@ -136,11 +140,11 @@ export default function UomPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Units of Measure" />
+        <PageListTitle title={t("uom")} />
         <PageListActions>
           <Protect permission="inventory_products.create">
             <Button onClick={handleAddUnit}>
-              <Plus className="mr-2 h-4 w-4" /> Add Unit
+              <Plus className="mr-2 h-4 w-4" /> {t("add_unit")}
             </Button>
           </Protect>
         </PageListActions>
@@ -151,7 +155,7 @@ export default function UomPage() {
           data={data?.data || []}
           columns={columns}
           isLoading={isLoading}
-          emptyMessage="No units found."
+          emptyMessage={t("no_units_found")}
           pagination={{
             totalEntries: data?.total || 0,
             pageSize,

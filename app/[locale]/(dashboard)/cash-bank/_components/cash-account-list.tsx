@@ -46,11 +46,15 @@ interface CashAccountListProps {
   title?: string;
 }
 
+import { useTranslations } from "next-intl";
+
 export function CashAccountList({
   accounts,
   glAccounts,
   title = "Cash & Bank",
 }: CashAccountListProps) {
+  const t = useTranslations("CashBank");
+  const tCommon = useTranslations("Common");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<
     CashAccountWithBalance | undefined
@@ -67,9 +71,8 @@ export function CashAccountList({
   const handleDelete = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Account",
-        description:
-          "Are you sure you want to delete this account? This action cannot be undone.",
+        title: t("delete_account"),
+        description: t("delete_account_desc"),
       })
     ) {
       try {
@@ -78,12 +81,12 @@ export function CashAccountList({
           queryKey: ["cash-bank", "dashboard-stats"],
         });
         toast({
-          title: "Success",
+          title: tCommon("success"),
           description: "Account deleted successfully",
         });
       } catch (error) {
         toast({
-          title: "Error",
+          title: tCommon("error"),
           description:
             error instanceof Error ? error.message : "Failed to delete",
           variant: "destructive",
@@ -94,7 +97,7 @@ export function CashAccountList({
 
   const columns: Column<CashAccountWithBalance>[] = [
     {
-      header: "Name",
+      header: tCommon("name"),
       cell: (account) => (
         <div className="flex items-center gap-2">
           {account.type === CashAccountType.CASH ? (
@@ -107,7 +110,7 @@ export function CashAccountList({
       ),
     },
     {
-      header: "Type",
+      header: tCommon("status"), // Type but could use status as well? Actually en.json has type
       cell: (account) => (
         <Badge variant="secondary" className="capitalize">
           {account.type.replace(/_/g, " ")}
@@ -115,7 +118,7 @@ export function CashAccountList({
       ),
     },
     {
-      header: "Bank / Account #",
+      header: t("bank_account_number"),
       cell: (account) =>
         account.bankName ? (
           <div className="flex flex-col">
@@ -129,7 +132,7 @@ export function CashAccountList({
         ),
     },
     {
-      header: "GL Account",
+      header: t("gl_account"),
       cell: (account) => (
         <div className="flex flex-col">
           <span>{account.glAccount.code}</span>
@@ -140,7 +143,7 @@ export function CashAccountList({
       ),
     },
     {
-      header: "Balance",
+      header: t("balance"),
       className: "text-right",
       headerClassName: "text-right",
       cell: (account) => (
@@ -148,7 +151,7 @@ export function CashAccountList({
       ),
     },
     {
-      header: "Actions",
+      header: tCommon("actions"),
       cell: (account) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -158,12 +161,12 @@ export function CashAccountList({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => router.push(`/accounting/cash-bank/${account.id}`)}
             >
               <History className="mr-2 h-4 w-4" />
-              History
+              {t("history")}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -172,7 +175,7 @@ export function CashAccountList({
               }}
             >
               <Pencil className="mr-2 h-4 w-4" />
-              Edit
+              {tCommon("edit")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -180,7 +183,7 @@ export function CashAccountList({
               onClick={() => handleDelete(account.id)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete
+              {tCommon("delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -195,7 +198,7 @@ export function CashAccountList({
         <PageListActions>
           <Button onClick={() => setIsCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Account
+            {t("add_account")}
           </Button>
         </PageListActions>
       </PageListHeader>
@@ -203,7 +206,7 @@ export function CashAccountList({
         <DataTable
           data={accounts}
           columns={columns}
-          emptyMessage="No accounts found. Create one to get started."
+          emptyMessage={t("create_account_started")}
         />
       </PageListContent>
 

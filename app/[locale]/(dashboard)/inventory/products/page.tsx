@@ -45,7 +45,11 @@ import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
+import { useTranslations } from "next-intl";
+
 export default function ProductsPage() {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -58,8 +62,6 @@ export default function ProductsPage() {
   const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
   const queryClient = useQueryClient();
-
-
 
   const { data: productsData, isLoading: isLoadingProducts } = useQuery({
     queryKey: ["products", { page, search, categoryId }],
@@ -120,9 +122,8 @@ export default function ProductsPage() {
   async function handleDelete(id: string) {
     if (
       await confirm({
-        title: "Delete Product",
-        description:
-          "Are you sure you want to delete this product? This action cannot be undone.",
+        title: t("delete_product"),
+        description: t("delete_product_desc"),
       })
     ) {
       await deleteProduct(id);
@@ -130,12 +131,9 @@ export default function ProductsPage() {
     }
   }
 
-
-
   const columns: Column<ProductFormData>[] = [
-
     {
-      header: "SKU/Name",
+      header: `${t("sku")}/${tCommon("name")}`,
       cell: (product) => (
         <div>
           <div className="text-xs text-muted-foreground">{product.sku}</div>
@@ -144,23 +142,23 @@ export default function ProductsPage() {
       ),
     },
     {
-      header: "Category",
+      header: t("categories"),
       cell: (product) => product.category?.name || "-",
     },
     {
-      header: "Price",
+      header: t("price"),
       cell: (product) => formatCurrency(product.price),
     },
     {
-      header: "Cost",
+      header: t("cost"),
       cell: (product) => formatCurrency(product.cost),
     },
     {
-      header: "Min Stock",
+      header: t("min_stock"),
       accessorKey: "minStock",
     },
     {
-      header: "Stock",
+      header: t("stock"),
       cell: (product) => {
         const totalStock = product?.inventory?.reduce(
           (acc: number, inv: { quantity: number }) =>
@@ -171,7 +169,7 @@ export default function ProductsPage() {
       },
     },
     {
-      header: "Actions",
+      header: tCommon("actions"),
       className: "w-[100px]",
       cell: (product) => (
         <DropdownMenu>
@@ -182,14 +180,14 @@ export default function ProductsPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <Protect permission="products.view">
               <DropdownMenuItem asChild>
                 <Link
                   href={`/inventory/products/${product.id}`}
                   className="flex items-center"
                 >
-                  <Eye className="mr-2 h-4 w-4" /> Details
+                  <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
                 </Link>
               </DropdownMenuItem>
             </Protect>
@@ -199,7 +197,7 @@ export default function ProductsPage() {
                   href={`/inventory/products/${product.id}/edit`}
                   className="flex items-center"
                 >
-                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                  <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
                 </Link>
               </DropdownMenuItem>
             </Protect>
@@ -208,7 +206,7 @@ export default function ProductsPage() {
                 className="text-destructive focus:text-destructive"
                 onClick={() => handleDelete(product.id as string)}
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
               </DropdownMenuItem>
             </Protect>
           </DropdownMenuContent>
@@ -220,12 +218,12 @@ export default function ProductsPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Products" />
+        <PageListTitle title={t("products")} />
         <PageListActions>
           <Protect permission="products.create">
             <Button asChild>
               <Link href="/inventory/products/create">
-                <Plus className="mr-2 h-4 w-4" /> Create Product
+                <Plus className="mr-2 h-4 w-4" /> {t("create_product")}
               </Link>
             </Button>
           </Protect>
@@ -236,7 +234,7 @@ export default function ProductsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <CustomInput
-            placeholder="Search by name or SKU..."
+            placeholder={t("search_products")}
             className="pl-8"
             defaultValue={search}
             onChange={(e) => handleSearch(e.target.value)}
@@ -246,9 +244,9 @@ export default function ProductsPage() {
           value={categoryId}
           onValueChange={handleCategoryChange}
           containerClassName="w-[180px]"
-          placeholder="Category"
+          placeholder={t("categories")}
         >
-          <SelectItem value="ALL">All Categories</SelectItem>
+          <SelectItem value="ALL">{t("all_categories")}</SelectItem>
           {categories.map((c) => (
             <SelectItem key={c.id} value={c.id}>
               {c.name}
@@ -262,7 +260,7 @@ export default function ProductsPage() {
           data={products}
           columns={columns}
           isLoading={isLoadingProducts}
-          emptyMessage="No products found."
+          emptyMessage={t("no_products_found")}
           pagination={{
             totalEntries: productsData?.total || 0,
             pageSize,

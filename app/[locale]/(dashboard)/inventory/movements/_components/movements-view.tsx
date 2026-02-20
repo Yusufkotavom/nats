@@ -50,7 +50,11 @@ type BatchWithDetails = Omit<InventoryMovement, "status"> & {
   rejectionReason?: string | null;
 };
 
+import { useTranslations } from "next-intl";
+
 function BatchActions({ batch }: { batch: BatchWithDetails }) {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
   const [isPending, startTransition] = useTransition();
   const confirm = useConfirm();
   const alert = useAlert();
@@ -61,15 +65,14 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
     e.stopPropagation();
     if (
       await confirm({
-        title: "Approve Movement",
-        description:
-          "Are you sure you want to approve this movement? This will update inventory levels and cannot be undone.",
+        title: t("approve_movement"),
+        description: t("approve_movement_desc"),
       })
     ) {
       startTransition(async () => {
         const result = await approveMovement(batch.id);
         if (!result.success) {
-          await alert({ title: "Error", description: result.error });
+          await alert({ title: tCommon("error"), description: result.error });
         } else {
           queryClient.invalidateQueries({ queryKey: ["movement-batches"] });
         }
@@ -79,13 +82,13 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
 
   const handleReject = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const reason = prompt("Enter rejection reason:");
+    const reason = prompt(t("enter_rejection_reason"));
     if (!reason) return;
 
     startTransition(async () => {
       const result = await rejectMovement({ movementId: batch.id, reason });
       if (!result.success) {
-        await alert({ title: "Error", description: result.error });
+        await alert({ title: tCommon("error"), description: result.error });
       } else {
         queryClient.invalidateQueries({ queryKey: ["movement-batches"] });
       }
@@ -101,7 +104,7 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
           className="h-8 w-8 p-0"
           onClick={handleApprove}
           disabled={isPending}
-          title="Approve"
+          title={t("approve_movement")}
         >
           <Check className="h-4 w-4 text-green-600" />
         </Button>
@@ -111,7 +114,7 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
           className="h-8 w-8 p-0"
           onClick={handleReject}
           disabled={isPending}
-          title="Reject"
+          title={t("reject_movement")}
         >
           <X className="h-4 w-4 text-red-600" />
         </Button>
@@ -125,7 +128,7 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
   ) {
     return (
       <div className="flex flex-col text-xs text-muted-foreground">
-        <span>Approved by</span>
+        <span>{t("approved_by")}</span>
         <span className="font-medium">{batch.approvedBy.name}</span>
       </div>
     );
@@ -135,6 +138,8 @@ function BatchActions({ batch }: { batch: BatchWithDetails }) {
 }
 
 export function MovementsView() {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -163,11 +168,11 @@ export function MovementsView() {
 
   const columns: Column<BatchWithDetails>[] = [
     {
-      header: "Date",
+      header: tCommon("date"),
       cell: (batch) => formatDate(batch.transactionDate),
     },
     {
-      header: "Type",
+      header: t("type"),
       cell: (batch) => (
         <Badge
           variant={
@@ -185,7 +190,7 @@ export function MovementsView() {
       ),
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       cell: (batch) => (
         <Badge
           variant={
@@ -211,23 +216,23 @@ export function MovementsView() {
       ),
     },
     {
-      header: "Reference",
+      header: t("reference"),
       cell: (batch) => batch.reference || "-",
     },
     {
-      header: "From",
+      header: t("from"),
       cell: (batch) => batch.fromWarehouse?.name || "-",
     },
     {
-      header: "To",
+      header: t("to"),
       cell: (batch) => batch.toWarehouse?.name || "-",
     },
     {
-      header: "Items",
-      cell: (batch) => `${batch.details.length} items`,
+      header: tCommon("items"), // Or t("items")
+      cell: (batch) => `${batch.details.length} ${tCommon("items")?.toLowerCase()}`,
     },
     {
-      header: "Approval",
+      header: t("approval"),
       cell: (batch) => <BatchActions batch={batch} />,
     },
   ];
@@ -235,12 +240,12 @@ export function MovementsView() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Inventory Movements" />
+        <PageListTitle title={t("inventory_movements")} />
         <PageListActions>
           <Protect permission="inventory_movements.create">
             <Button asChild>
               <Link href="/inventory/movements/create">
-                <Plus className="mr-2 h-4 w-4" /> Record Movement
+                <Plus className="mr-2 h-4 w-4" /> {t("record_movement")}
               </Link>
             </Button>
           </Protect>
@@ -251,7 +256,7 @@ export function MovementsView() {
           data={data?.batches || []}
           columns={columns}
           isLoading={isLoading}
-          emptyMessage="No movement batches found."
+          emptyMessage={t("no_movements_found")}
           pagination={{
             totalEntries: data?.total || 0,
             pageSize,

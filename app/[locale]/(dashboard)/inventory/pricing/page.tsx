@@ -15,6 +15,8 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 
+import { getTranslations } from "next-intl/server";
+
 export default async function PricingPage({
   searchParams,
 }: {
@@ -24,6 +26,7 @@ export default async function PricingPage({
     categoryId?: string;
   }>;
 }) {
+  const t = await getTranslations("Inventory");
   const params = await searchParams;
   const page = Number(params.page) || 1;
   const search = params.search || "";
@@ -60,19 +63,19 @@ export default async function PricingPage({
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Pricing Configuration" />
+        <PageListTitle title={t("pricing_configuration")} />
       </PageListHeader>
 
       <Tabs defaultValue="individual" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="individual">Individual Pricing</TabsTrigger>
-          <TabsTrigger value="batch">Batch Pricing</TabsTrigger>
-          <TabsTrigger value="global">Global Discounts</TabsTrigger>
+          <TabsTrigger value="individual">{t("individual_pricing")}</TabsTrigger>
+          <TabsTrigger value="batch">{t("batch_pricing")}</TabsTrigger>
+          <TabsTrigger value="global">{t("global_discounts")}</TabsTrigger>
         </TabsList>
         <TabsContent value="batch" className="space-y-4">
           <Protect
             permission="products.edit"
-            fallback={<div>You do not have permission to manage pricing.</div>}
+            fallback={<div>{t("no_permission_manage_pricing")}</div>}
           >
             <BatchPricingForm />
           </Protect>
@@ -80,7 +83,7 @@ export default async function PricingPage({
         <TabsContent value="individual" className="space-y-4">
           <Protect
             permission="products.edit"
-            fallback={<div>You do not have permission to manage pricing.</div>}
+            fallback={<div>{t("no_permission_manage_pricing")}</div>}
           >
             <IndividualPricingTable />
           </Protect>
@@ -88,7 +91,7 @@ export default async function PricingPage({
         <TabsContent value="global" className="space-y-4">
           <Protect
             permission="products.edit"
-            fallback={<div>You do not have permission to manage pricing.</div>}
+            fallback={<div>{t("no_permission_manage_pricing")}</div>}
           >
             <GlobalDiscountManager />
           </Protect>

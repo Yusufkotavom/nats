@@ -30,7 +30,11 @@ type RecentTransaction = JournalEntryLine & {
   account: Account;
 };
 
+import { useTranslations } from "next-intl";
+
 export function DashboardView() {
+  const t = useTranslations("CashBank");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
 
@@ -54,11 +58,11 @@ export function DashboardView() {
 
   const columns: Column<RecentTransaction>[] = [
     {
-      header: "Date",
+      header: tCommon("date"),
       cell: (item) => formatDate(item.journalEntry.transactionDate),
     },
     {
-      header: "Entry #",
+      header: t("entry_number"),
       cell: (item) => (
         <Link
           href={`/accounting/journal-entries/${item.journalEntry.id}`}
@@ -70,11 +74,11 @@ export function DashboardView() {
       ),
     },
     {
-      header: "Account",
+      header: tCommon("account"),
       cell: (item) => `${item.account.code} - ${item.account.name}`,
     },
     {
-      header: "Description",
+      header: tCommon("description"),
       cell: (item) => (
         <span className="truncate block max-w-[200px]">
           {item.description || item.journalEntry.description}
@@ -82,7 +86,7 @@ export function DashboardView() {
       ),
     },
     {
-      header: "Debit",
+      header: t("debit"),
       headerClassName: "text-right",
       className: "text-right font-medium",
       cell: (item) =>
@@ -91,7 +95,7 @@ export function DashboardView() {
           : "-",
     },
     {
-      header: "Credit",
+      header: t("credit"),
       headerClassName: "text-right",
       className: "text-right font-medium",
       cell: (item) =>
@@ -100,7 +104,7 @@ export function DashboardView() {
           : "-",
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       cell: (item) => <StatusBadge status={item.journalEntry.status} />,
     },
   ];
@@ -110,23 +114,22 @@ export function DashboardView() {
   }
 
   const { accounts, summary, recentTransactions } = stats;
-  console.log({ stats });
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold tracking-tight">Cash & Bank</h1>
+        <h1 className="text-xl font-bold tracking-tight">{t("cash_bank")}</h1>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">
             <LayoutDashboard className="mr-2 h-4 w-4" />
-            Overview
+            {t("overview")}
           </TabsTrigger>
           <TabsTrigger value="accounts">
             <List className="mr-2 h-4 w-4" />
-            Accounts
+            {t("accounts")}
           </TabsTrigger>
         </TabsList>
 
@@ -136,7 +139,7 @@ export function DashboardView() {
             <Card className="bg-linear-to-br from-primary/10 to-primary/5 border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Wallet className="h-4 w-4" /> Total Balance
+                  <Wallet className="h-4 w-4" /> {t("total_balance")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -148,7 +151,7 @@ export function DashboardView() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Wallet className="h-4 w-4" /> Cash on Hand
+                  <Wallet className="h-4 w-4" /> {t("cash_on_hand")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -160,7 +163,7 @@ export function DashboardView() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> Bank Balance
+                  <Building2 className="h-4 w-4" /> {t("bank_balance")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -175,11 +178,11 @@ export function DashboardView() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold tracking-tight">
-                Recent Transactions
+                {t("recent_transactions")}
               </h2>
               <Button variant="ghost" asChild>
                 <Link href="/accounting/journal-entries">
-                  View All <ArrowRight className="ml-2 h-4 w-4" />
+                  {t("view_all")} <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>
@@ -188,7 +191,7 @@ export function DashboardView() {
                 <DataTable
                   data={recentTransactions || []}
                   columns={columns}
-                  emptyMessage="No recent transactions found."
+                  emptyMessage={t("no_recent_transactions")}
                 />
               </CardContent>
             </Card>
@@ -199,7 +202,7 @@ export function DashboardView() {
           <CashAccountList
             accounts={accounts}
             glAccounts={glAccounts}
-            title="Manage Accounts"
+            title={t("manage_accounts")}
           />
         </TabsContent>
       </Tabs>

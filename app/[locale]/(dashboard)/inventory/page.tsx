@@ -43,7 +43,11 @@ type MovementDetailWithRelations = InventoryMovementDetail & {
   };
 };
 
+import { useTranslations } from "next-intl";
+
 export default function InventoryDashboardPage() {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
 
@@ -75,27 +79,27 @@ export default function InventoryDashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <h2 className="text-2xl font-bold tracking-tight">Inventory Overview</h2>
+      <h2 className="text-2xl font-bold tracking-tight">
+        {t("inventory_overview")}
+      </h2>
 
       <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Products
+              {t("total_products")}
             </CardTitle>
             <Box className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalProducts}</div>
-            <p className="text-xs text-muted-foreground">
-              Active SKUs in catalog
-            </p>
+            <p className="text-xs text-muted-foreground">{t("active_skus")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Valuation
+              {t("total_valuation")}
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -104,35 +108,35 @@ export default function InventoryDashboardPage() {
               {formatCurrency(totalValue)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Based on average cost
+              {t("based_on_average_cost")}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Low Stock Alerts
+              {t("low_stock_alerts")}
             </CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{lowStockItems.length}</div>
             <p className="text-xs text-muted-foreground">
-              Items below reorder point
+              {t("items_below_reorder_point")}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Recent Movements
+              {t("recent_movements")}
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{recentMovements.length}</div>
             <p className="text-xs text-muted-foreground">
-              Movements in last 24h
+              {t("movements_last_24h")}
             </p>
           </CardContent>
         </Card>
@@ -141,16 +145,18 @@ export default function InventoryDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Low Stock Items</CardTitle>
+            <CardTitle>{t("low_stock_items")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Reorder Point</TableHead>
+                  <TableHead>{t("product")}</TableHead>
+                  <TableHead>{t("location")}</TableHead>
+                  <TableHead className="text-right">{t("quantity")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("reorder_point")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -175,16 +181,16 @@ export default function InventoryDashboardPage() {
         </Card>
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Recent Movements</CardTitle>
+            <CardTitle>{t("recent_movements")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead>{t("product")}</TableHead>
+                  <TableHead>{t("type")}</TableHead>
+                  <TableHead>{t("date")}</TableHead>
+                  <TableHead className="text-right">{t("quantity")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -208,7 +214,7 @@ export default function InventoryDashboardPage() {
                       colSpan={4}
                       className="text-center text-muted-foreground h-24"
                     >
-                      No recent movements
+                      {t("no_recent_movements")}
                     </TableCell>
                   </TableRow>
                 )}

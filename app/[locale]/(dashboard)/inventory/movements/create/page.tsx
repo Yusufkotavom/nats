@@ -9,7 +9,12 @@ import { SuperJSON } from "@/lib/superjson";
 import { Product, Warehouse } from "@/prisma/generated/prisma/browser";
 import { SuperJSONResult } from "superjson";
 
+import { useTranslations } from "next-intl";
+
 export default function CreateMovementPage() {
+  const t = useTranslations("Inventory");
+  const tCommon = useTranslations("Common");
+
   const { data: productsData, isLoading: isProductsLoading } = useQuery({
     queryKey: ["products-list"],
     queryFn: () => getProducts(),
@@ -21,7 +26,7 @@ export default function CreateMovementPage() {
   });
 
   if (isProductsLoading || isWarehousesLoading) {
-    return <div className="p-4">Loading...</div>;
+    return <div className="p-4">{tCommon("loading")}</div>;
   }
 
   const products = productsData?.products
@@ -45,7 +50,7 @@ export default function CreateMovementPage() {
     <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
       <div className="flex items-center gap-4">
         <h2 className="text-2xl font-bold tracking-tight">
-          Inventory Movement
+          {t("inventory_movements")}
         </h2>
       </div>
 
