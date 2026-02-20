@@ -38,8 +38,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 
 export default function SalesInvoicesPage() {
+  const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -71,9 +74,9 @@ export default function SalesInvoicesPage() {
   const handleDeleteClick = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Sales Invoice",
-        description:
-          "Are you sure you want to delete this invoice? This action cannot be undone.",
+        title: t("delete_sales_invoice"),
+        description: t("delete_sales_invoice_desc"),
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -82,13 +85,13 @@ export default function SalesInvoicesPage() {
           await deleteSalesInvoice(id);
           queryClient.invalidateQueries({ queryKey: ["sales-invoices"] });
           toast({
-            title: "Success",
-            description: "Sales invoice deleted successfully",
+            title: tCommon("success"),
+            description: t("delete_success"),
           });
         } catch (error) {
           toast({
-            title: "Error",
-            description: "Failed to delete sales invoice",
+            title: tCommon("error"),
+            description: t("delete_error"),
             variant: "destructive",
           });
         }
@@ -117,12 +120,12 @@ export default function SalesInvoicesPage() {
 
   const columns: Column<SalesInvoiceWithDetails>[] = [
     {
-      header: "Invoice #",
+      header: t("invoice_number"),
       accessorKey: "invoiceNumber",
       className: "font-medium",
     },
     {
-      header: "Customer",
+      header: tCommon("customer"),
       cell: (item) =>
         item.contact ? (
           <Link target="_blank"
@@ -136,7 +139,7 @@ export default function SalesInvoicesPage() {
         ),
     },
     {
-      header: "SO #",
+      header: t("order_number"),
       cell: (item) => (
         <Link target="_blank" href={`/sales/orders/${item.salesOrderId}`}>
           <span className="font-medium text-primary">
@@ -146,17 +149,17 @@ export default function SalesInvoicesPage() {
       ),
     },
     {
-      header: "Date",
+      header: tCommon("date"),
       accessorKey: "invoiceDate",
       cell: (item) => formatDate(item.invoiceDate),
     },
     {
-      header: "Due Date",
+      header: t("due_date"),
       accessorKey: "dueDate",
       cell: (item) => formatDate(item.dueDate),
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       accessorKey: "status",
       cell: (item) => (
         <Badge className={getStatusColor(item.status)}>
@@ -165,7 +168,7 @@ export default function SalesInvoicesPage() {
       ),
     },
     {
-      header: "Paid Amount",
+      header: t("paid_amount"),
       className: "text-right",
       headerClassName: "text-right",
       cell: (item) => {
@@ -177,7 +180,7 @@ export default function SalesInvoicesPage() {
       },
     },
     {
-      header: "Remaining Amount",
+      header: t("remaining_amount"),
       className: "text-right",
       headerClassName: "text-right",
       cell: (item) => {
@@ -190,7 +193,7 @@ export default function SalesInvoicesPage() {
       },
     },
     {
-      header: "Total Amount",
+      header: tCommon("total"),
       accessorKey: "totalAmount",
       className: "text-right",
       headerClassName: "text-right",
@@ -203,15 +206,15 @@ export default function SalesInvoicesPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tCommon("actions")}</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link target="_blank" href={`/sales/invoices/${invoice.id}`}>
-                <Eye className="mr-2 h-4 w-4" /> Details
+                <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
               </Link>
             </DropdownMenuItem>
             {invoice.status === "DRAFT" && (
@@ -219,7 +222,7 @@ export default function SalesInvoicesPage() {
                 <Protect permission="sales.edit">
                   <DropdownMenuItem asChild>
                     <Link target="_blank" href={`/sales/invoices/${invoice.id}/edit`}>
-                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                      <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
                     </Link>
                   </DropdownMenuItem>
                 </Protect>
@@ -229,7 +232,7 @@ export default function SalesInvoicesPage() {
                     className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
                     onClick={() => handleDeleteClick(invoice.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
                   </DropdownMenuItem>
                 </Protect>
               </>
@@ -243,12 +246,12 @@ export default function SalesInvoicesPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Sales Invoices" />
+        <PageListTitle title={t("sales_invoices")} />
         <PageListActions>
           <Protect permission="sales.create">
             <Button asChild>
               <Link href="/sales/invoices/new">
-                <Plus className="mr-2 h-4 w-4" /> New Invoice
+                <Plus className="mr-2 h-4 w-4" /> {t("new_invoice")}
               </Link>
             </Button>
           </Protect>
@@ -271,7 +274,7 @@ export default function SalesInvoicesPage() {
               pageSize: 10,
               currentPage: page,
             }}
-            emptyMessage="No sales invoices found."
+            emptyMessage={t("no_invoices_found")}
           />
         )}
       </PageListContent>

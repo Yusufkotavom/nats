@@ -36,8 +36,11 @@ import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 export default function SalesOrdersPage() {
+    const t = useTranslations("Sales");
+    const tCommon = useTranslations("Common");
     const searchParams = useSearchParams();
     const page = Number(searchParams.get("page")) || 1;
     const search = searchParams.get("search") || "";
@@ -87,10 +90,9 @@ export default function SalesOrdersPage() {
     const handleDeleteClick = async (id: string) => {
         if (
             await confirm({
-                title: "Delete Sales Order",
-                description:
-                    "Are you sure you want to delete this sales order? This action cannot be undone.",
-                confirmText: "Delete",
+                title: t("delete_sales_order"),
+                description: t("delete_sales_order_desc"),
+                confirmText: tCommon("delete"),
                 variant: "destructive",
             })
         ) {
@@ -99,13 +101,13 @@ export default function SalesOrdersPage() {
                     await deleteSalesOrder(id);
                     queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
                     toast({
-                        title: "Success",
-                        description: "Sales order deleted successfully",
+                        title: tCommon("success"),
+                        description: t("delete_success"),
                     });
                 } catch (error) {
                     toast({
-                        title: "Error",
-                        description: "Failed to delete sales order",
+                        title: tCommon("error"),
+                        description: t("delete_error"),
                         variant: "destructive",
                     });
                 }
@@ -134,17 +136,17 @@ export default function SalesOrdersPage() {
 
     const columns: Column<SalesOrderWithDetails>[] = [
         {
-            header: "SO Number",
+            header: t("order_number"),
             accessorKey: "orderNumber",
             className: "font-medium",
         },
         {
-            header: "Date",
+            header: tCommon("date"),
             accessorKey: "orderDate",
             cell: (item) => formatDate(item.orderDate),
         },
         {
-            header: "Customer",
+            header: tCommon("customer"),
             cell: (item) =>
                 item.contact ? (
                     <Link target="_blank"
@@ -158,13 +160,13 @@ export default function SalesOrdersPage() {
                 ),
         },
         {
-            header: "Expected",
+            header: t("expected_date"),
             accessorKey: "expectedDate",
             cell: (item) =>
                 item.expectedDate ? formatDate(item.expectedDate) : "-",
         },
         {
-            header: "Status",
+            header: tCommon("status"),
             accessorKey: "status",
             cell: (item) => (
                 <Badge className={getStatusColor(item.status)}>
@@ -173,7 +175,7 @@ export default function SalesOrdersPage() {
             ),
         },
         {
-            header: "Total Amount",
+            header: t("total_amount"),
             accessorKey: "totalAmount",
             className: "text-right",
             headerClassName: "text-right",
@@ -186,21 +188,21 @@ export default function SalesOrdersPage() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">{tCommon("actions")}</span>
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
                             <Link target="_blank" href={`/sales/orders/${order.id}`}>
-                                <Eye className="mr-2 h-4 w-4" /> Details
+                                <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
                             </Link>
                         </DropdownMenuItem>
                         <Protect permission="sales.edit">
                             <DropdownMenuItem asChild>
                                 <Link target="_blank" href={`/sales/orders/${order.id}/edit`}>
-                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                    <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
                                 </Link>
                             </DropdownMenuItem>
                         </Protect>
@@ -210,7 +212,7 @@ export default function SalesOrdersPage() {
                                 className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
                                 onClick={() => handleDeleteClick(order.id)}
                             >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
                             </DropdownMenuItem>
                         </Protect>
                     </DropdownMenuContent>
@@ -222,12 +224,12 @@ export default function SalesOrdersPage() {
     return (
         <PageListLayout>
             <PageListHeader>
-                <PageListTitle title="Sales Orders" />
+                <PageListTitle title={t("sales_orders")} />
                 <PageListActions>
                     <Protect permission="sales.create">
                         <Button asChild>
                             <Link href="/sales/orders/new">
-                                <Plus className="mr-2 h-4 w-4" /> New Order
+                                <Plus className="mr-2 h-4 w-4" /> {t("new_order")}
                             </Link>
                         </Button>
                     </Protect>
@@ -249,7 +251,7 @@ export default function SalesOrdersPage() {
                             pageSize: 10,
                             currentPage: page,
                         }}
-                        emptyMessage="No sales orders found."
+                        emptyMessage={t("no_orders_found")}
                     />
                 )}
             </PageListContent>

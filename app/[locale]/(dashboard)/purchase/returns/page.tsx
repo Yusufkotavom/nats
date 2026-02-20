@@ -35,8 +35,11 @@ import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslations } from "next-intl";
 
 export default function PurchaseReturnsPage() {
+  const t = useTranslations("Purchase");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -64,9 +67,9 @@ export default function PurchaseReturnsPage() {
   const handleDeleteClick = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Purchase Return",
-        description:
-          "Are you sure you want to delete this return? This action cannot be undone.",
+        title: t("delete_purchase_return"),
+        description: t("delete_purchase_return_desc"),
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -91,12 +94,12 @@ export default function PurchaseReturnsPage() {
 
   const columns: Column<PurchaseReturnWithDetails>[] = [
     {
-      header: "Return #",
+      header: t("return_number"),
       accessorKey: "returnNumber",
       className: "font-medium",
     },
     {
-      header: "Vendor",
+      header: tCommon("vendor"),
       cell: (item) =>
         item.contact ? (
           <Link target="_blank"
@@ -110,7 +113,7 @@ export default function PurchaseReturnsPage() {
         ),
     },
     {
-      header: "PO #",
+      header: t("order_number"),
       cell: (item) => (
         <Link target="_blank" href={`/purchase/orders/${item.purchaseOrderId}`}>
           <span className="font-medium text-primary">
@@ -120,7 +123,7 @@ export default function PurchaseReturnsPage() {
       ),
     },
     {
-      header: "Invoice #",
+      header: t("invoice_number"),
       cell: (item) => (
         <Link target="_blank" href={`/purchase/invoices/${item.purchaseInvoiceId}`}>
           <span className="font-medium text-primary">
@@ -130,12 +133,12 @@ export default function PurchaseReturnsPage() {
       ),
     },
     {
-      header: "Date",
+      header: tCommon("date"),
       accessorKey: "returnDate",
       cell: (item) => formatDate(item.returnDate),
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       accessorKey: "status",
       cell: (item) => (
         <Badge className={getStatusColor(item.status)}>
@@ -144,7 +147,7 @@ export default function PurchaseReturnsPage() {
       ),
     },
     {
-      header: "Total Amount",
+      header: tCommon("total"),
       accessorKey: "totalAmount",
       className: "text-right",
       headerClassName: "text-right",
@@ -157,15 +160,15 @@ export default function PurchaseReturnsPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tCommon("actions")}</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link target="_blank" href={`/purchase/returns/${returnItem.id}`}>
-                <Eye className="mr-2 h-4 w-4" /> Details
+                <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
               </Link>
             </DropdownMenuItem>
             {returnItem.status === "DRAFT" && (
@@ -173,7 +176,7 @@ export default function PurchaseReturnsPage() {
                 <Protect permission="purchase.edit">
                   <DropdownMenuItem asChild>
                     <Link target="_blank" href={`/purchase/returns/${returnItem.id}/edit`}>
-                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                      <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
                     </Link>
                   </DropdownMenuItem>
                 </Protect>
@@ -183,7 +186,7 @@ export default function PurchaseReturnsPage() {
                     className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
                     onClick={() => handleDeleteClick(returnItem.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
                   </DropdownMenuItem>
                 </Protect>
               </>
@@ -197,12 +200,12 @@ export default function PurchaseReturnsPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Purchase Returns" />
+        <PageListTitle title={t("purchase_returns")} />
         <PageListActions>
           <Protect permission="purchase.create">
             <Button asChild>
               <Link href="/purchase/returns/new">
-                <Plus className="mr-2 h-4 w-4" /> New Return
+                <Plus className="mr-2 h-4 w-4" /> {t("new_return")}
               </Link>
             </Button>
           </Protect>
@@ -225,7 +228,7 @@ export default function PurchaseReturnsPage() {
               pageSize: 10,
               currentPage: page,
             }}
-            emptyMessage="No purchase returns found."
+            emptyMessage={t("no_returns_found")}
           />
         )}
       </PageListContent>

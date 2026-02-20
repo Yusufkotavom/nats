@@ -4,8 +4,10 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export function PurchasePaymentFilters() {
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -40,7 +42,7 @@ export function PurchasePaymentFilters() {
         <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <CustomInput
-            placeholder="Search payments..."
+            placeholder={tCommon("search_payments")}
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

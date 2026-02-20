@@ -36,8 +36,11 @@ import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 export default function PurchaseOrdersPage() {
+  const t = useTranslations("Purchase");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -87,10 +90,9 @@ export default function PurchaseOrdersPage() {
   const handleDeleteClick = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Purchase Order",
-        description:
-          "Are you sure you want to delete this purchase order? This action cannot be undone.",
-        confirmText: "Delete",
+        title: t("delete_purchase_order"),
+        description: t("delete_purchase_order_desc"),
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -99,13 +101,13 @@ export default function PurchaseOrdersPage() {
           await deletePurchaseOrder(id);
           queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
           toast({
-            title: "Success",
-            description: "Purchase order deleted successfully",
+            title: tCommon("success"),
+            description: t("delete_success"),
           });
         } catch (error) {
           toast({
-            title: "Error",
-            description: "Failed to delete purchase order",
+            title: tCommon("error"),
+            description: t("delete_error"),
             variant: "destructive",
           });
         }
@@ -132,17 +134,17 @@ export default function PurchaseOrdersPage() {
 
   const columns: Column<PurchaseOrderWithDetails>[] = [
     {
-      header: "PO Number",
+      header: t("order_number"),
       accessorKey: "orderNumber",
       className: "font-medium",
     },
     {
-      header: "Date",
+      header: tCommon("date"),
       accessorKey: "orderDate",
       cell: (item) => formatDate(item.orderDate),
     },
     {
-      header: "Vendor",
+      header: tCommon("vendor"),
       cell: (item) =>
         item.contact ? (
           <Link target="_blank"
@@ -156,13 +158,13 @@ export default function PurchaseOrdersPage() {
         ),
     },
     {
-      header: "Expected",
+      header: t("expected_date"),
       accessorKey: "expectedDate",
       cell: (item) =>
         item.expectedDate ? formatDate(item.expectedDate) : "-",
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       accessorKey: "status",
       cell: (item) => (
         <Badge className={getStatusColor(item.status)}>
@@ -171,7 +173,7 @@ export default function PurchaseOrdersPage() {
       ),
     },
     {
-      header: "Total Amount",
+      header: t("total_amount"),
       accessorKey: "totalAmount",
       className: "text-right",
       headerClassName: "text-right",
@@ -184,21 +186,21 @@ export default function PurchaseOrdersPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tCommon("actions")}</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link target="_blank" href={`/purchase/orders/${order.id}`}>
-                <Eye className="mr-2 h-4 w-4" /> Details
+                <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
               </Link>
             </DropdownMenuItem>
             <Protect permission="purchase.edit">
               <DropdownMenuItem asChild>
                 <Link target="_blank" href={`/purchase/orders/${order.id}/edit`}>
-                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                  <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
                 </Link>
               </DropdownMenuItem>
             </Protect>
@@ -208,7 +210,7 @@ export default function PurchaseOrdersPage() {
                 className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
                 onClick={() => handleDeleteClick(order.id)}
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
               </DropdownMenuItem>
             </Protect>
           </DropdownMenuContent>
@@ -220,12 +222,12 @@ export default function PurchaseOrdersPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Purchase Orders" />
+        <PageListTitle title={t("purchase_orders")} />
         <PageListActions>
           <Protect permission="purchase.create">
             <Button asChild>
               <Link href="/purchase/orders/new">
-                <Plus className="mr-2 h-4 w-4" /> New Order
+                <Plus className="mr-2 h-4 w-4" /> {t("new_order")}
               </Link>
             </Button>
           </Protect>
@@ -247,7 +249,7 @@ export default function PurchaseOrdersPage() {
               pageSize: 10,
               currentPage: page,
             }}
-            emptyMessage="No purchase orders found."
+            emptyMessage={t("no_orders_found")}
           />
         )}
       </PageListContent>

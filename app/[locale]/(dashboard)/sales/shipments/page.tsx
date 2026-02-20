@@ -34,8 +34,11 @@ import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslations } from "next-intl";
 
 export default function SalesShipmentsPage() {
+  const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -62,9 +65,9 @@ export default function SalesShipmentsPage() {
   const handleDeleteClick = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Sales Shipment",
-        description:
-          "Are you sure you want to delete this shipment? This action cannot be undone.",
+        title: t("delete_sales_shipment"),
+        description: t("delete_sales_shipment_desc"),
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -87,12 +90,12 @@ export default function SalesShipmentsPage() {
 
   const columns: Column<SalesShipmentWithDetails>[] = [
     {
-      header: "Shipment #",
+      header: t("shipment_number"),
       accessorKey: "shipmentNumber",
       className: "font-medium",
     },
     {
-      header: "SO #",
+      header: t("order_number"),
       cell: (item) => (
         <Link target="_blank" href={`/sales/orders/${item.salesOrderId}`}>
           <span className="font-medium text-primary">
@@ -102,7 +105,7 @@ export default function SalesShipmentsPage() {
       ),
     },
     {
-      header: "Customer",
+      header: tCommon("customer"),
       cell: (item) =>
         item.contact ? (
           <Link target="_blank"
@@ -116,12 +119,12 @@ export default function SalesShipmentsPage() {
         ),
     },
     {
-      header: "Date",
+      header: tCommon("date"),
       accessorKey: "shipmentDate",
       cell: (item) => formatDate(item.shipmentDate),
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       accessorKey: "status",
       cell: (item) => (
         <Badge className={getStatusColor(item.status)}>
@@ -136,22 +139,22 @@ export default function SalesShipmentsPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tCommon("actions")}</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link target="_blank" href={`/sales/shipments/${shipment.id}`}>
-                <Eye className="mr-2 h-4 w-4" /> Details
+                <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
               </Link>
             </DropdownMenuItem>
             {shipment.status !== "COMPLETED" && (
               <Protect permission="sales.edit">
                 <DropdownMenuItem asChild>
                   <Link target="_blank" href={`/sales/shipments/${shipment.id}/edit`}>
-                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                    <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
                   </Link>
                 </DropdownMenuItem>
               </Protect>
@@ -163,7 +166,7 @@ export default function SalesShipmentsPage() {
                   className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
                   onClick={() => handleDeleteClick(shipment.id)}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
                 </DropdownMenuItem>
               </Protect>
             )}
@@ -176,22 +179,20 @@ export default function SalesShipmentsPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Sales Shipments" />
+        <PageListTitle title={t("sales_shipments")} />
         <PageListActions>
           <Protect permission="sales.create">
             <Button asChild>
               <Link href="/sales/shipments/new">
-                <Plus className="mr-2 h-4 w-4" /> New Shipment
+                <Plus className="mr-2 h-4 w-4" /> {t("new_shipment")}
               </Link>
             </Button>
           </Protect>
         </PageListActions>
       </PageListHeader>
-
       <PageListFilter>
         <SalesShipmentFilters />
       </PageListFilter>
-
       <PageListContent>
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
@@ -204,7 +205,7 @@ export default function SalesShipmentsPage() {
               pageSize: 10,
               currentPage: page,
             }}
-            emptyMessage="No sales shipments found."
+            emptyMessage={t("no_shipments_found")}
           />
         )}
       </PageListContent>

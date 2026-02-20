@@ -37,8 +37,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { SuperJSONResult } from "superjson";
+import { useTranslations } from "next-intl";
 
 export default function SalesReturnsPage() {
+  const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -69,9 +72,9 @@ export default function SalesReturnsPage() {
   const handleDeleteClick = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Sales Return",
-        description:
-          "Are you sure you want to delete this return? This action cannot be undone.",
+        title: t("delete_sales_return"),
+        description: t("delete_sales_return_desc"),
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -80,13 +83,13 @@ export default function SalesReturnsPage() {
           await deleteSalesReturn(id);
           queryClient.invalidateQueries({ queryKey: ["sales-returns"] });
           toast({
-            title: "Success",
-            description: "Sales return deleted successfully",
+            title: tCommon("success"),
+            description: t("delete_success"),
           });
         } catch (error) {
           toast({
-            title: "Error",
-            description: "Failed to delete sales return",
+            title: tCommon("error"),
+            description: t("delete_error"),
             variant: "destructive",
           });
         }
@@ -111,12 +114,12 @@ export default function SalesReturnsPage() {
 
   const columns: Column<SalesReturnWithDetails>[] = [
     {
-      header: "Return #",
+      header: t("return_number"),
       accessorKey: "returnNumber",
       className: "font-medium",
     },
     {
-      header: "Customer",
+      header: tCommon("customer"),
       cell: (item) =>
         item.contact ? (
           <Link target="_blank"
@@ -130,7 +133,7 @@ export default function SalesReturnsPage() {
         ),
     },
     {
-      header: "SO #",
+      header: t("order_number"),
       cell: (item) => (
         <Link target="_blank" href={`/sales/orders/${item.salesOrderId}`}>
           <span className="font-medium text-primary">
@@ -140,7 +143,7 @@ export default function SalesReturnsPage() {
       ),
     },
     {
-      header: "Invoice #",
+      header: t("invoice_number"),
       cell: (item) => (
         <Link target="_blank" href={`/sales/invoices/${item.salesInvoiceId}`}>
           <span className="font-medium text-primary">
@@ -150,12 +153,12 @@ export default function SalesReturnsPage() {
       ),
     },
     {
-      header: "Date",
+      header: tCommon("date"),
       accessorKey: "returnDate",
       cell: (item) => formatDate(item.returnDate),
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       accessorKey: "status",
       cell: (item) => (
         <Badge className={getStatusColor(item.status)}>
@@ -164,7 +167,7 @@ export default function SalesReturnsPage() {
       ),
     },
     {
-      header: "Total Amount",
+      header: tCommon("total"),
       accessorKey: "totalAmount",
       className: "text-right",
       headerClassName: "text-right",
@@ -177,15 +180,15 @@ export default function SalesReturnsPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tCommon("actions")}</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link target="_blank" href={`/sales/returns/${returnItem.id}`}>
-                <Eye className="mr-2 h-4 w-4" /> Details
+                <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
               </Link>
             </DropdownMenuItem>
             {returnItem.status === "DRAFT" && (
@@ -193,7 +196,7 @@ export default function SalesReturnsPage() {
                 <Protect permission="sales.edit">
                   <DropdownMenuItem asChild>
                     <Link target="_blank" href={`/sales/returns/${returnItem.id}/edit`}>
-                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                      <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
                     </Link>
                   </DropdownMenuItem>
                 </Protect>
@@ -203,7 +206,7 @@ export default function SalesReturnsPage() {
                     className="text-red-600 focus:bg-red-50 focus:text-red-900 dark:focus:bg-red-900/10"
                     onClick={() => handleDeleteClick(returnItem.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    <Trash2 className="mr-2 h-4 w-4" /> {tCommon("delete")}
                   </DropdownMenuItem>
                 </Protect>
               </>
@@ -217,12 +220,12 @@ export default function SalesReturnsPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Sales Returns" />
+        <PageListTitle title={t("sales_returns")} />
         <PageListActions>
           <Protect permission="sales.create">
             <Button asChild>
               <Link href="/sales/returns/new">
-                <Plus className="mr-2 h-4 w-4" /> New Return
+                <Plus className="mr-2 h-4 w-4" /> {t("new_return")}
               </Link>
             </Button>
           </Protect>
@@ -245,7 +248,7 @@ export default function SalesReturnsPage() {
               pageSize: 10,
               currentPage: page,
             }}
-            emptyMessage="No sales returns found."
+            emptyMessage={t("no_returns_found")}
           />
         )}
       </PageListContent>

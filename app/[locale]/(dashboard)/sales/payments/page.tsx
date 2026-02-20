@@ -39,8 +39,11 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate, useFormatCurrency } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransition } from "react";
+import { useTranslations } from "next-intl";
 
 export default function SalesPaymentsPage() {
+  const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
@@ -73,9 +76,9 @@ export default function SalesPaymentsPage() {
   const handlePost = async (id: string) => {
     if (
       await confirm({
-        title: "Post Payment",
-        description:
-          "Are you sure you want to post this payment to the ledger? This action cannot be undone.",
+        title: t("post_payment"),
+        description: t("post_payment_desc"),
+        confirmText: tCommon("confirm"),
       })
     ) {
       startTransition(async () => {
@@ -83,14 +86,14 @@ export default function SalesPaymentsPage() {
           const result = await postSalesPayment(id);
           if (result.success) {
             toast({
-              title: "Success",
+              title: tCommon("success"),
               description: result.data?.processed ? (
-                "Payment posted successfully"
+                t("post_success")
               ) : (
                 <span>
                   {result.data?.alreadyQueued
-                    ? "Payment posting already queued."
-                    : "Payment queued for processing."}{" "}
+                    ? t("already_queued")
+                    : t("queued_for_processing")}{" "}
                   {result.data?.outboxId ? (
                     <Link
                       href={`/admin/integrations/outbox?search=${encodeURIComponent(
@@ -98,7 +101,7 @@ export default function SalesPaymentsPage() {
                       )}`}
                       className="underline"
                     >
-                      View outbox
+                      {t("view_outbox")}
                     </Link>
                   ) : null}
                 </span>
@@ -107,15 +110,15 @@ export default function SalesPaymentsPage() {
             queryClient.invalidateQueries({ queryKey: ["sales-payments"] });
           } else {
             toast({
-              title: "Error",
+              title: tCommon("error"),
               description: result.error,
               variant: "destructive",
             });
           }
         } catch (error) {
           toast({
-            title: "Error",
-            description: "Failed to post payment",
+            title: tCommon("error"),
+            description: t("post_error"),
             variant: "destructive",
           });
         }
@@ -126,9 +129,9 @@ export default function SalesPaymentsPage() {
   const handleDelete = async (id: string) => {
     if (
       await confirm({
-        title: "Delete Payment",
-        description:
-          "Are you sure you want to delete this payment? This will reverse the transaction and update the invoice status.",
+        title: t("delete_payment"),
+        description: t("delete_payment_desc"),
+        confirmText: tCommon("delete"),
         variant: "destructive",
       })
     ) {
@@ -137,13 +140,13 @@ export default function SalesPaymentsPage() {
           await deleteSalesPayment(id);
           queryClient.invalidateQueries({ queryKey: ["sales-payments"] });
           toast({
-            title: "Success",
-            description: "Payment deleted successfully",
+            title: tCommon("success"),
+            description: t("delete_success_payment"),
           });
         } catch (error) {
           toast({
-            title: "Error",
-            description: "Failed to delete payment",
+            title: tCommon("error"),
+            description: t("delete_error_payment"),
             variant: "destructive",
           });
         }
@@ -153,12 +156,12 @@ export default function SalesPaymentsPage() {
 
   const columns: Column<SalesPaymentWithDetails>[] = [
     {
-      header: "Payment #",
+      header: t("payment_number"),
       accessorKey: "paymentNumber",
       className: "font-medium",
     },
     {
-      header: "Status",
+      header: tCommon("status"),
       accessorKey: "journalEntryId",
       cell: (item) =>
         item.journalEntryId ? (
@@ -166,24 +169,24 @@ export default function SalesPaymentsPage() {
             variant="outline"
             className="bg-green-50 text-green-700 border-green-200"
           >
-            Posted
+            {t("posted")}
           </Badge>
         ) : (
           <Badge
             variant="outline"
             className="bg-yellow-50 text-yellow-700 border-yellow-200"
           >
-            Unposted
+            {t("unposted")}
           </Badge>
         ),
     },
     {
-      header: "Date",
+      header: tCommon("date"),
       accessorKey: "paymentDate",
       cell: (item) => formatDate(item.paymentDate),
     },
     {
-      header: "Customer",
+      header: tCommon("customer"),
       cell: (item) =>
         item.contact ? (
           <Link target="_blank"
@@ -197,7 +200,7 @@ export default function SalesPaymentsPage() {
         ),
     },
     {
-      header: "Invoice #",
+      header: t("invoice_number"),
       cell: (item) => (
         <Link target="_blank" href={`/sales/invoices/${item.salesInvoiceId}`}>
           <span className="font-medium text-primary">
@@ -207,11 +210,11 @@ export default function SalesPaymentsPage() {
       ),
     },
     {
-      header: "Account",
+      header: t("account"),
       cell: (item) => item.cashAccount?.name || "-",
     },
     {
-      header: "Amount",
+      header: tCommon("amount"),
       accessorKey: "amount",
       className: "text-right",
       headerClassName: "text-right",
@@ -224,17 +227,17 @@ export default function SalesPaymentsPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">{tCommon("actions")}</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link target="_blank" href={`/sales/payments/${payment.id}`}>
                 <Eye className="mr-2 h-4 w-4" />
-                Details
+                {tCommon("details")}
               </Link>
             </DropdownMenuItem>
             {!payment.journalEntryId && (
@@ -242,7 +245,7 @@ export default function SalesPaymentsPage() {
                 <DropdownMenuItem asChild>
                   <Link href={`/sales/payments/${payment.id}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
-                    Edit
+                    {tCommon("edit")}
                   </Link>
                 </DropdownMenuItem>
               </Protect>
@@ -251,7 +254,7 @@ export default function SalesPaymentsPage() {
               <Protect permission="sales.create">
                 <DropdownMenuItem onClick={() => handlePost(payment.id)}>
                   <BookOpen className="mr-2 h-4 w-4" />
-                  Post
+                  {t("post")}
                 </DropdownMenuItem>
               </Protect>
             )}
@@ -262,7 +265,7 @@ export default function SalesPaymentsPage() {
                   className="text-red-600"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {tCommon("delete")}
                 </DropdownMenuItem>
               </Protect>
             )}
@@ -275,13 +278,13 @@ export default function SalesPaymentsPage() {
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Sales Payments" />
+        <PageListTitle title={t("sales_payments")} />
         <PageListActions>
           <Protect permission="sales.create">
             <Button asChild>
               <Link href="/sales/payments/new">
                 <Plus className="mr-2 h-4 w-4" />
-                New Payment
+                {t("new_payment")}
               </Link>
             </Button>
           </Protect>
@@ -302,7 +305,7 @@ export default function SalesPaymentsPage() {
               pageSize: 10,
               currentPage: page,
             }}
-            emptyMessage="No payments found"
+            emptyMessage={t("no_payments_found")}
           />
         )}
       </PageListContent>

@@ -13,8 +13,11 @@ import { Search, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { SalesShipmentStatus } from "@/prisma/generated/prisma/browser";
+import { useTranslations } from "next-intl";
 
 export function SalesShipmentFilters() {
+  const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -73,7 +76,7 @@ export function SalesShipmentFilters() {
         <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <CustomInput
-            placeholder="Search shipments..."
+            placeholder={t("search_shipments")}
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -82,10 +85,10 @@ export function SalesShipmentFilters() {
         <div className="flex flex-wrap items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={tCommon("status")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="ALL">{tCommon("all_statuses")}</SelectItem>
               {Object.values(SalesShipmentStatus).map((status) => (
                 <SelectItem key={status} value={status}>
                   {status.replace("_", " ")}
@@ -100,7 +103,7 @@ export function SalesShipmentFilters() {
               onClick={clearFilters}
               className="h-8 px-2 lg:px-3"
             >
-              Reset
+              {tCommon("reset")}
               <X className="ml-2 h-4 w-4" />
             </Button>
           )}

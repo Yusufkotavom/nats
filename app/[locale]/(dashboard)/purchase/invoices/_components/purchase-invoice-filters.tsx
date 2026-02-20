@@ -6,8 +6,11 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export function PurchaseInvoiceFilters() {
+  const t = useTranslations("Purchase");
+  const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
@@ -53,7 +56,7 @@ export function PurchaseInvoiceFilters() {
         <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <CustomInput
-            placeholder="Search invoices..."
+            placeholder={t("search_invoices")}
             className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -63,7 +66,7 @@ export function PurchaseInvoiceFilters() {
           value={statusFilter}
           onValueChange={setStatusFilter}
           options={[
-            { value: "ALL", label: "All Status" },
+            { value: "ALL", label: tCommon("all_statuses") },
             { value: "DRAFT", label: "Draft" },
             { value: "BILLED", label: "Billed" },
             { value: "PARTIALLY_PAID", label: "Partially Paid" },
