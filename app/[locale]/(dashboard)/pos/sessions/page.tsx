@@ -5,7 +5,7 @@ import { POSSessionsTable } from "./_components/pos-sessions-table";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageListHeader, PageListLayout, PageListTitle } from "@/components/layout/page/list-layout";
+import { PageListContent, PageListHeader, PageListLayout, PageListTitle } from "@/components/layout/page/list-layout";
 
 export default async function POSSessionsPage() {
   const sessions = await getPOSSessions();
@@ -16,11 +16,10 @@ export default async function POSSessionsPage() {
         <PageListTitle title="POS Sessions" />
       </PageListHeader>
 
-      <div className="flex-1 overflow-auto p-6">
-        <div className="mx-auto max-w-7xl">
-          <POSSessionsTable sessions={sessions} />
-        </div>
-      </div>
+      <PageListContent className="border-0">
+        <POSSessionsTable sessions={sessions} />
+      </PageListContent>
+
     </PageListLayout>
   );
 }
