@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { saveFileToDisk, deleteFileFromDisk } from "@/lib/file-service";
 import { getSession } from "@/lib/auth/auth";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Upload a file to local storage.
@@ -12,21 +13,23 @@ import { revalidatePath } from "next/cache";
  * @returns        - Object containing success/error and file info
  */
 export async function uploadFile(formData: FormData) {
+  const tCommon = await getTranslations("Common");
+  const t = await getTranslations("General.Files");
   const session = await getSession();
   if (!session) {
-    return { error: "Unauthorized" };
+    return { error: tCommon("unauthorized") };
   }
 
   const file = formData.get("file") as File;
 
   if (!file) {
-    return { error: "No file provided" };
+    return { error: t("no_file_provided") };
   }
 
   const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || "5242880"); // Default 5MB
   if (file.size > MAX_FILE_SIZE) {
     const sizeInMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(2);
-    return { error: `File size exceeds the limit of ${sizeInMB}MB` };
+    return { error: t("file_size_exceeds", { size: sizeInMB }) };
   }
 
   try {
@@ -46,7 +49,7 @@ export async function uploadFile(formData: FormData) {
     return { success: true, file: savedFile };
   } catch (error) {
     console.error("Upload error:", error);
-    return { error: "Failed to upload file" };
+    return { error: t("upload_error") };
   }
 }
 
@@ -57,9 +60,11 @@ export async function uploadFile(formData: FormData) {
  * @returns  - Success flag or error
  */
 export async function deleteFile(id: string) {
+  const tCommon = await getTranslations("Common");
+  const t = await getTranslations("General.Files");
   const session = await getSession();
   if (!session) {
-    return { error: "Unauthorized" };
+    return { error: tCommon("unauthorized") };
   }
 
   try {
@@ -68,7 +73,7 @@ export async function deleteFile(id: string) {
     });
 
     if (!file) {
-      return { error: "File not found" };
+      return { error: t("file_not_found") };
     }
 
     await deleteFileFromDisk(file.url);
@@ -81,7 +86,7 @@ export async function deleteFile(id: string) {
     return { success: true };
   } catch (error) {
     console.error("Delete error:", error);
-    return { error: "Failed to delete file" };
+    return { error: t("delete_error") };
   }
 }
 

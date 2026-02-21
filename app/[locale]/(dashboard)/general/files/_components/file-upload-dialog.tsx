@@ -13,6 +13,7 @@ import {
 import { CustomInput } from "@/components/ui/custom-input";
 import { uploadFile } from "../actions";
 import { Loader2, Upload } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function FileUploadDialog({
   open,
@@ -23,6 +24,7 @@ export function FileUploadDialog({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("General.Files");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,7 +41,7 @@ export function FileUploadDialog({
       }
     } catch (error) {
       console.error(error);
-      setError("An unexpected error occurred");
+      setError(t("upload_error"));
     } finally {
       setLoading(false);
     }
@@ -49,15 +51,15 @@ export function FileUploadDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Upload File</DialogTitle>
+          <DialogTitle>{t("upload_file")}</DialogTitle>
           <DialogDescription>
-            Select a file to upload to the system.
+            {t("select_file_desc")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <CustomInput
-              label="File"
+              label={t("file_label")}
               id="file"
               name="file"
               type="file"
@@ -72,12 +74,12 @@ export function FileUploadDialog({
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading...
+                  {t("uploading")}
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Upload
+                  {t("upload")}
                 </>
               )}
             </Button>

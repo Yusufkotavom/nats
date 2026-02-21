@@ -15,6 +15,7 @@ import { useState } from "react";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
 import { useFormatDate } from "@/hooks/use-format-date";
+import { useTranslations } from "next-intl";
 
 export function FileTable({
   files,
@@ -25,12 +26,14 @@ export function FileTable({
   const confirm = useConfirm();
   const alert = useAlert();
   const formatDate = useFormatDate();
+  const t = useTranslations("General.Files");
+  const tCommon = useTranslations("Common");
 
   const handleDelete = async (id: string) => {
     if (
       await confirm({
-        title: "Delete File",
-        description: "Are you sure you want to delete this file?",
+        title: t("delete_file"),
+        description: t("delete_confirm_desc"),
       })
     ) {
       setDeletingId(id);
@@ -39,8 +42,8 @@ export function FileTable({
       } catch (error) {
         console.error("Failed to delete file:", error);
         await alert({
-          title: "Error",
-          description: "Failed to delete file",
+          title: tCommon("error"),
+          description: t("delete_error"),
         });
       } finally {
         setDeletingId(null);
@@ -49,9 +52,9 @@ export function FileTable({
   };
 
   const formatSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return `0 ${t("unit_bytes")}`;
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = [t("unit_bytes"), t("unit_kb"), t("unit_mb"), t("unit_gb")];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
@@ -61,12 +64,12 @@ export function FileTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Size</TableHead>
-            <TableHead>Uploaded By</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>{t("name")}</TableHead>
+            <TableHead>{t("type")}</TableHead>
+            <TableHead>{t("size")}</TableHead>
+            <TableHead>{t("uploaded_by")}</TableHead>
+            <TableHead>{t("date")}</TableHead>
+            <TableHead className="text-right">{t("actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -84,7 +87,7 @@ export function FileTable({
               </TableCell>
               <TableCell>{file.mimeType}</TableCell>
               <TableCell>{formatSize(file.size)}</TableCell>
-              <TableCell>{file.uploadedBy?.name || "Unknown"}</TableCell>
+              <TableCell>{file.uploadedBy?.name || t("unknown")}</TableCell>
               <TableCell>
                 {formatDate(file.createdAt)}
               </TableCell>
@@ -110,7 +113,7 @@ export function FileTable({
           {files.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="text-center h-24">
-                No files found.
+                {t("no_files_found")}
               </TableCell>
             </TableRow>
           )}

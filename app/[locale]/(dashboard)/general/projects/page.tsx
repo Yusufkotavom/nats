@@ -9,14 +9,26 @@ import {
   PageListLayout,
   PageListTitle,
 } from "@/components/layout/page/list-layout";
+import { getTranslations } from "next-intl/server";
 
 export default async function ProjectsPage() {
   const projects = await getProjects();
+  const t = await getTranslations("General.Projects");
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "ACTIVE": return t("active");
+      case "COMPLETED": return t("completed");
+      case "ON_HOLD": return t("on_hold");
+      case "CANCELLED": return t("cancelled");
+      default: return status;
+    }
+  };
 
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Projects" />
+        <PageListTitle title={t("title")} />
       </PageListHeader>
 
       <div className="space-y-4">
@@ -27,17 +39,17 @@ export default async function ProjectsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Manager</TableHead>
+                <TableHead>{t("code")}</TableHead>
+                <TableHead>{t("name")}</TableHead>
+                <TableHead>{t("description")}</TableHead>
+                <TableHead>{t("status")}</TableHead>
+                <TableHead>{t("manager")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {projects.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">No projects found</TableCell>
+                  <TableCell colSpan={5} className="text-center">{t("no_projects_found")}</TableCell>
                 </TableRow>
               ) : (
                 projects.map((proj) => (
@@ -45,7 +57,7 @@ export default async function ProjectsPage() {
                     <TableCell>{proj.code}</TableCell>
                     <TableCell className="font-medium">{proj.name}</TableCell>
                     <TableCell>{proj.description}</TableCell>
-                    <TableCell>{proj.status}</TableCell>
+                    <TableCell>{getStatusLabel(proj.status)}</TableCell>
                     <TableCell>{proj.manager?.name || "-"}</TableCell>
                   </TableRow>
                 ))

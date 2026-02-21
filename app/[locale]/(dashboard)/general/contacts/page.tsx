@@ -44,10 +44,13 @@ import {
 } from "@/components/layout/page/list-layout";
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type Contact = Awaited<ReturnType<typeof getContacts>>["data"][number];
 
 export default function ContactsPage() {
+  const t = useTranslations("General.Contacts");
+  const tCommon = useTranslations("Common");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | undefined>(
     undefined
@@ -71,8 +74,8 @@ export default function ContactsPage() {
   const handleDeleteClick = async (contact: Contact) => {
     if (
       await confirm({
-        title: "Delete Contact",
-        description: `Are you sure you want to delete "${contact.name}"? This action cannot be undone.`,
+        title: t("delete_contact"),
+        description: t("delete_confirm_desc", { name: contact.name }),
       })
     ) {
       await deleteContact(contact.id);
@@ -102,15 +105,28 @@ export default function ContactsPage() {
     }
   };
 
+  const getTypeLabel = (type: ContactType) => {
+    switch (type) {
+      case ContactType.CUSTOMER:
+        return t("customer");
+      case ContactType.VENDOR:
+        return t("vendor");
+      case ContactType.EMPLOYEE:
+        return t("employee");
+      default:
+        return type;
+    }
+  };
+
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Contact Management" />
+        <PageListTitle title={t("title")} />
         <PageListActions>
           <Protect permission="contacts.create">
             <Button onClick={handleAddContact}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Contact
+              {t("add_contact")}
             </Button>
           </Protect>
         </PageListActions>
@@ -121,14 +137,14 @@ export default function ContactsPage() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <CustomInput
             name="search"
-            placeholder="Search contacts..."
+            placeholder={t("search_placeholder")}
             className="pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Button type="submit" variant="secondary">
-          Search
+          {tCommon("search")}
         </Button>
       </PageListFilter>
 
@@ -136,12 +152,12 @@ export default function ContactsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("type")}</TableHead>
+              <TableHead>{t("email")}</TableHead>
+              <TableHead>{t("phone")}</TableHead>
+              <TableHead>{t("address")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -149,7 +165,7 @@ export default function ContactsPage() {
             {contacts.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center">
-                  No contacts found.
+                  {t("no_contacts_found")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -168,7 +184,7 @@ export default function ContactsPage() {
                       className={getTypeBadgeColor(contact.type)}
                       variant="outline"
                     >
-                      {contact.type}
+                      {getTypeLabel(contact.type)}
                     </Badge>
                   </TableCell>
                   <TableCell>{contact.email || "-"}</TableCell>
@@ -176,7 +192,7 @@ export default function ContactsPage() {
                   <TableCell>{contact.address || "-"}</TableCell>
                   <TableCell>
                     <Badge variant={contact.isActive ? "default" : "secondary"}>
-                      {contact.isActive ? "Active" : "Inactive"}
+                      {contact.isActive ? t("active") : t("inactive")}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -188,13 +204,13 @@ export default function ContactsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
                         <DropdownMenuItem
                           onClick={() =>
                             navigator.clipboard.writeText(contact.id)
                           }
                         >
-                          Copy ID
+                          {t("copy_id")}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <Protect permission="contacts.edit">
@@ -202,7 +218,7 @@ export default function ContactsPage() {
                             onClick={() => handleEditContact(contact)}
                           >
                             <Pencil className="mr-2 h-4 w-4" />
-                            Edit
+                            {tCommon("edit")}
                           </DropdownMenuItem>
                         </Protect>
                         <Protect permission="contacts.delete">
@@ -211,7 +227,7 @@ export default function ContactsPage() {
                             className="text-red-600"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            {tCommon("delete")}
                           </DropdownMenuItem>
                         </Protect>
                       </DropdownMenuContent>

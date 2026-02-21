@@ -11,6 +11,7 @@ import {
 import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";
+import { getTranslations } from "next-intl/server";
 
 export async function getContact(id: string) {
   const contact = await prisma.contact.findUnique({
@@ -375,7 +376,8 @@ export const createContact = authorizedAction(
       return { success: true, contact };
     } catch (error) {
       console.error("Failed to create contact:", error);
-      return { success: false, error: "Failed to create contact" };
+      const t = await getTranslations("General.Contacts");
+      return { success: false, error: t("create_error") };
     }
   }
 );
@@ -392,7 +394,8 @@ export const updateContact = authorizedAction(
       return { success: true, contact };
     } catch (error) {
       console.error("Failed to update contact:", error);
-      return { success: false, error: "Failed to update contact" };
+      const t = await getTranslations("General.Contacts");
+      return { success: false, error: t("update_error") };
     }
   }
 );
@@ -408,7 +411,8 @@ export const deleteContact = authorizedAction(
       return { success: true };
     } catch (error) {
       console.error("Failed to delete contact:", error);
-      return { success: false, error: "Failed to delete contact" };
+      const t = await getTranslations("General.Contacts");
+      return { success: false, error: t("delete_error") };
     }
   }
 );

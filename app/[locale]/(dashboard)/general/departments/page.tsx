@@ -9,14 +9,16 @@ import {
   PageListLayout,
   PageListTitle,
 } from "@/components/layout/page/list-layout";
+import { getTranslations } from "next-intl/server";
 
 export default async function DepartmentsPage() {
   const departments = await getDepartments();
+  const t = await getTranslations("General.Departments");
 
   return (
     <PageListLayout>
       <PageListHeader>
-        <PageListTitle title="Departments" />
+        <PageListTitle title={t("title")} />
       </PageListHeader>
 
       <div className="space-y-4">
@@ -27,16 +29,16 @@ export default async function DepartmentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Manager</TableHead>
+                <TableHead>{t("code")}</TableHead>
+                <TableHead>{t("name")}</TableHead>
+                <TableHead>{t("description")}</TableHead>
+                <TableHead>{t("manager")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {departments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">No departments found</TableCell>
+                  <TableCell colSpan={4} className="text-center">{t("no_departments_found")}</TableCell>
                 </TableRow>
               ) : (
                 departments.map((dept) => (
