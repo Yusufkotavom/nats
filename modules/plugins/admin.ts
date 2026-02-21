@@ -25,7 +25,6 @@ export const adminPlugin: ModulePlugin = {
           items: [
             { title: "Admin.users", url: "/admin/users" },
             { title: "Admin.roles", url: "/admin/roles" },
-            { title: "Admin.settings", url: "/admin/settings" },
           ],
         },
         {

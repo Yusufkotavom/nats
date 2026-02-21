@@ -12,12 +12,8 @@ export const hrPlugin: ModulePlugin = {
                     url: "#",
                     icon: Users,
                     items: [
-                        { title: "HR.dashboard", url: "/hr/dashboard" },
                         { title: "HR.employees", url: "/hr/employees" },
-                        { title: "HR.departments", url: "/hr/departments" },
                         { title: "HR.payroll", url: "/hr/payroll" },
-                        { title: "HR.attendance", url: "/hr/attendance" },
-                        { title: "HR.leaves", url: "/hr/leaves" },
                     ],
                 },
             ],
