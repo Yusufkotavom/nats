@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,8 @@ export function CashAccountDialog({
   onSuccess,
 }: CashAccountDialogProps) {
   const { toast } = useToast();
+  const t = useTranslations("CashBank");
+  const tCommon = useTranslations("Common");
   const [formData, setFormData] = useState<CashAccountFormData>(() => {
     if (account) {
       return {
@@ -66,8 +69,8 @@ export function CashAccountDialog({
   const handleSubmit = () => {
     if (!formData.name || !formData.glAccountId) {
       toast({
-        title: "Error",
-        description: "Name and GL Account are required",
+        title: tCommon("error"),
+        description: t("name_gl_account_required"),
         variant: "destructive",
       });
       return;
@@ -78,23 +81,23 @@ export function CashAccountDialog({
         if (account) {
           await updateCashAccount(account.id, formData);
           toast({
-            title: "Success",
-            description: "Account updated successfully",
+            title: tCommon("success"),
+            description: t("account_updated_success"),
           });
         } else {
           await createCashAccount(formData);
           toast({
-            title: "Success",
-            description: "Account created successfully",
+            title: tCommon("success"),
+            description: t("account_created_success"),
           });
         }
         onSuccess();
         onOpenChange(false);
       } catch (error) {
         toast({
-          title: "Error",
+          title: tCommon("error"),
           description:
-            error instanceof Error ? error.message : "Something went wrong",
+            error instanceof Error ? error.message : t("something_went_wrong"),
           variant: "destructive",
         });
       }
@@ -120,23 +123,23 @@ export function CashAccountDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{account ? "Edit Account" : "Add Account"}</DialogTitle>
+          <DialogTitle>{account ? t("edit_account") : t("add_account")}</DialogTitle>
           <DialogDescription>
             {account
-              ? "Edit cash or bank account details."
-              : "Create a new cash or bank account."}
+              ? t("edit_cash_bank_account")
+              : t("create_cash_bank_account")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <CustomInput
-            label="Account Name"
+            label={t("account_name")}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="e.g. Petty Cash, Main Bank"
             required
           />
           <CustomSelect
-            label="Type"
+            label={t("type")}
             value={formData.type}
             onValueChange={(val) =>
               setFormData({ ...formData, type: val as CashAccountType })
@@ -144,20 +147,20 @@ export function CashAccountDialog({
             options={accountTypeOptions}
           />
           <CustomSelect
-            label="GL Account"
+            label={t("gl_account")}
             value={formData.glAccountId}
             onValueChange={(val) =>
               setFormData({ ...formData, glAccountId: val })
             }
             options={glAccountOptions}
-            placeholder="Select GL Account"
+            placeholder={t("select_gl_account")}
             disabled={!!account} // Usually changing GL account for existing cash account is tricky
           />
           {(formData.type === CashAccountType.BANK ||
             formData.type === CashAccountType.EWALLET) && (
               <>
                 <CustomInput
-                  label="Bank/Provider Name"
+                  label={t("bank_provider_name")}
                   value={formData.bankName || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, bankName: e.target.value })
@@ -165,7 +168,7 @@ export function CashAccountDialog({
                   placeholder="e.g. Chase, PayPal"
                 />
                 <CustomInput
-                  label="Account Number"
+                  label={t("account_number")}
                   value={formData.accountNumber || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, accountNumber: e.target.value })
@@ -175,7 +178,7 @@ export function CashAccountDialog({
               </>
             )}
           <CustomTextarea
-            label="Description"
+            label={t("description")}
             value={formData.description || ""}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
@@ -184,11 +187,11 @@ export function CashAccountDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {tCommon("cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {account ? "Update" : "Create"}
+            {account ? t("update_account") : t("create_account")}
           </Button>
         </DialogFooter>
       </DialogContent>

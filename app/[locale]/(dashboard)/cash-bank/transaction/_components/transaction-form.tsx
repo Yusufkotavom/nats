@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,8 @@ export function TransactionForm({
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const t = useTranslations("CashBank");
+  const tCommon = useTranslations("Common");
 
   const handleCancel = () => {
     if (onCancel) {
@@ -138,8 +141,8 @@ export function TransactionForm({
     try {
       if (!formData.cashAccountId) {
         toast({
-          title: "Validation Error",
-          description: "Please select a cash account",
+          title: t("validation_error"),
+          description: t("select_cash_account"),
           variant: "destructive",
         });
         return;
@@ -149,16 +152,16 @@ export function TransactionForm({
       for (const alloc of formData.allocations) {
         if (!alloc.accountId) {
           toast({
-            title: "Validation Error",
-            description: "All allocations must have an account selected",
+            title: t("validation_error"),
+            description: t("all_allocations_account_selected"),
             variant: "destructive",
           });
           return;
         }
         if (Number(alloc.amount) <= 0) {
           toast({
-            title: "Validation Error",
-            description: "Allocation amount must be greater than 0",
+            title: t("validation_error"),
+            description: t("allocation_amount_greater_zero"),
             variant: "destructive",
           });
           return;
@@ -178,21 +181,21 @@ export function TransactionForm({
           SuperJSON.serialize(submitData),
         );
         toast({
-          title: "Success",
-          description: "Transaction updated successfully",
+          title: tCommon("success"),
+          description: t("transaction_updated"),
         });
       } else {
         const result = await createCashTransaction(SuperJSON.serialize(submitData));
         if (!result.success) {
-          throw new Error(result.error || "Failed to create transaction");
+          throw new Error(result.error || t("failed_create_transaction"));
         }
         toast({
-          title: "Success",
+          title: tCommon("success"),
           description: result.data?.processed ? (
-            "Transaction created successfully"
+            t("transaction_created")
           ) : (
             <span>
-              Transaction queued for processing.{" "}
+              {t("transaction_queued_processing")}{" "}
               {result.data?.outboxId ? (
                 <Link
                   href={`/admin/integrations/outbox?search=${encodeURIComponent(
@@ -200,7 +203,7 @@ export function TransactionForm({
                   )}`}
                   className="underline"
                 >
-                  View outbox
+                  {t("view_outbox")}
                 </Link>
               ) : null}
             </span>
@@ -218,8 +221,8 @@ export function TransactionForm({
     } catch (error) {
       console.error(error);
       toast({
-        title: "Error",
-        description: "Failed to create transaction",
+        title: tCommon("error"),
+        description: t("failed_create_transaction"),
         variant: "destructive",
       });
     } finally {
@@ -236,18 +239,18 @@ export function TransactionForm({
     <PageFormLayout>
       <PageFormHeader>
         <PageFormTitle>
-          {initialData?.id ? "Edit Cash Transaction" : "New Cash Transaction"}
+          {initialData?.id ? t("edit_cash_transaction") : t("new_cash_transaction")}
         </PageFormTitle>
         <PageFormActions>
           <Button variant="outline" onClick={handleCancel}>
-            {readOnly ? "Back" : "Cancel"}
+            {readOnly ? tCommon("back") : tCommon("cancel")}
           </Button>
           {!readOnly && (
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save Transaction
+              {t("save_transaction")}
             </Button>
           )}
         </PageFormActions>
@@ -256,19 +259,19 @@ export function TransactionForm({
       <PageFormContent className="space-y-8">
         <div className="grid grid-cols-2 gap-4">
           <CustomSelect
-            label="Type"
+            label={t("type")}
             value={formData.type}
             onValueChange={(val) =>
               setFormData({ ...formData, type: val as CashTransactionType })
             }
             options={[
-              { label: "Revenue (In)", value: CashTransactionType.INCOME },
-              { label: "Expense (Out)", value: CashTransactionType.EXPENSE },
+              { label: t("revenue_in"), value: CashTransactionType.INCOME },
+              { label: t("expense_out"), value: CashTransactionType.EXPENSE },
             ]}
             disabled={readOnly}
           />
           <CustomInput
-            label="Date"
+            label={t("date")}
             type="date"
             value={
               formData.date instanceof Date
@@ -281,7 +284,7 @@ export function TransactionForm({
             disabled={readOnly}
           />
           <div className="space-y-1">
-            <Label>Contact (Optional)</Label>
+            <Label>{t("contact_optional")}</Label>
             <SearchableSelect
               value={formData.contactId}
               onValueChange={(val) =>
@@ -291,21 +294,21 @@ export function TransactionForm({
                 label: c.name,
                 value: c.id,
               }))}
-              placeholder="Select Contact"
+              placeholder={t("select_contact")}
               disabled={readOnly}
             />
           </div>
           <CustomInput
-            label="Reference"
+            label={t("reference")}
             value={formData.reference || ""}
             onChange={(e) =>
               setFormData({ ...formData, reference: e.target.value })
             }
-            placeholder="Optional reference"
+            placeholder={t("optional_reference")}
             disabled={readOnly}
           />
           <CustomSelect
-            label="Cash/Bank Account"
+            label={t("cash_bank_account")}
             value={formData.cashAccountId}
             onValueChange={(val) =>
               setFormData({ ...formData, cashAccountId: val })
@@ -314,38 +317,38 @@ export function TransactionForm({
               label: acc.name,
               value: acc.id,
             }))}
-            placeholder="Select Account"
+            placeholder={t("select_account")}
             disabled={readOnly}
           />
 
           <CustomInput
-            label="Description"
+            label={t("description")}
             value={formData.description || ""}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
             }
-            placeholder="Transaction description"
+            placeholder={t("transaction_description")}
             disabled={readOnly}
           />
 
           <div className="col-span-2 grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label>Department</Label>
+              <Label>{t("department")}</Label>
               <SearchableSelect
                 value={formData.departmentId || ""}
                 onValueChange={(val) => setFormData({ ...formData, departmentId: val || undefined })}
                 options={departments?.map(d => ({ value: d.id, label: d.name })) || []}
-                placeholder="Select Department"
+                placeholder={t("select_department")}
                 disabled={readOnly}
               />
             </div>
             <div className="space-y-1">
-              <Label>Project</Label>
+              <Label>{t("project")}</Label>
               <SearchableSelect
                 value={formData.projectId || ""}
                 onValueChange={(val) => setFormData({ ...formData, projectId: val || undefined })}
                 options={projects?.map(p => ({ value: p.id, label: p.name })) || []}
-                placeholder="Select Project"
+                placeholder={t("select_project")}
                 disabled={readOnly}
               />
             </div>
@@ -370,9 +373,9 @@ export function TransactionForm({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[30%]">Description</TableHead>
-                  <TableHead className="w-[40%]">Account</TableHead>
-                  <TableHead className="w-[25%]">Amount</TableHead>
+                  <TableHead className="w-[30%]">{t("description")}</TableHead>
+                  <TableHead className="w-[40%]">{t("account")}</TableHead>
+                  <TableHead className="w-[25%]">{t("amount")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -384,7 +387,7 @@ export function TransactionForm({
                         onChange={(e) =>
                           updateAllocation(index, "description", e.target.value)
                         }
-                        placeholder="Line description"
+                        placeholder={t("line_description")}
                         disabled={readOnly}
                       />
                     </TableCell>
@@ -398,7 +401,7 @@ export function TransactionForm({
                         onValueChange={(val) =>
                           updateAllocation(index, "accountId", val)
                         }
-                        placeholder="Select GL Account"
+                        placeholder={t("select_gl_account")}
                         disabled={readOnly}
                       />
                     </TableCell>
@@ -429,8 +432,8 @@ export function TransactionForm({
                       className="text-center text-muted-foreground h-24"
                     >
                       {readOnly
-                        ? "No allocations found."
-                        : 'No allocations added. Click "Add Line" to start.'}
+                        ? t("no_allocations_found")
+                        : t("no_allocations_add_line")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -448,8 +451,8 @@ export function TransactionForm({
               >
                 <Paperclip className="mr-2 h-4 w-4" />
                 {attachmentDialog.attachments.length > 0
-                  ? `${attachmentDialog.attachments.length} Attachments`
-                  : "Attach File"}
+                  ? `${attachmentDialog.attachments.length} ${attachmentDialog.attachments.length > 1 ? t("attachments") : t("attachment")}`
+                  : t("attach_file")}
               </Button>
               <Button
                 variant="outline"
@@ -458,7 +461,7 @@ export function TransactionForm({
                 disabled={readOnly} // For now disable in readOnly
               >
                 <StickyNote className="mr-2 h-4 w-4" />
-                {noteDialog.note ? "Edit Note" : "Add Note"}
+                {noteDialog.note ? t("edit_note") : t("add_note")}
               </Button>
             </div>
             <div className="flex items-center gap-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,8 @@ export function CashTransferDialog({
   viewOnly,
 }: CashTransferDialogProps) {
   const { toast } = useToast();
+  const t = useTranslations("CashBank");
+  const tCommon = useTranslations("Common");
   const [formData, setFormData] = useState<CashTransferFormData>({
     fromAccountId: "",
     toAccountId: "",
@@ -112,8 +115,8 @@ export function CashTransferDialog({
       formData.amount.lessThan(0)
     ) {
       toast({
-        title: "Error",
-        description: "Please select accounts and enter a valid amount",
+        title: tCommon("error"),
+        description: t("select_accounts_valid_amount"),
         variant: "destructive",
       });
       return;
@@ -121,8 +124,8 @@ export function CashTransferDialog({
 
     if (formData.fromAccountId === formData.toAccountId) {
       toast({
-        title: "Error",
-        description: "Cannot transfer to the same account",
+        title: tCommon("error"),
+        description: t("cannot_transfer_same_account"),
         variant: "destructive",
       });
       return;
@@ -136,8 +139,8 @@ export function CashTransferDialog({
             attachmentIds: attachmentDialog.attachments.map((a) => a.id),
           });
           toast({
-            title: "Success",
-            description: "Transfer updated successfully",
+            title: tCommon("success"),
+            description: t("transfer_updated"),
           });
         } else {
           await createCashTransfer({
@@ -145,8 +148,8 @@ export function CashTransferDialog({
             attachmentIds: attachmentDialog.attachments.map((a) => a.id),
           });
           toast({
-            title: "Success",
-            description: "Transfer recorded successfully",
+            title: tCommon("success"),
+            description: t("transfer_recorded"),
           });
         }
         onSuccess();
@@ -165,9 +168,9 @@ export function CashTransferDialog({
         }
       } catch (error) {
         toast({
-          title: "Error",
+          title: tCommon("error"),
           description:
-            error instanceof Error ? error.message : "Something went wrong",
+            error instanceof Error ? error.message : t("something_went_wrong"),
           variant: "destructive",
         });
       }
@@ -184,40 +187,40 @@ export function CashTransferDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {viewOnly ? "View Transfer" : "Transfer Funds"}
+            {viewOnly ? t("view_transfer") : t("transfer_funds")}
           </DialogTitle>
           <DialogDescription>
             {viewOnly
-              ? "View transfer details."
-              : "Record a transfer between cash/bank accounts."}
+              ? t("view_transfer_details")
+              : t("record_transfer_between_accounts")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <CustomSelect
-              label="From Account"
+              label={t("from_account")}
               value={formData.fromAccountId}
               onValueChange={(val) =>
                 setFormData({ ...formData, fromAccountId: val })
               }
               options={accountOptions}
-              placeholder="Select Source"
+              placeholder={t("select_source")}
               disabled={viewOnly}
             />
             <CustomSelect
-              label="To Account"
+              label={t("to_account")}
               value={formData.toAccountId}
               onValueChange={(val) =>
                 setFormData({ ...formData, toAccountId: val })
               }
               options={accountOptions}
-              placeholder="Select Destination"
+              placeholder={t("select_destination")}
               disabled={viewOnly}
             />
           </div>
 
           <div className="space-y-1">
-            <Label>Amount</Label>
+            <Label>{t("amount")}</Label>
             <CurrencyInput
               value={formData.amount.toNumber()}
               onChange={(val) =>
@@ -226,13 +229,13 @@ export function CashTransferDialog({
                   amount: new Prisma.Decimal(val || 0),
                 })
               }
-              placeholder="0.00"
+              placeholder={t("zero_placeholder")}
               disabled={viewOnly}
             />
           </div>
 
           <CustomInput
-            label="Date"
+            label={t("date")}
             type="date"
             value={
               formData.date instanceof Date
@@ -246,17 +249,17 @@ export function CashTransferDialog({
           />
 
           <CustomInput
-            label="Reference"
+            label={t("reference")}
             value={formData.reference || ""}
             onChange={(e) =>
               setFormData({ ...formData, reference: e.target.value })
             }
-            placeholder="e.g. TRF-001"
+            placeholder={t("e_g_trf_001")}
             disabled={viewOnly}
           />
 
           <CustomTextarea
-            label="Description"
+            label={t("description")}
             value={formData.description || ""}
             onChange={(e) =>
               setFormData({ ...formData, description: e.target.value })
@@ -274,20 +277,19 @@ export function CashTransferDialog({
             >
               <Paperclip className="mr-2 h-4 w-4" />
               {attachmentDialog.attachments.length > 0
-                ? `${attachmentDialog.attachments.length} Attachment${attachmentDialog.attachments.length > 1 ? "s" : ""
-                }`
-                : "Add Attachments"}
+                ? `${attachmentDialog.attachments.length} ${attachmentDialog.attachments.length > 1 ? t("attachments") : t("attachment")}`
+                : t("add_attachments")}
             </Button>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {viewOnly ? "Close" : "Cancel"}
+            {viewOnly ? tCommon("close") : tCommon("cancel")}
           </Button>
           {!viewOnly && (
             <Button onClick={handleSubmit} disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Transfer
+              {t("transfer")}
             </Button>
           )}
         </DialogFooter>

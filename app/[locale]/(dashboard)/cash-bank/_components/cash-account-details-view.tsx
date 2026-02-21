@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 
 export function AccountDetailsView({ accountId }: { accountId: string }) {
   const [startDate, setStartDate] = useState("");
@@ -38,6 +39,7 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
+  const t = useTranslations("CashBank");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
 
@@ -68,12 +70,12 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
 
   const columns: Column<any>[] = [
     {
-      header: "Date",
+      header: t("date"),
       headerClassName: "rounded-tl-lg",
       cell: (entry) => formatDate(entry.journalEntry.transactionDate),
     },
     {
-      header: "Entry #",
+      header: t("entry_number"),
       cell: (entry) => (
         <Link
           href={`/accounting/journal/${entry.journalEntry.id}`}
@@ -84,7 +86,7 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
       ),
     },
     {
-      header: "Description",
+      header: t("description"),
       cell: (entry) => (
         <div className="flex flex-col">
           <span className="text-sm">
@@ -130,7 +132,7 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
       ),
     },
     {
-      header: "Debit",
+      header: t("debit"),
       headerClassName: "text-right",
       className: "text-right",
       cell: (entry) =>
@@ -139,7 +141,7 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
           : "-",
     },
     {
-      header: "Credit",
+      header: t("credit"),
       headerClassName: "text-right",
       className: "text-right",
       cell: (entry) =>
@@ -148,13 +150,13 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
           : "-",
     },
     {
-      header: "Balance",
+      header: t("balance"),
       headerClassName: "text-right",
       className: "text-right font-medium",
       cell: (entry) => formatCurrency(entry.runningBalance),
     },
     {
-      header: "Status",
+      header: t("status"),
       headerClassName: "text-center",
       className: "text-center",
       cell: (entry) => <StatusBadge status={entry.journalEntry.status} />,
@@ -257,7 +259,7 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
           <CardDescription>
             <div className="flex items-end gap-4 flex-wrap">
               <CustomInput
-                label="Start Date"
+                label={t("start_date")}
                 type="date"
                 value={startDate}
                 onChange={(e) => {
@@ -266,7 +268,7 @@ export function AccountDetailsView({ accountId }: { accountId: string }) {
                 }}
               />
               <CustomInput
-                label="End Date"
+                label={t("end_date")}
                 type="date"
                 value={endDate}
                 onChange={(e) => {

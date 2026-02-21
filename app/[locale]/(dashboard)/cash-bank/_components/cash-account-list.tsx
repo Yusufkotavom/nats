@@ -82,13 +82,13 @@ export function CashAccountList({
         });
         toast({
           title: tCommon("success"),
-          description: "Account deleted successfully",
+          description: t("account_deleted_successfully"),
         });
       } catch (error) {
         toast({
           title: tCommon("error"),
           description:
-            error instanceof Error ? error.message : "Failed to delete",
+            error instanceof Error ? error.message : t("failed_to_delete"),
           variant: "destructive",
         });
       }

@@ -115,7 +115,7 @@ export default function TransferPage() {
           toast({
             title: tCommon("error"),
             description:
-              error instanceof Error ? error.message : "Failed to delete",
+              error instanceof Error ? error.message : t("failed_to_delete"),
             variant: "destructive",
           });
         }
@@ -134,7 +134,7 @@ export default function TransferPage() {
         try {
           const result = await approveCashTransfer(id);
           if (!result.success) {
-            throw new Error(result.error || "Failed to approve");
+            throw new Error(result.error || t("failed_to_approve"));
           }
           queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           toast({
