@@ -13,9 +13,9 @@ export const accountingPlugin: ModulePlugin = {
           icon: BookOpen,
           items: [
             { title: "Accounting.dashboard", url: "/accounting/dashboard" },
-            { title: "Accounting.journal", url: "/accounting/journal" },
+            { title: "Accounting.journal", url: "/accounting/journal-entries" },
             { title: "Accounting.ledger", url: "/accounting/ledger" },
-            { title: "Accounting.chart_of_accounts", url: "/accounting/chart-of-accounts" },
+            { title: "Accounting.chart_of_accounts", url: "/accounting/accounts" },
             { title: "Accounting.reports", url: "/accounting/reports" },
           ],
         },
