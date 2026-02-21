@@ -3,10 +3,10 @@ export const dynamic = "force-dynamic";
 import { CompanySettingsForm } from "./company-settings-form";
 import { getCompanyProfile } from "./actions";
 
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 export default async function SettingsPage() {
-  const t = useTranslations("Admin");
+  const t = await getTranslations("Admin");
   const companyProfile = await getCompanyProfile();
 
   if (!companyProfile) {

@@ -4,6 +4,7 @@
         "logout": "Logout",
         "register": "Register",
         "save": "Save",
+        "save_changes": "Update",
         "cancel": "Cancel",
         "delete": "Delete",
         "edit": "Edit",
@@ -35,7 +36,9 @@
         "end_date": "End Date",
         "search_orders": "Search orders...",
         "search_invoices": "Search invoices...",
-        "search_payments": "Search payments..."
+        "search_payments": "Search payments...",
+        "phone": "Phone",
+        "address": "Address"
     },
     "Navigation": {
         "operations": "Operations",
@@ -57,7 +60,16 @@
         "settings": "Settings",
         "sessions": "Sessions",
         "system": "System",
-        "company": "Company"
+        "company": "Company",
+        "general": "General"
+    },
+    "General": {
+        "contacts": "Contacts",
+        "company_name": "Company Name",
+        "contact_name": "Contact Name",
+        "contact_email": "Contact Email",
+        "contact_phone": "Contact Phone",
+        "address": "Address"
     },
     "Auth": {
         "login_title": "Login to your account",

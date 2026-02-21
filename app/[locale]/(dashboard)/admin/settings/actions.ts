@@ -78,6 +78,20 @@ export const updateCompanyProfile = authorizedAction(
 );
 
 export const getCompanyProfile = async () => {
-  const companyProfile = await prisma.companyProfile.findFirst();
-  return companyProfile;
+  return prisma.companyProfile.findFirst({
+    select: {
+      name: true,
+      address: true,
+      phone: true,
+      email: true,
+      website: true,
+      taxId: true,
+      currency: true,
+      currencySymbol: true,
+      dateFormat: true,
+      currencyFormat: true,
+      locale: true,
+      timezone: true,
+    },
+  });
 };

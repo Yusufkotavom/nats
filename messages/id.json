@@ -4,6 +4,7 @@
         "logout": "Keluar",
         "register": "Daftar",
         "save": "Simpan",
+        "save_changes": "Simpan Perubahan",
         "cancel": "Batal",
         "delete": "Hapus",
         "edit": "Ubah",
@@ -35,7 +36,9 @@
         "end_date": "Tanggal Akhir",
         "search_orders": "Cari pesanan...",
         "search_invoices": "Cari faktur...",
-        "search_payments": "Cari pembayaran..."
+        "search_payments": "Cari pembayaran...",
+        "phone": "Telepon",
+        "address": "Alamat"
     },
     "Navigation": {
         "operations": "Operasi",
@@ -57,7 +60,16 @@
         "settings": "Pengaturan",
         "sessions": "Sesi",
         "system": "Sistem",
-        "company": "Perusahaan"
+        "company": "Perusahaan",
+        "general": "Umum"
+    },
+    "General": {
+        "contacts": "Kontak",
+        "company_name": "Nama Perusahaan",
+        "contact_name": "Nama Kontak",
+        "contact_email": "Email Kontak",
+        "contact_phone": "Telepon Kontak",
+        "address": "Alamat"
     },
     "Auth": {
         "login_title": "Masuk ke akun Anda",

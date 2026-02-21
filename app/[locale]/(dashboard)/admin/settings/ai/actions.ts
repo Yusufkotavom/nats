@@ -20,6 +20,16 @@ export async function getAISettings() {
   const settings = await prisma.aISettings.findFirst({
     orderBy: { createdAt: 'desc' },
   });
+  
+  // Ensure the data is JSON serializable
+  if (settings) {
+    return {
+      ...settings,
+      createdAt: settings.createdAt?.toISOString(),
+      updatedAt: settings.updatedAt?.toISOString(),
+    };
+  }
+  
   return settings;
 }
 

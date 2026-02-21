@@ -30,7 +30,7 @@ export function PayrollActions({
             const result = await runPayroll(periodId);
             if (result.success) {
                 const data = result.data ? SuperJSON.deserialize(result.data as SuperJSONResult) : null;
-                // @ts-ignore
+                // @ts-expect-error SuperJSON result is not strongly typed
                 if (data?.totalSlips === 0) {
                     toast({
                         title: "No Slips Generated",
@@ -40,7 +40,7 @@ export function PayrollActions({
                 } else {
                     toast({
                         title: "Success",
-                        // @ts-ignore
+                        // @ts-expect-error SuperJSON result is not strongly typed
                         description: `Generated ${data?.totalSlips} salary slips`,
                     });
                 }
