@@ -5,21 +5,15 @@ import { CashAccountWithBalance } from "../types";
 import { CashAccountType } from "@/prisma/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import {
-  Plus,
-  Trash2,
   History,
   Wallet,
   Building2,
   Pencil,
   MoreHorizontal,
+  RefreshCw,
 } from "lucide-react";
-import { CashAccountDialog } from "./cash-account-dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  deleteCashAccount,
-  getAvailableGLAccounts,
-  getDashboardStats,
-} from "../actions";
+import { getDashboardStats, syncCashAccounts } from "../actions";
 import { useToast, useConfirm, useFormatCurrency } from "@/hooks";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,10 +33,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { EditCashAccountDialog } from "./edit-cash-account-dialog";
 
 interface CashAccountListProps {
   accounts: Awaited<ReturnType<typeof getDashboardStats>>["accounts"];
-  glAccounts: Awaited<ReturnType<typeof getAvailableGLAccounts>>;
   title?: string;
 }
 
@@ -50,48 +44,47 @@ import { useTranslations } from "next-intl";
 
 export function CashAccountList({
   accounts,
-  glAccounts,
   title = "Cash & Bank",
 }: CashAccountListProps) {
   const t = useTranslations("CashBank");
   const tCommon = useTranslations("Common");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<
-    CashAccountWithBalance | undefined
-  >(undefined);
   const confirm = useConfirm();
   const { toast } = useToast();
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const queryClient = useQueryClient();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingAccount, setEditingAccount] =
+    useState<CashAccountWithBalance | null>(null);
 
-  // Get list of currently used GL accounts to filter them out in the dialog
-  const usedGlAccountIds = accounts.map((a) => a.glAccountId);
+  const handleEdit = (account: CashAccountWithBalance) => {
+    setEditingAccount(account);
+    setIsEditDialogOpen(true);
+  };
 
-  const handleDelete = async (id: string) => {
-    if (
-      await confirm({
-        title: t("delete_account"),
-        description: t("delete_account_desc"),
-      })
-    ) {
-      try {
-        await deleteCashAccount(id);
-        queryClient.invalidateQueries({
-          queryKey: ["cash-bank", "dashboard-stats"],
-        });
-        toast({
-          title: tCommon("success"),
-          description: t("account_deleted_successfully"),
-        });
-      } catch (error) {
-        toast({
-          title: tCommon("error"),
-          description:
-            error instanceof Error ? error.message : t("failed_to_delete"),
-          variant: "destructive",
-        });
-      }
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await syncCashAccounts();
+      queryClient.invalidateQueries({
+        queryKey: ["cash-bank"],
+      });
+      toast({
+        title: tCommon("success"),
+        description: t("accounts_synced_successfully", {
+          count: result.syncedCount,
+        }),
+      });
+    } catch (error) {
+      toast({
+        title: tCommon("error"),
+        description:
+          error instanceof Error ? error.message : t("failed_to_sync"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -110,7 +103,7 @@ export function CashAccountList({
       ),
     },
     {
-      header: tCommon("status"), // Type but could use status as well? Actually en.json has type
+      header: tCommon("status"),
       cell: (account) => (
         <Badge variant="secondary" className="capitalize">
           {account.type.replace(/_/g, " ")}
@@ -162,28 +155,15 @@ export function CashAccountList({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleEdit(account)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              {tCommon("edit")}
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => router.push(`/accounting/cash-bank/${account.id}`)}
             >
               <History className="mr-2 h-4 w-4" />
               {t("history")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                setEditingAccount(account);
-                setIsCreateOpen(true);
-              }}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              {tCommon("edit")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={() => handleDelete(account.id)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {tCommon("delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -192,40 +172,37 @@ export function CashAccountList({
   ];
 
   return (
-    <PageListLayout className="p-0 pt-0">
-      <PageListHeader>
-        <PageListTitle title={title} />
-        <PageListActions>
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("add_account")}
-          </Button>
-        </PageListActions>
-      </PageListHeader>
-      <PageListContent>
-        <DataTable
-          data={accounts}
-          columns={columns}
-          emptyMessage={t("create_account_started")}
+    <>
+      <PageListLayout className="p-0 pt-0">
+        <PageListHeader>
+          <PageListTitle title={title} />
+          <PageListActions>
+            <Button onClick={handleSync} disabled={isSyncing}>
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+              />
+              {t("sync_accounts")}
+            </Button>
+          </PageListActions>
+        </PageListHeader>
+        <PageListContent>
+          <DataTable
+            data={accounts}
+            columns={columns}
+            emptyMessage={t("create_account_started")}
+          />
+        </PageListContent>
+      </PageListLayout>
+      {editingAccount && (
+        <EditCashAccountDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          account={editingAccount}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["cash-bank"] });
+          }}
         />
-      </PageListContent>
-
-      <CashAccountDialog
-        key={isCreateOpen ? editingAccount?.id || "create" : "closed"}
-        open={isCreateOpen}
-        onOpenChange={(open) => {
-          setIsCreateOpen(open);
-          if (!open) setEditingAccount(undefined);
-        }}
-        account={editingAccount}
-        glAccounts={glAccounts}
-        usedGlAccountIds={usedGlAccountIds}
-        onSuccess={() => {
-          queryClient.invalidateQueries({
-            queryKey: ["cash-bank", "dashboard-stats"],
-          });
-        }}
-      />
-    </PageListLayout>
+      )}
+    </>
   );
 }

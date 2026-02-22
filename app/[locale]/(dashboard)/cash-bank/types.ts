@@ -20,6 +20,11 @@ export type CashAccountFormData = {
   glAccountId: string;
 };
 
+export type UpdateCashAccountFormData = Omit<
+  CashAccountFormData,
+  "name" | "glAccountId"
+>;
+
 export type CashTransfer = Prisma.CashTransferGetPayload<{
   include: {
     fromAccount: true;

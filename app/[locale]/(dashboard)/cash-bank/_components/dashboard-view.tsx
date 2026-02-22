@@ -15,7 +15,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { getAvailableGLAccounts, getDashboardStats } from "../actions";
+import { getDashboardStats } from "../actions";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SuperJSON } from "@/lib/superjson";
@@ -49,11 +49,6 @@ export function DashboardView() {
         ),
       };
     },
-  });
-
-  const { data: glAccounts, isLoading: isLoadingGL } = useQuery({
-    queryKey: ["cash-bank", "gl-accounts"],
-    queryFn: () => getAvailableGLAccounts(),
   });
 
   const columns: Column<RecentTransaction>[] = [
@@ -109,7 +104,7 @@ export function DashboardView() {
     },
   ];
 
-  if (isLoadingStats || isLoadingGL || !stats || !glAccounts) {
+  if (isLoadingStats || !stats) {
     return <Skeleton className="h-[400px] w-full" />;
   }
 
@@ -201,7 +196,6 @@ export function DashboardView() {
         <TabsContent value="accounts">
           <CashAccountList
             accounts={accounts}
-            glAccounts={glAccounts}
             title={t("manage_accounts")}
           />
         </TabsContent>

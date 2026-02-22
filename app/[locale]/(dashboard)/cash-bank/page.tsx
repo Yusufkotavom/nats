@@ -5,22 +5,16 @@ import {
   QueryClient,
   dehydrate,
 } from "@tanstack/react-query";
-import { getDashboardStats, getAvailableGLAccounts } from "./actions";
+import { getDashboardStats } from "./actions";
 import { DashboardView } from "./_components/dashboard-view";
 
 export default async function CashBankPage() {
   const queryClient = new QueryClient();
 
-  await Promise.all([
-    queryClient.prefetchQuery({
-      queryKey: ["cash-bank", "dashboard-stats"],
-      queryFn: () => getDashboardStats(),
-    }),
-    queryClient.prefetchQuery({
-      queryKey: ["cash-bank", "gl-accounts"],
-      queryFn: () => getAvailableGLAccounts(),
-    }),
-  ]);
+  await queryClient.prefetchQuery({
+    queryKey: ["cash-bank", "dashboard-stats"],
+    queryFn: () => getDashboardStats(),
+  });
 
   return (
     <div className="container mx-auto px-4">

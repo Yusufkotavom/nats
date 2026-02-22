@@ -1,7 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { CashAccountFormData, CashTransferFormData } from "./types";
+import {
+  CashAccountFormData,
+  CashTransferFormData,
+  UpdateCashAccountFormData,
+} from "./types";
 import { revalidatePath } from "next/cache";
 import { SuperJSON } from "@/lib/superjson";
 import {
@@ -24,6 +28,7 @@ import {
 import type { ActionResponse } from "@/lib/permissions/protected-action";
 import { CashAccountService } from "@/modules/cash-bank/services/cash-account.service";
 import { CashTransferService } from "@/modules/cash-bank/services/cash-transfer.service";
+import { CashAccountSyncService } from "@/modules/cash-bank/services/cash-account-sync.service";
 
 type CashTransferOutboxResult = {
   transferId: string;
@@ -31,6 +36,13 @@ type CashTransferOutboxResult = {
   processed: boolean;
   alreadyQueued?: boolean;
 };
+
+export async function syncCashAccounts() {
+  const result = await CashAccountSyncService.sync();
+  revalidatePath("/accounting/cash-bank");
+  return result;
+}
+
 
 export async function uploadTransferAttachment(formData: FormData) {
   const session = await verifySession();
@@ -66,6 +78,7 @@ export async function uploadTransferAttachment(formData: FormData) {
 // --- Cash Account Actions ---
 
 export async function getDashboardStats() {
+  await syncCashAccounts();
   const accounts = await prisma.cashAccount.findMany({
     include: { glAccount: true },
   });
@@ -168,10 +181,21 @@ export async function createCashAccount(data: CashAccountFormData) {
   return account;
 }
 
-export async function updateCashAccount(id: string, data: CashAccountFormData) {
-  const account = await CashAccountService.updateAccount(id, data);
-  revalidatePath("/accounting/cash-bank");
-  return account;
+export async function updateCashAccount(
+  id: string,
+  data: UpdateCashAccountFormData,
+): Promise<ActionResponse<{}>> {
+  try {
+    await prisma.cashAccount.update({
+      where: { id },
+      data,
+    });
+    revalidatePath("/accounting/cash-bank");
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: message };
+  }
 }
 
 export async function deleteCashAccount(id: string) {
@@ -470,17 +494,4 @@ export async function getCashAccountDetails(
   };
 }
 
-export async function getAvailableGLAccounts() {
-  // Fetch asset accounts that are not already linked to a cash account
-  // Note: This might be too restrictive if we want to allow multiple cash accounts to point to same GL (unlikely but possible)
-  // For now, let's just fetch all asset accounts that accept posting
-  return await prisma.account.findMany({
-    where: {
-      type: "asset",
-      isPosting: true,
-    },
-    orderBy: {
-      code: "asc",
-    },
-  });
-}
+
