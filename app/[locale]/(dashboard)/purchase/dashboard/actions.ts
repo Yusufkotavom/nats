@@ -234,3 +234,240 @@ export async function getRecentPurchases() {
     return { success: false, error: "Failed to fetch recent purchases" };
   }
 }
+
+export async function getTopSuppliers() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const topSuppliers = await prisma.purchaseInvoice.groupBy({
+      by: ["contactId"],
+      _sum: {
+        totalAmount: true,
+      },
+      where: {
+        status: {
+          notIn: [PurchaseInvoiceStatus.CANCELED, PurchaseInvoiceStatus.DRAFT],
+        },
+      },
+      orderBy: {
+        _sum: {
+          totalAmount: "desc",
+        },
+      },
+      take: 5,
+    });
+
+    const contactIds = topSuppliers.map((s) => s.contactId);
+    const contacts = await prisma.contact.findMany({
+      where: { id: { in: contactIds } },
+      select: { id: true, name: true, email: true },
+    });
+
+    const contactMap = new Map(contacts.map((c) => [c.id, c]));
+
+    const formattedData = topSuppliers.map((s) => ({
+      id: s.contactId,
+      name: contactMap.get(s.contactId)?.name || "Unknown",
+      email: contactMap.get(s.contactId)?.email || "",
+      amount: s._sum.totalAmount?.toNumber() || 0,
+    }));
+
+    return { success: true, data: formattedData };
+  } catch (error) {
+    console.error("Error fetching top suppliers:", error);
+    return { success: false, error: "Failed to fetch top suppliers" };
+  }
+}
+
+export async function getTopProducts(): Promise<{
+  success: boolean;
+  error?: string;
+  data?: {
+    id: string;
+    name: string;
+    sku: string;
+    quantity: number;
+    amount: number;
+  }[];
+}> {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const topProducts = await prisma.purchaseOrderItem.groupBy({
+      by: ["productId"],
+      _sum: {
+        quantity: true,
+        totalCost: true,
+      },
+      where: {
+        purchaseOrder: {
+          status: {
+            notIn: [PurchaseOrderStatus.CANCELLED, PurchaseOrderStatus.DRAFT],
+          },
+        },
+      },
+      orderBy: {
+        _sum: {
+          quantity: "desc",
+        },
+      },
+      take: 5,
+    });
+
+    const productIds = topProducts.map((p) => p.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, sku: true },
+    });
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    const formattedData = topProducts.map((p) => ({
+      id: p.productId,
+      name: productMap.get(p.productId)?.name || "Unknown",
+      sku: productMap.get(p.productId)?.sku || "",
+      quantity: p._sum.quantity || 0,
+      amount: p._sum.totalCost?.toNumber() || 0,
+    }));
+
+    return { success: true, data: formattedData };
+  } catch (error) {
+    console.error("Error fetching top purchase products:", error);
+    return { success: false, error: "Failed to fetch top products" };
+  }
+}
+
+export async function getOutstandingSummary() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const outstandingInvoices = await prisma.purchaseInvoice.findMany({
+      where: {
+        status: {
+          in: [PurchaseInvoiceStatus.BILLED, PurchaseInvoiceStatus.PARTIALLY_PAID],
+        },
+      },
+      select: {
+        dueDate: true,
+        totalAmount: true,
+        payments: {
+          select: {
+            amount: true,
+          },
+        },
+      },
+    });
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    let notDue = 0;
+    let days1to30 = 0;
+    let days31to60 = 0;
+    let daysOver60 = 0;
+
+    outstandingInvoices.forEach((invoice) => {
+      const paidAmount = invoice.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
+      const balanceDue = invoice.totalAmount.toNumber() - paidAmount;
+
+      if (balanceDue <= 0) return;
+
+      const dueDate = new Date(invoice.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+
+      if (dueDate >= now) {
+        notDue += balanceDue;
+      } else {
+        const diffTime = Math.abs(now.getTime() - dueDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 30) {
+          days1to30 += balanceDue;
+        } else if (diffDays <= 60) {
+          days31to60 += balanceDue;
+        } else {
+          daysOver60 += balanceDue;
+        }
+      }
+    });
+
+    return {
+      success: true,
+      data: [
+        { name: "Not Due", amount: notDue },
+        { name: "1-30 Days", amount: days1to30 },
+        { name: "31-60 Days", amount: days31to60 },
+        { name: "> 60 Days", amount: daysOver60 },
+      ],
+    };
+  } catch (error) {
+    console.error("Error fetching purchase outstanding summary:", error);
+    return { success: false, error: "Failed to fetch outstanding summary" };
+  }
+}
+
+export async function getOverdueInvoices() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const overdueInvoices = await prisma.purchaseInvoice.findMany({
+      where: {
+        status: {
+          in: [PurchaseInvoiceStatus.BILLED, PurchaseInvoiceStatus.PARTIALLY_PAID],
+        },
+        dueDate: {
+          lt: new Date(),
+        },
+      },
+      include: {
+        contact: {
+          select: {
+            name: true,
+          },
+        },
+        payments: {
+          select: {
+            amount: true,
+          },
+        },
+      },
+      orderBy: {
+        dueDate: "asc",
+      },
+      take: 20, // Fetch more to filter down to 5 genuine overdue after balance check
+    });
+
+    const formattedData = overdueInvoices
+      .map((inv) => {
+        const paidAmount = inv.payments.reduce((sum, p) => sum + p.amount.toNumber(), 0);
+        const balanceDue = inv.totalAmount.toNumber() - paidAmount;
+        return {
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          vendorName: inv.contact.name,
+          dueDate: inv.dueDate,
+          balanceDue: balanceDue,
+          totalAmount: inv.totalAmount.toNumber(),
+        };
+      })
+      .filter((inv) => inv.balanceDue > 0)
+      .slice(0, 5);
+
+    return { success: true, data: formattedData };
+  } catch (error) {
+    console.error("Error fetching purchase overdue invoices:", error);
+    return { success: false, error: "Failed to fetch overdue invoices" };
+  }
+}

@@ -10,6 +10,10 @@ import {
   getDashboardSummary,
   getPurchaseTrends,
   getRecentPurchases,
+  getTopSuppliers,
+  getTopProducts,
+  getOutstandingSummary,
+  getOverdueInvoices,
 } from "./actions";
 import { prisma } from "@/lib/prisma";
 
@@ -42,6 +46,34 @@ export default async function PurchaseDashboardPage() {
       queryKey: ["recent-purchases"],
       queryFn: async () => {
         const res = await getRecentPurchases();
+        return res.success ? res.data : [];
+      },
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["purchase-top-suppliers"],
+      queryFn: async () => {
+        const res = await getTopSuppliers();
+        return res.success ? res.data : [];
+      },
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["purchase-top-products"],
+      queryFn: async () => {
+        const res = await getTopProducts();
+        return res.success ? res.data : [];
+      },
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["purchase-outstanding-summary"],
+      queryFn: async () => {
+        const res = await getOutstandingSummary();
+        return res.success ? res.data : [];
+      },
+    }),
+    queryClient.prefetchQuery({
+      queryKey: ["purchase-overdue-invoices"],
+      queryFn: async () => {
+        const res = await getOverdueInvoices();
         return res.success ? res.data : [];
       },
     }),

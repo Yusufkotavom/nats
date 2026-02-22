@@ -14,9 +14,17 @@ import {
   getDashboardSummary,
   getPurchaseTrends,
   getRecentPurchases,
+  getTopSuppliers,
+  getTopProducts,
+  getOutstandingSummary,
+  getOverdueInvoices,
 } from "../actions";
 import { PurchaseTrendsChart } from "./purchase-trends-chart";
 import { RecentPurchases } from "./recent-purchases";
+import { TopSuppliers } from "./top-suppliers";
+import { TopProducts } from "./top-products";
+import { OutstandingSummary } from "./outstanding-summary";
+import { OverdueInvoices } from "./overdue-invoices";
 import {
   ShoppingCart,
   CreditCard,
@@ -49,11 +57,11 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
       return res.success
         ? res.data
         : {
-            totalOrders: 0,
-            totalPurchases: 0,
-            totalPaid: 0,
-            outstandingAmount: 0,
-          };
+          totalOrders: 0,
+          totalPurchases: 0,
+          totalPaid: 0,
+          outstandingAmount: 0,
+        };
     },
   });
 
@@ -69,6 +77,38 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
     queryKey: ["recent-purchases"],
     queryFn: async () => {
       const res = await getRecentPurchases();
+      return res.success ? res.data : [];
+    },
+  });
+
+  const { data: topSuppliers = [] } = useQuery({
+    queryKey: ["purchase-top-suppliers"],
+    queryFn: async () => {
+      const res = await getTopSuppliers();
+      return res.success ? res.data : [];
+    },
+  });
+
+  const { data: topProducts = [] } = useQuery({
+    queryKey: ["purchase-top-products"],
+    queryFn: async () => {
+      const res = await getTopProducts();
+      return res.success ? res.data : [];
+    },
+  });
+
+  const { data: outstandingSummary = [] } = useQuery({
+    queryKey: ["purchase-outstanding-summary"],
+    queryFn: async () => {
+      const res = await getOutstandingSummary();
+      return res.success ? res.data : [];
+    },
+  });
+
+  const { data: overdueInvoices = [] } = useQuery({
+    queryKey: ["purchase-overdue-invoices"],
+    queryFn: async () => {
+      const res = await getOverdueInvoices();
       return res.success ? res.data : [];
     },
   });
@@ -179,6 +219,48 @@ export function DashboardView({ companyProfile }: DashboardViewProps) {
           </CardHeader>
           <CardContent>
             <RecentPurchases data={recentPurchases} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Top Suppliers</CardTitle>
+            <CardDescription>Top 5 suppliers by purchase volume</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TopSuppliers data={topSuppliers} />
+          </CardContent>
+        </Card>
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Top Purchased Products</CardTitle>
+            <CardDescription>Best-selling products by quantity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TopProducts data={topProducts} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Outstanding Summary</CardTitle>
+            <CardDescription>Aging of unpaid vendor invoices</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <OutstandingSummary data={outstandingSummary} />
+          </CardContent>
+        </Card>
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Overdue Vendor Invoices</CardTitle>
+            <CardDescription>Latest overdue invoices from vendors</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <OverdueInvoices data={overdueInvoices} />
           </CardContent>
         </Card>
       </div>
