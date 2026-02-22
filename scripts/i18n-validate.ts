@@ -39,25 +39,25 @@ interface ValidationResult {
 function findFiles(dir: string, extension: string): string[] {
   let results: string[] = [];
   const list = fs.readdirSync(dir);
-  
+
   list.forEach(file => {
     const filePath = path.join(dir, file);
     const stat = fs.statSync(filePath);
-    
+
     if (stat && stat.isDirectory()) {
       results = results.concat(findFiles(filePath, extension));
     } else if (filePath.endsWith(extension)) {
       results.push(filePath);
     }
   });
-  
+
   return results;
 }
 
 // Helper to flatten JSON object to keys
 function flattenKeys(obj: any, prefix = ''): Record<string, string> {
   let result: Record<string, string> = {};
-  
+
   for (const key in obj) {
     if (typeof obj[key] === 'object' && obj[key] !== null) {
       const nested = flattenKeys(obj[key], prefix ? `${prefix}.${key}` : key);
@@ -66,18 +66,18 @@ function flattenKeys(obj: any, prefix = ''): Record<string, string> {
       result[prefix ? `${prefix}.${key}` : key] = obj[key];
     }
   }
-  
+
   return result;
 }
 
 // Helper to unflatten keys back to object
 function unflattenKeys(flat: Record<string, string>): any {
   const result: any = {};
-  
+
   for (const key in flat) {
     const parts = key.split('.');
     let current = result;
-    
+
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       if (i === parts.length - 1) {
@@ -88,7 +88,7 @@ function unflattenKeys(flat: Record<string, string>): any {
       }
     }
   }
-  
+
   return result;
 }
 
@@ -97,7 +97,7 @@ function generateDefaultValue(key: string): string {
   // Take the last part of the key
   const parts = key.split('.');
   const lastPart = parts[parts.length - 1];
-  
+
   // Handle snake_case and camelCase
   return lastPart
     // Replace underscores with spaces
@@ -115,39 +115,39 @@ function scanSourceCode(dir = SOURCE_DIR): { usage: KeyMap; fileUsage: FileKeyMa
   const files = findFiles(dir, '.tsx').concat(findFiles(dir, '.ts'));
   const usage: KeyMap = new Map();
   const fileUsage: FileKeyMap = new Map();
-  
+
   console.log(`Scanning ${files.length} files...`);
 
   files.forEach(file => {
     const content = fs.readFileSync(file, 'utf-8');
-    
+
     // Find all translation hooks usage
     const hookMatches = [...content.matchAll(USE_TRANSLATIONS_REGEX)];
     const varToNamespace = new Map<string, string>();
-    
+
     hookMatches.forEach(match => {
       const [_, varName, namespace] = match;
       varToNamespace.set(varName, namespace);
     });
-    
+
     if (varToNamespace.size === 0) return;
-    
+
     // Find all t() calls
     const callMatches = [...content.matchAll(T_CALL_REGEX)];
     const methodMatches = [...content.matchAll(T_METHOD_REGEX)];
     const allMatches = [...callMatches, ...methodMatches];
-    
+
     allMatches.forEach(match => {
       const [_, varName, key] = match;
       const namespace = varToNamespace.get(varName);
-      
+
       if (namespace) {
         // Add to global usage
         if (!usage.has(namespace)) {
           usage.set(namespace, new Set());
         }
         usage.get(namespace)!.add(key);
-        
+
         // Add to file usage
         if (!fileUsage.has(file)) {
           fileUsage.set(file, new Map());
@@ -159,7 +159,7 @@ function scanSourceCode(dir = SOURCE_DIR): { usage: KeyMap; fileUsage: FileKeyMa
       }
     });
   });
-  
+
   return { usage, fileUsage };
 }
 
@@ -178,10 +178,10 @@ export {
 async function main() {
   const isCheckMode = process.argv.includes('--check');
   console.log(`Starting i18n validation... (Mode: ${isCheckMode ? 'Check' : 'Fix'})`);
-  
+
   // 1. Scan source code
   const { usage, fileUsage } = scanSourceCode();
-  
+
   // 2. Load existing translations
   const translations: Record<string, any> = {};
   LANGUAGES.forEach(lang => {
@@ -192,76 +192,67 @@ async function main() {
       translations[lang] = {};
     }
   });
-  
+
   // 3. Validate and collect missing keys
-  const missingKeys: { lang: string, namespace: string, key: string }[] = [];
-  
+  const missingKeys: { lang: string, fullPath: string, key: string }[] = [];
+
   LANGUAGES.forEach(lang => {
+    // Flatten the entire translation object for easy lookup
     const langFlat = flattenKeys(translations[lang]);
-    
+
     usage.forEach((keys, namespace) => {
       keys.forEach(key => {
-        let exists = false;
-        
-        // Access namespace object directly
-        const namespaceObj = translations[lang][namespace];
-        
-        if (namespaceObj) {
-            const nsFlat = flattenKeys(namespaceObj);
-            if (nsFlat[key]) {
-                exists = true;
-            }
-        }
-        
-        if (!exists) {
-          missingKeys.push({ lang, namespace, key });
+        // Construct the full path expected in the JSON
+        // namespace could be "General.Departments"
+        // key could be "title"
+        // fullPath = "General.Departments.title"
+        const fullPath = `${namespace}.${key}`;
+
+        if (!langFlat[fullPath]) {
+          missingKeys.push({ lang, fullPath, key });
         }
       });
     });
   });
-  
+
   // 4. Report results
   if (missingKeys.length > 0) {
     console.log('\nMissing keys found:');
-    missingKeys.forEach(({ lang, namespace, key }) => {
-      console.log(`[${lang}] ${namespace}.${key}`);
+    missingKeys.forEach(({ lang, fullPath }) => {
+      console.log(`[${lang}] ${fullPath}`);
     });
-    
+
     console.log(`\nFound ${missingKeys.length} missing translation keys.`);
-    
+
     if (isCheckMode) {
       console.error('Check failed: Missing translation keys found.');
       process.exit(1);
     }
 
     console.log('Adding missing keys...');
-    
+
     // 5. Add missing keys
     let changesCount = 0;
-    
+
     LANGUAGES.forEach(lang => {
       const langMissing = missingKeys.filter(m => m.lang === lang);
       if (langMissing.length === 0) return;
-      
+
       const currentTranslations = translations[lang];
-      
-      langMissing.forEach(({ namespace, key }) => {
-        if (!currentTranslations[namespace]) {
-          currentTranslations[namespace] = {};
-        }
-        
-        // We need to set nested property
-        const parts = key.split('.');
-        let current = currentTranslations[namespace];
-        
+
+      langMissing.forEach(({ fullPath, key }) => {
+        // We need to set nested property based on fullPath
+        const parts = fullPath.split('.');
+        let current = currentTranslations;
+
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
           if (i === parts.length - 1) {
             // Only set if not exists (double check)
             if (!current[part]) {
-               const defaultValue = generateDefaultValue(key);
-               current[part] = defaultValue;
-               changesCount++;
+              const defaultValue = generateDefaultValue(key);
+              current[part] = defaultValue;
+              changesCount++;
             }
           } else {
             current[part] = current[part] || {};
@@ -269,15 +260,15 @@ async function main() {
           }
         }
       });
-      
+
       // Write back to file
       const filePath = path.join(MESSAGES_DIR, `${lang}.json`);
       fs.writeFileSync(filePath, JSON.stringify(currentTranslations, null, 4));
       console.log(`Updated ${filePath}`);
     });
-    
+
     console.log(`\nSuccessfully added ${changesCount} missing keys.`);
-    
+
   } else {
     console.log('\nNo missing keys found. All translations are up to date!');
   }
