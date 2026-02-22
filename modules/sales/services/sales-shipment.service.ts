@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { SalesShipmentInput } from "@/app/[locale]/(dashboard)/sales/shipments/types";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 const SHIPMENT_NUMBER_PREFIX = "SHP";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
@@ -57,11 +58,6 @@ export class SalesShipmentService {
     }
 
     private static async generateShipmentNumber(): Promise<string> {
-        const count = await prisma.salesShipment.count();
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, "0");
-        const sequence = (count + 1).toString().padStart(4, "0");
-        return `${SHIPMENT_NUMBER_PREFIX}-${year}${month}-${sequence}`;
+        return await generateDocumentNumber("SALES_SHIPMENT", "Sales Shipment", "SHP-");
     }
 }

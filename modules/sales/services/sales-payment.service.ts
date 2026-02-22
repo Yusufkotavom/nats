@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { SalesPaymentInput } from "@/app/[locale]/(dashboard)/sales/payments/types";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 const PAYMENT_NUMBER_PREFIX = "PAY-IN";
 const OVERPAYMENT_TOLERANCE = 0.01;
@@ -88,11 +89,6 @@ export class SalesPaymentService {
     }
 
     private static async generatePaymentNumber(): Promise<string> {
-        const count = await prisma.salesPayment.count();
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, "0");
-        const sequence = (count + 1).toString().padStart(4, "0");
-        return `${PAYMENT_NUMBER_PREFIX}-${year}${month}-${sequence}`;
+        return await generateDocumentNumber("SALES_PAYMENT", "Sales Payment", "PAY-IN-");
     }
 }

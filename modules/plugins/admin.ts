@@ -36,6 +36,7 @@ export const adminPlugin: ModulePlugin = {
             { title: "System.ai-configuration", url: "/admin/settings/ai" },
             { title: "System.events-dashboard", url: "/admin/dashboard" },
             { title: "System.integration-outbox", url: "/admin/integrations/outbox" },
+            { title: "System.document-numbering", url: "/admin/settings/document-numbering" },
           ],
         },
       ],

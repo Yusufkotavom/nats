@@ -1,43 +1,43 @@
 // PEOPLE/CONTACTS MODULE
 
 enum ContactType {
-    CUSTOMER
-    VENDOR
-    EMPLOYEE
+  CUSTOMER
+  VENDOR
+  EMPLOYEE
 }
 
 model Contact {
-    id        String      @id @default(cuid())
-    type      ContactType
-    name      String
-    email     String?
-    phone     String?
-    address   String?
-    taxId     String?     // Tax Registration Number
-    taxExempt Boolean     @default(false)
-    isActive  Boolean     @default(true)
-    createdAt DateTime    @default(now())
-    updatedAt DateTime    @updatedAt
+  id        String      @id @default(cuid())
+  type      ContactType
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxId     String? // Tax Registration Number
+  taxExempt Boolean     @default(false)
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-    // Vendor relations
-    purchaseOrders   PurchaseOrder[]
-    purchaseReceives PurchaseReceive[]
-    purchaseInvoices PurchaseInvoice[]
-    purchaseReturns  PurchaseReturn[]
-    purchasePayments PurchasePayment[]
-    journalEntryLines JournalEntryLine[]
-    cashTransactions CashTransaction[]
+  // Vendor relations
+  purchaseOrders    PurchaseOrder[]
+  purchaseReceives  PurchaseReceive[]
+  purchaseInvoices  PurchaseInvoice[]
+  purchaseReturns   PurchaseReturn[]
+  purchasePayments  PurchasePayment[]
+  journalEntryLines JournalEntryLine[]
+  cashTransactions  CashTransaction[]
 
-    // Customer relations
-    salesOrders   SalesOrder[]
-    salesShipments SalesShipment[]
-    salesInvoices SalesInvoice[]
-    salesReturns  SalesReturn[]
-    salesPayments SalesPayment[]
-    heldOrders    HeldOrder[]
+  // Customer relations
+  salesOrders    SalesOrder[]
+  salesShipments SalesShipment[]
+  salesInvoices  SalesInvoice[]
+  salesReturns   SalesReturn[]
+  salesPayments  SalesPayment[]
+  heldOrders     HeldOrder[]
 
-    // Employee relations
-    salaryStructures SalaryStructure[]
-    salarySlips      SalarySlip[]
-    employeeDetail   EmployeeDetail?
+  // Employee relations
+  salaryStructures SalaryStructure[]
+  salarySlips      SalarySlip[]
+  employeeDetail   EmployeeDetail?
 }

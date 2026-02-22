@@ -9,6 +9,7 @@ import { SalesOrderInput } from "./types";
 import { SuperJSON } from "@/lib/superjson";
 import { hasPermission } from "@/lib/permissions/utils";
 import { SalesOrderService } from "@/modules/sales/services/sales-order.service";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 export async function getSalesOrders(
   page: number = 1,
@@ -139,18 +140,7 @@ export async function getSalesOrder(id: string) {
 
 // Helper to generate SO Number
 async function generateSONumber() {
-  const count = await prisma.salesOrder.count({
-    where: {
-      NOT: {
-        status: "DRAFT",
-      },
-    },
-  });
-  const date = new Date();
-  const year = date.getFullYear().toString().slice(-2);
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `SO-${year}${month}-${sequence}`;
+  return await generateDocumentNumber("SALES_ORDER", "Sales Order", "SO-");
 }
 
 export const createSalesOrder = authorizedAction(

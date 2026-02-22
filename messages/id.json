@@ -530,6 +530,7 @@
     },
     "Accounting": {
         "journal": "Entri Jurnal",
+        "journal-entries": "Entri Jurnal",
         "ledger": "Buku Besar",
         "chart_of_accounts": "Bagan Akun",
         "reports": "Laporan",
@@ -998,7 +999,8 @@
         "files": "Daftar Berkas",
         "ai-configuration": "Konfigurasi AI",
         "events-dashboard": "Dasbor Acara",
-        "integration-outbox": "Outbox Integrasi"
+        "integration-outbox": "Outbox Integrasi",
+        "document-numbering": "Penomoran Dokumen"
     },
     "AI": {
         "dashboard": "Dasbor AI",

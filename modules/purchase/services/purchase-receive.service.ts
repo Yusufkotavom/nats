@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchaseReceiveInput } from "@/app/[locale]/(dashboard)/purchase/receives/types";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 const RECEIVE_NUMBER_PREFIX = "RCV";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
@@ -54,11 +55,6 @@ export class PurchaseReceiveService {
     }
 
     private static async generateReceiveNumber(): Promise<string> {
-        const count = await prisma.purchaseReceive.count();
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, "0");
-        const sequence = (count + 1).toString().padStart(4, "0");
-        return `${RECEIVE_NUMBER_PREFIX}-${year}${month}-${sequence}`;
+        return await generateDocumentNumber("PURCHASE_RECEIVE", "Purchase Receive", "RCV-");
     }
 }

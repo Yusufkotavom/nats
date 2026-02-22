@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { SalesReturnInput } from "@/app/[locale]/(dashboard)/sales/returns/types";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 const RETURN_NUMBER_PREFIX = "RET";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
@@ -66,12 +67,7 @@ export class SalesReturnService {
     }
 
     private static async generateReturnNumber(): Promise<string> {
-        const count = await prisma.salesReturn.count();
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, "0");
-        const sequence = (count + 1).toString().padStart(4, "0");
-        return `${RETURN_NUMBER_PREFIX}-${year}${month}-${sequence}`;
+        return await generateDocumentNumber("SALES_RETURN", "Sales Return", "RET-");
     }
 
     private static async assertUniqueReturnNumber(

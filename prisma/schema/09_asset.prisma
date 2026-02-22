@@ -1,112 +1,112 @@
 // ASSET MANAGEMENT MODULE
 
 model Asset {
-  id               String             @id @default(cuid())
-  code             String             @unique
-  name             String
-  description      String?
-  serialNumber     String?
-  barcode          String?
-  
+  id           String  @id @default(cuid())
+  code         String  @unique
+  name         String
+  description  String?
+  serialNumber String?
+  barcode      String?
+
   // Acquisition Details
-  purchaseDate     DateTime
-  acquisitionCost  Decimal            @default(0)
-  residualValue    Decimal            @default(0)
-  
+  purchaseDate    DateTime
+  acquisitionCost Decimal  @default(0)
+  residualValue   Decimal  @default(0)
+
   // Depreciation Settings
-  usefulLife       Int                // in months
+  usefulLife         Int // in months
   depreciationMethod DepreciationMethod
-  
+
   // Current Status
-  status           AssetStatus        @default(DRAFT)
-  currentBookValue Decimal            @default(0)
-  
+  status           AssetStatus @default(DRAFT)
+  currentBookValue Decimal     @default(0)
+
   // Location & Assignment
-  location         String?
-  department       String?
-  assignedTo       String?            // Could be a User or Employee ID
-  
+  location   String?
+  department String?
+  assignedTo String? // Could be a User or Employee ID
+
   // Relations
-  categoryId       String
-  category         AssetCategory      @relation(fields: [categoryId], references: [id])
-  
+  categoryId String
+  category   AssetCategory @relation(fields: [categoryId], references: [id])
+
   depreciationSchedules DepreciationSchedule[]
   disposal              AssetDisposal?
-  
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([code])
   @@index([status])
   @@index([categoryId])
 }
 
 model AssetCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  code        String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
+  code        String  @unique
   description String?
-  
+
   // Default Settings
   defaultUsefulLife Int?
   defaultMethod     DepreciationMethod?
-  
+
   // GL Accounts Mapping
-  assetAccountId               String
-  assetAccount                 Account @relation("AssetAccount", fields: [assetAccountId], references: [id])
-  
-  accumDepreciationAccountId   String
-  accumDepreciationAccount     Account @relation("AccumDepAccount", fields: [accumDepreciationAccountId], references: [id])
-  
+  assetAccountId String
+  assetAccount   Account @relation("AssetAccount", fields: [assetAccountId], references: [id])
+
+  accumDepreciationAccountId String
+  accumDepreciationAccount   Account @relation("AccumDepAccount", fields: [accumDepreciationAccountId], references: [id])
+
   depreciationExpenseAccountId String
   depreciationExpenseAccount   Account @relation("DepExpenseAccount", fields: [depreciationExpenseAccountId], references: [id])
-  
-  assets      Asset[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  assets Asset[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model DepreciationSchedule {
-  id             String   @id @default(cuid())
-  assetId        String
-  asset          Asset    @relation(fields: [assetId], references: [id])
-  
+  id      String @id @default(cuid())
+  assetId String
+  asset   Asset  @relation(fields: [assetId], references: [id])
+
   date           DateTime // Scheduled date
   amount         Decimal
-  bookValueAfter Decimal  // Expected book value after this run
-  
-  isPosted       Boolean  @default(false)
-  postedAt       DateTime?
-  
-  journalEntryId String?  @unique
+  bookValueAfter Decimal // Expected book value after this run
+
+  isPosted Boolean   @default(false)
+  postedAt DateTime?
+
+  journalEntryId String?       @unique
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([assetId])
   @@index([date])
   @@index([isPosted])
 }
 
 model AssetDisposal {
-  id             String   @id @default(cuid())
-  assetId        String   @unique
-  asset          Asset    @relation(fields: [assetId], references: [id])
-  
+  id      String @id @default(cuid())
+  assetId String @unique
+  asset   Asset  @relation(fields: [assetId], references: [id])
+
   date           DateTime
-  disposalAmount Decimal  // Sale price or 0 if scrapped
-  bookValue      Decimal  // At time of disposal
-  gainLoss       Decimal  // Calculated
-  
-  reason         String?
-  
-  journalEntryId String?  @unique
+  disposalAmount Decimal // Sale price or 0 if scrapped
+  bookValue      Decimal // At time of disposal
+  gainLoss       Decimal // Calculated
+
+  reason String?
+
+  journalEntryId String?       @unique
   journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum AssetStatus {

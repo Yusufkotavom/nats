@@ -21,8 +21,8 @@ model SalesOrder {
   notes        String?
 
   // Financial details
-  subtotal     Decimal @default(0)
-  taxAmount    Decimal @default(0)
+  subtotal       Decimal @default(0)
+  taxAmount      Decimal @default(0)
   discountAmount Decimal @default(0)
 
   items     SalesOrderItem[]
@@ -76,10 +76,10 @@ model SalesOrderItem {
   shippedQuantity Int     @default(0)
   unitPrice       Decimal
   totalPrice      Decimal
-  
-  taxRate      Decimal @default(0)
-  taxRateId    String?
-  taxRule      TaxRate? @relation(fields: [taxRateId], references: [id])
+
+  taxRate   Decimal  @default(0)
+  taxRateId String?
+  taxRule   TaxRate? @relation(fields: [taxRateId], references: [id])
 
   discountRate Decimal @default(0)
 
@@ -96,16 +96,16 @@ enum SalesShipmentStatus {
 }
 
 model SalesShipment {
-  id             String              @id @default(cuid())
-  shipmentNumber String              @unique
+  id             String      @id @default(cuid())
+  shipmentNumber String      @unique
   salesOrderId   String?
-  salesOrder     SalesOrder?         @relation(fields: [salesOrderId], references: [id])
+  salesOrder     SalesOrder? @relation(fields: [salesOrderId], references: [id])
   contactId      String
-  contact        Contact             @relation(fields: [contactId], references: [id])
+  contact        Contact     @relation(fields: [contactId], references: [id])
 
-  shipmentDate DateTime            @default(now())
-  status       SalesShipmentStatus @default(DRAFT)
-  notes        String?
+  shipmentDate   DateTime            @default(now())
+  status         SalesShipmentStatus @default(DRAFT)
+  notes          String?
   trackingNumber String?
   carrier        String?
 
@@ -171,7 +171,7 @@ model SalesInvoice {
   globalDiscount Decimal @default(0)
   totalTax       Decimal @default(0)
   shippingCost   Decimal @default(0)
-  
+
   // Budgeting
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
@@ -211,14 +211,14 @@ model SalesInvoiceItem {
   // Additional financials
   discount Decimal @default(0)
   tax      Decimal @default(0)
-  
+
   taxRateId       String?
   taxRule         TaxRate? @relation(fields: [taxRateId], references: [id])
   taxRateSnapshot Decimal?
-  
+
   productId String?
   product   Product? @relation(fields: [productId], references: [id])
-  
+
   accountId String?
   account   Account? @relation(fields: [accountId], references: [id])
 
@@ -227,14 +227,14 @@ model SalesInvoiceItem {
 }
 
 model SalesPayment {
-  id            String  @id @default(cuid())
-  paymentNumber String  @unique
+  id            String @id @default(cuid())
+  paymentNumber String @unique
   contactId     String
 
   // POS Relation
   posSessionId String?
   posSession   POSSession? @relation(fields: [posSessionId], references: [id])
-  contact       Contact @relation(fields: [contactId], references: [id])
+  contact      Contact     @relation(fields: [contactId], references: [id])
 
   salesInvoiceId String
   salesInvoice   SalesInvoice @relation(fields: [salesInvoiceId], references: [id])

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { SalesInvoiceInput } from "@/app/[locale]/(dashboard)/sales/invoices/types";
 import { CalculationService } from "@/lib/utils/calculation-service";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 const INVOICE_NUMBER_PREFIX = "INV";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
@@ -147,12 +148,7 @@ export class SalesInvoiceService {
     }
 
     private static async generateInvoiceNumber(): Promise<string> {
-        const count = await prisma.salesInvoice.count();
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, "0");
-        const sequence = (count + 1).toString().padStart(4, "0");
-        return `${INVOICE_NUMBER_PREFIX}-${year}${month}-${sequence}`;
+        return await generateDocumentNumber("SALES_INVOICE", "Sales Invoice", "INV-");
     }
 
     private static async assertUniqueInvoiceNumber(invoiceNumber: string, excludeId?: string): Promise<void> {

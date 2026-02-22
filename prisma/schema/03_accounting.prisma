@@ -20,9 +20,9 @@ model Account {
   budgetItems          BudgetItem[]
 
   // Asset Module Relations
-  assetCategoryAssets           AssetCategory[] @relation("AssetAccount")
-  assetCategoryAccumDep         AssetCategory[] @relation("AccumDepAccount")
-  assetCategoryDepExpense       AssetCategory[] @relation("DepExpenseAccount")
+  assetCategoryAssets     AssetCategory[] @relation("AssetAccount")
+  assetCategoryAccumDep   AssetCategory[] @relation("AccumDepAccount")
+  assetCategoryDepExpense AssetCategory[] @relation("DepExpenseAccount")
 
   // Cash & Bank Relations
   cashAccount                CashAccount?
@@ -61,7 +61,7 @@ model JournalEntry {
   assetDisposal        AssetDisposal?
 
   // Payroll Module Relations
-  payrollRun           PayrollRun?
+  payrollRun PayrollRun?
 
   @@index([transactionDate])
   @@index([status])
@@ -85,9 +85,9 @@ model JournalEntryLine {
 
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
-  
-  projectId    String?
-  project      Project?    @relation(fields: [projectId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
 
   @@index([journalEntryId])
   @@index([accountId])

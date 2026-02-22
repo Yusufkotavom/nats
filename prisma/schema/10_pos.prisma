@@ -1,27 +1,27 @@
 // POS MODULE
 
 model POSSession {
-  id String @id @default(cuid())
-  sessionNumber String @unique 
+  id            String @id @default(cuid())
+  sessionNumber String @unique
 
   cashierId String
-  cashier   User @relation(fields: [cashierId], references: [id])
+  cashier   User   @relation(fields: [cashierId], references: [id])
 
-  startTime DateTime @default(now())
+  startTime DateTime         @default(now())
   endTime   DateTime?
   status    POSSessionStatus @default(OPEN)
 
   warehouseId String?
   warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
 
-  openingCash Decimal @default(0)
+  openingCash Decimal  @default(0)
   closingCash Decimal? // Calculated system total
   actualCash  Decimal? // Counted by cashier
   difference  Decimal?
 
   notes String?
 
-  salesOrders SalesOrder[]
+  salesOrders   SalesOrder[]
   salesInvoices SalesInvoice[]
   salesPayments SalesPayment[]
   heldOrders    HeldOrder[]
@@ -36,22 +36,22 @@ enum POSSessionStatus {
 }
 
 model HeldOrder {
-  id          String   @id @default(cuid())
-  holdId      String   @unique 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  holdId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  customerId  String?
-  customer    Contact? @relation(fields: [customerId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  customerId   String?
+  customer     Contact? @relation(fields: [customerId], references: [id])
   customerName String?
 
-  items       Json     
+  items       Json
   totalAmount Decimal
-  
-  note        String?
+
+  note String?
 
   posSessionId String?
   posSession   POSSession? @relation(fields: [posSessionId], references: [id])

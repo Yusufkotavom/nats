@@ -63,10 +63,10 @@ model Product {
   purchaseReceiveItems PurchaseReceiveItem[]
   purchaseReturnItems  PurchaseReturnItem[]
 
-  salesOrderItems   SalesOrderItem[]
+  salesOrderItems    SalesOrderItem[]
   salesShipmentItems SalesShipmentItem[]
-  salesInvoiceItems SalesInvoiceItem[]
-  salesReturnItems  SalesReturnItem[]
+  salesInvoiceItems  SalesInvoiceItem[]
+  salesReturnItems   SalesReturnItem[]
 
   @@index([categoryId])
   @@index([sku])
@@ -114,7 +114,7 @@ model Warehouse {
   fromMovements InventoryMovement[] @relation("FromWarehouse")
   toMovements   InventoryMovement[] @relation("ToWarehouse")
 
-  posSessions   POSSession[]
+  posSessions POSSession[]
 
   locations Location[]
   createdAt DateTime   @default(now())

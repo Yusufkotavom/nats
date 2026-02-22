@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchaseOrderInput } from "@/app/[locale]/(dashboard)/purchase/orders/types";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 export class PurchaseOrderService {
     static async create(data: PurchaseOrderInput, userId: string) {
@@ -187,17 +188,6 @@ export class PurchaseOrderService {
     }
 
     private static async generatePONumber() {
-        const count = await prisma.purchaseOrder.count({
-            where: {
-                NOT: {
-                    status: "DRAFT",
-                },
-            },
-        });
-        const date = new Date();
-        const year = date.getFullYear().toString().slice(-2);
-        const month = (date.getMonth() + 1).toString().padStart(2, "0");
-        const sequence = (count + 1).toString().padStart(4, "0");
-        return `PO-${year}${month}-${sequence}`;
+        return await generateDocumentNumber("PURCHASE_ORDER", "Purchase Order", "PO-");
     }
 }

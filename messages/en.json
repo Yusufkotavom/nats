@@ -533,6 +533,7 @@
     },
     "Accounting": {
         "journal": "Journal Entries",
+        "journal_entries": "Journal Entries",
         "ledger": "General Ledger",
         "chart_of_accounts": "Chart of Accounts",
         "reports": "Reports",
@@ -1001,7 +1002,8 @@
         "files": "Files",
         "ai-configuration": "AI Configuration",
         "events-dashboard": "Events Dashboard",
-        "integration-outbox": "Integration Outbox"
+        "integration-outbox": "Integration Outbox",
+        "document-numbering": "Document Numbering"
     },
     "AI": {
         "dashboard": "AI Dashboard",

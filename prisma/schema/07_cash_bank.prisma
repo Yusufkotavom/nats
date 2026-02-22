@@ -22,9 +22,9 @@ model CashAccount {
   transfersTo   CashTransfer[] @relation("TransferTo")
 
   // Transactions
-  transactions CashTransaction[]
+  transactions     CashTransaction[]
   purchasePayments PurchasePayment[]
-  salesPayments SalesPayment[]
+  salesPayments    SalesPayment[]
 }
 
 enum CashAccountType {

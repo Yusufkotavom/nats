@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchasePaymentInput } from "@/app/[locale]/(dashboard)/purchase/payments/types";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 const OVERPAYMENT_TOLERANCE = 0.01;
 
@@ -86,11 +87,6 @@ export class PurchasePaymentService {
     }
 
     private static async generatePaymentNumber(): Promise<string> {
-        const count = await prisma.purchasePayment.count();
-        const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, "0");
-        const sequence = (count + 1).toString().padStart(4, "0");
-        return `PAY-OUT-${year}${month}-${sequence}`;
+        return await generateDocumentNumber("PURCHASE_PAYMENT", "Purchase Payment", "PAY-OUT-");
     }
 }
