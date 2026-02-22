@@ -20,7 +20,7 @@ export default async function DocumentNumberingPage() {
             <PageListHeader>
                 <PageListTitle title={t("document-numbering")} />
             </PageListHeader>
-            <PageListContent>
+            <PageListContent className="border-0">
                 <DocumentNumberingClient data={settings} />
             </PageListContent>
         </PageListLayout>
