@@ -3,6 +3,7 @@ import { getDocumentNumberingSettings } from "./actions";
 import { SuperJSON } from "@/lib/superjson";
 import type { DocumentNumbering } from "@/prisma/generated/prisma/client";
 import { DocumentNumberingClient } from "./document-numbering-client";
+import { PageListContent, PageListHeader, PageListLayout, PageListTitle } from "@/components/layout/page/list-layout";
 
 export default async function DocumentNumberingPage() {
     const t = await getTranslations("System");
@@ -15,14 +16,13 @@ export default async function DocumentNumberingPage() {
     const settings: DocumentNumbering[] = SuperJSON.deserialize(response.data);
 
     return (
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">{t("document-numbering")}</h1>
-                    <p className="text-muted-foreground">Configure the formatting rules for generated document numbers.</p>
-                </div>
-            </div>
-            <DocumentNumberingClient data={settings} />
-        </div>
+        <PageListLayout>
+            <PageListHeader>
+                <PageListTitle title={t("document-numbering")} />
+            </PageListHeader>
+            <PageListContent>
+                <DocumentNumberingClient data={settings} />
+            </PageListContent>
+        </PageListLayout>
     );
 }

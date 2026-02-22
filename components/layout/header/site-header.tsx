@@ -30,7 +30,16 @@ export function SiteHeader() {
       const isLast = index === segments.length - 1;
       const isUuid = isLast && segment.length > 20;
       const tPath = index === 0 ? `Navigation.${segment}` : toTitleCase(`${segments.slice(0, index + 1).join(".")}`);
-      const title = isUuid ? segment : t(tPath);
+
+      let title = segment;
+      if (!isUuid) {
+        if (t.has(tPath as any)) {
+          title = t(tPath as any);
+        } else {
+          // Fallback nicely formatted text (e.g. document-numbering -> Document Numbering)
+          title = segment.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+        }
+      }
 
       return (
         <React.Fragment key={href}>
