@@ -12,8 +12,9 @@ export const inventoryPlugin: ModulePlugin = {
           url: "#",
           icon: Archive,
           items: [
-            { title: "Inventory.dashboard", url: "/inventory/dashboard" },
+            { title: "Inventory.dashboard", url: "/inventory" },
             { title: "Inventory.products", url: "/inventory/products" },
+            { title: "Inventory.categories", url: "/inventory/categories" },
             { title: "Inventory.warehouses", url: "/inventory/warehouses" },
             { title: "Inventory.movements", url: "/inventory/movements" },
             { title: "Inventory.uom", url: "/inventory/uom" }, // Kept this item as it was not explicitly replaced by a new key
