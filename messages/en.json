@@ -410,6 +410,7 @@
         "dashboard": "Cash & Bank Dashboard",
         "overview": "Overview",
         "accounts": "Accounts",
+        "sync_accounts": "Sync Accounts",
         "total_balance": "Total Balance",
         "cash_on_hand": "Cash on Hand",
         "bank_balance": "Bank Balance",
