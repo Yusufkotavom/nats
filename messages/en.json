@@ -1005,6 +1005,30 @@
         "integration-outbox": "Integration Outbox",
         "document-numbering": "Document Numbering"
     },
+    "DocumentNumbering": {
+        "title": "Document Numbering",
+        "document_type": "Document Type",
+        "prefix": "Prefix",
+        "suffix": "Suffix",
+        "includes_year": "Includes Year",
+        "includes_month": "Includes Month",
+        "digits": "Digits",
+        "example_preview": "Example Preview",
+        "edit_settings": "Edit Settings",
+        "sequence_digits": "Sequence Digits",
+        "sequence_digits_desc": "Number of zeroes for padding (e.g. 5 = 00001)",
+        "date_formatting": "Date Formatting",
+        "year_format": "Year Format",
+        "select_format": "Select format",
+        "two_digits": "2 Digits (YY)",
+        "four_digits": "4 Digits (YYYY)",
+        "reset_rules": "Reset Rules",
+        "reset_yearly": "Reset Sequence Yearly",
+        "reset_monthly": "Reset Sequence Monthly",
+        "failed_load": "Failed to load settings",
+        "yes": "Yes",
+        "no": "No"
+    },
     "AI": {
         "dashboard": "AI Dashboard",
         "assistants": "Assistants"

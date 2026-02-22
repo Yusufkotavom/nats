@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { DocumentNumbering } from "@/prisma/generated/prisma/client";
 import {
     Table,
@@ -20,6 +21,7 @@ interface DocumentNumberingClientProps {
 }
 
 export function DocumentNumberingClient({ data }: DocumentNumberingClientProps) {
+    const t = useTranslations("DocumentNumbering");
     const [selectedItem, setSelectedItem] = useState<DocumentNumbering | null>(null);
 
     return (
@@ -27,12 +29,12 @@ export function DocumentNumberingClient({ data }: DocumentNumberingClientProps) 
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Document Type</TableHead>
-                        <TableHead>Prefix</TableHead>
-                        <TableHead>Includes Year</TableHead>
-                        <TableHead>Includes Month</TableHead>
-                        <TableHead>Digits</TableHead>
-                        <TableHead>Example Preview</TableHead>
+                        <TableHead>{t("document_type")}</TableHead>
+                        <TableHead>{t("prefix")}</TableHead>
+                        <TableHead>{t("includes_year")}</TableHead>
+                        <TableHead>{t("includes_month")}</TableHead>
+                        <TableHead>{t("digits")}</TableHead>
+                        <TableHead>{t("example_preview")}</TableHead>
                         <TableHead className="w-[100px]"></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -41,8 +43,8 @@ export function DocumentNumberingClient({ data }: DocumentNumberingClientProps) 
                         <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.name}</TableCell>
                             <TableCell>{item.prefix || "-"}</TableCell>
-                            <TableCell>{item.includeYear ? "Yes" : "No"}</TableCell>
-                            <TableCell>{item.includeMonth ? "Yes" : "No"}</TableCell>
+                            <TableCell>{item.includeYear ? t("yes") : t("no")}</TableCell>
+                            <TableCell>{item.includeMonth ? t("yes") : t("no")}</TableCell>
                             <TableCell>{item.sequenceDigits}</TableCell>
                             <TableCell>
                                 <code className="rounded bg-muted px-2 py-1">

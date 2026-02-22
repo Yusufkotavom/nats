@@ -56,6 +56,7 @@ export function DocumentNumberingForm({
 }: DocumentNumberingFormProps) {
     const router = useRouter();
     const t = useTranslations("Common");
+    const td = useTranslations("DocumentNumbering");
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
 
@@ -108,7 +109,7 @@ export function DocumentNumberingForm({
                                 name="prefix"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Prefix</FormLabel>
+                                        <FormLabel>{td("prefix")}</FormLabel>
                                         <FormControl>
                                             <Input placeholder="e.g. INV-" {...field} />
                                         </FormControl>
@@ -121,7 +122,7 @@ export function DocumentNumberingForm({
                                 name="suffix"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Suffix</FormLabel>
+                                        <FormLabel>{td("suffix")}</FormLabel>
                                         <FormControl>
                                             <Input placeholder="e.g. -X" {...field} />
                                         </FormControl>
@@ -136,7 +137,7 @@ export function DocumentNumberingForm({
                             name="sequenceDigits"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Sequence Digits</FormLabel>
+                                    <FormLabel>{td("sequence_digits")}</FormLabel>
                                     <FormControl>
                                         <Input
                                             type="number"
@@ -144,14 +145,14 @@ export function DocumentNumberingForm({
                                             onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                                         />
                                     </FormControl>
-                                    <FormDescription>Number of zeroes for padding (e.g. 5 = 00001)</FormDescription>
+                                    <FormDescription>{td("sequence_digits_desc")}</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
                         <div className="space-y-4 rounded-md border p-4">
-                            <h4 className="text-sm font-medium">Date Formatting</h4>
+                            <h4 className="text-sm font-medium">{td("date_formatting")}</h4>
 
                             <FormField
                                 control={form.control}
@@ -159,7 +160,7 @@ export function DocumentNumberingForm({
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">
-                                            <FormLabel>Include Year</FormLabel>
+                                            <FormLabel>{td("includes_year")}</FormLabel>
                                         </div>
                                         <FormControl>
                                             <Switch
@@ -177,16 +178,16 @@ export function DocumentNumberingForm({
                                     name="yearFormat"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Year Format</FormLabel>
+                                            <FormLabel>{td("year_format")}</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Select format" />
+                                                        <SelectValue placeholder={td("select_format")} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="YY">2 Digits (YY)</SelectItem>
-                                                    <SelectItem value="YYYY">4 Digits (YYYY)</SelectItem>
+                                                    <SelectItem value="YY">{td("two_digits")}</SelectItem>
+                                                    <SelectItem value="YYYY">{td("four_digits")}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -201,7 +202,7 @@ export function DocumentNumberingForm({
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">
-                                            <FormLabel>Include Month</FormLabel>
+                                            <FormLabel>{td("includes_month")}</FormLabel>
                                         </div>
                                         <FormControl>
                                             <Switch
@@ -215,7 +216,7 @@ export function DocumentNumberingForm({
                         </div>
 
                         <div className="space-y-4 rounded-md border p-4">
-                            <h4 className="text-sm font-medium">Reset Rules</h4>
+                            <h4 className="text-sm font-medium">{td("reset_rules")}</h4>
 
                             <FormField
                                 control={form.control}
@@ -223,7 +224,7 @@ export function DocumentNumberingForm({
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">
-                                            <FormLabel>Reset Sequence Yearly</FormLabel>
+                                            <FormLabel>{td("reset_yearly")}</FormLabel>
                                         </div>
                                         <FormControl>
                                             <Switch
@@ -241,7 +242,7 @@ export function DocumentNumberingForm({
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">
-                                            <FormLabel>Reset Sequence Monthly</FormLabel>
+                                            <FormLabel>{td("reset_monthly")}</FormLabel>
                                         </div>
                                         <FormControl>
                                             <Switch

@@ -6,11 +6,11 @@ import { DocumentNumberingClient } from "./document-numbering-client";
 import { PageListContent, PageListHeader, PageListLayout, PageListTitle } from "@/components/layout/page/list-layout";
 
 export default async function DocumentNumberingPage() {
-    const t = await getTranslations("System");
+    const t = await getTranslations("DocumentNumbering");
     const response = await getDocumentNumberingSettings();
 
     if (!response.success || !response.data) {
-        return <div>Failed to load settings</div>;
+        return <div className="p-4 text-destructive">{t("failed_load")}</div>;
     }
 
     const settings: DocumentNumbering[] = SuperJSON.deserialize(response.data);
@@ -18,7 +18,7 @@ export default async function DocumentNumberingPage() {
     return (
         <PageListLayout>
             <PageListHeader>
-                <PageListTitle title={t("document-numbering")} />
+                <PageListTitle title={t("title")} />
             </PageListHeader>
             <PageListContent className="border-0">
                 <DocumentNumberingClient data={settings} />

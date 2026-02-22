@@ -1002,6 +1002,30 @@
         "integration-outbox": "Outbox Integrasi",
         "document-numbering": "Penomoran Dokumen"
     },
+    "DocumentNumbering": {
+        "title": "Penomoran Dokumen",
+        "document_type": "Tipe Dokumen",
+        "prefix": "Awalan (Prefix)",
+        "suffix": "Akhiran (Suffix)",
+        "includes_year": "Termasuk Tahun",
+        "includes_month": "Termasuk Bulan",
+        "digits": "Digit",
+        "example_preview": "Pratinjau Contoh",
+        "edit_settings": "Ubah Pengaturan",
+        "sequence_digits": "Digit Urutan",
+        "sequence_digits_desc": "Jumlah nol untuk padding (misal: 5 = 00001)",
+        "date_formatting": "Format Tanggal",
+        "year_format": "Format Tahun",
+        "select_format": "Pilih format",
+        "two_digits": "2 Digit (YY)",
+        "four_digits": "4 Digit (YYYY)",
+        "reset_rules": "Aturan Reset",
+        "reset_yearly": "Reset Urutan Tahunan",
+        "reset_monthly": "Reset Urutan Bulanan",
+        "failed_load": "Gagal memuat pengaturan",
+        "yes": "Ya",
+        "no": "Tidak"
+    },
     "AI": {
         "dashboard": "Dasbor AI",
         "assistants": "Asisten"
