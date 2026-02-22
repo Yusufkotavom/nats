@@ -25,6 +25,8 @@ export const adminPlugin: ModulePlugin = {
           items: [
             { title: "Admin.users", url: "/admin/users" },
             { title: "Admin.roles", url: "/admin/roles" },
+            { title: "System.document-numbering", url: "/admin/settings/document-numbering" },
+            { title: "System.files", url: "/general/files" },
           ],
         },
         {
@@ -32,11 +34,9 @@ export const adminPlugin: ModulePlugin = {
           url: "#",
           icon: CogIcon,
           items: [
-            { title: "System.files", url: "/general/files" },
             { title: "System.ai-configuration", url: "/admin/settings/ai" },
             { title: "System.events-dashboard", url: "/admin/dashboard" },
             { title: "System.integration-outbox", url: "/admin/integrations/outbox" },
-            { title: "System.document-numbering", url: "/admin/settings/document-numbering" },
           ],
         },
       ],
