@@ -56,7 +56,9 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  const activeMembership = user.tenantMembers.find((m: any) => m.isActive && m.tenant.isActive);
+  const activeMembership = user.tenantMembers.find(
+    (m: any) => m.isActive && m.tenant.isActive && m.tenant.slug !== "default"
+  );
 
   if (!activeMembership) {
     return {

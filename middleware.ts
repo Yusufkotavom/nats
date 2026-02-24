@@ -7,15 +7,33 @@ import { routing } from "./i18n/routing";
 const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const cookie = request.cookies.get("session")?.value;
+  const session = await decrypt(cookie);
+
+  // Handle /management routes independently (bypassing next-intl)
+  if (pathname.startsWith("/management")) {
+    const isAuthRoute = pathname === "/management/auth";
+
+    if (isAuthRoute && session?.role === "superadmin") {
+      return NextResponse.redirect(new URL("/management/tenants", request.nextUrl));
+    }
+
+    if (!isAuthRoute && (!session || session.role !== "superadmin")) {
+      return NextResponse.redirect(new URL("/management/auth", request.nextUrl));
+    }
+
+    return NextResponse.next();
+  }
+
   const protectedRoutes = ["/dashboard", "/accounting", "/admin"];
   const publicRoutes = ["/auth"];
 
-  // Run next-intl middleware first to handle redirects and locale detection
+  // Run next-intl middleware for normal localized app routes
   const response = intlMiddleware(request);
 
   // Extract the locale from the request path if present
   // This assumes the locale is the first segment after /
-  const pathname = request.nextUrl.pathname;
   const segments = pathname.split("/");
   const locale = segments[1];
 
@@ -37,9 +55,6 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.some((route) =>
     pathToCheck.startsWith(route)
   );
-
-  const cookie = request.cookies.get("session")?.value;
-  const session = await decrypt(cookie);
 
   // 1. Redirect to /login if the user is not authenticated and trying to access a protected route
   if (isProtectedRoute && !session?.userId) {

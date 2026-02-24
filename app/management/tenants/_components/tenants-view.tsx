@@ -1,0 +1,167 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus, Pencil, Power, Ban, Database, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { getTenants, toggleTenantStatus } from "../actions";
+
+import { TenantDialog } from "./tenant-dialog";
+
+type Tenant = Awaited<ReturnType<typeof getTenants>>[0];
+
+export function TenantsView({ tenants }: { tenants: Tenant[] }) {
+
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingTenant, setEditingTenant] = useState<Tenant | undefined>(undefined);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const handleCreate = () => {
+        setEditingTenant(undefined);
+        setDialogOpen(true);
+    };
+
+    const handleEdit = (tenant: Tenant) => {
+        setEditingTenant(tenant);
+        setDialogOpen(true);
+    };
+
+    const handleToggleStatus = async (tenant: Tenant) => {
+        if (tenant.slug === "default") {
+            alert("Anda tidak dapat menonaktifkan tenant bawaan.");
+            return;
+        }
+
+        try {
+            await toggleTenantStatus(tenant.id);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const filteredTenants = useMemo(() => {
+        if (!searchQuery.trim()) return tenants;
+        const lowerQuery = searchQuery.toLowerCase();
+        return tenants.filter(
+            (t) =>
+                t.name.toLowerCase().includes(lowerQuery) ||
+                t.slug.toLowerCase().includes(lowerQuery) ||
+                (t.dbUrl && t.dbUrl.toLowerCase().includes(lowerQuery))
+        );
+    }, [tenants, searchQuery]);
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="relative w-full sm:max-w-xs">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Cari tenant..."
+                        className="pl-8 w-full bg-background"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Button onClick={handleCreate}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Tambah Tenant
+                </Button>
+            </div>
+
+            <div className="rounded-md border bg-card">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nama Tenant</TableHead>
+                            <TableHead>Slug</TableHead>
+                            <TableHead>Database</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredTenants.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
+                                    Tidak ada data tenant yang ditemukan.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            filteredTenants.map((tenant) => (
+                                <TableRow key={tenant.id} className={!tenant.isActive ? "opacity-60 bg-muted/50" : ""}>
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-2">
+                                            {tenant.name}
+                                            {tenant.slug === "default" && (
+                                                <Badge variant="default" className="bg-primary">
+                                                    Sistem
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{tenant.slug}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <Database className="h-4 w-4" />
+                                            <span className="truncate max-w-[200px]" title={tenant.dbUrl || "Tidak ada DB eksplisit dikonfigurasi"}>
+                                                {tenant.dbUrl ? tenant.dbUrl.replace(/:[^:@]*@/, ':****@') : "Tidak ada DB eksplisit dikonfigurasi"}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        {tenant.isActive ? (
+                                            <Badge variant="outline" className="text-green-600 border-green-600 bg-green-50">Aktif</Badge>
+                                        ) : (
+                                            <Badge variant="destructive">Tidak Aktif</Badge>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleToggleStatus(tenant)}
+                                                title={tenant.isActive ? "Nonaktifkan" : "Aktifkan"}
+                                                disabled={tenant.slug === "default"}
+                                            >
+                                                {tenant.isActive ? (
+                                                    <Ban className="h-4 w-4 text-orange-500" />
+                                                ) : (
+                                                    <Power className="h-4 w-4 text-green-500" />
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleEdit(tenant)}
+                                                title="Ubah"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            <TenantDialog
+                tenant={editingTenant}
+                open={dialogOpen}
+                onOpenChange={setDialogOpen}
+            />
+        </div>
+    );
+}
