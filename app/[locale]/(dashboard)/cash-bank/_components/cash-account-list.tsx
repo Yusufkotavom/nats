@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getDashboardStats, syncCashAccounts } from "../actions";
-import { useToast, useConfirm, useFormatCurrency } from "@/hooks";
+import { useToast, useFormatCurrency } from "@/hooks";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -31,7 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { EditCashAccountDialog } from "./edit-cash-account-dialog";
 
@@ -48,7 +47,6 @@ export function CashAccountList({
 }: CashAccountListProps) {
   const t = useTranslations("CashBank");
   const tCommon = useTranslations("Common");
-  const confirm = useConfirm();
   const { toast } = useToast();
   const router = useRouter();
   const formatCurrency = useFormatCurrency();

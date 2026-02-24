@@ -81,6 +81,14 @@ export async function getDashboardStats() {
   await syncCashAccounts();
   const accounts = await prisma.cashAccount.findMany({
     include: { glAccount: true },
+    where: {
+      glAccount: {
+        isPosting: true,
+        code: {
+          startsWith: "111",
+        },
+      },
+    },
   });
 
   const glAccountIds = accounts.map((a) => a.glAccountId);
