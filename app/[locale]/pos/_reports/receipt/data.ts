@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 export interface POSReceiptData {
   invoice: any;
   payment: any;
-  cashier: any;
+  cashierId?: string | null;
 }
 
 export async function getPOSReceiptData(input: { invoiceId: string }): Promise<POSReceiptData> {
@@ -16,11 +16,7 @@ export async function getPOSReceiptData(input: { invoiceId: string }): Promise<P
           product: true,
         },
       },
-      posSession: {
-        include: {
-          cashier: true,
-        },
-      },
+      posSession: true,
     },
   });
 
@@ -31,16 +27,16 @@ export async function getPOSReceiptData(input: { invoiceId: string }): Promise<P
   // Find associated payment
   const payment = await prisma.salesPayment.findFirst({
     where: {
-        // SalesPayment in prisma schema has salesInvoiceId relationship
-        // Let's check schema provided in search result:
-        // salesInvoice   SalesInvoice @relation(fields: [salesInvoiceId], references: [id])
-        salesInvoiceId: input.invoiceId
+      // SalesPayment in prisma schema has salesInvoiceId relationship
+      // Let's check schema provided in search result:
+      // salesInvoice   SalesInvoice @relation(fields: [salesInvoiceId], references: [id])
+      salesInvoiceId: input.invoiceId
     }
   });
 
-  return { 
+  return {
     invoice,
     payment,
-    cashier: invoice.posSession?.cashier
+    cashierId: invoice.posSession?.cashierId
   };
 }

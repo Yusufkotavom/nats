@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
 });
 
 export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceiptData>) => {
-    const { invoice, payment, cashier } = data;
+    const { invoice, payment, cashierId } = data;
     const currencyOptions = {
         currency: company.currency,
         currencySymbol: company.currencySymbol,
@@ -116,7 +116,7 @@ export const POSReceiptPdf = ({ data, company, config }: ReportContext<POSReceip
                 <View style={{ marginBottom: 5 }}>
                     <View style={styles.row}>
                         <Text>Cashier:</Text>
-                        <Text>{cashier?.name || 'System'}</Text>
+                        <Text>{cashierId || 'System'}</Text>
                     </View>
                     <View style={styles.row}>
                         <Text>Customer:</Text>

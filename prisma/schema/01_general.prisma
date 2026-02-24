@@ -17,72 +17,10 @@ model CompanyProfile {
   updatedAt      DateTime @updatedAt
 }
 
-model User {
-  id                String              @id @default(cuid())
-  email             String              @unique
-  password          String
-  name              String
-  roleId            String
-  role              Role                @relation(fields: [roleId], references: [id])
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  journalEntries    JournalEntry[]
-  files             File[]
-  approvedMovements InventoryMovement[] @relation("MovementApprover")
-
-  // Purchase Order Relations
-  createdPurchaseOrders   PurchaseOrder[] @relation("POCreatedBy")
-  updatedPurchaseOrders   PurchaseOrder[] @relation("POUpdatedBy")
-  issuedPurchaseOrders    PurchaseOrder[] @relation("POIssuedBy")
-  closedPurchaseOrders    PurchaseOrder[] @relation("POClosedBy")
-  cancelledPurchaseOrders PurchaseOrder[] @relation("POCancelledBy")
-
-  // Sales Order Relations
-  createdSalesOrders   SalesOrder[] @relation("SOCreatedBy")
-  updatedSalesOrders   SalesOrder[] @relation("SOUpdatedBy")
-  confirmedSalesOrders SalesOrder[] @relation("SOConfirmedBy")
-  closedSalesOrders    SalesOrder[] @relation("SOClosedBy")
-  cancelledSalesOrders SalesOrder[] @relation("SOCancelledBy")
-
-  // POS Relations
-  posSessions POSSession[]
-  heldOrders  HeldOrder[]
-  reportLogs  ReportLog[]
-  auditLogs   AuditLog[]
-  aiSessions  AISession[]
-  aiUsages    AIUsage[]
-
-  // Department & Project Management
-  managedDepartments Department[] @relation("DepartmentManager")
-  managedProjects    Project[]    @relation("ProjectManager")
-
-  // Budgeting Relations
-  createdBudgets  Budget[]         @relation("BudgetCreator")
-  revisedBudgets  BudgetRevision[] @relation("BudgetReviser")
-  approvedBudgets BudgetApproval[] @relation("BudgetApprover")
-
-  // Payroll Relations
-  createdSalaryStructures SalaryStructure[] @relation("SalaryStructureCreatedBy")
-
-  @@index([email])
-  @@index([roleId])
-}
-
-model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
-  permissions String[]
-  users       User[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+
   action     String
   entityType String
   entityId   String?
@@ -95,13 +33,13 @@ model AuditLog {
 }
 
 model File {
-  id                String           @id @default(cuid())
-  name              String
-  url               String
-  mimeType          String
-  size              Int
-  uploadedById      String?
-  uploadedBy        User?            @relation(fields: [uploadedById], references: [id])
+  id           String  @id @default(cuid())
+  name         String
+  url          String
+  mimeType     String
+  size         Int
+  uploadedById String?
+
   journalEntryId    String?
   journalEntry      JournalEntry?    @relation(fields: [journalEntryId], references: [id])
   purchasePaymentId String?

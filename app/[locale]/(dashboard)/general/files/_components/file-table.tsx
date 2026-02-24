@@ -87,7 +87,7 @@ export function FileTable({
               </TableCell>
               <TableCell>{file.mimeType}</TableCell>
               <TableCell>{formatSize(file.size)}</TableCell>
-              <TableCell>{file.uploadedBy?.name || t("unknown")}</TableCell>
+              <TableCell>{file.uploadedById || t("unknown")}</TableCell>
               <TableCell>
                 {formatDate(file.createdAt)}
               </TableCell>

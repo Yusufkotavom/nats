@@ -15,6 +15,7 @@ function getSecretKey(): Uint8Array {
 
 export type SessionPayload = {
   userId: string;
+  tenantId: string;
   roleId: string;
   role: string; // Storing role name
   permissions: string[];
@@ -42,11 +43,13 @@ export async function decrypt(session: string | undefined = "") {
 
 export async function createSession(
   userId: string,
+  tenantId: string,
   role: { id: string; name: string; permissions: string[] }
 ) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const session = await encrypt({
     userId,
+    tenantId,
     roleId: role.id,
     role: role.name,
     permissions: role.permissions,
@@ -75,6 +78,7 @@ export async function getSession() {
   return {
     isAuth: true,
     userId: payload.userId,
+    tenantId: payload.tenantId,
     roleId: payload.roleId,
     role: payload.role,
     permissions: payload.permissions,

@@ -50,7 +50,6 @@ export async function getBudgets(): Promise<ActionResponse> {
       include: {
         department: true,
         project: true,
-        createdByUser: true,
         items: true,
       },
     });
@@ -67,16 +66,13 @@ export async function getBudgetById(id: string): Promise<ActionResponse> {
       include: {
         department: true,
         project: true,
-        createdByUser: true,
         items: {
           include: { account: true },
         },
         revisions: {
-          include: { createdByUser: true },
           orderBy: { revisionNumber: "desc" },
         },
         approvals: {
-          include: { approver: true },
           orderBy: { createdAt: "desc" },
         },
       },

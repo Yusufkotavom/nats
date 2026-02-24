@@ -2,7 +2,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/layout/header/site-header";
 import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
 import { verifySession } from "@/lib/auth/auth";
-import { prisma } from "@/lib/prisma";
+import { managementPrisma, getTenantPrismaClient } from "@/lib/prisma/tenant";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { redirect } from "next/navigation";
 
@@ -25,21 +25,26 @@ export default async function DashboardLayout({
   };
 
   if (session?.userId) {
-    const user = await prisma.user.findUnique({
+    const user = await managementPrisma.user.findUnique({
       where: { id: session.userId },
-      select: { name: true, email: true, role: true },
+      include: {
+        tenantMembers: {
+          include: { role: true },
+        },
+      },
     });
     if (user) {
       userData = {
         ...userData,
         name: user.name,
         email: user.email,
-        role: user.role.name,
+        role: session.role || user.tenantMembers[0]?.role?.name || "Member",
       };
     }
   }
 
-  const companyProfile = await prisma.companyProfile.findFirst();
+  const tenantPrisma = session?.tenantId ? await getTenantPrismaClient(session.tenantId) : null;
+  const companyProfile = tenantPrisma ? await tenantPrisma.companyProfile.findFirst() : null;
 
   return (
     <SessionProvider

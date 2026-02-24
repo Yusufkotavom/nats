@@ -232,7 +232,7 @@ export function JournalEntryDetails({
 
           <div className="text-sm text-muted-foreground">
             <p>
-              {t("created_by")} {entry.user.name} {t("on")}{" "}
+              {t("created_by")} {entry.userId || "System"} {t("on")}{" "}
               {formatDate(entry.createdAt, { includeTime: true })}
             </p>
             {entry.status === "posted" && entry.postedAt && (

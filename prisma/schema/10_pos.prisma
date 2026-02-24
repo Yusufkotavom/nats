@@ -5,7 +5,6 @@ model POSSession {
   sessionNumber String @unique
 
   cashierId String
-  cashier   User   @relation(fields: [cashierId], references: [id])
 
   startTime DateTime         @default(now())
   endTime   DateTime?
@@ -42,7 +41,6 @@ model HeldOrder {
   updatedAt DateTime @updatedAt
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
 
   customerId   String?
   customer     Contact? @relation(fields: [customerId], references: [id])

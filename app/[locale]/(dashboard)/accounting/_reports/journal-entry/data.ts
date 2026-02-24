@@ -16,7 +16,6 @@ export async function getJournalEntryData(input: { entryId: string }): Promise<J
         },
         orderBy: { lineNumber: "asc" },
       },
-      user: true,
     },
   });
 

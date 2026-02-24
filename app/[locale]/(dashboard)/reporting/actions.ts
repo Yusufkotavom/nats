@@ -2,6 +2,7 @@
 
 import { serverRegistry } from "@/lib/reporting/server-registry";
 import { prisma } from "@/lib/prisma";
+import { managementPrisma } from "@/lib/prisma/tenant";
 import { getSession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
 import { ReportFormat } from "@/lib/reporting/types";
@@ -24,7 +25,7 @@ export async function getReportData(code: string, input: any) {
 
     // Fetch Context Info
     const companyProfile = await prisma.companyProfile.findFirst();
-    const user = await prisma.user.findUnique({ where: { id: session.userId } });
+    const user = await managementPrisma.user.findUnique({ where: { id: session.userId } });
 
     // Fetch Template Config from DB
     const reportTemplate = await prisma.reportTemplate.findUnique({

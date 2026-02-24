@@ -41,12 +41,6 @@ export async function getMovementBatches(page: number = 1, limit: number = 10) {
             product: true,
           },
         },
-        approvedBy: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
       },
       orderBy: { transactionDate: "desc" },
       skip,
@@ -82,13 +76,6 @@ export async function getMovementBatchById(id: string) {
           },
         },
       },
-      approvedBy: {
-        select: {
-          name: true,
-          email: true,
-          id: true,
-        },
-      },
     },
   });
 
@@ -110,12 +97,6 @@ export async function getMovements() {
         include: {
           fromWarehouse: true,
           toWarehouse: true,
-          approvedBy: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
         },
       },
     },

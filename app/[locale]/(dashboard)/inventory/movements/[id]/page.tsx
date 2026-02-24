@@ -34,13 +34,6 @@ export type BatchWithDetails = Prisma.InventoryMovementGetPayload<{
         };
       };
     };
-    approvedBy: {
-      select: {
-        name: true;
-        email: true;
-        id: true;
-      };
-    };
   };
 }>;
 
@@ -114,9 +107,9 @@ export default function MovementDetailsPage() {
                 Reason: {batch.rejectionReason}
               </p>
             )}
-            {batch.approvedBy && (
+            {batch.approvedById && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Approved by: {batch.approvedBy.name}
+                Approved by ID: {batch.approvedById}
               </p>
             )}
           </CardContent>

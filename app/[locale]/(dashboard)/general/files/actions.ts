@@ -101,12 +101,5 @@ export async function getFiles() {
 
   return await prisma.file.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      uploadedBy: {
-        select: {
-          name: true,
-        },
-      },
-    },
   });
 }

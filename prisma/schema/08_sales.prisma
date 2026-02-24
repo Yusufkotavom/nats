@@ -37,22 +37,17 @@ model SalesOrder {
 
   // Status Tracking
   createdById String?
-  createdBy   User?   @relation("SOCreatedBy", fields: [createdById], references: [id])
 
   updatedById String?
-  updatedBy   User?   @relation("SOUpdatedBy", fields: [updatedById], references: [id])
 
   confirmedAt   DateTime?
   confirmedById String?
-  confirmedBy   User?     @relation("SOConfirmedBy", fields: [confirmedById], references: [id])
 
   closedAt   DateTime?
   closedById String?
-  closedBy   User?     @relation("SOClosedBy", fields: [closedById], references: [id])
 
   cancelledAt   DateTime?
   cancelledById String?
-  cancelledBy   User?     @relation("SOCancelledBy", fields: [cancelledById], references: [id])
 
   // Budgeting
   departmentId String?

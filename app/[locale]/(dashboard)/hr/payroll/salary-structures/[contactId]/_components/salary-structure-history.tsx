@@ -26,7 +26,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { Loader2, Eye } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { SalaryStructure, SalaryStructureItem, SalaryComponent, User } from "@/prisma/generated/prisma/client";
+import { SalaryStructure, SalaryStructureItem, SalaryComponent } from "@/prisma/generated/prisma/client";
 
 interface SalaryStructureHistoryProps {
     contactId: string;
@@ -34,7 +34,6 @@ interface SalaryStructureHistoryProps {
 
 type HistoryItem = SalaryStructure & {
     items: (SalaryStructureItem & { component: SalaryComponent })[];
-    createdBy: Pick<User, "id" | "name" | "email"> | null;
 };
 
 export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProps) {
@@ -106,13 +105,12 @@ export function SalaryStructureHistory({ contactId }: SalaryStructureHistoryProp
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    {structure.createdBy ? (
+                                    {structure.createdById ? (
                                         <div className="flex items-center gap-2">
                                             <Avatar className="h-6 w-6">
-                                                <AvatarImage src={`https://avatar.vercel.sh/${structure.createdBy.email}`} />
-                                                <AvatarFallback>{structure.createdBy.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                                <AvatarFallback>{structure.createdById.substring(0, 2).toUpperCase()}</AvatarFallback>
                                             </Avatar>
-                                            <span className="text-sm">{structure.createdBy.name}</span>
+                                            <span className="text-sm cursor-help" title={structure.createdById}>User</span>
                                         </div>
                                     ) : (
                                         <span className="text-muted-foreground text-sm">-</span>

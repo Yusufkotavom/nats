@@ -41,11 +41,6 @@ export async function getPOSSessions() {
   const sessions = await prisma.pOSSession.findMany({
     orderBy: { startTime: 'desc' },
     include: {
-      cashier: {
-        select: {
-          name: true,
-        },
-      },
       warehouse: {
         select: {
           name: true,
@@ -165,7 +160,6 @@ export async function getOpenPOSSession() {
       cashierId: userId
     },
     include: {
-      cashier: true,
       warehouse: true,
     },
   });
@@ -308,7 +302,7 @@ export async function getHeldOrders() {
 
   const heldOrders = await prisma.heldOrder.findMany({
     orderBy: { createdAt: 'desc' },
-    include: { customer: true, user: true },
+    include: { customer: true },
   });
 
   return SuperJSON.serialize(heldOrders);
@@ -333,13 +327,7 @@ export async function getPOSInvoice(id: string) {
         },
       },
       salesOrder: true,
-      posSession: {
-        include: {
-          cashier: {
-            select: { name: true },
-          },
-        },
-      },
+      posSession: true,
     },
   });
 

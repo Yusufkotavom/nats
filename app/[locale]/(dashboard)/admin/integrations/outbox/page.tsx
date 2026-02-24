@@ -78,17 +78,7 @@ type OutboxEvent = {
   payload: unknown;
 };
 
-type OutboxAuditLog = Prisma.AuditLogGetPayload<{
-  include: {
-    user: {
-      select: {
-        id: true;
-        name: true;
-        email: true;
-      };
-    };
-  };
-}>;
+type OutboxAuditLog = Prisma.AuditLogGetPayload<{}>;
 
 function statusVariant(status: string) {
   if (status === "PROCESSED") return "default";
@@ -539,7 +529,7 @@ export default function IntegrationOutboxPage() {
                       </span>
                     </div>
                     <div className="text-muted-foreground leading-snug">
-                      {log.user?.email || "System"} • {log.ipAddress || "local"}
+                      {log.userId || "System"} • {log.ipAddress || "local"}
                     </div>
                   </div>
                 ))}

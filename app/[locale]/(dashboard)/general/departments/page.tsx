@@ -46,7 +46,7 @@ export default async function DepartmentsPage() {
                     <TableCell>{dept.code}</TableCell>
                     <TableCell className="font-medium">{dept.name}</TableCell>
                     <TableCell>{dept.description}</TableCell>
-                    <TableCell>{dept.manager?.name || "-"}</TableCell>
+                    <TableCell>{dept.managerId || "-"}</TableCell>
                   </TableRow>
                 ))
               )}

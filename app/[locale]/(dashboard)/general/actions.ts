@@ -11,7 +11,6 @@ import { getTranslations } from "next-intl/server";
 export async function getDepartments() {
   return await prisma.department.findMany({
     orderBy: { name: "asc" },
-    include: { manager: true },
   });
 }
 
@@ -35,7 +34,6 @@ export async function createDepartment(data: z.infer<typeof departmentSchema>) {
 export async function getProjects() {
   return await prisma.project.findMany({
     orderBy: { name: "asc" },
-    include: { manager: true },
   });
 }
 

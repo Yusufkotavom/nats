@@ -73,13 +73,6 @@ export const getOutboxAuditLogs = authorizedAction(
           entityId: true,
           metadata: true,
           createdAt: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
         },
       }),
       prisma.auditLog.count({ where }),

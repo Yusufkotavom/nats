@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { managementPrisma } from "@/lib/prisma/tenant";
 import { compare } from "bcryptjs";
 import { createSession } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
@@ -26,9 +26,16 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await managementPrisma.user.findUnique({
     where: { email },
-    include: { role: true },
+    include: {
+      tenantMembers: {
+        include: {
+          role: true,
+          tenant: true
+        }
+      }
+    }
   });
 
   if (!user) {
@@ -49,19 +56,21 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  if (!user.role.isActive) {
+  const activeMembership = user.tenantMembers.find((m: any) => m.isActive && m.tenant.isActive);
+
+  if (!activeMembership) {
     return {
       errors: {
         email: [
-          "Your account role has been deactivated. Please contact support.",
+          "Your account or workplace has been deactivated. Please contact support.",
         ],
       },
     };
   }
 
-  await createSession(user.id, user.role);
+  await createSession(user.id, activeMembership.tenantId, activeMembership.role);
 
-  if (user.role.name === "Cashier") {
+  if (activeMembership.role.name === "Cashier") {
     redirect("/pos");
   }
 

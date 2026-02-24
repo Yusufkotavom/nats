@@ -71,11 +71,6 @@ export async function getSalesOrders(
         contact: true,
         department: true,
         project: true,
-        createdBy: { select: { name: true } },
-        updatedBy: { select: { name: true } },
-        confirmedBy: { select: { name: true } },
-        closedBy: { select: { name: true } },
-        cancelledBy: { select: { name: true } },
         attachments: true,
         items: {
           include: {
@@ -114,11 +109,6 @@ export async function getSalesOrder(id: string) {
       contact: true,
       department: true,
       project: true,
-      createdBy: { select: { name: true } },
-      updatedBy: { select: { name: true } },
-      confirmedBy: { select: { name: true } },
-      closedBy: { select: { name: true } },
-      cancelledBy: { select: { name: true } },
       attachments: true,
       items: {
         include: {

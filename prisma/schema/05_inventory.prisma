@@ -199,8 +199,8 @@ model InventoryMovement {
   product   Product? @relation(fields: [productId], references: [id])
   productId String?
 
-  approvedById    String?
-  approvedBy      User?     @relation("MovementApprover", fields: [approvedById], references: [id])
+  approvedById String?
+
   approvedAt      DateTime?
   rejectionReason String?
 

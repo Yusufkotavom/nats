@@ -58,7 +58,7 @@ export default async function ProjectsPage() {
                     <TableCell className="font-medium">{proj.name}</TableCell>
                     <TableCell>{proj.description}</TableCell>
                     <TableCell>{getStatusLabel(proj.status)}</TableCell>
-                    <TableCell>{proj.manager?.name || "-"}</TableCell>
+                    <TableCell>{proj.managerId || "-"}</TableCell>
                   </TableRow>
                 ))
               )}

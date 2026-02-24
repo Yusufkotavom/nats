@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { managementPrisma as prisma } from "@/lib/prisma/tenant";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/permissions/protected-action";
@@ -40,11 +40,16 @@ export async function getUsers(page: number, limit: number) {
         id: true,
         name: true,
         email: true,
-        role: {
+        tenantMembers: {
           select: {
-            name: true,
-            id: true,
+            role: {
+              select: {
+                name: true,
+                id: true,
+              },
+            },
           },
+          take: 1,
         },
         createdAt: true,
       },
@@ -52,7 +57,13 @@ export async function getUsers(page: number, limit: number) {
     prisma.user.count(),
   ]);
 
-  return { data, total, totalPages: Math.ceil(total / limit) };
+  // Map tenantMembers[0].role back to role for the frontend
+  const mappedData = data.map(user => ({
+    ...user,
+    role: user.tenantMembers[0]?.role || { id: "", name: "Unknown" },
+  }));
+
+  return { data: mappedData, total, totalPages: Math.ceil(total / limit) };
 }
 
 /**
@@ -107,8 +118,11 @@ export const createUser = authorizedAction(
           name: data.name,
           email: data.email,
           password: hashedPassword,
-          role: {
-            connect: { id: data.roleId },
+          tenantMembers: {
+            create: {
+              roleId: data.roleId,
+              tenantId: (await prisma.tenant.findFirst())?.id || "",
+            },
           },
         },
       });
@@ -152,8 +166,13 @@ export const updateUser = authorizedAction(
       }
 
       if (data.roleId) {
-        updateData.role = {
-          connect: { id: data.roleId },
+        const firstTenant = await prisma.tenant.findFirst();
+        updateData.tenantMembers = {
+          deleteMany: {},
+          create: {
+            roleId: data.roleId,
+            tenantId: firstTenant?.id || "",
+          },
         };
       }
 

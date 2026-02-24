@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { managementPrisma as prisma } from "@/lib/prisma/tenant";
 import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -16,14 +16,14 @@ interface RoleData {
 export const getRoles = async () => {
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "roles:create")) { // Assuming role view needs at least create or similar. TODO: Add roles:view permission
-     // Fallback to check if they have access to user management which implies role visibility?
-     // For now, let's stick to strict checking or allow if they are admin.
-     // Actually, roles page is protected by layout/middleware usually, but server action needs check.
-     if (!hasPermission(session?.permissions || [], "roles:update")) {
-        return [];
-     }
+    // Fallback to check if they have access to user management which implies role visibility?
+    // For now, let's stick to strict checking or allow if they are admin.
+    // Actually, roles page is protected by layout/middleware usually, but server action needs check.
+    if (!hasPermission(session?.permissions || [], "roles:update")) {
+      return [];
+    }
   }
-  
+
   return prisma.role.findMany({
     orderBy: { name: "asc" },
   });
@@ -195,7 +195,7 @@ export const deleteRole = authorizedAction(
   async (id: string) => {
     const role = await prisma.role.findUnique({
       where: { id },
-      include: { _count: { select: { users: true } } },
+      include: { _count: { select: { tenantMembers: true } } },
     });
 
     if (!role) {
@@ -206,7 +206,7 @@ export const deleteRole = authorizedAction(
       return { success: false, error: "Cannot delete superadmin role" };
     }
 
-    if (role._count.users > 0) {
+    if ((role as any)._count.tenantMembers > 0) {
       return {
         success: false,
         error:

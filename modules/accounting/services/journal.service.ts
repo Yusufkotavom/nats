@@ -68,9 +68,6 @@ export class JournalService {
                         },
                         orderBy: { lineNumber: "asc" },
                     },
-                    user: {
-                        select: { name: true, email: true },
-                    },
                     attachments: true,
                 },
                 skip,
@@ -100,9 +97,6 @@ export class JournalService {
                         project: { select: { name: true } },
                     },
                     orderBy: { lineNumber: "asc" },
-                },
-                user: {
-                    select: { name: true, email: true },
                 },
                 attachments: true,
             },

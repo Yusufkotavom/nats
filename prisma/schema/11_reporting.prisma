@@ -27,7 +27,6 @@ model ReportLog {
   template   ReportTemplate? @relation(fields: [templateId], references: [id])
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
 
   generatedAt DateTime @default(now())
   status      String // SUCCESS, FAILED

@@ -1,4 +1,5 @@
 import { prisma } from "./utils";
+import { managementPrisma } from "../../lib/prisma/tenant";
 import {
     SalesOrderStatus,
     SalesInvoiceStatus,
@@ -11,7 +12,7 @@ export async function seedTransactions() {
     console.log("Seeding Transactions...");
 
     // 1. Get necessary data
-    const adminUser = await prisma.user.findFirst({ where: { email: "admin@example.com" } });
+    const adminUser = await managementPrisma.user.findFirst({ where: { email: "admin@example.com" } });
     if (!adminUser) return;
 
     // Get Customers & Vendors

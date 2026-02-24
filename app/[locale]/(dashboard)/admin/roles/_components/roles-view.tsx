@@ -14,7 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { RoleDialog } from "./role-dialog";
 import { getRoles, toggleRoleStatus } from "../actions";
-import { Role } from "@/prisma/generated/prisma/browser";
+import { Prisma } from "@/prisma/generated/management-client";
+type Role = Prisma.RoleGetPayload<{}>;
 
 import { useTranslations } from "next-intl";
 
