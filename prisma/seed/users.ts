@@ -75,6 +75,7 @@ export async function seedUsers() {
         create: {
             name: "Default Tenant",
             slug: "default",
+            dbUrl: process.env.DATABASE_URL || "postgresql://yesi:@localhost:5432/yesi",
         }
     });
 
