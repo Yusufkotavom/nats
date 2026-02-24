@@ -14,7 +14,9 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { CustomInput } from "@/components/ui/custom-input";
+import { CustomSelect } from "@/components/ui/custom-select";
 import { createTenant, updateTenant, getTenants } from "../actions";
+import { SubscriptionType } from "@/prisma/generated/management-client";
 
 import { useAlert } from "@/hooks/use-alert";
 
@@ -47,6 +49,13 @@ export function TenantDialog({ tenant, open, onOpenChange }: TenantDialogProps) 
         const name = formData.get("name") as string;
         const slug = formData.get("slug") as string;
         const dbUrl = formData.get("dbUrl") as string;
+        const email = formData.get("email") as string;
+        const phone = formData.get("phone") as string;
+        const companyName = formData.get("companyName") as string;
+        const subscription = formData.get("subscription") as SubscriptionType;
+        const billingEmail = formData.get("billingEmail") as string;
+        const billingAddress = formData.get("billingAddress") as string;
+        const superadminPassword = formData.get("superadminPassword") as string;
 
         try {
             let res;
@@ -56,6 +65,12 @@ export function TenantDialog({ tenant, open, onOpenChange }: TenantDialogProps) 
                     slug,
                     dbUrl,
                     isActive,
+                    email,
+                    phone,
+                    companyName,
+                    subscription,
+                    billingEmail,
+                    billingAddress,
                 });
             } else {
                 res = await createTenant({
@@ -63,6 +78,13 @@ export function TenantDialog({ tenant, open, onOpenChange }: TenantDialogProps) 
                     slug,
                     dbUrl,
                     isActive,
+                    email,
+                    phone,
+                    companyName,
+                    subscription,
+                    billingEmail,
+                    billingAddress,
+                    superadminPassword,
                 });
             }
 
@@ -88,7 +110,8 @@ export function TenantDialog({ tenant, open, onOpenChange }: TenantDialogProps) 
                         {isEditing ? "Ubah detail tenant di sini." : "Tambah tenant baru ke sistem."}
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto px-1 pb-1">
+                    <div className="text-sm font-medium text-muted-foreground mt-2">Informasi Dasar</div>
                     <CustomInput
                         label="Nama"
                         id="name"
@@ -117,7 +140,7 @@ export function TenantDialog({ tenant, open, onOpenChange }: TenantDialogProps) 
                         containerClassName="grid gap-2"
                     />
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 pb-2">
                         <Switch
                             id="isActive"
                             checked={isActive}
@@ -126,6 +149,81 @@ export function TenantDialog({ tenant, open, onOpenChange }: TenantDialogProps) 
                         />
                         <Label htmlFor="isActive">Aktif</Label>
                     </div>
+
+                    <div className="text-sm font-medium text-muted-foreground pt-2 border-t mt-4">Profil & Kontak</div>
+                    <CustomInput
+                        label="Email Terdaftar"
+                        id="email"
+                        name="email"
+                        type="email"
+                        defaultValue={tenant?.email || ""}
+                        placeholder="misal: contact@acme.com"
+                        containerClassName="grid gap-2"
+                    />
+                    <CustomInput
+                        label="No. Telepon"
+                        id="phone"
+                        name="phone"
+                        defaultValue={tenant?.phone || ""}
+                        placeholder="misal: 08123456789"
+                        containerClassName="grid gap-2"
+                    />
+                    <CustomInput
+                        label="Nama Perusahaan"
+                        id="companyName"
+                        name="companyName"
+                        defaultValue={tenant?.companyName || ""}
+                        placeholder="misal: PT Acme Indonesia"
+                        containerClassName="grid gap-2"
+                    />
+
+                    <div className="text-sm font-medium text-muted-foreground pt-2 border-t mt-4">Langganan & Tagihan</div>
+                    <CustomSelect
+                        label="Tipe Langganan"
+                        name="subscription"
+                        defaultValue={tenant?.subscription || SubscriptionType.FREE}
+                        options={[
+                            { value: SubscriptionType.FREE, label: "Free" },
+                            { value: SubscriptionType.BASIC, label: "Basic" },
+                            { value: SubscriptionType.PREMIUM, label: "Premium" },
+                        ]}
+                        containerClassName="grid gap-2"
+                    />
+                    <CustomInput
+                        label="Email Tagihan"
+                        id="billingEmail"
+                        name="billingEmail"
+                        type="email"
+                        defaultValue={tenant?.billingEmail || ""}
+                        placeholder="misal: billing@acme.com"
+                        containerClassName="grid gap-2"
+                    />
+                    <CustomInput
+                        label="Alamat Tagihan"
+                        id="billingAddress"
+                        name="billingAddress"
+                        defaultValue={tenant?.billingAddress || ""}
+                        placeholder="Alamat lengkap untuk tagihan"
+                        containerClassName="grid gap-2"
+                    />
+
+                    {!isEditing && (
+                        <>
+                            <div className="text-sm font-medium text-muted-foreground pt-2 border-t mt-4">Autentikasi (Admin Default)</div>
+                            <CustomInput
+                                label="Password Superadmin"
+                                id="superadminPassword"
+                                name="superadminPassword"
+                                type="password"
+                                placeholder="Masukkan password untuk akun admin tenant baru"
+                                containerClassName="grid gap-2"
+                                required={!isEditing}
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Username admin akan diatur ke: <strong>admin@{"{slug}"}.com</strong>
+                            </p>
+                        </>
+                    )}
 
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>

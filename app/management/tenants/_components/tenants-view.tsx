@@ -84,6 +84,8 @@ export function TenantsView({ tenants }: { tenants: Tenant[] }) {
                         <TableRow>
                             <TableHead>Nama Tenant</TableHead>
                             <TableHead>Slug</TableHead>
+                            <TableHead>Kontak</TableHead>
+                            <TableHead>Langganan</TableHead>
                             <TableHead>Database</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Aksi</TableHead>
@@ -92,7 +94,7 @@ export function TenantsView({ tenants }: { tenants: Tenant[] }) {
                     <TableBody>
                         {filteredTenants.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
+                                <TableCell colSpan={7} className="h-24 text-center">
                                     Tidak ada data tenant yang ditemukan.
                                 </TableCell>
                             </TableRow>
@@ -111,10 +113,21 @@ export function TenantsView({ tenants }: { tenants: Tenant[] }) {
                                     </TableCell>
                                     <TableCell>{tenant.slug}</TableCell>
                                     <TableCell>
+                                        <div className="flex flex-col text-sm">
+                                            <span>{tenant.email || '-'}</span>
+                                            <span className="text-xs text-muted-foreground">{tenant.phone || ''}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="capitalize">
+                                            {tenant.subscription?.toLowerCase() || 'free'}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <Database className="h-4 w-4" />
-                                            <span className="truncate max-w-[200px]" title={tenant.dbUrl || "Tidak ada DB eksplisit dikonfigurasi"}>
-                                                {tenant.dbUrl ? tenant.dbUrl.replace(/:[^:@]*@/, ':****@') : "Tidak ada DB eksplisit dikonfigurasi"}
+                                            <span className="truncate max-w-[150px]" title={tenant.dbUrl || "Tidak ada DB eksplisit dikonfigurasi"}>
+                                                {tenant.dbUrl ? tenant.dbUrl.replace(/:[^:@]*@/, ':****@') : "-"}
                                             </span>
                                         </div>
                                     </TableCell>

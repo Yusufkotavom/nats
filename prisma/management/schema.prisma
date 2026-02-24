@@ -7,12 +7,31 @@ datasource db {
   provider = "postgresql"
 }
 
+enum SubscriptionType {
+  FREE
+  BASIC
+  PREMIUM
+}
+
 model Tenant {
   id               String         @id @default(cuid())
   name             String
   slug             String         @unique
   dbUrl            String?        // Connection string or schema name for this tenant
   isActive         Boolean        @default(true)
+  
+  // Profile
+  email            String?
+  phone            String?
+  companyName      String?
+  
+  // Subscription
+  subscription     SubscriptionType @default(FREE)
+  
+  // Billing
+  billingEmail     String?
+  billingAddress   String?
+
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
