@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect } from "@/i18n/routing";
+import { getLocale } from "next-intl/server";
 
 const DEFAULT_SECRET = "default-secret-key-change-me";
 
@@ -84,10 +85,11 @@ export async function verifySession() {
   const session = await getSession();
 
   if (!session) {
-    redirect("/auth");
+    const locale = await getLocale();
+    redirect({ href: "/auth", locale });
   }
 
-  return session;
+  return session!;
 }
 
 export async function deleteSession() {

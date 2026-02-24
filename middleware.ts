@@ -43,22 +43,20 @@ export async function middleware(request: NextRequest) {
 
   // 1. Redirect to /login if the user is not authenticated and trying to access a protected route
   if (isProtectedRoute && !session?.userId) {
+    if (!["en", "id"].includes(locale)) {
+      // If locale is missing (e.g. root /), let intlMiddleware redirect it first
+      return response;
+    }
     // Redirect to /auth, preserving the locale
     const loginUrl = new URL(`/${locale}/auth`, request.nextUrl);
-    // If locale is not present in URL, verify if we should default to 'en' or rely on next-intl redirect
-    // But since intlMiddleware ran first, it might have already redirected if locale was missing.
-    // However, if we are here, we might need to be careful.
-    if (!["en", "id"].includes(locale)) {
-      // If locale is missing (e.g. root /), intlMiddleware handles it. 
-      // But subsequent logic might run. 
-      // Actually, intlMiddleware returns a response. If it's a redirect, we should return it?
-      // The standard pattern is to use intlMiddleware's response or create a new one.
-    }
     return NextResponse.redirect(loginUrl);
   }
 
   // 2. Redirect to / (dashboard) if the user is authenticated and trying to access a public route (like login)
   if (isPublicRoute && session?.userId) {
+    if (!["en", "id"].includes(locale)) {
+      return response;
+    }
     const dashboardUrl = new URL(`/${locale}/`, request.nextUrl);
     return NextResponse.redirect(dashboardUrl);
   }
