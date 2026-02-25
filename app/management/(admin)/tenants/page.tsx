@@ -11,7 +11,7 @@ export default async function TenantsPage() {
             <PageListHeader>
                 <PageListTitle title="Manajemen Tenant" />
             </PageListHeader>
-            <PageListContent className="p-4">
+            <PageListContent className="border-0">
                 <TenantsView tenants={tenants} />
             </PageListContent>
         </PageListLayout>

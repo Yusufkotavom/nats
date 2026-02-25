@@ -27,6 +27,8 @@ model Tenant {
   
   // Subscription
   subscription     SubscriptionType @default(FREE)
+  subscriptionStart DateTime?
+  subscriptionEnd   DateTime?
   
   // Billing
   billingEmail     String?
@@ -36,6 +38,23 @@ model Tenant {
   updatedAt        DateTime       @updatedAt
 
   members          TenantMember[]
+  paymentHistories TenantPaymentHistory[]
+}
+
+model TenantPaymentHistory {
+  id          String   @id @default(cuid())
+  tenantId    String
+  amount      Float
+  paymentDate DateTime @default(now())
+  status      String   // e.g., "SUCCESS", "PENDING", "FAILED"
+  reference   String?  // e.g., Bank transfer receipt, order ID
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
 }
 
 model User {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Power, Ban, Database, Search } from "lucide-react";
+import { Plus, Pencil, Power, Ban, Database, Search, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,17 +13,22 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { getTenants, toggleTenantStatus } from "../actions";
+import { getTenants, toggleTenantStatus, provisionTenantDatabase } from "../actions";
 
 import { TenantDialog } from "./tenant-dialog";
+import Link from "next/link";
+import { useConfirm } from "@/hooks/use-confirm";
 
 type Tenant = Awaited<ReturnType<typeof getTenants>>[0];
+
 
 export function TenantsView({ tenants }: { tenants: Tenant[] }) {
 
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingTenant, setEditingTenant] = useState<Tenant | undefined>(undefined);
     const [searchQuery, setSearchQuery] = useState("");
+    const [provisioningId, setProvisioningId] = useState<string | null>(null);
+    const confirm = useConfirm();
 
     const handleCreate = () => {
         setEditingTenant(undefined);
@@ -46,6 +51,29 @@ export function TenantsView({ tenants }: { tenants: Tenant[] }) {
         } catch (error) {
             console.error(error);
         }
+    };
+
+    const handleProvisionDB = async (tenant: Tenant) => {
+        const isConfirmed = await confirm({
+            title: "Buat Database",
+            description: `Apakah Anda yakin ingin membuat database untuk tenant ${tenant.name}? Proses ini mungkin memakan waktu beberapa saat.`,
+            confirmText: "Buat",
+        });
+
+        if (!isConfirmed) return;
+
+        setProvisioningId(tenant.id);
+        try {
+            const res = await provisionTenantDatabase(tenant.id);
+            if (!res.success) {
+                alert("Gagal membuat database: " + res.error);
+            } else {
+                alert("Database berhasil dibuat!");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+        setProvisioningId(null);
     };
 
     const filteredTenants = useMemo(() => {
@@ -140,6 +168,29 @@ export function TenantsView({ tenants }: { tenants: Tenant[] }) {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
+                                            {!tenant.dbUrl && (
+                                                <Button
+                                                    variant="secondary"
+                                                    size="icon"
+                                                    onClick={() => handleProvisionDB(tenant)}
+                                                    title="Generate Database"
+                                                    disabled={provisioningId === tenant.id || tenant.slug === "default"}
+                                                >
+                                                    <Database className={`h-4 w-4 ${provisioningId === tenant.id ? "animate-spin" : ""}`} />
+                                                </Button>
+                                            )}
+                                            {tenant.dbUrl && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    asChild
+                                                    title="Statistik DB"
+                                                >
+                                                    <Link href={`/management/statistics?tenant=${tenant.id}`}>
+                                                        <Activity className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="icon"

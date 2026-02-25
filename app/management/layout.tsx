@@ -1,4 +1,5 @@
 import "@/app/globals.css";
+import { ThemeColorProvider } from "@/components/layout/others/theme-color-provider";
 import { DialogProvider } from "@/components/providers/dialog-provider";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -14,12 +15,12 @@ export default function ManagementLayout({
     return (
         <html lang="id">
             <DialogProvider>
-                <body className="antialiased min-h-screen bg-background">
-                    <div className="p-8">
+                <ThemeColorProvider>
+                    <body className="antialiased min-h-screen bg-background">
                         {children}
-                    </div>
-                    <Toaster />
-                </body>
+                        <Toaster />
+                    </body>
+                </ThemeColorProvider>
             </DialogProvider>
         </html>
     );
