@@ -31,7 +31,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                                 {isId ? 'Masuk' : 'Log in'}
                             </Button>
                         </Link>
-                        <Link href={`/${locale}/auth`}>
+                        <Link href={`/${locale}/register`}>
                             <Button size="sm">
                                 {isId ? 'Mulai Gratis' : 'Get Started'}
                             </Button>
@@ -52,7 +52,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                             : 'The all-in-one solution for point of sale, inventory management, purchasing, and accounting.'}
                     </p>
                     <div className="flex w-full items-center justify-center space-x-4 py-4 md:pb-10">
-                        <Link href={`/${locale}/auth`}>
+                        <Link href={`/${locale}/register`}>
                             <Button size="lg" className="h-12 px-8">
                                 {isId ? 'Coba Gratis Sekarang' : 'Start for Free Today'}
                             </Button>
@@ -155,7 +155,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Link href={`/${locale}/auth`} className="w-full">
+                                <Link href={`/${locale}/register`} className="w-full">
                                     <Button variant="outline" className="w-full h-12">{isId ? 'Coba Gratis' : 'Get Started'}</Button>
                                 </Link>
                             </CardFooter>
@@ -185,7 +185,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Link href={`/${locale}/auth`} className="w-full">
+                                <Link href={`/${locale}/register`} className="w-full">
                                     <Button className="w-full h-12 shadow-md">{isId ? 'Mulai Basic' : 'Get Basic'}</Button>
                                 </Link>
                             </CardFooter>
@@ -210,7 +210,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Link href={`/${locale}/auth`} className="w-full">
+                                <Link href={`/${locale}/register`} className="w-full">
                                     <Button variant="outline" className="w-full h-12">{isId ? 'Hubungi Kami' : 'Contact Sales'}</Button>
                                 </Link>
                             </CardFooter>

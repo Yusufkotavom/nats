@@ -197,7 +197,15 @@
         "login_button": "Login",
         "logging_in": "Logging in...",
         "no_account": "Don't have an account?",
-        "sign_up": "Sign up"
+        "sign_up": "Sign up",
+        "register_title": "Create an account",
+        "register_description": "Enter your details below to create your account and workspace",
+        "full_name_label": "Full Name",
+        "company_name_label": "Company Name",
+        "register_button": "Create Account",
+        "registering": "Creating Account...",
+        "have_account": "Already have an account?",
+        "sign_in": "Sign in"
     },
     "Theme": {
         "customize": "Customize",

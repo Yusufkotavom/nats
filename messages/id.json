@@ -194,7 +194,15 @@
         "login_button": "Masuk",
         "logging_in": "Masuk...",
         "no_account": "Belum punya akun?",
-        "sign_up": "Daftar"
+        "sign_up": "Daftar",
+        "register_title": "Buat akun baru",
+        "register_description": "Masukkan detail Anda di bawah ini untuk membuat akun dan ruang kerja Anda",
+        "full_name_label": "Nama Lengkap",
+        "company_name_label": "Nama Perusahaan",
+        "register_button": "Buat Akun",
+        "registering": "Membuat Akun...",
+        "have_account": "Sudah punya akun?",
+        "sign_in": "Masuk"
     },
     "Theme": {
         "customize": "Sesuaikan",
