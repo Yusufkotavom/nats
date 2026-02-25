@@ -133,5 +133,20 @@ export const adminPlugin: ModulePlugin = {
       description: "Allows deleting files",
       module: "files",
     },
+    {
+      name: "contacts.create",
+      description: "Allows creating new contacts",
+      module: "contacts",
+    },
+    {
+      name: "contacts.edit",
+      description: "Allows editing contact details",
+      module: "contacts",
+    },
+    {
+      name: "contacts.delete",
+      description: "Allows deleting contacts",
+      module: "contacts",
+    },
   ],
 };

@@ -58,6 +58,26 @@ export const accountingPlugin: ModulePlugin = {
       description: "Allows viewing financial reports",
       module: "reports",
     },
+    {
+      name: "ledger.view",
+      description: "Allows viewing ledger entries",
+      module: "accounting",
+    },
+    {
+      name: "ledger.create",
+      description: "Allows creating ledger entries",
+      module: "accounting",
+    },
+    {
+      name: "default_accounts.view",
+      description: "Allows viewing default accounts",
+      module: "accounting",
+    },
+    {
+      name: "default_accounts.manage",
+      description: "Allows managing default accounts",
+      module: "accounting",
+    },
   ],
 };
 

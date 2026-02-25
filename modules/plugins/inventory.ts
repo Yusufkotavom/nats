@@ -85,6 +85,16 @@ export const inventoryPlugin: ModulePlugin = {
       description: "Allows deleting product categories",
       module: "categories",
     },
+    {
+      name: "inventory_products.edit",
+      description: "Allows editing inventory product units of measure",
+      module: "products",
+    },
+    {
+      name: "inventory_products.delete",
+      description: "Allows deleting inventory product units of measure",
+      module: "products",
+    },
   ],
 };
 
