@@ -50,7 +50,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute =
     protectedRoutes.some((route) =>
       pathToCheck.startsWith(route)
-    ) || pathToCheck === "/"; // Root is also protected usually
+    );
 
   const isPublicRoute = publicRoutes.some((route) =>
     pathToCheck.startsWith(route)
@@ -67,12 +67,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Redirect to / (dashboard) if the user is authenticated and trying to access a public route (like login)
+  // 2. Redirect to /dashboard if the user is authenticated and trying to access a public route (like login)
   if (isPublicRoute && session?.userId) {
     if (!["en", "id"].includes(locale)) {
       return response;
     }
-    const dashboardUrl = new URL(`/${locale}/`, request.nextUrl);
+    const dashboardUrl = new URL(`/${locale}/dashboard`, request.nextUrl);
+    return NextResponse.redirect(dashboardUrl);
+  }
+
+  // 3. Redirect to /dashboard if the user is authenticated and trying to access the root marketing page
+  if (pathToCheck === "/" && session?.userId) {
+    if (!["en", "id"].includes(locale)) {
+      return response;
+    }
+    const dashboardUrl = new URL(`/${locale}/dashboard`, request.nextUrl);
     return NextResponse.redirect(dashboardUrl);
   }
 

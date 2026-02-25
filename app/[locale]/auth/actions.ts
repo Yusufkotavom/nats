@@ -76,7 +76,7 @@ export async function login(prevState: unknown, formData: FormData) {
     redirect("/pos");
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logout() {
