@@ -39,6 +39,23 @@ model Tenant {
 
   members          TenantMember[]
   paymentHistories TenantPaymentHistory[]
+  billings         TenantBilling[]
+}
+
+model TenantBilling {
+  id          String   @id @default(cuid())
+  tenantId    String
+  amount      Float
+  dueDate     DateTime
+  status      String   // e.g., "UNPAID", "PAID", "CANCELLED"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant                 @relation(fields: [tenantId], references: [id])
+  payments TenantPaymentHistory[]
+
+  @@index([tenantId])
 }
 
 model TenantPaymentHistory {
@@ -51,10 +68,13 @@ model TenantPaymentHistory {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  billingId   String?
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant  Tenant         @relation(fields: [tenantId], references: [id])
+  billing TenantBilling? @relation(fields: [billingId], references: [id])
 
   @@index([tenantId])
+  @@index([billingId])
 }
 
 model User {

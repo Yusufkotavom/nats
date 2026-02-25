@@ -39,8 +39,8 @@ const navigationItems = [
         icon: CreditCard,
     },
     {
-        title: "Pembayaran",
-        url: "/management/payments",
+        title: "Penagihan",
+        url: "/management/billing",
         icon: Receipt,
     },
     {

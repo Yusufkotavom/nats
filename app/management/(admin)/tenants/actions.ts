@@ -274,8 +274,54 @@ export async function getAllTenantPayments() {
     }
 }
 
+export async function getAllTenantBillings() {
+    try {
+        const billings = await managementPrisma.tenantBilling.findMany({
+            orderBy: { createdAt: "desc" },
+            include: {
+                tenant: {
+                    select: { name: true, slug: true }
+                },
+                payments: true,
+            }
+        });
+        return { success: true, data: billings };
+    } catch (error: any) {
+        console.error("Error fetching all billings", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function createTenantBilling(data: {
+    tenantId: string;
+    amount: number;
+    dueDate: Date;
+    status?: string;
+    description?: string;
+}) {
+    try {
+        const billing = await managementPrisma.tenantBilling.create({
+            data: {
+                tenantId: data.tenantId,
+                amount: data.amount,
+                dueDate: data.dueDate,
+                status: data.status || "UNPAID",
+                description: data.description,
+            }
+        });
+
+        revalidatePath("/management/billing", "page");
+        revalidatePath("/admin/billing", "page");
+        return { success: true, data: billing };
+    } catch (error: any) {
+        console.error("Error creating billing:", error);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function createTenantPayment(data: {
     tenantId: string;
+    billingId?: string;
     amount: number;
     paymentDate?: Date;
     status: string;
@@ -283,18 +329,65 @@ export async function createTenantPayment(data: {
     description?: string;
 }) {
     try {
-        const payment = await managementPrisma.tenantPaymentHistory.create({
-            data: {
-                tenantId: data.tenantId,
-                amount: data.amount,
-                paymentDate: data.paymentDate || new Date(),
-                status: data.status,
-                reference: data.reference,
-                description: data.description,
+        // Run as a transaction if we need to update multiple records
+        const result = await managementPrisma.$transaction(async (tx) => {
+            const payment = await tx.tenantPaymentHistory.create({
+                data: {
+                    tenantId: data.tenantId,
+                    billingId: data.billingId,
+                    amount: data.amount,
+                    paymentDate: data.paymentDate || new Date(),
+                    status: data.status,
+                    reference: data.reference,
+                    description: data.description,
+                }
+            });
+
+            if (data.status === "SUCCESS") {
+                // If payment is successful, mark billing as PAID if provided
+                if (data.billingId) {
+                    await tx.tenantBilling.update({
+                        where: { id: data.billingId },
+                        data: { status: "PAID" }
+                    });
+                }
+
+                // Extend tenant subscription by 1 month
+                const tenant = await tx.tenant.findUnique({
+                    where: { id: data.tenantId },
+                    select: { subscriptionEnd: true }
+                });
+
+                if (tenant) {
+                    const currentDate = new Date();
+                    let newEndDate: Date;
+
+                    if (tenant.subscriptionEnd && tenant.subscriptionEnd > currentDate) {
+                        // Append 1 month to existing end date
+                        newEndDate = new Date(tenant.subscriptionEnd);
+                        newEndDate.setMonth(newEndDate.getMonth() + 1);
+                    } else {
+                        // Start from today + 1 month
+                        newEndDate = new Date(currentDate);
+                        newEndDate.setMonth(newEndDate.getMonth() + 1);
+                    }
+
+                    await tx.tenant.update({
+                        where: { id: data.tenantId },
+                        data: { subscriptionEnd: newEndDate }
+                    });
+                }
             }
+
+            return payment;
         });
 
-        return { success: true, data: payment };
+        revalidatePath("/management/billing", "page");
+        revalidatePath("/admin/billing", "page");
+        revalidatePath("/management/tenants", "page");
+        revalidatePath("/admin/tenants", "page");
+
+        return { success: true, data: result };
     } catch (error: any) {
         console.error("Error creating payment:", error);
         return { success: false, error: error.message };
