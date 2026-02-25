@@ -17,24 +17,12 @@ import { TeamSwitcher } from "@/components/layout/others/team-switcher";
 import { NavUser } from "@/components/layout/sidebar/nav-user";
 import { getNavigationBySection } from "@/modules/plugins";
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "NATS Accounting",
-      logo: GalleryVerticalEnd,
-      plan: "Community Version",
-    },
-  ],
-};
+// Removed static sample data since it will be passed via props
 
 export function AppSidebar({
   user,
+  companyName = "Company Name",
+  subscriptionPlan = "FREE",
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: {
@@ -43,12 +31,22 @@ export function AppSidebar({
     avatar: string;
     role: string;
   };
+  companyName?: string;
+  subscriptionPlan?: string;
 }) {
   const navigation = getNavigationBySection();
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher
+          teams={[
+            {
+              name: companyName,
+              logo: GalleryVerticalEnd,
+              plan: subscriptionPlan + " Plan",
+            }
+          ]}
+        />
       </SidebarHeader>
       <SidebarContent>
         <NavMain label="Navigation.operations" items={navigation["Operations"]} />

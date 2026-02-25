@@ -46,6 +46,15 @@ export default async function DashboardLayout({
   const tenantPrisma = session?.tenantId ? await getTenantPrismaClient(session.tenantId) : null;
   const companyProfile = tenantPrisma ? await tenantPrisma.companyProfile.findFirst() : null;
 
+  let tenantSubscription = "FREE";
+  if (session?.tenantId) {
+    const tenant = await managementPrisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { subscription: true }
+    });
+    if (tenant) tenantSubscription = tenant.subscription;
+  }
+
   return (
     <SessionProvider
       session={{
@@ -77,7 +86,11 @@ export default async function DashboardLayout({
           } as React.CSSProperties
         }
       >
-        <AppSidebar user={userData} />
+        <AppSidebar
+          user={userData}
+          companyName={companyProfile?.name || "Company Name"}
+          subscriptionPlan={tenantSubscription}
+        />
         <SidebarInset>
           <SiteHeader />
           <div className="flex flex-1 flex-col">

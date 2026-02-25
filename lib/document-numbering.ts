@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { formatSequence } from "@/lib/utils/format-sequence";
+import { getSession } from "@/lib/auth/auth";
+import { managementPrisma } from "@/lib/prisma/tenant";
 
 /**
  * Ensures a document numbering format exists for an entity type or creates the default.
@@ -47,6 +49,17 @@ export async function generateDocumentNumber(
     defaultName?: string,
     defaultPrefix?: string
 ): Promise<string> {
+    const session = await getSession();
+
+    let tenantSubscription = "FREE";
+    if (session?.tenantId) {
+        const tenant = await managementPrisma.tenant.findUnique({
+            where: { id: session.tenantId },
+            select: { subscription: true }
+        });
+        if (tenant) tenantSubscription = tenant.subscription;
+    }
+
     // Ensure the settings row exists.
     await getOrCreateDocumentNumbering(entityType, defaultName ?? entityType, defaultPrefix ?? "");
 
@@ -63,6 +76,29 @@ export async function generateDocumentNumber(
         });
 
         const now = new Date();
+        const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        let txCounter = await tx.tenantTransactionMonthly.findUnique({
+            where: { yearMonth }
+        });
+
+        if (!txCounter) {
+            txCounter = await tx.tenantTransactionMonthly.create({
+                data: { yearMonth, count: 0 }
+            });
+        }
+
+        if (tenantSubscription === "FREE" && txCounter.count >= 1000) {
+            throw new Error(`Transaction limit reached for FREE subscription (1000/month). Current: ${txCounter.count}. Please upgrade to BASIC or PREMIUM.`);
+        } else if (tenantSubscription === "BASIC" && txCounter.count >= 5000) {
+            throw new Error(`Transaction limit reached for BASIC subscription (5000/month). Current: ${txCounter.count}. Please upgrade to PREMIUM.`);
+        }
+
+        await tx.tenantTransactionMonthly.update({
+            where: { yearMonth },
+            data: { count: { increment: 1 } }
+        });
+
         let isYearReset = false;
         let isMonthReset = false;
 

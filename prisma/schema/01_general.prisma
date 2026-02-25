@@ -86,3 +86,10 @@ model DocumentNumbering {
 
   @@index([entityType])
 }
+
+model TenantTransactionMonthly {
+  id        String   @id @default(cuid())
+  yearMonth String   @unique // Format: "YYYY-MM"
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
