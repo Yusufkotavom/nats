@@ -8,6 +8,7 @@ import {
     CreditCard,
     Receipt,
     Activity,
+    TerminalSquare,
 } from "lucide-react";
 
 import {
@@ -46,6 +47,11 @@ const navigationItems = [
         title: "Statistik",
         url: "/management/statistics",
         icon: Activity,
+    },
+    {
+        title: "Database Console",
+        url: "/management/databases",
+        icon: TerminalSquare,
     },
 ];
 
