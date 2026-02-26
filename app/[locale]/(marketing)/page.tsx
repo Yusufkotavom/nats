@@ -33,14 +33,14 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
     const isId = locale === 'id';
 
     const faqs = isId ? [
-        { question: "Apakah ada batasan fitur di paket Free?", answer: "Paket Free ditujukan untuk coba-coba, dibatasi hingga 50 transaksi per bulan dan laporan dasar." },
+        { question: "Apakah ada batasan fitur di paket Simple?", answer: "Paket Simple ditujukan untuk coba-coba, dibatasi hingga 50 transaksi per bulan dan laporan dasar." },
         { question: "Apakah saya perlu mengunduh aplikasi?", answer: "Tidak, NATS Accounting berbasis cloud. Anda hanya butuh browser dan koneksi internet." },
-        { question: "Bisakah NATS dihubungkan ke sistem lain?", answer: "Bisa, paket Pro Unlimited menyediakan akses API untuk integrasi sistem Anda. Kami juga melayani modul custom." },
+        { question: "Bisakah NATS dihubungkan ke sistem lain?", answer: "Bisa, paket Pro menyediakan akses API untuk integrasi sistem Anda. Kami juga melayani modul custom." },
         { question: "Bagaimana cara meminta Modul Custom/Tailor-made?", answer: "Silakan hubungi tim dukungan kami melalui WhatsApp untuk berdiskusi mengenai kebutuhan spesifik bisnis Anda. Tim engineer kami siap membuat modul tailor-made sesuai request." },
     ] : [
-        { question: "Are there feature limits on the Free plan?", answer: "The Free plan is designed for getting started, limited to 50 transactions per month and basic reporting." },
+        { question: "Are there feature limits on the Simple plan?", answer: "The Simple plan is designed for getting started, limited to 50 transactions per month and basic reporting." },
         { question: "Do I need to download an app?", answer: "No, NATS Accounting is cloud-based. You only need a web browser and an internet connection." },
-        { question: "Can NATS connect to other systems?", answer: "Yes, our Pro Unlimited plan includes API access for integrations. We also provide custom module development." },
+        { question: "Can NATS connect to other systems?", answer: "Yes, our Pro plan includes API access for integrations. We also provide custom module development." },
         { question: "How can I request a Custom/Tailor-made Module?", answer: "Reach out to our support team via WhatsApp to discuss your specific business needs. Our engineering team is ready to build tailor-made modules upon request." },
     ];
 
@@ -269,23 +269,24 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                 </section>
 
                 {/* Pricing Section */}
-                <section className="container mx-auto py-12 md:py-24 px-4">
+                <section className="container mx-auto py-12 md:py-24 px-4 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 -translate-y-1/2 translate-x-1/2" />
                     <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center mb-12">
                         <h2 className="text-3xl font-bold leading-[1.1] sm:text-3xl md:text-5xl">
-                            {isId ? 'Harga Spesial' : 'Simple Pricing'}
+                            {isId ? 'Pilihan Paket' : 'Simple Pricing'}
                         </h2>
                         <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-                            {isId ? 'Pilih paket yang sesuai dengan ukuran bisnis Anda.' : 'Choose the perfect plan for your business size.'}
+                            {isId ? 'Pilih paket yang sesuai dengan skala bisnis Anda.' : 'Choose the perfect plan for your business scale.'}
                         </p>
                     </div>
 
-                    <div className="grid w-full items-start gap-10 rounded-3xl p-6 md:p-10 md:grid-cols-3 mx-auto max-w-[64rem]">
-                        {/* Free Plan */}
-                        <Card className="flex flex-col border-border/50 shadow-sm relative h-full hover:shadow-md transition-shadow">
+                    <div className="grid w-full items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3 mx-auto max-w-7xl">
+                        {/* Simple Plan */}
+                        <Card className="flex flex-col border-border/50 shadow-sm relative h-full hover:shadow-md transition-all hover:-translate-y-1 group">
                             <CardHeader>
-                                <CardTitle className="text-xl">Free</CardTitle>
-                                <CardDescription>{isId ? 'Sempurna untuk coba-coba.' : 'Perfect for getting started.'}</CardDescription>
-                                <div className="mt-4 flex items-baseline text-4xl font-extrabold">
+                                <CardTitle className="text-xl">Simple</CardTitle>
+                                <CardDescription>{isId ? 'Sempurna untuk percobaan.' : 'Perfect for getting started.'}</CardDescription>
+                                <div className="mt-4 flex items-baseline text-4xl font-extrabold group-hover:text-primary transition-colors">
                                     $0
                                     <span className="ml-1 text-xl font-medium text-muted-foreground">/mo</span>
                                 </div>
@@ -295,67 +296,63 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                                     <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Maksimal 1 Pengguna' : 'Up to 1 User'}</li>
                                     <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'POS Dasar' : 'Basic POS'}</li>
                                     <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? '50 Transaksi / bulan' : '50 Transactions / month'}</li>
-                                    <li className="flex items-center gap-2 text-muted-foreground/50"><div className="w-4 h-4 rounded-full border border-current mr-2" /> {isId ? 'Tidak ada laporan lanjutan' : 'No advanced reporting'}</li>
+                                    <li className="flex items-center gap-2 text-muted-foreground/50 opacity-50"><div className="w-4 h-4 rounded-full border border-current mr-0" /> {isId ? 'Tidak ada laporan lanjutan' : 'No advanced reporting'}</li>
                                 </ul>
                             </CardContent>
                             <CardFooter>
                                 <Link href={`/${locale}/register`} className="w-full">
-                                    <Button variant="outline" className="w-full h-12">{isId ? 'Coba Gratis' : 'Get Started'}</Button>
-                                </Link>
-                            </CardFooter>
-                        </Card>
-
-                        {/* Basic Plan */}
-                        <Card className="flex flex-col shadow-xl border-primary/20 scale-100 md:scale-105 relative bg-background z-10 h-full">
-                            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4">
-                                <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-sm">
-                                    {isId ? 'Terpopuler' : 'Most Popular'}
-                                </span>
-                            </div>
-                            <CardHeader>
-                                <CardTitle className="text-xl text-primary">Basic</CardTitle>
-                                <CardDescription>{isId ? 'Untuk usaha kecil berkembang.' : 'For growing small businesses.'}</CardDescription>
-                                <div className="mt-4 flex items-baseline text-4xl font-extrabold">
-                                    {isId ? 'Rp 299k' : '$29'}
-                                    <span className="ml-1 text-xl font-medium text-muted-foreground">/mo</span>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="flex-1">
-                                <ul className="space-y-3 text-sm text-muted-foreground">
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Maksimal 5 Pengguna' : 'Up to 5 Users'}</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Full Inventaris & Pembelian' : 'Full Inventory & Purchasing'}</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Transaksi Tak Terbatas' : 'Unlimited Transactions'}</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Dukungan Prioritas' : 'Priority Support'}</li>
-                                </ul>
-                            </CardContent>
-                            <CardFooter>
-                                <Link href={`/${locale}/register`} className="w-full">
-                                    <Button className="w-full h-12 shadow-md">{isId ? 'Mulai Basic' : 'Get Basic'}</Button>
+                                    <Button variant="outline" className="w-full h-11">{isId ? 'Coba Gratis' : 'Start Free'}</Button>
                                 </Link>
                             </CardFooter>
                         </Card>
 
                         {/* Pro Plan */}
-                        <Card className="flex flex-col border-border/50 shadow-sm relative h-full hover:shadow-md transition-shadow">
+                        <Card className="flex flex-col border-primary/20 shadow-xl relative bg-card h-full hover:shadow-2xl transition-all hover:-translate-y-1 scale-100 dark:bg-card/50 ring-1 ring-primary/20">
                             <CardHeader>
-                                <CardTitle className="text-xl">Pro Unlimited</CardTitle>
-                                <CardDescription>{isId ? 'Skala enterprise tanpa batas.' : 'Enterprise scale without limits.'}</CardDescription>
-                                <div className="mt-4 flex items-baseline text-4xl font-extrabold">
+                                <CardTitle className="text-xl text-primary font-bold">Pro</CardTitle>
+                                <CardDescription>{isId ? 'Skala enterprise menengah.' : 'Scale for medium enterprise.'}</CardDescription>
+                                <div className="mt-4 flex items-baseline text-4xl font-extrabold text-primary">
                                     {isId ? 'Rp 999k' : '$99'}
                                     <span className="ml-1 text-xl font-medium text-muted-foreground">/mo</span>
                                 </div>
                             </CardHeader>
                             <CardContent className="flex-1">
-                                <ul className="space-y-3 text-sm text-muted-foreground">
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Pengguna Tak Terbatas' : 'Unlimited Users'}</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Multi Cabang / Outlet' : 'Multi-branch / Outlets'}</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'API Access' : 'API Access'}</li>
-                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Akuntan Dedikasi' : 'Dedicated Account Manager'}</li>
+                                <ul className="space-y-3 text-sm text-foreground/80">
+                                    <li className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Pengguna Tak Terbatas' : 'Unlimited Users'}</li>
+                                    <li className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Multi Cabang / Outlet' : 'Multi-branch / Outlets'}</li>
+                                    <li className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Akses API' : 'API Access'}</li>
+                                    <li className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Smart Analytics Dashboard' : 'Smart Analytics Dashboard'}</li>
                                 </ul>
                             </CardContent>
                             <CardFooter>
-                                <Link href="#contact" className="w-full">
-                                    <Button variant="outline" className="w-full h-12">{isId ? 'Hubungi Kami' : 'Contact Sales'}</Button>
+                                <Link href={`/${locale}/register`} className="w-full">
+                                    <Button className="w-full h-11 shadow-lg bg-primary hover:bg-primary/90">{isId ? 'Mulai Pro' : 'Get Pro'}</Button>
+                                </Link>
+                            </CardFooter>
+                        </Card>
+
+                        {/* Custom / On-Premise Plan */}
+                        <Card className="flex flex-col border-border/50 shadow-sm relative h-full hover:shadow-md transition-all hover:-translate-y-1 group bg-muted/30">
+                            <CardHeader>
+                                <CardTitle className="text-xl group-hover:text-primary transition-colors">{isId ? 'Exclusive' : 'Ekslusif'}</CardTitle>
+                                <CardDescription>{isId ? 'Solusi khusus operasional Anda.' : 'Specific solutions for your operations.'}</CardDescription>
+                                <div className="mt-4 flex items-baseline text-2xl font-bold italic text-muted-foreground group-hover:text-primary transition-colors">
+                                    {isId ? 'Harga Spesial' : 'Custom Pricing'}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1">
+                                <ul className="space-y-3 text-sm text-muted-foreground">
+                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Tailor-made / Modul Kustom' : 'Tailor-made / Custom Modules'}</li>
+                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Instalasi On-Premise' : 'On-Premise Deployment'}</li>
+                                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary" /> {isId ? 'Migrasi Data Penuh' : 'Full Data Migration'}</li>
+                                    <li className="flex items-center gap-2 font-semibold text-primary"><CheckCircle2 className="h-4 w-4" /> {isId ? 'Full Support Engineer' : 'Full Engineer Support'}</li>
+                                </ul>
+                            </CardContent>
+                            <CardFooter>
+                                <Link href="https://wa.me/6281234567890" target="_blank" className="w-full">
+                                    <Button variant="outline" className="w-full h-11 border-primary/20 hover:bg-primary/5 group-hover:border-primary transition-colors">
+                                        {isId ? 'Hubungi Sales' : 'Contact Sales'}
+                                    </Button>
                                 </Link>
                             </CardFooter>
                         </Card>

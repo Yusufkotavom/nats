@@ -1,149 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pasak - Enterprise Resource Planning System
 
-## Getting Started
+Pasak adalah sistem ERP berbasis Next.js yang dirancang dengan arsitektur modular untuk menangani berbagai fungsi bisnis mulai dari akuntansi, inventaris, hingga manajemen tenant.
 
-First, run the development server:
+## Prasyarat
 
+Sebelum memulai, pastikan perangkat Anda telah terinstal:
+- **Node.js**: Versi 18.x atau lebih baru
+- **NPM**: Biasanya terinstal bersama Node.js
+- **PostgreSQL**: Database utama sistem
+- **MinIO** (Opsional): Untuk penyimpanan file jika tidak menggunakan storage lokal
+
+## Langkah Instalasi
+
+Ikuti langkah-langkah di bawah ini untuk menjalankan projek di lingkungan lokal Anda:
+
+### 1. Klon Repositori
+```bash
+git clone <url-repository-ini>
+cd pasak
+```
+
+### 2. Instalasi Dependensi
+```bash
+npm install
+```
+
+### 3. Konfigurasi Environment Variables
+Salin file `.env.example` menjadi `.env` dan sesuaikan nilai variabel di dalamnya:
+```bash
+cp .env.example .env
+```
+
+Beberapa variabel kunci yang perlu diperhatikan:
+- `DATABASE_URL`: URL koneksi PostgreSQL (contoh: `postgresql://user:password@localhost:5432/pasak`)
+- `PRISMA_DB_URL`: Alternatif URL database untuk Prisma.
+- `STORAGE_DRIVER`: Pilih antara `local` atau `minio`.
+- `INTEGRATION_DISPATCH_KEY`: Kunci rahasia untuk otentikasi worker.
+
+### 4. Sinkronisasi Database (Prisma)
+Projek ini menggunakan sistem skema folder. Jalankan perintah berikut untuk menghasilkan client Prisma dan menerapkan migrasi database:
+```bash
+# Generate Prisma Client
+npx prisma generate
+
+# Jalankan migrasi database
+npx prisma migrate dev
+
+# Masukkan data awal (seed)
+npx prisma db seed
+```
+
+### 5. Menjalankan Aplikasi
+Jalankan server pengembangan:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Fitur Utama & Operasional
 
-## Integration Outbox & Worker
+### 1. Integration Outbox & Worker
+Projek ini menggunakan pola Outbox untuk memastikan operasi antar-modul bersifat retryable dan idempotent.
+- **Worker CLI**: Untuk menjalankan pemrosesan outbox secara manual:
+  ```bash
+  npm run outbox:work
+  ```
+- **Penyelesaian Inline**: Secara default, operasi diproses secara inline. Untuk mode async murni, atur `INTEGRATION_PROCESS_INLINE=false`.
 
-This app uses an outbox/inbox pattern to make cross-module operations retryable and idempotent:
-- UI/server actions enqueue an `IntegrationOutbox` event
-- A worker processes pending events and writes `IntegrationInbox` rows per consumer to guarantee at-most-once per consumer/outboxId
-- Failures backoff and retry; poison messages become `DEAD`
+### 2. Manajemen Multi-Tenant
+Sistem ini mendukung multi-tenancy dengan database terpisah atau terintegrasi tergantung konfigurasi.
 
-### Async vs inline processing
-
-By default, actions may enqueue and then process inline. To run “true async” (queue only), set:
-- `INTEGRATION_PROCESS_INLINE=false`
-
-When running async, the UI shows “Queued for processing” and the worker is responsible for completing the work.
-
-### Worker runner (scheduler-friendly)
-
-Protected endpoint:
-- `POST /api/integration/worker`
-- Header: `x-integration-dispatch-key: <INTEGRATION_DISPATCH_KEY>`
-
-Optional query params:
-- `limitPerBatch` (default 50)
-- `maxBatches` (default 25)
-- `deadlineMs` (default 25000)
- - `concurrency` (default 4)
- - `drain` (default false; when true, ignores maxBatches and runs until drained or deadline)
- - `safeMode` (default false; when true, caps batch size/concurrency/deadline/maxBatches)
-
-Example request:
+### 3. Internasionalisasi (i18n)
+Dukungan bahasa inggris dan indonesia dapat ditemukan di folder `messages/`. Untuk validasi file i18n:
 ```bash
-curl -X POST "http://localhost:3000/api/integration/worker?limitPerBatch=50&maxBatches=25&deadlineMs=25000" \
-  -H "x-integration-dispatch-key: $INTEGRATION_DISPATCH_KEY"
+npm run i18n:validate
 ```
 
-### Healthcheck (external monitoring)
-
-Protected endpoint:
-- `GET /api/integration/health`
-- Header: `x-integration-dispatch-key: <INTEGRATION_DISPATCH_KEY>`
-
-Behavior:
-- Returns `200` for `ok` / `warn`
-- Returns `503` for `alert` (so uptime monitors can alert on status code)
-
-Example request:
+### 4. Testing
+Berbagai unit test tersedia menggunakan Vitest:
 ```bash
-curl -X GET "http://localhost:3000/api/integration/health" \
-  -H "x-integration-dispatch-key: $INTEGRATION_DISPATCH_KEY"
+npm run test
 ```
 
-CLI entrypoint:
-- `npm run outbox:work`
+## Struktur Direktori
+- `app/`: Routing utama menggunakan Next.js App Router.
+- `modules/`: Logika bisnis inti yang dibagi per modul (Sales, Purchasing, Inventory, dll).
+- `prisma/`: Skema database dan bibit data (seed).
+- `lib/`: Utilitas, servis, dan konfigurasi pihak ketiga.
+- `components/`: Komponen UI reusable.
 
-HTTP CLI entrypoint (scheduler-friendly when the scheduler cannot access the DB):
-- `npm run outbox:work:http`
-
-### Key environment variables
-
-- `INTEGRATION_DISPATCH_KEY`: required for `/api/integration/dispatch` and `/api/integration/worker`
-- `INTEGRATION_MAX_ATTEMPTS` (default 10)
-- `INTEGRATION_LOCK_TIMEOUT_MS` (default 60000)
-- `INTEGRATION_BACKOFF_BASE_MS` (default 5000)
-- `INTEGRATION_BACKOFF_MAX_MS` (default 300000)
-- `INTEGRATION_WORKER_ID` (optional; defaults to random UUID)
-- `OUTBOX_WORKER_URL`: full URL to `/api/integration/worker` for `outbox:work:http`
-- `OUTBOX_LIMIT_PER_BATCH`, `OUTBOX_MAX_BATCHES`, `OUTBOX_DEADLINE_MS`, `OUTBOX_CONCURRENCY`, `OUTBOX_DRAIN`
-- `OUTBOX_SAFE_MODE` (default false)
-- `OUTBOX_SAFE_MODE_LIMIT_PER_BATCH` (default 10)
-- `OUTBOX_SAFE_MODE_MAX_BATCHES` (default 10)
-- `OUTBOX_SAFE_MODE_DEADLINE_MS` (default 10000)
-- `OUTBOX_SAFE_MODE_CONCURRENCY` (default 1)
-- `OUTBOX_ALERT_OLDEST_PENDING_SECONDS` (default 3600)
-- `OUTBOX_ALERT_STUCK_PROCESSING_COUNT` (default 1)
-- `OUTBOX_ALERT_DEAD_COUNT` (default 1)
-- `OUTBOX_WARN_FAILED_LAST_HOUR_COUNT` (default 1)
-
-You can start from the provided `.env.example` and fill in your deployment-specific values.
-
-### Database migrations (Prisma)
-
-This repo uses Prisma schema folder configuration (`prisma.config.ts` points to `prisma/schema`), so schema changes (including new indexes) should be shipped via migrations.
-
-- Generate a migration locally:
-  - `npx prisma migrate dev --name <migration_name>`
-- Apply migrations in production:
-  - `npx prisma migrate deploy`
-- Outbox indexes are shipped as a migration under `prisma/migrations`.
-
-### Monitoring & recovery (Admin)
-
-- Outbox health: `/admin/dashboard`
-- Outbox queue (filters + actions): `/admin/integrations/outbox`
-  - Use “Unlock” for stuck PROCESSING
-  - Use “Requeue” to retry (optionally resetting attempts)
-  - Use “Mark DEAD” for poison messages
-  - Use “Top Failed Errors” to bulk requeue or dead-letter by exact error text
-
-### Operations runbook (recommended)
-
-- **If PENDING grows and oldest pending is increasing**
-  - Verify your scheduler is calling the worker endpoint.
-  - Run a one-off drain with higher concurrency for catch-up:
-    - `POST /api/integration/worker?drain=true&deadlineMs=25000&concurrency=8`
-- **If PROCESSING is stuck (stuck processing count > 0)**
-  - Use Outbox “Unlock” for stale locks (PROCESSING with old lockedAt).
-  - Ensure multiple schedulers aren’t using the same worker identity unexpectedly.
-- **If DEAD increases**
-  - Inspect `lastError`, fix the underlying handler issue, then use “Requeue” (optionally resetting attempts).
-  - Consider increasing `INTEGRATION_MAX_ATTEMPTS` only after confirming the error is transient.
-- **If retries are thrashing**
-  - Increase `INTEGRATION_BACKOFF_BASE_MS` and/or cap `INTEGRATION_BACKOFF_MAX_MS`.
-  - Reduce `concurrency` to limit downstream pressure.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Kontak & Kontribusi
+(Tambahkan informasi kontak jika diperlukan)
