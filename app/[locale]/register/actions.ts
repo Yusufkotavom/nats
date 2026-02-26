@@ -6,6 +6,8 @@ import { hash } from "bcryptjs";
 import { createSession } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
 import { SubscriptionType } from "@/prisma/generated/management-client";
+import { randomUUID } from "crypto";
+import { sendActivationEmail } from "@/lib/mail";
 
 function generateSlug(companyName: string): string {
     return companyName
@@ -122,12 +124,20 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         const provisionResult = await provisionTenantDatabase(newTenant.id);
         if (!provisionResult.success) {
             console.error("Failed to provision database:", provisionResult.error);
-            // We still created the user and tenant, but DB setup failed. 
-            // This might require manual intervention, but let's let them login and fail gracefully later
         }
 
-        // Create session
-        await createSession(newUser.id, newTenant.id, tenantMember.role);
+        // Generate email verification token
+        const token = randomUUID();
+        await managementPrisma.verificationToken.create({
+            data: {
+                identifier: email,
+                token,
+                expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+            }
+        });
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        await sendActivationEmail(email, token, appUrl);
 
     } catch (error: any) {
         console.error("Registration error:", error);
@@ -138,5 +148,5 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         };
     }
 
-    redirect("/dashboard");
+    redirect("/check-email");
 }

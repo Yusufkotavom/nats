@@ -80,12 +80,22 @@ model TenantPaymentHistory {
 model User {
   id            String         @id @default(cuid())
   email         String         @unique
+  emailVerified DateTime?
   password      String
   name          String
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
   tenantMembers TenantMember[]
+}
+
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Role {
