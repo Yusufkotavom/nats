@@ -33,3 +33,28 @@ export async function sendActivationEmail(to: string, token: string, baseUrl: st
         return { success: false, error };
     }
 }
+export async function sendResetPasswordEmail(to: string, token: string, baseUrl: string) {
+    const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
+
+    const mailOptions = {
+        from: process.env.SMTP_FROM || 'noreply@pasak.com',
+        to,
+        subject: 'Reset Your Pasak Password',
+        html: `
+            <h1>Reset Your Password</h1>
+            <p>You requested a password reset for your Pasak account. Click the link below to set a new password:</p>
+            <a href="${resetLink}">Reset Password</a>
+            <p>If you didn't request this, you can safely ignore this email.</p>
+            <p>Or copy and paste this link in your browser: <br> ${resetLink}</p>
+        `,
+    };
+
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Password reset email sent: %s', info.messageId);
+        return { success: true };
+    } catch (error) {
+        console.error('Error sending password reset email:', error);
+        return { success: false, error };
+    }
+}

@@ -202,7 +202,22 @@
         "register_button": "Buat Akun",
         "registering": "Membuat Akun...",
         "have_account": "Sudah punya akun?",
-        "sign_in": "Masuk"
+        "sign_in": "Masuk",
+        "forgot_password_title": "Lupa Kata Sandi",
+        "forgot_password_description": "Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.",
+        "back_to_login": "Kembali ke halaman masuk",
+        "send_reset_link": "Kirim Tautan Atur Ulang",
+        "sending_reset_link": "Mengirim...",
+        "reset_link_sent_title": "Periksa email Anda",
+        "reset_link_sent_description": "Kami telah mengirimkan tautan atur ulang kata sandi ke email Anda.",
+        "reset_password_title": "Atur Ulang Kata Sandi",
+        "reset_password_description": "Masukkan kata sandi baru Anda di bawah ini.",
+        "new_password_label": "Kata Sandi Baru",
+        "confirm_password_label": "Konfirmasi Kata Sandi",
+        "reset_password_button": "Atur Ulang Kata Sandi",
+        "resetting_password": "Mengatur Ulang...",
+        "password_reset_success": "Kata sandi berhasil diatur ulang. Anda sekarang dapat masuk dengan kata sandi baru Anda.",
+        "invalid_token": "Tautan ini tidak valid atau telah kedaluwarsa."
     },
     "Theme": {
         "customize": "Sesuaikan",

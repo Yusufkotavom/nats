@@ -9,6 +9,7 @@ Sebelum memulai, pastikan perangkat Anda telah terinstal:
 - **NPM**: Biasanya terinstal bersama Node.js
 - **PostgreSQL**: Database utama sistem
 - **MinIO** (Opsional): Untuk penyimpanan file jika tidak menggunakan storage lokal
+- **SMTP Server** (Opsional): Untuk fitur pengiriman email (seperti verifikasi akun pengguna)
 
 ## Langkah Instalasi
 
@@ -33,9 +34,10 @@ cp .env.example .env
 
 Beberapa variabel kunci yang perlu diperhatikan:
 - `DATABASE_URL`: URL koneksi PostgreSQL (contoh: `postgresql://user:password@localhost:5432/pasak`)
-- `PRISMA_DB_URL`: Alternatif URL database untuk Prisma.
+- `MANAGEMENT_DATABASE_URL`: URL database untuk schema manajemen multi-tenant.
 - `STORAGE_DRIVER`: Pilih antara `local` atau `minio`.
 - `INTEGRATION_DISPATCH_KEY`: Kunci rahasia untuk otentikasi worker.
+- Konfigurasi **SMTP** (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`): Untuk mengatur pengiriman email di sistem (seperti email aktivasi otomatis).
 
 ### 4. Sinkronisasi Database (Prisma)
 Projek ini menggunakan sistem skema folder. Jalankan perintah berikut untuk menghasilkan client Prisma dan menerapkan migrasi database:

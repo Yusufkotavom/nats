@@ -205,7 +205,22 @@
         "register_button": "Create Account",
         "registering": "Creating Account...",
         "have_account": "Already have an account?",
-        "sign_in": "Sign in"
+        "sign_in": "Sign in",
+        "forgot_password_title": "Forgot Password",
+        "forgot_password_description": "Enter your email address and we'll send you a link to reset your password.",
+        "back_to_login": "Back to login",
+        "send_reset_link": "Send Reset Link",
+        "sending_reset_link": "Sending...",
+        "reset_link_sent_title": "Check your email",
+        "reset_link_sent_description": "We've sent a password reset link to your email.",
+        "reset_password_title": "Reset Password",
+        "reset_password_description": "Enter your new password below.",
+        "new_password_label": "New Password",
+        "confirm_password_label": "Confirm Password",
+        "reset_password_button": "Reset Password",
+        "resetting_password": "Resetting...",
+        "password_reset_success": "Password reset successfully. You can now login with your new password.",
+        "invalid_token": "This link is invalid or has expired."
     },
     "Theme": {
         "customize": "Customize",

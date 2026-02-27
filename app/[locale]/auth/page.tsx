@@ -54,7 +54,7 @@ export default function LoginPage() {
                   <div className="flex items-center">
                     <Label htmlFor="password">{t('password_label')}</Label>
                     <Link
-                      href="#"
+                      href="/auth/forgot-password"
                       className="ml-auto text-sm underline-offset-4 hover:underline"
                     >
                       {t('forgot_password')}
