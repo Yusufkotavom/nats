@@ -7,6 +7,7 @@ import { cashBankPlugin } from "./cash-bank";
 import { hrPlugin } from "./hr";
 import { inventoryPlugin } from "./inventory";
 import { posPlugin } from "./pos";
+import { productionPlugin } from "./production";
 import { purchasePlugin } from "./purchase";
 import { salesPlugin } from "./sales";
 import type { NavItem, NavSectionKey, PermissionDefinition } from "./types";
@@ -17,6 +18,7 @@ export const plugins = [
   purchasePlugin,
   cashBankPlugin,
   inventoryPlugin,
+  productionPlugin,
   accountingPlugin,
   budgetingPlugin,
   assetsPlugin,

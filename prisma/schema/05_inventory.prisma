@@ -68,6 +68,13 @@ model Product {
   salesInvoiceItems  SalesInvoiceItem[]
   salesReturnItems   SalesReturnItem[]
 
+  // Production Module
+  boms                   BillOfMaterial[]        @relation("ProductBOMs")
+  bomItems               BillOfMaterialItem[]    @relation("ProductBOMItems")
+  productionOrders       ProductionOrder[]       @relation("ProductProductionOrders")
+  productionIssueItems   ProductionIssueItem[]   @relation("ProductProductionIssues")
+  productionReceiptItems ProductionReceiptItem[] @relation("ProductProductionReceipts")
+
   @@index([categoryId])
   @@index([sku])
 }
@@ -234,6 +241,8 @@ enum MovementType {
   OUT // Sales Shipment
   TRANSFER // Warehouse Transfer
   ADJUSTMENT // Stock Adjustment
+  PRODUCTION_IN // Production Receipt
+  PRODUCTION_OUT // Production Issue
 }
 
 enum MovementStatus {

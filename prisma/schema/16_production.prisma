@@ -1,0 +1,163 @@
+// PRODUCTION MODULE
+
+model BillOfMaterial {
+  id               String               @id @default(cuid())
+  bomNumber        String               @unique
+  name             String
+  description      String?
+  productId        String
+  product          Product              @relation("ProductBOMs", fields: [productId], references: [id])
+  quantity         Int                  @default(1)
+  isActive         Boolean              @default(true)
+  items            BillOfMaterialItem[]
+  productionOrders ProductionOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model BillOfMaterialItem {
+  id               String         @id @default(cuid())
+  billOfMaterialId String
+  billOfMaterial   BillOfMaterial @relation(fields: [billOfMaterialId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product        @relation("ProductBOMItems", fields: [productId], references: [id])
+  quantity         Decimal
+  unitCost         Decimal? // Optional estimated cost
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([billOfMaterialId])
+  @@index([productId])
+}
+
+enum ProductionOrderStatus {
+  DRAFT
+  RELEASED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ProductionOrder {
+  id               String                @id @default(cuid())
+  orderNumber      String                @unique
+  billOfMaterialId String?
+  billOfMaterial   BillOfMaterial?       @relation(fields: [billOfMaterialId], references: [id])
+  productId        String
+  product          Product               @relation("ProductProductionOrders", fields: [productId], references: [id])
+  plannedQuantity  Int
+  producedQuantity Int                   @default(0)
+  startDate        DateTime?
+  endDate          DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+  status           ProductionOrderStatus @default(DRAFT)
+  notes            String?
+
+  issues   ProductionIssue[]
+  receipts ProductionReceipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([billOfMaterialId])
+  @@index([status])
+}
+
+enum ProductionIssueStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+model ProductionIssue {
+  id                String                @id @default(cuid())
+  issueNumber       String                @unique
+  productionOrderId String
+  productionOrder   ProductionOrder       @relation(fields: [productionOrderId], references: [id])
+  issueDate         DateTime              @default(now())
+  status            ProductionIssueStatus @default(DRAFT)
+  notes             String?
+
+  items ProductionIssueItem[]
+
+  journalEntryId String?       @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  inventoryMovementId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productionOrderId])
+}
+
+model ProductionIssueItem {
+  id                String          @id @default(cuid())
+  productionIssueId String
+  productionIssue   ProductionIssue @relation(fields: [productionIssueId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product         @relation("ProductProductionIssues", fields: [productId], references: [id])
+
+  quantity  Int
+  unitCost  Decimal @default(0) // Actual cost fetched from inventory valuation
+  totalCost Decimal @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productionIssueId])
+  @@index([productId])
+}
+
+enum ProductionReceiptStatus {
+  DRAFT
+  RECEIVED
+  CANCELLED
+}
+
+model ProductionReceipt {
+  id                String                  @id @default(cuid())
+  receiptNumber     String                  @unique
+  productionOrderId String
+  productionOrder   ProductionOrder         @relation(fields: [productionOrderId], references: [id])
+  receiptDate       DateTime                @default(now())
+  status            ProductionReceiptStatus @default(DRAFT)
+  notes             String?
+
+  items ProductionReceiptItem[]
+
+  journalEntryId String?       @unique
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
+  inventoryMovementId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productionOrderId])
+}
+
+model ProductionReceiptItem {
+  id                  String            @id @default(cuid())
+  productionReceiptId String
+  productionReceipt   ProductionReceipt @relation(fields: [productionReceiptId], references: [id], onDelete: Cascade)
+  productId           String
+  product             Product           @relation("ProductProductionReceipts", fields: [productId], references: [id])
+
+  quantity  Int
+  unitCost  Decimal @default(0) // Calculated from issues
+  totalCost Decimal @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productionReceiptId])
+  @@index([productId])
+}

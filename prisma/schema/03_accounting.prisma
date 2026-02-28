@@ -63,6 +63,10 @@ model JournalEntry {
   // Payroll Module Relations
   payrollRun PayrollRun?
 
+  // Production Module Relations
+  productionIssue   ProductionIssue?
+  productionReceipt ProductionReceipt?
+
   @@index([transactionDate])
   @@index([status])
   @@index([userId])
