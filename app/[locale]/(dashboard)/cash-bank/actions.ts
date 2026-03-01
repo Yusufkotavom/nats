@@ -29,6 +29,11 @@ import type { ActionResponse } from "@/lib/permissions/protected-action";
 import { CashAccountService } from "@/modules/cash-bank/services/cash-account.service";
 import { CashTransferService } from "@/modules/cash-bank/services/cash-transfer.service";
 import { CashAccountSyncService } from "@/modules/cash-bank/services/cash-account-sync.service";
+import { Decimal } from "decimal.js";
+import { getSession } from "@/lib/auth/auth";
+import { hasPermission } from "@/lib/permissions/utils";
+
+const CASH_GL_CODE_PREFIX = "111";
 
 type CashTransferOutboxResult = {
   transferId: string;
@@ -78,17 +83,22 @@ export async function uploadTransferAttachment(formData: FormData) {
 // --- Cash Account Actions ---
 
 export async function getDashboardStats() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "cash_bank.view")) {
+    return {
+      accounts: [],
+      summary: {
+        totalBalance: 0,
+        totalCash: 0,
+        totalBank: 0,
+      },
+      recentTransactions: SuperJSON.serialize([]),
+    };
+  }
   await syncCashAccounts();
   const accounts = await prisma.cashAccount.findMany({
     include: { glAccount: true },
-    where: {
-      glAccount: {
-        isPosting: true,
-        code: {
-          startsWith: "111",
-        },
-      },
-    },
+    where: { isActive: true },
   });
 
   const glAccountIds = accounts.map((a) => a.glAccountId);
@@ -105,11 +115,11 @@ export async function getDashboardStats() {
     },
   });
 
-  const balanceMap = new Map();
+  const balanceMap = new Map<string, number>();
   balances.forEach((b) => {
-    // Assuming Asset: Balance = Debit - Credit
-    const balance =
-      (Number(b._sum.debitAmount) || 0) - (Number(b._sum.creditAmount) || 0);
+    const debit = new Decimal(b._sum.debitAmount || 0);
+    const credit = new Decimal(b._sum.creditAmount || 0);
+    const balance = debit.minus(credit).toNumber();
     balanceMap.set(b.accountId, balance);
   });
 
@@ -162,6 +172,10 @@ export async function getDashboardStats() {
 }
 
 export async function getCashAccounts() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "cash_bank.view")) {
+    return [];
+  }
   const accounts = await prisma.cashAccount.findMany({
     include: {
       glAccount: true,
@@ -174,6 +188,10 @@ export async function getCashAccounts() {
 }
 
 export async function getCashAccount(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "cash_bank.view")) {
+    return null;
+  }
   const account = await prisma.cashAccount.findUnique({
     where: { id },
     include: {
@@ -184,6 +202,10 @@ export async function getCashAccount(id: string) {
 }
 
 export async function createCashAccount(data: CashAccountFormData) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "cash_bank.create")) {
+    throw new Error("Unauthorized");
+  }
   const account = await CashAccountService.createAccount(data);
   revalidatePath("/accounting/cash-bank");
   return account;
@@ -194,6 +216,10 @@ export async function updateCashAccount(
   data: UpdateCashAccountFormData,
 ): Promise<ActionResponse<{}>> {
   try {
+    const session = await getSession();
+    if (!session || !hasPermission(session.permissions, "cash_bank.edit")) {
+      return { success: false, error: "Unauthorized" };
+    }
     await prisma.cashAccount.update({
       where: { id },
       data,
@@ -207,6 +233,10 @@ export async function updateCashAccount(
 }
 
 export async function deleteCashAccount(id: string) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "cash_bank.delete")) {
+    throw new Error("Unauthorized");
+  }
   await CashAccountService.deleteAccount(id);
   revalidatePath("/accounting/cash-bank");
 }
@@ -216,6 +246,10 @@ export async function deleteCashAccount(id: string) {
 export async function createCashTransfer(
   data: CashTransferFormData | SuperJSONResult,
 ) {
+  const sessionPerm = await getSession();
+  if (!sessionPerm || !hasPermission(sessionPerm.permissions, "cash_bank.create")) {
+    throw new Error("Unauthorized");
+  }
   const session = await verifySession();
   const userId = session.userId;
 
@@ -237,6 +271,10 @@ export async function updateCashTransfer(
   id: string,
   data: CashTransferFormData | SuperJSONResult,
 ) {
+  const sessionPerm = await getSession();
+  if (!sessionPerm || !hasPermission(sessionPerm.permissions, "cash_bank.edit")) {
+    throw new Error("Unauthorized");
+  }
   const data2 = SuperJSON.deserialize(
     data as unknown as SuperJSONResult,
   ) as CashTransferFormData;
@@ -501,5 +539,3 @@ export async function getCashAccountDetails(
     periodTotals,
   };
 }
-
-
