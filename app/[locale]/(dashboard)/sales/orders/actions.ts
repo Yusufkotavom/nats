@@ -339,6 +339,18 @@ export const deleteSalesOrder = authorizedAction(
   "sales.delete",
   async (id: string) => {
     try {
+      const currentOrder = await prisma.salesOrder.findUnique({
+        where: { id },
+      });
+
+      if (!currentOrder) {
+        return { success: false, error: "Order not found" };
+      }
+
+      if (currentOrder.status !== "DRAFT") {
+        return { success: false, error: "Can only delete draft orders" };
+      }
+
       await prisma.salesOrder.delete({
         where: { id },
       });

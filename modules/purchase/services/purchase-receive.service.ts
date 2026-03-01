@@ -3,7 +3,6 @@ import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchaseReceiveInput } from "@/app/[locale]/(dashboard)/purchase/receives/types";
 import { generateDocumentNumber } from "@/lib/document-numbering";
 
-const RECEIVE_NUMBER_PREFIX = "RCV";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class PurchaseReceiveService {

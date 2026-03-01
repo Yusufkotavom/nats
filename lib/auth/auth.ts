@@ -3,12 +3,10 @@ import { cookies } from "next/headers";
 import { redirect } from "@/i18n/routing";
 import { getLocale } from "next-intl/server";
 
-const DEFAULT_SECRET = "default-secret-key-change-me";
-
 function getSecretKey(): Uint8Array {
-  const secret = process.env.SESSION_SECRET || DEFAULT_SECRET;
-  if (process.env.NODE_ENV === "production" && secret === DEFAULT_SECRET) {
-    throw new Error("FATAL: SESSION_SECRET is not set in production environment!");
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error("FATAL: SESSION_SECRET environment variable is not set!");
   }
   return new TextEncoder().encode(secret);
 }

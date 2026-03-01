@@ -3,7 +3,6 @@ import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { SalesPaymentInput } from "@/app/[locale]/(dashboard)/sales/payments/types";
 import { generateDocumentNumber } from "@/lib/document-numbering";
 
-const PAYMENT_NUMBER_PREFIX = "PAY-IN";
 const OVERPAYMENT_TOLERANCE = 0.01;
 
 type CreateSalesPaymentInput = Omit<SalesPaymentInput, "paymentNumber"> & {

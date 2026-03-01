@@ -3,7 +3,6 @@ import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { SalesShipmentInput } from "@/app/[locale]/(dashboard)/sales/shipments/types";
 import { generateDocumentNumber } from "@/lib/document-numbering";
 
-const SHIPMENT_NUMBER_PREFIX = "SHP";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class SalesShipmentService {

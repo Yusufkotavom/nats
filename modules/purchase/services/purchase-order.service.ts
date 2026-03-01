@@ -182,6 +182,18 @@ export class PurchaseOrderService {
     }
 
     static async delete(id: string) {
+        const currentOrder = await prisma.purchaseOrder.findUnique({
+            where: { id },
+        });
+
+        if (!currentOrder) {
+            throw new Error("Order not found");
+        }
+
+        if (currentOrder.status !== "DRAFT") {
+            throw new Error("Can only delete draft orders");
+        }
+
         await prisma.purchaseOrder.delete({
             where: { id },
         });

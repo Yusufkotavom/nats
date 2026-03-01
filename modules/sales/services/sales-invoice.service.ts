@@ -4,7 +4,6 @@ import { SalesInvoiceInput } from "@/app/[locale]/(dashboard)/sales/invoices/typ
 import { CalculationService } from "@/lib/utils/calculation-service";
 import { generateDocumentNumber } from "@/lib/document-numbering";
 
-const INVOICE_NUMBER_PREFIX = "INV";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 type CreateSalesInvoiceInput = Omit<SalesInvoiceInput, "invoiceNumber"> & {

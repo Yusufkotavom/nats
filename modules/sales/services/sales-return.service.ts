@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { SalesReturnInput } from "@/app/[locale]/(dashboard)/sales/returns/types";
 import { generateDocumentNumber } from "@/lib/document-numbering";
+import { CalculationService } from "@/lib/utils/calculation-service";
 
-const RETURN_NUMBER_PREFIX = "RET";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class SalesReturnService {
@@ -13,10 +13,29 @@ export class SalesReturnService {
 
         await this.assertUniqueReturnNumber(returnNumber);
 
-        let totalAmount = 0;
-        data.items.forEach((item) => {
-            totalAmount += item.quantity * item.unitPrice;
+        const itemsWithCalculations = data.items.map((item) => {
+            const calculated = CalculationService.calculateLineItem({
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount: 0,
+                tax: 0,
+            });
+            return {
+                itemData: {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    totalPrice: calculated.total.toNumber(),
+                },
+                calculated,
+            };
         });
+
+        const totals = CalculationService.calculateInvoiceTotals(
+            itemsWithCalculations.map((i) => i.calculated),
+        );
+
+        const totalAmount = totals.totalAmount.toNumber();
 
         return await prisma.$transaction(async (tx) => {
             const result = await tx.salesReturn.create({

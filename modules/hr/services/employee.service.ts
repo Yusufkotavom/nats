@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { CreateEmployeeDTO, UpdateEmployeeDTO } from '../types';
-import { ContactType } from '@/prisma/generated/prisma/client';
+import { ContactType, Prisma } from '@/prisma/generated/prisma/client';
 
 export class EmployeeService {
     static async getEmployees({
@@ -50,7 +50,6 @@ export class EmployeeService {
             where: { id, type: ContactType.EMPLOYEE },
             include: {
                 employeeDetail: true,
-                // manager: true - TODO if we implement manager relation
             },
         });
     }
@@ -97,7 +96,7 @@ export class EmployeeService {
     static async updateEmployee(id: string, data: UpdateEmployeeDTO) {
         return prisma.$transaction(async (tx) => {
             // Update Contact info
-            const contactData: any = {};
+            const contactData: Prisma.ContactUpdateInput = {};
             if (data.name) contactData.name = data.name;
             if (data.email !== undefined) contactData.email = data.email;
             if (data.phone !== undefined) contactData.phone = data.phone;
@@ -113,7 +112,7 @@ export class EmployeeService {
             }
 
             // Update EmployeeDetail info
-            const detailData: any = {};
+            const detailData: Prisma.EmployeeDetailUpdateInput = {};
             if (data.joinDate) detailData.joinDate = data.joinDate;
             if (data.employmentStatus) detailData.employmentStatus = data.employmentStatus;
             if (data.jobTitle) detailData.jobTitle = data.jobTitle;
@@ -136,11 +135,21 @@ export class EmployeeService {
                     update: detailData,
                     create: {
                         contactId: id,
-                        joinDate: data.joinDate || new Date(), // Fallback if missing in update but creating new
+                        joinDate: data.joinDate || new Date(),
                         employmentStatus: data.employmentStatus || 'FULL_TIME',
                         jobTitle: data.jobTitle || 'Unknown',
                         department: data.department || 'Unknown',
-                        ...detailData
+                        managerId: data.managerId,
+                        dateOfBirth: data.dateOfBirth,
+                        gender: data.gender,
+                        maritalStatus: data.maritalStatus,
+                        nationalId: data.nationalId,
+                        taxId: data.employeeTaxId,
+                        emergencyContactName: data.emergencyContactName,
+                        emergencyContactPhone: data.emergencyContactPhone,
+                        bankName: data.bankName,
+                        bankAccount: data.bankAccount,
+                        bankHolder: data.bankHolder,
                     }
                 });
             }

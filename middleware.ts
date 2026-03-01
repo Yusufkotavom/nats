@@ -26,7 +26,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const protectedRoutes = ["/dashboard", "/accounting", "/admin"];
+  const protectedRoutes = [
+    "/dashboard",
+    "/accounting",
+    "/admin",
+    "/sales",
+    "/purchase",
+    "/inventory",
+    "/production",
+    "/hr",
+    "/payroll",
+    "/budgeting",
+    "/assets",
+    "/cash-bank",
+    "/general",
+    "/pos",
+    "/reporting",
+    "/setup",
+    "/subscription",
+  ];
   const publicRoutes = ["/auth"];
 
   // Run next-intl middleware for normal localized app routes

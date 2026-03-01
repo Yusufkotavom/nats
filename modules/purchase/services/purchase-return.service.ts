@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchaseReturnInput } from "@/app/[locale]/(dashboard)/purchase/returns/types";
+import { CalculationService } from "@/lib/utils/calculation-service";
 
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
@@ -8,10 +9,29 @@ export class PurchaseReturnService {
     static async create(data: PurchaseReturnInput, userId: string) {
         await this.assertUniqueReturnNumber(data.returnNumber);
 
-        let totalAmount = 0;
-        data.items.forEach((item) => {
-            totalAmount += item.quantity * item.unitPrice;
+        const itemsWithCalculations = data.items.map((item) => {
+            const calculated = CalculationService.calculateLineItem({
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount: 0,
+                tax: 0,
+            });
+            return {
+                itemData: {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    totalPrice: calculated.total.toNumber(),
+                },
+                calculated,
+            };
         });
+
+        const totals = CalculationService.calculateInvoiceTotals(
+            itemsWithCalculations.map((i) => i.calculated),
+        );
+
+        const totalAmount = totals.totalAmount.toNumber();
 
         return await prisma.$transaction(async (tx) => {
             const result = await tx.purchaseReturn.create({

@@ -158,11 +158,86 @@ export class ProductionIssueService {
     }
 
     static async cancel(id: string) {
-        return await prisma.productionIssue.update({
-            where: { id },
-            data: {
-                status: "CANCELLED",
-            },
+        return await prisma.$transaction(async (tx) => {
+            const issue = await tx.productionIssue.findUniqueOrThrow({
+                where: { id },
+                include: { items: true },
+            });
+
+            if (issue.status !== "ISSUED") {
+                throw new Error("Only ISSUED production issues can be cancelled.");
+            }
+
+            // 1. Reverse Inventory: Create PRODUCTION_IN movement to restore stock
+            if (issue.items.length > 0) {
+                const products = await tx.product.findMany({
+                    where: { id: { in: issue.items.map((i) => i.productId) } },
+                });
+
+                await InventoryService.createInventoryMovement(tx, {
+                    type: "PRODUCTION_IN" as any,
+                    reference: `CANCEL-${issue.issueNumber}`,
+                    transactionDate: new Date(),
+                    notes: `Reversal of Production Issue ${issue.issueNumber}`,
+                    status: "COMPLETED" as const,
+                    items: issue.items.map((item) => {
+                        const product = products.find((p) => p.id === item.productId);
+                        return {
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            unitCost: product?.averageCost || 0,
+                            notes: "Reversal - Production Issue Cancelled",
+                        };
+                    }),
+                });
+            }
+
+            // 2. Reverse Journal Entry: Cr. WIP / Dr. Inventory Asset
+            const totalMaterialCost = issue.items.reduce(
+                (sum, item) => sum + Number(item.totalCost || 0), 0
+            );
+
+            if (totalMaterialCost > 0) {
+                try {
+                    const wipAccount = await getRequiredDefaultAccount("WIP_INVENTORY");
+                    const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
+
+                    const journalEntry = await JournalService.createJournalEntry(
+                        {
+                            transactionDate: new Date(),
+                            description: `Reversal of Material Issue ${issue.issueNumber}`,
+                            lines: [
+                                {
+                                    accountId: inventoryAccount.accountId,
+                                    debitAmount: totalMaterialCost,
+                                    creditAmount: 0,
+                                    description: `Reversal - Inventory restored (${issue.issueNumber})`,
+                                },
+                                {
+                                    accountId: wipAccount.accountId,
+                                    debitAmount: 0,
+                                    creditAmount: totalMaterialCost,
+                                    description: `Reversal - WIP reduced (${issue.issueNumber})`,
+                                },
+                            ],
+                        },
+                        SYSTEM_USER_ID,
+                        tx,
+                    );
+
+                    await JournalService.postJournalEntry(journalEntry.id, tx);
+                } catch (error) {
+                    console.warn("Skipping reversal journal entry (default accounts not configured):", error);
+                }
+            }
+
+            // 3. Mark as Cancelled
+            return await tx.productionIssue.update({
+                where: { id },
+                data: {
+                    status: "CANCELLED",
+                },
+            });
         });
     }
 }
