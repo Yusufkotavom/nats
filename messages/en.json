@@ -1269,5 +1269,22 @@
         "status": "Status",
         "add_item": "Add Item",
         "save": "Save"
+    },
+    "Dashboard": {
+        "title": "Dashboard",
+        "total_revenue": "Total Revenue",
+        "total_expenses": "Total Expenses",
+        "accounts_receivable": "Accounts Receivable",
+        "accounts_payable": "Accounts Payable",
+        "net_income": "Net Income",
+        "this_month": "This Month",
+        "outstanding": "Outstanding",
+        "revenue_vs_expenses": "Revenue vs Expenses",
+        "last_6_months": "Last 6 months trend",
+        "recent_sales_orders": "Recent Sales Orders",
+        "recent_purchase_orders": "Recent Purchase Orders",
+        "view_all": "View All",
+        "no_recent_orders": "No recent orders found.",
+        "order_number": "Order #"
     }
 }

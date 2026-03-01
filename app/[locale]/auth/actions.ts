@@ -38,10 +38,12 @@ export async function login(prevState: unknown, formData: FormData) {
     }
   });
 
+  console.log({ user })
+
   if (!user) {
     return {
       errors: {
-        email: ["Invalid email or password"],
+        email: ["User is not registered"],
       },
     };
   }

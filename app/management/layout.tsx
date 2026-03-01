@@ -16,7 +16,7 @@ export default function ManagementLayout({
         <html lang="id">
             <DialogProvider>
                 <ThemeColorProvider>
-                    <body className="antialiased min-h-screen bg-background">
+                    <body className="antialiased min-h-screen bg-background" suppressHydrationWarning>
                         {children}
                         <Toaster />
                     </body>

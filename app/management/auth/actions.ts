@@ -65,7 +65,7 @@ export async function managementLogin(prevState: unknown, formData: FormData) {
         return {
             errors: {
                 email: [
-                    "Anda tidak memiliki akses Pengelola SaaS. Silakan gunakan portal masuk utama.",
+                    "Anda tidak memiliki akses Pengelola. Silakan gunakan portal masuk utama.",
                 ],
             },
         };

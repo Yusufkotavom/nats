@@ -20,7 +20,7 @@ export default function ManagementLoginPage() {
                         </div>
                     </div>
                     <div className="flex flex-col items-center gap-2 text-center">
-                        <h1 className="text-2xl font-bold">Akses Pengelola SaaS</h1>
+                        <h1 className="text-2xl font-bold">Akses Pengelola</h1>
                         <p className="text-balance text-sm text-muted-foreground">
                             Masuk untuk mengelola tenant dan konfigurasi sistem.
                         </p>

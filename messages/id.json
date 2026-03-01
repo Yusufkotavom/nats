@@ -1266,5 +1266,22 @@
         "status": "Status",
         "add_item": "Tambah Item",
         "save": "Simpan"
+    },
+    "Dashboard": {
+        "title": "Dasbor",
+        "total_revenue": "Total Pendapatan",
+        "total_expenses": "Total Pengeluaran",
+        "accounts_receivable": "Piutang Usaha",
+        "accounts_payable": "Hutang Usaha",
+        "net_income": "Laba Bersih",
+        "this_month": "Bulan Ini",
+        "outstanding": "Belum Terbayar",
+        "revenue_vs_expenses": "Pendapatan vs Pengeluaran",
+        "last_6_months": "Tren 6 bulan terakhir",
+        "recent_sales_orders": "Pesanan Penjualan Terbaru",
+        "recent_purchase_orders": "Pesanan Pembelian Terbaru",
+        "view_all": "Lihat Semua",
+        "no_recent_orders": "Tidak ada pesanan terbaru.",
+        "order_number": "No. Pesanan"
     }
 }
