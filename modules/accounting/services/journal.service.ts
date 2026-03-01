@@ -114,20 +114,20 @@ export class JournalService {
         userId: string,
         tx?: Prisma.TransactionClient
     ) {
-        // Validate debit = credit
-        const totalDebit =
-            data.lines.reduce(
-                (sum, line) => sum + Number(line?.debitAmount || 0),
-                0
-            ) || 0;
-        const totalCredit =
-            data.lines.reduce(
-                (sum, line) => sum + Number(line?.creditAmount || 0),
-                0
-            ) || 0;
+        // Validate debit = credit using Decimal for precision
+        const totalDebit = data.lines.reduce(
+            (sum, line) => sum.plus(new Decimal(line?.debitAmount || 0)),
+            new Decimal(0),
+        );
+        const totalCredit = data.lines.reduce(
+            (sum, line) => sum.plus(new Decimal(line?.creditAmount || 0)),
+            new Decimal(0),
+        );
 
-        if (Math.abs(totalDebit - totalCredit) > 0.01) {
-            throw new Error("Debits must equal credits");
+        if (!totalDebit.equals(totalCredit)) {
+            throw new Error(
+                `Debits must equal credits. Debit: ${totalDebit}, Credit: ${totalCredit}`
+            );
         }
 
         const dateStr = data.transactionDate
@@ -224,20 +224,20 @@ export class JournalService {
             throw new Error("Cannot edit posted journal entries");
         }
 
-        // Validate debit = credit
-        const totalDebit =
-            data.lines.reduce(
-                (sum, line) => sum + Number(line?.debitAmount || 0),
-                0
-            ) || 0;
-        const totalCredit =
-            data.lines.reduce(
-                (sum, line) => sum + Number(line?.creditAmount || 0),
-                0
-            ) || 0;
+        // Validate debit = credit using Decimal for precision
+        const totalDebit = data.lines.reduce(
+            (sum, line) => sum.plus(new Decimal(line?.debitAmount || 0)),
+            new Decimal(0),
+        );
+        const totalCredit = data.lines.reduce(
+            (sum, line) => sum.plus(new Decimal(line?.creditAmount || 0)),
+            new Decimal(0),
+        );
 
-        if (Math.abs(totalDebit - totalCredit) > 0.01) {
-            throw new Error("Debits must equal credits");
+        if (!totalDebit.equals(totalCredit)) {
+            throw new Error(
+                `Debits must equal credits. Debit: ${totalDebit}, Credit: ${totalCredit}`
+            );
         }
 
         return prisma.$transaction(async (tx) => {

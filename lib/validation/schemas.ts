@@ -5,7 +5,7 @@ import { SalesInvoiceStatus, MovementType, CashTransactionType } from "@/prisma/
 const idSchema = z.string().cuid().optional();
 const requiredIdSchema = z.string().cuid();
 const dateSchema = z.coerce.date();
-const decimalSchema = z.union([z.number(), z.string(), z.any()]).transform((val) => Number(val));
+const decimalSchema = z.union([z.number(), z.string()]).transform((val) => Number(val));
 const positiveDecimalSchema = decimalSchema.refine((val) => val >= 0, { message: "Must be positive" });
 export const auditLogQuerySchema = z.object({
   page: z.number().int().min(1).default(1),

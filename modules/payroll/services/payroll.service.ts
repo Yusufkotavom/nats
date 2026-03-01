@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { CreatePayrollPeriodDTO, CreateSalaryStructureDTO } from '../types/payroll.types';
 import { PayrollPeriodStatus, SalaryComponentType } from '@/prisma/generated/prisma/client';
 import { enqueueIntegrationEvent } from '@/modules/integration/outbox';
+import { Decimal } from 'decimal.js';
 
 export class PayrollService {
     static async getPayrollPeriods({
@@ -150,34 +151,34 @@ export class PayrollService {
                 const structure = emp.salaryStructures[0];
                 if (!structure) continue;
 
-                let grossSalary = Number(structure.baseSalary);
-                let totalDeductions = 0;
+                let grossSalary = new Decimal(structure.baseSalary);
+                let totalDeductions = new Decimal(0);
                 const slipItems = [];
 
                 for (const item of structure.items) {
-                    const amount = Number(item.amount); // Simple fixed amount for now, formula support later
+                    const amount = new Decimal(item.amount);
                     slipItems.push({
                         componentId: item.componentId,
-                        amount,
+                        amount: amount.toNumber(),
                         type: item.component.type,
                     });
 
                     if (item.component.type === SalaryComponentType.EARNING) {
-                        grossSalary += amount;
+                        grossSalary = grossSalary.plus(amount);
                     } else if (item.component.type === SalaryComponentType.DEDUCTION) {
-                        totalDeductions += amount;
+                        totalDeductions = totalDeductions.plus(amount);
                     }
                 }
 
-                const netSalary = grossSalary - totalDeductions;
+                const netSalary = grossSalary.minus(totalDeductions);
 
                 const slip = await tx.salarySlip.create({
                     data: {
                         periodId,
                         contactId: emp.id,
-                        grossSalary,
-                        totalDeductions,
-                        netSalary,
+                        grossSalary: grossSalary.toNumber(),
+                        totalDeductions: totalDeductions.toNumber(),
+                        netSalary: netSalary.toNumber(),
                         status: 'DRAFT',
                         items: {
                             create: slipItems,
@@ -227,17 +228,17 @@ export class PayrollService {
                 where: { periodId },
             });
 
-            const totalEarnings = slips.reduce((sum, slip) => sum + Number(slip.grossSalary), 0);
-            const totalDeductions = slips.reduce((sum, slip) => sum + Number(slip.totalDeductions), 0);
-            const netPay = slips.reduce((sum, slip) => sum + Number(slip.netSalary), 0);
+            const totalEarnings = slips.reduce((sum, slip) => sum.plus(new Decimal(slip.grossSalary)), new Decimal(0));
+            const totalDeductions = slips.reduce((sum, slip) => sum.plus(new Decimal(slip.totalDeductions)), new Decimal(0));
+            const netPay = slips.reduce((sum, slip) => sum.plus(new Decimal(slip.netSalary)), new Decimal(0));
 
             const payrollRun = await tx.payrollRun.create({
                 data: {
                     periodId,
                     runDate: new Date(),
-                    totalEarnings,
-                    totalDeductions,
-                    netPay,
+                    totalEarnings: totalEarnings.toNumber(),
+                    totalDeductions: totalDeductions.toNumber(),
+                    netPay: netPay.toNumber(),
                     status: PayrollPeriodStatus.COMPLETED,
                 },
             });

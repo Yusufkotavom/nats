@@ -51,11 +51,11 @@ export class SalesReturnService {
                     status: INITIAL_DRAFT_STATUS,
                     totalAmount,
                     items: {
-                        create: data.items.map((item) => ({
-                            productId: item.productId,
-                            quantity: item.quantity,
-                            unitPrice: item.unitPrice,
-                            totalPrice: item.quantity * item.unitPrice,
+                        create: itemsWithCalculations.map((i) => ({
+                            productId: i.itemData.productId,
+                            quantity: i.itemData.quantity,
+                            unitPrice: i.itemData.unitPrice,
+                            totalPrice: i.itemData.totalPrice,
                         })),
                     },
                     attachments: data.attachmentIds
@@ -82,6 +82,94 @@ export class SalesReturnService {
             });
 
             return result;
+        });
+    }
+
+    static async update(id: string, data: SalesReturnInput) {
+        const currentReturn = await prisma.salesReturn.findUnique({
+            where: { id },
+        });
+
+        if (!currentReturn) {
+            throw new Error("Return not found");
+        }
+
+        if (currentReturn.status !== INITIAL_DRAFT_STATUS) {
+            throw new Error("Only draft returns can be modified");
+        }
+
+        const itemsWithCalculations = data.items.map((item) => {
+            const calculated = CalculationService.calculateLineItem({
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount: 0,
+                tax: 0,
+            });
+            return {
+                itemData: {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    totalPrice: calculated.total.toNumber(),
+                },
+                calculated,
+            };
+        });
+
+        const totals = CalculationService.calculateInvoiceTotals(
+            itemsWithCalculations.map((i) => i.calculated),
+        );
+
+        return await prisma.$transaction(async (tx) => {
+            await tx.salesReturnItem.deleteMany({
+                where: { salesReturnId: id },
+            });
+
+            return await tx.salesReturn.update({
+                where: { id },
+                data: {
+                    contactId: data.contactId,
+                    salesOrderId: data.salesOrderId || undefined,
+                    salesInvoiceId: data.salesInvoiceId || undefined,
+                    departmentId: data.departmentId,
+                    projectId: data.projectId,
+                    returnDate: data.returnDate,
+                    notes: data.notes,
+                    totalAmount: totals.totalAmount.toNumber(),
+                    items: {
+                        create: itemsWithCalculations.map((i) => ({
+                            productId: i.itemData.productId,
+                            quantity: i.itemData.quantity,
+                            unitPrice: i.itemData.unitPrice,
+                            totalPrice: i.itemData.totalPrice,
+                        })),
+                    },
+                    attachments: data.attachmentIds
+                        ? { set: data.attachmentIds.map((id) => ({ id })) }
+                        : undefined,
+                },
+                include: {
+                    items: true,
+                },
+            });
+        });
+    }
+
+    static async delete(id: string) {
+        const currentReturn = await prisma.salesReturn.findUnique({
+            where: { id },
+        });
+
+        if (!currentReturn) {
+            throw new Error("Return not found");
+        }
+
+        if (currentReturn.status !== INITIAL_DRAFT_STATUS) {
+            throw new Error("Can only delete draft returns");
+        }
+
+        await prisma.salesReturn.delete({
+            where: { id },
         });
     }
 

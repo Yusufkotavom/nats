@@ -56,6 +56,24 @@ export class SalesShipmentService {
         });
     }
 
+    static async delete(id: string) {
+        const currentShipment = await prisma.salesShipment.findUnique({
+            where: { id },
+        });
+
+        if (!currentShipment) {
+            throw new Error("Shipment not found");
+        }
+
+        if (currentShipment.status !== INITIAL_DRAFT_STATUS) {
+            throw new Error("Can only delete draft shipments");
+        }
+
+        await prisma.salesShipment.delete({
+            where: { id },
+        });
+    }
+
     private static async generateShipmentNumber(): Promise<string> {
         return await generateDocumentNumber("SALES_SHIPMENT", "Sales Shipment", "SHP-");
     }

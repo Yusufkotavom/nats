@@ -2,15 +2,15 @@ import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchaseOrderInput } from "@/app/[locale]/(dashboard)/purchase/orders/types";
 import { generateDocumentNumber } from "@/lib/document-numbering";
+import { CalculationService } from "@/lib/utils/calculation-service";
+
+const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class PurchaseOrderService {
     static async create(data: PurchaseOrderInput, userId: string) {
         const orderNumber = `DRAFT-${Date.now()}`;
 
-        let totalAmount = 0;
-        data.items.forEach((item) => {
-            totalAmount += item.quantity * item.unitCost;
-        });
+        const { itemsData, totals } = this.calculateItemsAndTotals(data);
 
         return await prisma.$transaction(async (tx) => {
             const result = await tx.purchaseOrder.create({
@@ -20,18 +20,13 @@ export class PurchaseOrderService {
                     orderDate: data.orderDate,
                     expectedDate: data.expectedDate,
                     notes: data.notes,
-                    status: "DRAFT",
-                    totalAmount,
+                    status: INITIAL_DRAFT_STATUS,
+                    totalAmount: totals.totalAmount.toNumber(),
                     departmentId: data.departmentId,
                     projectId: data.projectId,
                     createdById: userId,
                     items: {
-                        create: data.items.map((item) => ({
-                            productId: item.productId,
-                            quantity: item.quantity,
-                            unitCost: item.unitCost,
-                            totalCost: item.quantity * item.unitCost,
-                        })),
+                        create: itemsData,
                     },
                     attachments: {
                         connect: data.attachmentIds?.map((id) => ({ id })) || [],
@@ -68,14 +63,11 @@ export class PurchaseOrderService {
             throw new Error("Order not found");
         }
 
-        if (currentOrder.status !== "DRAFT") {
+        if (currentOrder.status !== INITIAL_DRAFT_STATUS) {
             throw new Error("Only Draft orders can be modified. Please Cancel or create a new order.");
         }
 
-        let totalAmount = 0;
-        data.items.forEach((item) => {
-            totalAmount += item.quantity * item.unitCost;
-        });
+        const { itemsData, totals } = this.calculateItemsAndTotals(data);
 
         return await prisma.$transaction(async (tx) => {
             await tx.purchaseOrderItem.deleteMany({
@@ -89,18 +81,13 @@ export class PurchaseOrderService {
                     orderDate: data.orderDate,
                     expectedDate: data.expectedDate,
                     notes: data.notes,
-                    status: "DRAFT",
-                    totalAmount,
+                    status: INITIAL_DRAFT_STATUS,
+                    totalAmount: totals.totalAmount.toNumber(),
                     departmentId: data.departmentId,
                     projectId: data.projectId,
                     updatedById: userId,
                     items: {
-                        create: data.items.map((item) => ({
-                            productId: item.productId,
-                            quantity: item.quantity,
-                            unitCost: item.unitCost,
-                            totalCost: item.quantity * item.unitCost,
-                        })),
+                        create: itemsData,
                     },
                     attachments: {
                         set: data.attachmentIds?.map((id) => ({ id })) || [],
@@ -201,5 +188,37 @@ export class PurchaseOrderService {
 
     private static async generatePONumber() {
         return await generateDocumentNumber("PURCHASE_ORDER", "Purchase Order", "PO-");
+    }
+
+    private static calculateItemsAndTotals(
+        data: Pick<PurchaseOrderInput, "items">,
+    ) {
+        const itemsWithCalculations = data.items.map((item) => {
+            const calculated = CalculationService.calculateLineItem({
+                quantity: item.quantity,
+                unitPrice: item.unitCost,
+                discount: 0,
+                tax: 0,
+            });
+
+            return {
+                itemData: {
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitCost: item.unitCost,
+                    totalCost: calculated.total.toNumber(),
+                },
+                calculated,
+            };
+        });
+
+        const totals = CalculationService.calculateInvoiceTotals(
+            itemsWithCalculations.map((i) => i.calculated),
+        );
+
+        return {
+            itemsData: itemsWithCalculations.map((i) => i.itemData),
+            totals,
+        };
     }
 }

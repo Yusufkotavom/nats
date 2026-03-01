@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchasePaymentInput } from "@/app/[locale]/(dashboard)/purchase/payments/types";
 import { generateDocumentNumber } from "@/lib/document-numbering";
+import { Decimal } from "decimal.js";
 
 const OVERPAYMENT_TOLERANCE = 0.01;
 
@@ -25,12 +26,12 @@ export class PurchasePaymentService {
         if (!cashAccount) throw new Error("Cash account not found");
 
         const totalPaid = invoice.payments.reduce(
-            (sum, p) => sum + Number(p.amount),
-            0,
+            (sum, p) => sum.plus(new Decimal(p.amount)),
+            new Decimal(0),
         );
-        const remaining = Number(invoice.totalAmount) - totalPaid;
+        const remaining = new Decimal(invoice.totalAmount).minus(totalPaid);
 
-        if (data.amount > remaining + OVERPAYMENT_TOLERANCE) {
+        if (new Decimal(data.amount).greaterThan(remaining.plus(OVERPAYMENT_TOLERANCE))) {
             throw new Error(`Amount exceeds remaining balance of ${remaining}`);
         }
 
@@ -56,9 +57,9 @@ export class PurchasePaymentService {
                 },
             });
 
-            const newTotalPaid = totalPaid + Number(data.amount);
+            const newTotalPaid = totalPaid.plus(new Decimal(data.amount));
             const newStatus =
-                newTotalPaid >= Number(invoice.totalAmount) - OVERPAYMENT_TOLERANCE
+                newTotalPaid.greaterThanOrEqualTo(new Decimal(invoice.totalAmount).minus(OVERPAYMENT_TOLERANCE))
                     ? "PAID"
                     : "PARTIALLY_PAID";
 

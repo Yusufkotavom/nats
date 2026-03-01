@@ -168,15 +168,15 @@ export class POSTransactionService {
         globalDiscount: number,
     ) {
         const subtotal = items.reduce(
-            (acc, item) => acc + item.price * item.quantity,
-            0,
+            (acc, item) => acc.plus(new Decimal(item.price).mul(item.quantity)),
+            new Decimal(0),
         );
         const totalItemDiscounts = items.reduce(
-            (acc, item) => acc + item.discount,
-            0,
+            (acc, item) => acc.plus(new Decimal(item.discount)),
+            new Decimal(0),
         );
-        const totalDiscount = new Decimal(totalItemDiscounts).add(globalDiscount);
-        const totalAmount = new Decimal(subtotal).sub(totalDiscount);
+        const totalDiscount = totalItemDiscounts.plus(globalDiscount);
+        const totalAmount = subtotal.minus(totalDiscount);
 
         return { subtotal, totalDiscount, totalAmount };
     }
@@ -187,7 +187,7 @@ export class POSTransactionService {
             contactId: string;
             sessionId: string;
             items: POSTransactionItem[];
-            subtotal: number;
+            subtotal: Decimal;
             totalDiscount: Decimal;
             totalAmount: Decimal;
         },
@@ -199,7 +199,7 @@ export class POSTransactionService {
                 contactId: params.contactId,
                 status: "SHIPPED",
                 orderDate: new Date(),
-                subtotal: new Decimal(params.subtotal),
+                subtotal: params.subtotal,
                 discountAmount: params.totalDiscount,
                 totalAmount: params.totalAmount,
                 posSessionId: params.sessionId,
@@ -208,9 +208,7 @@ export class POSTransactionService {
                         productId: item.productId,
                         quantity: item.quantity,
                         unitPrice: new Decimal(item.price),
-                        totalPrice: new Decimal(
-                            item.price * item.quantity - item.discount,
-                        ),
+                        totalPrice: new Decimal(item.price).mul(item.quantity).minus(item.discount),
                         discountRate: new Decimal(0),
                     })),
                 },
@@ -226,7 +224,7 @@ export class POSTransactionService {
             salesOrderId: string;
             sessionId: string;
             items: POSTransactionItem[];
-            subtotal: number;
+            subtotal: Decimal;
             globalDiscount: number;
             totalAmount: Decimal;
         },
@@ -241,7 +239,7 @@ export class POSTransactionService {
                 invoiceDate,
                 dueDate: invoiceDate,
                 status: "PAID",
-                subtotal: new Decimal(params.subtotal),
+                subtotal: params.subtotal,
                 globalDiscount: new Decimal(params.globalDiscount),
                 totalAmount: params.totalAmount,
                 balanceDue: new Decimal(0),
@@ -252,9 +250,7 @@ export class POSTransactionService {
                         productId: item.productId,
                         quantity: item.quantity,
                         unitPrice: new Decimal(item.price),
-                        totalPrice: new Decimal(
-                            item.price * item.quantity - item.discount,
-                        ),
+                        totalPrice: new Decimal(item.price).mul(item.quantity).minus(item.discount),
                         discount: new Decimal(item.discount),
                     })),
                 },

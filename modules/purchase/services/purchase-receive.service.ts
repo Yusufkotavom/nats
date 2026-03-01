@@ -53,6 +53,24 @@ export class PurchaseReceiveService {
         });
     }
 
+    static async delete(id: string) {
+        const currentReceive = await prisma.purchaseReceive.findUnique({
+            where: { id },
+        });
+
+        if (!currentReceive) {
+            throw new Error("Receive not found");
+        }
+
+        if (currentReceive.status !== INITIAL_DRAFT_STATUS) {
+            throw new Error("Can only delete draft receives");
+        }
+
+        await prisma.purchaseReceive.delete({
+            where: { id },
+        });
+    }
+
     private static async generateReceiveNumber(): Promise<string> {
         return await generateDocumentNumber("PURCHASE_RECEIVE", "Purchase Receive", "RCV-");
     }
