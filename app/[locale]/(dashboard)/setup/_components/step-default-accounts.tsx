@@ -28,6 +28,8 @@ const PURPOSE_LABELS: Record<DefaultAccountPurpose, string> = {
     EXCHANGE_GAIN_LOSS: "Exchange Gain/Loss",
     SALARIES_EXPENSE: "Salaries Expense",
     PAYROLL_LIABILITY: "Payroll Liability",
+    WIP_INVENTORY: "Work-in-Progress Inventory",
+    PRODUCTION_OVERHEAD: "Production Overhead",
 };
 
 const PURPOSE_GROUPS: Record<string, DefaultAccountPurpose[]> = {
@@ -54,6 +56,7 @@ const PURPOSE_GROUPS: Record<string, DefaultAccountPurpose[]> = {
         "EXCHANGE_GAIN_LOSS",
     ],
     "Payroll": ["SALARIES_EXPENSE", "PAYROLL_LIABILITY"],
+    "Production": ["WIP_INVENTORY", "PRODUCTION_OVERHEAD"],
 };
 
 type AccountOption = {

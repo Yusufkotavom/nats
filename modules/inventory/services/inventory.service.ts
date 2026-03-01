@@ -58,10 +58,10 @@ export class InventoryService {
                 status,
                 transactionDate,
                 // Depending on type, set from/to warehouse
-                // IN: External -> To Warehouse
-                // OUT: From Warehouse -> External
-                toWarehouseId: type === "IN" ? warehouseId : undefined,
-                fromWarehouseId: type === "OUT" ? warehouseId : undefined,
+                // IN / PRODUCTION_IN: External -> To Warehouse
+                // OUT / PRODUCTION_OUT: From Warehouse -> External
+                toWarehouseId: (type === "IN" || type === "PRODUCTION_IN") ? warehouseId : undefined,
+                fromWarehouseId: (type === "OUT" || type === "PRODUCTION_OUT") ? warehouseId : undefined,
             },
         });
 
@@ -221,7 +221,7 @@ export class InventoryService {
             productAvgCost = currentTotalValue.div(currentTotalQty);
         }
 
-        if (type === "IN") {
+        if (type === "IN" || type === "PRODUCTION_IN") {
             // Moving Average Cost Calculation for Product (Global)
             // New Avg Cost = ((Current Total Value) + (Incoming Qty * Incoming Cost)) / (Current Total Qty + Incoming Qty)
 
@@ -264,7 +264,7 @@ export class InventoryService {
                 });
             }
 
-        } else if (type === "OUT") {
+        } else if (type === "OUT" || type === "PRODUCTION_OUT") {
             // Check for sufficient stock
             if (currentQty < quantity) {
                 throw new Error(`Insufficient stock for product ${product.name} (SKU: ${product.sku}). Available: ${currentQty}, Requested: ${quantity}`);

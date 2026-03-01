@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { generateDocumentNumber } from "@/lib/document-numbering";
 import { InventoryService } from "@/modules/inventory/services/inventory.service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
+import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
 
 export interface ProductionReceiptInput {
     productionOrderId: string;
@@ -13,12 +15,13 @@ export interface ProductionReceiptInput {
     }[];
 }
 
+const SYSTEM_USER_ID = "system";
+
 export class ProductionReceiptService {
     static async create(data: ProductionReceiptInput) {
         const receiptNumber = await generateDocumentNumber("PRODUCTION_RECEIPT", "Production Receipt", "PR-");
 
         return await prisma.$transaction(async (tx) => {
-            // 1. Create the Receipt
             const receipt = await tx.productionReceipt.create({
                 data: {
                     receiptNumber,
@@ -30,7 +33,6 @@ export class ProductionReceiptService {
                         create: data.items.map((item) => ({
                             productId: item.productId,
                             quantity: item.quantity,
-                            notes: item.notes,
                         })),
                     },
                 },
@@ -90,7 +92,7 @@ export class ProductionReceiptService {
                     items: receipt.items.map((item) => ({
                         productId: item.productId,
                         quantity: item.quantity,
-                        unitCost, // Assigned weighted average cost from issues
+                        unitCost,
                         notes: "Production Receipt",
                     })),
                 };
@@ -99,7 +101,8 @@ export class ProductionReceiptService {
                 inventoryMovementId = movement.id;
             }
 
-            // 2. Update Production Receipt Items with actual cost and change status
+            // 2. Update Production Receipt Items with actual cost
+            const totalFinishedGoodsValue = unitCost * totalReceiptQty;
             for (const item of receipt.items) {
                 const totalLineCost = unitCost * item.quantity;
                 await tx.productionReceiptItem.update({
@@ -111,16 +114,56 @@ export class ProductionReceiptService {
                 });
             }
 
-            // 3. Mark as Received
+            // 3. Create Journal Entry: Dr. Inventory Asset / Cr. WIP Inventory
+            let journalEntryId: string | null = null;
+            if (totalFinishedGoodsValue > 0) {
+                try {
+                    const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
+                    const wipAccount = await getRequiredDefaultAccount("WIP_INVENTORY");
+
+                    const journalEntry = await JournalService.createJournalEntry(
+                        {
+                            transactionDate: receipt.receiptDate,
+                            description: `Finished Goods Receipt ${receipt.receiptNumber}`,
+                            lines: [
+                                {
+                                    accountId: inventoryAccount.accountId,
+                                    debitAmount: totalFinishedGoodsValue,
+                                    creditAmount: 0,
+                                    description: `Finished goods received (${receipt.receiptNumber})`,
+                                },
+                                {
+                                    accountId: wipAccount.accountId,
+                                    debitAmount: 0,
+                                    creditAmount: totalFinishedGoodsValue,
+                                    description: `WIP consumed for finished goods (${receipt.receiptNumber})`,
+                                },
+                            ],
+                        },
+                        SYSTEM_USER_ID,
+                        tx,
+                    );
+
+                    // Auto-post the journal entry
+                    await JournalService.postJournalEntry(journalEntry.id, tx);
+                    journalEntryId = journalEntry.id;
+                } catch (error) {
+                    // Default accounts may not be configured yet — log but don't block
+                    console.warn("Skipping journal entry for Production Receipt (default accounts not configured):", error);
+                }
+            }
+
+            // 4. Mark as Received
             const updatedReceipt = await tx.productionReceipt.update({
                 where: { id },
                 data: {
                     status: "RECEIVED",
                     inventoryMovementId,
+                    journalEntryId,
                 },
             });
 
-            // 4. Update Production Order quantities
+            // 5. Update Production Order produced quantity
             const previouslyReceived = receipt.productionOrder.producedQuantity;
             await tx.productionOrder.update({
                 where: { id: receipt.productionOrderId },

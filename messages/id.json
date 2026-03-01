@@ -703,7 +703,9 @@
             "UNCATEGORIZED_ASSET": "Aset Tidak Terkategori",
             "EXCHANGE_GAIN_LOSS": "Keuntungan/Kerugian Kurs",
             "SALARIES_EXPENSE": "Beban Gaji",
-            "PAYROLL_LIABILITY": "Hutang Payroll"
+            "PAYROLL_LIABILITY": "Hutang Payroll",
+            "WIP_INVENTORY": "Persediaan Barang Dalam Proses",
+            "PRODUCTION_OVERHEAD": "Biaya Overhead Produksi"
         },
         "purpose_descriptions": {
             "ACCOUNTS_RECEIVABLE": "Melacak uang yang terutang kepada bisnis oleh pelanggan untuk barang atau jasa yang dijual secara kredit.",
@@ -724,7 +726,9 @@
             "UNCATEGORIZED_ASSET": "Akun penampung untuk aset yang belum ditetapkan ke kategori tertentu.",
             "EXCHANGE_GAIN_LOSS": "Melacak keuntungan atau kerugian yang dihasilkan dari fluktuasi nilai tukar untuk transaksi mata uang asing.",
             "SALARIES_EXPENSE": "Akun beban untuk gaji karyawan.",
-            "PAYROLL_LIABILITY": "Akun kewajiban untuk payroll yang harus dibayar."
+            "PAYROLL_LIABILITY": "Akun kewajiban untuk payroll yang harus dibayar.",
+            "WIP_INVENTORY": "Melacak nilai bahan yang digunakan dalam produksi yang belum dikonversi menjadi barang jadi.",
+            "PRODUCTION_OVERHEAD": "Melacak biaya overhead yang dialokasikan ke produksi (mis. utilitas pabrik, tenaga kerja tidak langsung)."
         },
         "purpose": "Tujuan",
         "save_changes": "Simpan Perubahan",

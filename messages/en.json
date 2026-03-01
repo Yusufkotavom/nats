@@ -706,7 +706,9 @@
             "UNCATEGORIZED_ASSET": "Uncategorized Asset",
             "EXCHANGE_GAIN_LOSS": "Exchange Gain/Loss",
             "SALARIES_EXPENSE": "Salaries Expense",
-            "PAYROLL_LIABILITY": "Payroll Liability"
+            "PAYROLL_LIABILITY": "Payroll Liability",
+            "WIP_INVENTORY": "Work-in-Progress Inventory",
+            "PRODUCTION_OVERHEAD": "Production Overhead"
         },
         "purpose_descriptions": {
             "ACCOUNTS_RECEIVABLE": "Tracks money owed to the business by customers for goods or services sold on credit.",
@@ -727,7 +729,9 @@
             "UNCATEGORIZED_ASSET": "A holding account for assets that haven't been assigned a specific category yet.",
             "EXCHANGE_GAIN_LOSS": "Tracks gains or losses resulting from fluctuations in exchange rates for foreign currency transactions.",
             "SALARIES_EXPENSE": "Expense account for employee salaries.",
-            "PAYROLL_LIABILITY": "Liability account for payroll payable."
+            "PAYROLL_LIABILITY": "Liability account for payroll payable.",
+            "WIP_INVENTORY": "Tracks the value of materials consumed in production that have not yet been converted to finished goods.",
+            "PRODUCTION_OVERHEAD": "Tracks overhead costs allocated to production (e.g., factory utilities, indirect labor)."
         },
         "purpose": "Purpose",
         "save_changes": "Save Changes",

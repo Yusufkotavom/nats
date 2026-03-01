@@ -125,6 +125,21 @@ export const createProductionOrder = authorizedAction(
     },
 );
 
+export const updateProductionOrder = authorizedAction(
+    "inventory.edit",
+    async (id: string, data: ProductionOrderInput) => {
+        try {
+            const result = await ProductionOrderService.update(id, data);
+            revalidatePath("/production/orders");
+            revalidatePath(`/production/orders/${id}`);
+            return { success: true, data: SuperJSON.serialize(result) };
+        } catch (error) {
+            console.error("Failed to update Production Order:", error);
+            return { success: false, error: "Failed to update Production Order" };
+        }
+    },
+);
+
 export const releaseProductionOrder = authorizedAction(
     "inventory.edit",
     async (id: string) => {

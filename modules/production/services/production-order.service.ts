@@ -40,6 +40,20 @@ export class ProductionOrderService {
         });
     }
 
+    static async update(id: string, data: ProductionOrderInput) {
+        return await prisma.productionOrder.update({
+            where: { id, status: "DRAFT" },
+            data: {
+                billOfMaterialId: data.billOfMaterialId,
+                productId: data.productId,
+                plannedQuantity: data.plannedQuantity,
+                startDate: data.startDate,
+                endDate: data.endDate,
+                notes: data.notes,
+            },
+        });
+    }
+
     static async release(id: string) {
         return await prisma.productionOrder.update({
             where: { id },

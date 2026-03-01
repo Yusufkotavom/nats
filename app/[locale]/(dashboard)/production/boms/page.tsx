@@ -192,12 +192,12 @@ export default function BOMsPage() {
                         placeholder={t("search_boms")}
                         defaultValue={search}
                         onChange={(e) => handleSearch(e.target.value)}
-                        className="w-[250px]"
+                        className="w-[250px] me-2"
                     />
                     <Protect permission="inventory.create">
                         <Button asChild>
                             <Link href="/production/boms/new">
-                                <Plus className="mr-2 h-4 w-4" /> {t("new_bom")}
+                                <Plus className="h-4 w-4" /> {t("new_bom")}
                             </Link>
                         </Button>
                     </Protect>

@@ -141,4 +141,31 @@ export async function seedTransactions() {
             }
         });
     }
+
+    // --- PRODUCTION DOCUMENT NUMBERING ---
+
+    const productionDocTypes = [
+        { entityType: "BILL_OF_MATERIAL", name: "Bill of Material", prefix: "BOM-" },
+        { entityType: "PRODUCTION_ORDER", name: "Production Order", prefix: "MO-" },
+        { entityType: "PRODUCTION_ISSUE", name: "Production Issue", prefix: "PI-" },
+        { entityType: "PRODUCTION_RECEIPT", name: "Production Receipt", prefix: "PR-" },
+    ];
+
+    for (const docType of productionDocTypes) {
+        await prisma.documentNumbering.upsert({
+            where: { entityType: docType.entityType },
+            update: {},
+            create: {
+                entityType: docType.entityType,
+                name: docType.name,
+                prefix: docType.prefix,
+                sequenceDigits: 5,
+                includeYear: true,
+                yearFormat: "YYYY",
+                includeMonth: true,
+                resetYearly: true,
+                resetMonthly: false,
+            },
+        });
+    }
 }

@@ -56,6 +56,8 @@ const PURPOSE_LABELS: Record<DefaultAccountPurpose, string> = {
   EXCHANGE_GAIN_LOSS: "Exchange Gain/Loss",
   SALARIES_EXPENSE: "Salaries Expense",
   PAYROLL_LIABILITY: "Payroll Liability",
+  WIP_INVENTORY: "Work-in-Progress Inventory",
+  PRODUCTION_OVERHEAD: "Production Overhead",
 }
 
 const PURPOSE_DESCRIPTIONS: Record<DefaultAccountPurpose, string> = {
@@ -78,6 +80,8 @@ const PURPOSE_DESCRIPTIONS: Record<DefaultAccountPurpose, string> = {
   EXCHANGE_GAIN_LOSS: "Tracks gains or losses resulting from fluctuations in exchange rates for foreign currency transactions.",
   SALARIES_EXPENSE: "Expense account for employee salaries.",
   PAYROLL_LIABILITY: "Liability account for payroll payable.",
+  WIP_INVENTORY: "Tracks the value of materials consumed in production that have not yet been converted to finished goods.",
+  PRODUCTION_OVERHEAD: "Tracks overhead costs allocated to production (e.g., factory utilities, indirect labor).",
 }
 
 const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
@@ -110,6 +114,7 @@ const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
     "SALARIES_EXPENSE",
     "PAYROLL_LIABILITY",
   ],
+  "Production": ["WIP_INVENTORY", "PRODUCTION_OVERHEAD"],
 }
 
 import { useTranslations } from "next-intl"
@@ -200,6 +205,7 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
     "Cash & Bank": t("categories.cash_bank"),
     "Equity & Others": t("categories.equity_others"),
     "Payroll": t("categories.payroll"),
+    "Production": t("categories.production"),
   }
 
   return (
