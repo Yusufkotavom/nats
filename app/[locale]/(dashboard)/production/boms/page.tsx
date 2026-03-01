@@ -9,6 +9,7 @@ import Link from "next/link";
 import {
     PageListActions,
     PageListContent,
+    PageListFilter,
     PageListHeader,
     PageListLayout,
     PageListTitle,
@@ -188,12 +189,7 @@ export default function BOMsPage() {
             <PageListHeader>
                 <PageListTitle title={t("title_boms")} />
                 <PageListActions>
-                    <Input
-                        placeholder={t("search_boms")}
-                        defaultValue={search}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="w-[250px] me-2"
-                    />
+
                     <Protect permission="inventory.create">
                         <Button asChild>
                             <Link href="/production/boms/new">
@@ -203,6 +199,15 @@ export default function BOMsPage() {
                     </Protect>
                 </PageListActions>
             </PageListHeader>
+
+            <PageListFilter>
+                <Input
+                    placeholder={t("search_boms")}
+                    defaultValue={search}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-[250px] me-2"
+                />
+            </PageListFilter>
 
             <PageListContent>
                 {isLoading ? (

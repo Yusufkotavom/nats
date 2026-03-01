@@ -9,6 +9,7 @@ import Link from "next/link";
 import {
     PageListActions,
     PageListContent,
+    PageListFilter,
     PageListHeader,
     PageListLayout,
     PageListTitle,
@@ -202,12 +203,6 @@ export default function ProductionOrdersPage() {
             <PageListHeader>
                 <PageListTitle title={t("title_orders")} />
                 <PageListActions>
-                    <Input
-                        placeholder={t("search_orders")}
-                        defaultValue={search}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="w-[250px]"
-                    />
                     <Protect permission="inventory.create">
                         <Button asChild>
                             <Link href="/production/orders/new">
@@ -217,6 +212,15 @@ export default function ProductionOrdersPage() {
                     </Protect>
                 </PageListActions>
             </PageListHeader>
+
+            <PageListFilter>
+                <Input
+                    placeholder={t("search_orders")}
+                    defaultValue={search}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-[250px]"
+                />
+            </PageListFilter>
 
             <PageListContent>
                 {isLoading ? (

@@ -15,6 +15,7 @@ import {
     PageListTitle,
     PageListActions,
     PageListContent,
+    PageListFilter,
 } from "@/components/layout/page/list-layout";
 import { Column, DataTable } from "@/components/ui/data-table";
 import { getEmployees } from "../actions";
@@ -122,12 +123,6 @@ export function EmployeeList() {
             <PageListHeader>
                 <PageListTitle title={t("employees")} />
                 <PageListActions>
-                    <Input
-                        placeholder={t("search_employees")}
-                        defaultValue={search}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="w-[250px] me-2"
-                    />
                     <Button asChild>
                         <Link href="/hr/employees/new">
                             <Plus className="h-4 w-4" /> {t("add_employee")}
@@ -135,7 +130,14 @@ export function EmployeeList() {
                     </Button>
                 </PageListActions>
             </PageListHeader>
-
+            <PageListFilter>
+                <Input
+                    placeholder={t("search_employees")}
+                    defaultValue={search}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-[250px] me-2"
+                />
+            </PageListFilter>
             <PageListContent>
                 {isLoading ? (
                     <Skeleton className="h-[400px] w-full" />
