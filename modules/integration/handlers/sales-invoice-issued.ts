@@ -3,6 +3,7 @@ import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
 import { JournalService } from "@/modules/accounting/services/journal.service";
 import { salesInvoiceIssuedPayloadSchema } from "@/modules/integration/events";
 import type { Prisma } from "@/prisma/generated/prisma/client";
+import { CalculationService } from "@/lib/utils/calculation-service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -59,26 +60,27 @@ export async function handleSalesInvoiceIssued(
   for (const item of payload.items) {
     const accountId = item.accountId ?? revenueAccount.accountId;
 
-    const subtotal = new Decimal(item.unitPrice).mul(item.quantity);
-    const discountPercent = new Decimal(item.discount || 0).div(100);
-    const discountAmount = subtotal.mul(discountPercent);
-    const taxableAmount = subtotal.minus(discountAmount);
-    const taxAmount = new Decimal(item.tax || 0);
+    const calculated = CalculationService.calculateLineItem({
+      quantity: Number(item.quantity),
+      unitPrice: new Decimal(item.unitPrice),
+      discount: item.discount ? new Decimal(item.discount) : 0,
+      tax: item.tax ? new Decimal(item.tax) : 0,
+    });
 
-    if (taxableAmount.gt(0)) {
+    if (calculated.taxableAmount.gt(0)) {
       jeLines.push({
         accountId,
         debitAmount: new Decimal(0),
-        creditAmount: taxableAmount,
+        creditAmount: calculated.taxableAmount,
         description: item.description,
       });
     }
 
-    if (taxAmount.gt(0)) {
+    if (calculated.taxAmount.gt(0)) {
       jeLines.push({
         accountId: taxAccount.accountId,
         debitAmount: new Decimal(0),
-        creditAmount: taxAmount,
+        creditAmount: calculated.taxAmount,
         description: `Tax on ${item.description}`,
       });
     }

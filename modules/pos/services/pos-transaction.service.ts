@@ -6,6 +6,7 @@ import {
     enqueueIntegrationEventOnce,
     maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
+import { CalculationService } from "@/lib/utils/calculation-service";
 
 const POS_ORDER_NUMBER_PREFIX = "SO-POS";
 const POS_INVOICE_NUMBER_PREFIX = "INV-POS";
@@ -47,25 +48,46 @@ export class POSTransactionService {
         const result = await prisma.$transaction(async (tx) => {
             const session = await this.validateSession(tx, sessionId);
             const contactId = await this.resolveCustomer(tx, customerId);
-            const { subtotal, totalDiscount, totalAmount } = this.calculateTotals(items, globalDiscount);
+
+            const itemsWithCalculations = items.map((item) => {
+                const subtotal = new Decimal(item.price).mul(item.quantity);
+                const discountPercent = subtotal.gt(0) && item.discount > 0
+                    ? new Decimal(item.discount).div(subtotal).mul(100)
+                    : new Decimal(0);
+
+                const calculated = CalculationService.calculateLineItem({
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    discount: discountPercent,
+                    tax: 0,
+                });
+                return { item, calculated, discountPercent };
+            });
+
+            const totals = CalculationService.calculateInvoiceTotals(
+                itemsWithCalculations.map(i => i.calculated),
+                globalDiscount
+            );
 
             const salesOrder = await this.createSalesOrder(tx, {
                 contactId,
                 sessionId,
-                items,
-                subtotal,
-                totalDiscount,
-                totalAmount,
+                cashierId: session.cashierId,
+                itemsWithCalculations,
+                subtotal: totals.itemsTotal.plus(itemsWithCalculations.reduce((sum, i) => sum.plus(i.calculated.discountAmount), new Decimal(0))),
+                totalDiscount: itemsWithCalculations.reduce((sum, i) => sum.plus(i.calculated.discountAmount), new Decimal(0)).plus(globalDiscount),
+                totalAmount: totals.totalAmount,
             });
 
             const salesInvoice = await this.createInvoice(tx, {
                 contactId,
                 salesOrderId: salesOrder.id,
                 sessionId,
-                items,
-                subtotal,
+                cashierId: session.cashierId,
+                itemsWithCalculations,
+                subtotal: totals.itemsTotal.plus(itemsWithCalculations.reduce((sum, i) => sum.plus(i.calculated.discountAmount), new Decimal(0))),
                 globalDiscount,
-                totalAmount,
+                totalAmount: totals.totalAmount,
             });
 
             const payment = await this.createPayment(tx, {
@@ -74,7 +96,7 @@ export class POSTransactionService {
                 salesInvoiceId: salesInvoice.id,
                 sessionId,
                 paymentMethod,
-                totalAmount,
+                totalAmount: totals.totalAmount,
             });
 
             const shipment = await this.createShipment(tx, {
@@ -99,7 +121,7 @@ export class POSTransactionService {
                 salesInvoice,
                 contactId,
                 cashierId: session.cashierId,
-                items,
+                itemsWithCalculations,
             });
 
             const paymentOutbox = await this.enqueuePaymentEvent(tx, {
@@ -186,7 +208,8 @@ export class POSTransactionService {
         params: {
             contactId: string;
             sessionId: string;
-            items: POSTransactionItem[];
+            cashierId: string;
+            itemsWithCalculations: { item: POSTransactionItem; calculated: any; discountPercent: Decimal }[];
             subtotal: Decimal;
             totalDiscount: Decimal;
             totalAmount: Decimal;
@@ -197,19 +220,23 @@ export class POSTransactionService {
             data: {
                 orderNumber,
                 contactId: params.contactId,
-                status: "SHIPPED",
+                status: "SHIPPED", // Equivalent to fully processed order
                 orderDate: new Date(),
+                confirmedAt: new Date(),
+                confirmedById: params.cashierId,
+                closedAt: new Date(),
+                closedById: params.cashierId,
                 subtotal: params.subtotal,
                 discountAmount: params.totalDiscount,
                 totalAmount: params.totalAmount,
                 posSessionId: params.sessionId,
                 items: {
-                    create: params.items.map((item) => ({
+                    create: params.itemsWithCalculations.map(({ item, calculated, discountPercent }) => ({
                         productId: item.productId,
                         quantity: item.quantity,
                         unitPrice: new Decimal(item.price),
-                        totalPrice: new Decimal(item.price).mul(item.quantity).minus(item.discount),
-                        discountRate: new Decimal(0),
+                        totalPrice: calculated.total.toNumber(),
+                        discountRate: discountPercent,
                     })),
                 },
             },
@@ -223,7 +250,8 @@ export class POSTransactionService {
             contactId: string;
             salesOrderId: string;
             sessionId: string;
-            items: POSTransactionItem[];
+            cashierId: string;
+            itemsWithCalculations: { item: POSTransactionItem; calculated: any; discountPercent: Decimal }[];
             subtotal: Decimal;
             globalDiscount: number;
             totalAmount: Decimal;
@@ -245,13 +273,13 @@ export class POSTransactionService {
                 balanceDue: new Decimal(0),
                 posSessionId: params.sessionId,
                 items: {
-                    create: params.items.map((item) => ({
+                    create: params.itemsWithCalculations.map(({ item, calculated, discountPercent }) => ({
                         description: "POS Item",
                         productId: item.productId,
                         quantity: item.quantity,
                         unitPrice: new Decimal(item.price),
-                        totalPrice: new Decimal(item.price).mul(item.quantity).minus(item.discount),
-                        discount: new Decimal(item.discount),
+                        totalPrice: calculated.total.toNumber(),
+                        discount: calculated.discountAmount.toNumber(),
                     })),
                 },
             },
@@ -326,7 +354,7 @@ export class POSTransactionService {
             salesInvoice: { id: string; invoiceNumber: string; invoiceDate: Date; totalAmount: Decimal; globalDiscount: Decimal | null };
             contactId: string;
             cashierId: string;
-            items: POSTransactionItem[];
+            itemsWithCalculations: { item: POSTransactionItem; calculated: any; discountPercent: Decimal }[];
         },
     ) {
         return await enqueueIntegrationEventOnce(tx, {
@@ -343,13 +371,7 @@ export class POSTransactionService {
                 totalAmount: params.salesInvoice.totalAmount.toString(),
                 globalDiscount: params.salesInvoice.globalDiscount?.toString(),
                 shippingCost: undefined,
-                items: params.items.map((item) => {
-                    const subtotal = new Decimal(item.price).mul(item.quantity);
-                    const discountPercent =
-                        subtotal.gt(0) && item.discount > 0
-                            ? new Decimal(item.discount).div(subtotal).mul(100)
-                            : new Decimal(0);
-
+                items: params.itemsWithCalculations.map(({ item, calculated, discountPercent }) => {
                     return {
                         description: `POS Item - ${item.productId}`,
                         quantity: item.quantity,
