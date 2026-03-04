@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { logout } from "@/app/[locale]/auth/actions";
+import Link from "next/link";
 
 export function NavUser({
   user,
@@ -84,9 +85,11 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
+              <DropdownMenuItem asChild>
+                <Link href="/subscription">
+                  <Sparkles />
+                  Subscription Plan
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -95,9 +98,11 @@ export function NavUser({
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
+              <DropdownMenuItem asChild>
+                <Link href="/subscription">
+                  <CreditCard />
+                  Billing & History
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />
