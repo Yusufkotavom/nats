@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
 import {
-    STANDARD_CHART_OF_ACCOUNTS,
+    AVAILABLE_TEMPLATES,
     RECOMMENDED_DEFAULT_ACCOUNT_MAPPINGS,
     DEFAULT_UNITS,
     DEFAULT_CATEGORIES,
@@ -97,10 +97,14 @@ export const saveCompanyProfile = authorizedAction(
  */
 export const seedChartOfAccounts = authorizedAction(
     "company.settings",
-    async () => {
+    async (templateId?: string) => {
         let createdCount = 0;
 
-        for (const account of STANDARD_CHART_OF_ACCOUNTS) {
+        const id = templateId || "general";
+        const templateDef = AVAILABLE_TEMPLATES.find(t => t.id === id) || AVAILABLE_TEMPLATES[0];
+        const chartTemplate = templateDef.getTemplate();
+
+        for (const account of chartTemplate) {
             let parentId: string | null = null;
 
             if (account.parentCode) {

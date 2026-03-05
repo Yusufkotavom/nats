@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, BookOpen } from "lucide-react";
+import { Loader2, CheckCircle2, BookOpen, Briefcase } from "lucide-react";
 import { seedChartOfAccounts } from "../actions";
 import { useToast } from "@/hooks/use-toast";
-import { STANDARD_CHART_OF_ACCOUNTS } from "@/lib/setup/chart-of-accounts-template";
+import { AVAILABLE_TEMPLATES } from "@/lib/setup/chart-of-accounts-template";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import {
     Table,
     TableBody,
@@ -34,16 +36,20 @@ export function StepChartOfAccounts({
 }: StepChartOfAccountsProps) {
     const [isPending, startTransition] = useTransition();
     const [isSeeded, setIsSeeded] = useState(existingAccountCount > 0);
+    const [templateId, setTemplateId] = useState("general");
     const { toast } = useToast();
 
+    const selectedTemplateDef = AVAILABLE_TEMPLATES.find(t => t.id === templateId) || AVAILABLE_TEMPLATES[0];
+    const currentTemplate = selectedTemplateDef.getTemplate();
+
     // Only show top-level (level 0) and level 1 accounts for preview
-    const previewAccounts = STANDARD_CHART_OF_ACCOUNTS.filter(
+    const previewAccounts = currentTemplate.filter(
         (a) => a.level <= 1
     );
 
     const handleSeed = () => {
         startTransition(async () => {
-            const result = await seedChartOfAccounts();
+            const result = await seedChartOfAccounts(templateId);
             if (result.success) {
                 setIsSeeded(true);
                 toast({
@@ -86,10 +92,36 @@ export function StepChartOfAccounts({
                 </div>
             ) : (
                 <div className="space-y-4">
+                    <div className="space-y-3">
+                        <Label className="text-base">Select Business Type</Label>
+                        <RadioGroup
+                            value={templateId}
+                            onValueChange={setTemplateId}
+                            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                        >
+                            {AVAILABLE_TEMPLATES.map((t) => (
+                                <Label
+                                    key={t.id}
+                                    htmlFor={t.id}
+                                    className="flex flex-col items-start justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                >
+                                    <RadioGroupItem value={t.id} id={t.id} className="sr-only peer" />
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Briefcase className="h-4 w-4 text-primary" />
+                                        <span className="font-semibold">{t.name}</span>
+                                    </div>
+                                    <span className="text-sm text-muted-foreground font-normal">
+                                        {t.description}
+                                    </span>
+                                </Label>
+                            ))}
+                        </RadioGroup>
+                    </div>
+
                     <div className="rounded-lg border p-4">
                         <div className="mb-3 flex items-center gap-2">
                             <BookOpen className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">Preview: Standard Chart of Accounts</span>
+                            <span className="text-sm font-medium">Preview: {selectedTemplateDef.name} Accounts</span>
                         </div>
                         <div className="max-h-64 overflow-y-auto">
                             <Table>
@@ -120,13 +152,13 @@ export function StepChartOfAccounts({
                             </Table>
                         </div>
                         <p className="mt-2 text-xs text-muted-foreground">
-                            + {STANDARD_CHART_OF_ACCOUNTS.length - previewAccounts.length} more posting accounts
+                            + {currentTemplate.length - previewAccounts.length} more posting accounts
                         </p>
                     </div>
 
                     <Button onClick={handleSeed} disabled={isPending} className="w-full">
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Create Standard Chart of Accounts
+                        Create Chart of Accounts
                     </Button>
                 </div>
             )}

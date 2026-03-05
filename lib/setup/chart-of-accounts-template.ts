@@ -115,3 +115,24 @@ export const DEFAULT_UNITS = [
 export const DEFAULT_CATEGORIES = [
     { name: "General", description: "General products and services" },
 ];
+
+export const SERVICE_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS.map(a => {
+    if (a.code === "11300") return { ...a, name: "Inventory / Supplies Asset" };
+    if (a.code === "52000") return { ...a, name: "Cost of Services" };
+    return a;
+});
+
+export const RETAIL_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS;
+
+export const MANUFACTURING_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS.concat([
+    { code: "11310", name: "Raw Materials", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11320", name: "Work in Progress", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11330", name: "Finished Goods", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+]).sort((a, b) => a.code.localeCompare(b.code));
+
+export const AVAILABLE_TEMPLATES = [
+    { id: "general", name: "General Business", description: "Standard chart of accounts suitable for most businesses.", getTemplate: () => STANDARD_CHART_OF_ACCOUNTS },
+    { id: "service", name: "Service Business", description: "Optimized for service-based businesses without physical inventory.", getTemplate: () => SERVICE_CHART_OF_ACCOUNTS },
+    { id: "retail", name: "Retail / Trade", description: "Includes tracking for physical inventory and cost of goods sold.", getTemplate: () => RETAIL_CHART_OF_ACCOUNTS },
+    { id: "manufacturing", name: "Manufacturing", description: "Includes raw materials, work in progress, and finished goods tracking.", getTemplate: () => MANUFACTURING_CHART_OF_ACCOUNTS },
+];
