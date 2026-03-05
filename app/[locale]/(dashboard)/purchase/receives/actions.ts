@@ -1,7 +1,7 @@
 "use server";
 
 import { InventoryService } from "@/modules/inventory/services/inventory.service";
-import { getRequiredDefaultAccount } from "@/lib/accounting/default-accounts";
+import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
