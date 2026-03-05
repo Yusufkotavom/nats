@@ -13,7 +13,7 @@ export const assetsPlugin: ModulePlugin = {
           icon: Box,
           items: [
             { title: "Assets.dashboard", url: "/assets/dashboard" },
-            { title: "Assets.fixed_assets", url: "/assets/fixed-assets" },
+            { title: "Assets.fixed_assets", url: "/assets" },
             { title: "Assets.depreciation", url: "/assets/depreciation" },
             { title: "Assets.categories", url: "/assets/categories" },
           ],

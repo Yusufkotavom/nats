@@ -12,8 +12,7 @@ export const aiPlugin: ModulePlugin = {
           url: "/ai",
           icon: Sparkles,
           items: [
-            { title: "AI.dashboard", url: "/ai/dashboard" },
-            { title: "AI.assistants", url: "/ai/assistants" },
+            { title: "AI.assistants", url: "/ai/chat" },
           ],
         },
       ],

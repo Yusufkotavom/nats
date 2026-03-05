@@ -70,11 +70,9 @@ export default function AssetDetailPage() {
     );
   }
 
-  if (!asset) {
-    return <div>Asset not found</div>;
-  }
 
-  return (
+
+  return asset && (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/assets">
