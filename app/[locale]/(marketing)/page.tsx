@@ -26,6 +26,7 @@ import {
     MessageCircle
 } from "lucide-react";
 import Link from "next/link";
+import { DemoButton } from "./demo-button";
 
 export default async function MarketingPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
@@ -81,6 +82,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
                             : 'The all-in-one solution for point of sale, inventory management, purchasing, and accounting.'}
                     </p>
                     <div className="flex w-full items-center justify-center space-x-4 py-4 md:pb-10">
+                        <DemoButton isId={isId} />
                         <Link href={`/${locale}/register`}>
                             <Button size="lg" className="h-14 px-10 text-lg rounded-full shadow-lg hover:shadow-primary/25 transition-all hover:-translate-y-1">
                                 {isId ? 'Coba Gratis Sekarang' : 'Start for Free Today'}
