@@ -15,7 +15,7 @@ import { SuperJSONResult } from "superjson";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 
 export const metadata: Metadata = {
-  title: "New Purchase Return | Pasak",
+  title: "New Purchase Return | NATS",
   description: "Create a new purchase return",
 };
 

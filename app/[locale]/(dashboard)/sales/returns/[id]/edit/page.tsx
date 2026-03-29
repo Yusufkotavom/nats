@@ -14,7 +14,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { SalesReturnWithDetails } from "../../types";
 
 export const metadata: Metadata = {
-  title: "Edit Sales Return | Pasak",
+  title: "Edit Sales Return | NATS",
   description: "Edit sales return details",
 };
 

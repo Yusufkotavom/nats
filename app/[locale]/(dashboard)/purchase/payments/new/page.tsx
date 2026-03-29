@@ -5,7 +5,7 @@ import { PurchasePaymentForm } from "../_components/purchase-payment-form";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/accounting/journal-entries/actions";
 
 export const metadata: Metadata = {
-  title: "New Purchase Payment | Pasak",
+  title: "New Purchase Payment | NATS",
   description: "Create a new purchase payment",
 };
 

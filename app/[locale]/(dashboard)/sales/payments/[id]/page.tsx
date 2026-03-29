@@ -8,7 +8,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { SalesPaymentWithDetails } from "../types";
 
 export const metadata: Metadata = {
-  title: "View Sales Payment | Pasak",
+  title: "View Sales Payment | NATS",
   description: "View sales payment details",
 };
 

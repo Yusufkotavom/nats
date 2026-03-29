@@ -52,8 +52,8 @@ export class OpenRouterProvider implements AIProvider {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://pasak.app", // Required by OpenRouter
-          "X-Title": "Pasak ERP", // Optional but recommended
+          "HTTP-Referer": "https://nats.app", // Required by OpenRouter
+          "X-Title": "NATS ERP", // Optional but recommended
         },
         body: JSON.stringify(body),
       });
@@ -136,8 +136,8 @@ export class OpenRouterProvider implements AIProvider {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "https://pasak.app",
-          "X-Title": "Pasak ERP",
+          "HTTP-Referer": "https://nats.app",
+          "X-Title": "NATS ERP",
         },
         body: JSON.stringify(body),
       });

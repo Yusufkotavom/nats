@@ -1,6 +1,6 @@
-# Pasak — Enterprise Resource Planning System
+# NATS — Enterprise Resource Planning System
 
-Pasak adalah sistem ERP berbasis Next.js yang dirancang dengan arsitektur modular untuk menangani berbagai fungsi bisnis mulai dari akuntansi, inventaris, penjualan, pembelian, POS, hingga penggajian.
+NATS adalah sistem ERP berbasis Next.js yang dirancang dengan arsitektur modular untuk menangani berbagai fungsi bisnis mulai dari akuntansi, inventaris, penjualan, pembelian, POS, hingga penggajian.
 
 ## Prasyarat
 
@@ -20,7 +20,7 @@ Ikuti langkah-langkah di bawah ini untuk menjalankan projek di lingkungan lokal 
 ### 1. Klon Repositori
 ```bash
 git clone <url-repository-ini>
-cd pasak
+cd nats
 ```
 
 ### 2. Instalasi Dependensi
@@ -40,8 +40,8 @@ Edit file `.env` dan isi variabel berikut:
 
 | Variabel | Deskripsi | Contoh |
 |---|---|---|
-| `DATABASE_URL` | URL koneksi PostgreSQL untuk database **tenant** (data bisnis) | `postgresql://user:password@localhost:5432/pasak` |
-| `MANAGEMENT_DATABASE_URL` | URL koneksi PostgreSQL untuk database **management** (tenant, user, role) | `postgresql://user:password@localhost:5432/pasak_management` |
+| `DATABASE_URL` | URL koneksi PostgreSQL untuk database **tenant** (data bisnis) | `postgresql://user:password@localhost:5432/nats` |
+| `MANAGEMENT_DATABASE_URL` | URL koneksi PostgreSQL untuk database **management** (tenant, user, role) | `postgresql://user:password@localhost:5432/nats_management` |
 
 #### Variabel Opsional
 
@@ -53,7 +53,7 @@ Edit file `.env` dan isi variabel berikut:
 | `MINIO_PORT` | Port server MinIO | `9000` |
 | `MINIO_ACCESS_KEY` | Access key MinIO | - |
 | `MINIO_SECRET_KEY` | Secret key MinIO | - |
-| `MINIO_BUCKET_NAME` | Nama bucket MinIO | `pasak-files` |
+| `MINIO_BUCKET_NAME` | Nama bucket MinIO | `nats-files` |
 | `SMTP_HOST` | Host SMTP server | - |
 | `SMTP_PORT` | Port SMTP server | - |
 | `SMTP_USER` | Username SMTP | - |
@@ -70,10 +70,10 @@ Buat dua database di PostgreSQL — satu untuk **management** (data tenant, user
 psql -U postgres
 
 # Buat database management
-CREATE DATABASE pasak_management;
+CREATE DATABASE nats_management;
 
 # Buat database tenant (data bisnis)
-CREATE DATABASE pasak;
+CREATE DATABASE nats;
 
 # Keluar
 \q
@@ -127,12 +127,12 @@ Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
 
 ## Arsitektur Database
 
-Pasak menggunakan arsitektur **dual-database** untuk mendukung multi-tenancy:
+NATS menggunakan arsitektur **dual-database** untuk mendukung multi-tenancy:
 
 ```
 ┌─────────────────────────────┐    ┌─────────────────────────────────┐
 │   MANAGEMENT DATABASE       │    │   TENANT DATABASE               │
-│   (pasak_management)        │    │   (pasak)                       │
+│   (nats_management)        │    │   (nats)                       │
 │                             │    │                                 │
 │   ├── Tenant                │    │   ├── CompanyProfile            │
 │   ├── User                  │    │   ├── Account (Chart of Account)│
@@ -248,7 +248,7 @@ Seed dijalankan berurutan karena ada dependensi antar-modul:
 
 ## Modul Bisnis
 
-Pasak terdiri dari modul-modul bisnis berikut yang tersedia di direktori `modules/`:
+NATS terdiri dari modul-modul bisnis berikut yang tersedia di direktori `modules/`:
 
 | Modul | Direktori | Deskripsi |
 |---|---|---|
@@ -295,7 +295,7 @@ npm run test
 ## Struktur Direktori
 
 ```
-pasak/
+nats/
 ├── app/                        # Routing (Next.js App Router)
 │   ├── [locale]/               # Routing per bahasa (i18n)
 │   │   ├── (marketing)/        # Landing page (pre-login)

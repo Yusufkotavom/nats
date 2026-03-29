@@ -13,11 +13,11 @@ export async function sendActivationEmail(to: string, token: string, baseUrl: st
     const activationLink = `${baseUrl}/verify-email?token=${token}`;
 
     const mailOptions = {
-        from: process.env.SMTP_FROM || 'noreply@pasak.com',
+        from: process.env.SMTP_FROM || 'noreply@nats.com',
         to,
-        subject: 'Activate Your Pasak Account',
+        subject: 'Activate Your NATS Account',
         html: `
-            <h1>Welcome to Pasak!</h1>
+            <h1>Welcome to NATS!</h1>
             <p>Please activate your account by clicking the link below:</p>
             <a href="${activationLink}">Activate my account</a>
             <p>Or copy and paste this link in your browser: <br> ${activationLink}</p>
@@ -37,12 +37,12 @@ export async function sendResetPasswordEmail(to: string, token: string, baseUrl:
     const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
 
     const mailOptions = {
-        from: process.env.SMTP_FROM || 'noreply@pasak.com',
+        from: process.env.SMTP_FROM || 'noreply@nats.com',
         to,
-        subject: 'Reset Your Pasak Password',
+        subject: 'Reset Your NATS Password',
         html: `
             <h1>Reset Your Password</h1>
-            <p>You requested a password reset for your Pasak account. Click the link below to set a new password:</p>
+            <p>You requested a password reset for your NATS account. Click the link below to set a new password:</p>
             <a href="${resetLink}">Reset Password</a>
             <p>If you didn't request this, you can safely ignore this email.</p>
             <p>Or copy and paste this link in your browser: <br> ${resetLink}</p>

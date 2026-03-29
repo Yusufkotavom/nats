@@ -9,7 +9,7 @@ import { SalesPaymentWithDetails } from "../../types";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/accounting/journal-entries/actions";
 
 export const metadata: Metadata = {
-  title: "Edit Sales Payment | Pasak",
+  title: "Edit Sales Payment | NATS",
   description: "Edit sales payment details",
 };
 

@@ -9,7 +9,7 @@ import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/
 import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration/taxes/actions";
 
 export const metadata: Metadata = {
-  title: "New Sales Invoice | Pasak",
+  title: "New Sales Invoice | NATS",
   description: "Create a new sales invoice",
 };
 

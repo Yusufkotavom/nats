@@ -5,7 +5,7 @@ import { SalesPaymentForm } from "../_components/sales-payment-form";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/accounting/journal-entries/actions";
 
 export const metadata: Metadata = {
-  title: "New Sales Payment | Pasak",
+  title: "New Sales Payment | NATS",
   description: "Create a new sales payment",
 };
 
