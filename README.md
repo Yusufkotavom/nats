@@ -1,6 +1,6 @@
-# Pasak - Enterprise Resource Planning System
+# Pasak — Enterprise Resource Planning System
 
-Pasak adalah sistem ERP berbasis Next.js yang dirancang dengan arsitektur modular untuk menangani berbagai fungsi bisnis mulai dari akuntansi, inventaris, hingga manajemen tenant.
+Pasak adalah sistem ERP berbasis Next.js yang dirancang dengan arsitektur modular untuk menangani berbagai fungsi bisnis mulai dari akuntansi, inventaris, penjualan, pembelian, POS, hingga penggajian.
 
 ## Prasyarat
 
@@ -84,7 +84,7 @@ CREATE DATABASE pasak;
 ### 5. Sinkronisasi Database (Prisma)
 
 Projek ini menggunakan **arsitektur dual-database** dengan Prisma:
-- **Management Database** — Mengelola data multi-tenant (tenant, user, role, billing)
+- **Management Database** — Mengelola data multi-tenant (tenant, user, role)
 - **Tenant Database** — Menyimpan data bisnis ERP (akuntansi, inventaris, penjualan, dll.)
 
 #### 5a. Generate Prisma Client
@@ -150,20 +150,6 @@ Pasak menggunakan arsitektur **dual-database** untuk mendukung multi-tenancy:
          │  (prisma/management/schema.prisma)      │  (prisma/schema/*.prisma)
          └────────────────────────────────────────-─┘
 ```
-
-### Management Database
-
-Database ini menyimpan informasi terkait **pengelolaan tenant dan autentikasi**:
-
-| Model | Deskripsi |
-|---|---|
-| `Tenant` | Data tenant (nama, slug, URL database, info langganan dan billing) |
-| `User` | Data pengguna (email, password, nama) |
-| `Role` | Peran pengguna (superadmin, accountant, cashier, manager) beserta daftar permission |
-| `TenantMember` | Relasi antara Tenant, User, dan Role |
-| `TenantBilling` | Tagihan untuk setiap tenant |
-| `TenantPaymentHistory` | Riwayat pembayaran tenant |
-| `VerificationToken` | Token verifikasi email |
 
 ### Tenant Database
 
@@ -260,36 +246,25 @@ Seed dijalankan berurutan karena ada dependensi antar-modul:
 
 ---
 
-## Manajemen Tenant
+## Modul Bisnis
 
-### Menambah Tenant Baru
+Pasak terdiri dari modul-modul bisnis berikut yang tersedia di direktori `modules/`:
 
-Tenant baru dapat ditambahkan melalui **dashboard admin** di `/management/tenants` atau secara programatis melalui management database.
-
-Setiap tenant baru memerlukan:
-1. **Nama dan Slug** — Identifikasi unik tenant
-2. **Database URL** — Connection string ke database tenant
-3. **User Superadmin** — Dibuat otomatis saat tenant baru didaftarkan
-
-### Konfigurasi Multi-Tenant
-
-Sistem multi-tenancy bekerja dengan cara:
-
-1. **Management Database** (`MANAGEMENT_DATABASE_URL`) menyimpan data semua tenant dan user
-2. Setiap tenant memiliki **database sendiri** (`dbUrl` pada model `Tenant`)
-3. Prisma Client dinamis (`getTenantPrismaClient`) membuat koneksi ke database tenant berdasarkan `dbUrl`
-
-```
-User Login → Management DB → Ambil Tenant → Koneksi ke Tenant DB
-```
-
-### Tipe Langganan (Subscription)
-
-| Tipe | Deskripsi |
-|---|---|
-| `FREE` | Gratis dengan fitur terbatas |
-| `BASIC` | Fitur menengah |
-| `PREMIUM` | Fitur lengkap tanpa batasan |
+| Modul | Direktori | Deskripsi |
+|---|---|---|
+| Akuntansi | `modules/accounting/` | Chart of Accounts, Journal Entry |
+| Kas & Bank | `modules/cash-bank/` | Transaksi kas, transfer, sinkronisasi |
+| Aset Tetap | `modules/fixed-assets/` | Manajemen aset dan penyusutan |
+| SDM | `modules/hr/` | Data karyawan |
+| Integrasi | `modules/integration/` | Outbox pattern, event handlers |
+| Inventaris | `modules/inventory/` | Produk, gudang, stok |
+| Penggajian | `modules/payroll/` | Slip gaji, komponen gaji |
+| Plugin | `modules/plugins/` | Registrasi modul dan permission |
+| POS | `modules/pos/` | Point of Sale, sesi kasir |
+| Produksi | `modules/production/` | BOM, produksi, receipt |
+| Pembelian | `modules/purchase/` | PO, invoice, pembayaran, retur |
+| Pelaporan | `modules/reporting/` | Custom report registry |
+| Penjualan | `modules/sales/` | SO, invoice, pengiriman, retur |
 
 ---
 
@@ -304,7 +279,7 @@ Projek ini menggunakan pola Outbox untuk memastikan operasi antar-modul bersifat
 - **Penyelesaian Inline**: Secara default, operasi diproses secara inline. Untuk mode async murni, atur `INTEGRATION_PROCESS_INLINE=false`.
 
 ### Internasionalisasi (i18n)
-Dukungan bahasa Inggris dan Indonesia dapat ditemukan di folder `messages/`. Untuk validasi file i18n:
+Dukungan bahasa Inggris dan Indonesia tersedia di folder `messages/`. Untuk validasi file i18n:
 ```bash
 npm run i18n:validate
 ```
@@ -321,27 +296,45 @@ npm run test
 
 ```
 pasak/
-├── app/                    # Routing (Next.js App Router)
-│   └── [locale]/           # Routing per bahasa (i18n)
-│       ├── (marketing)/    # Landing page (pre-login)
-│       ├── auth/           # Autentikasi (login, register, forgot password)
-│       └── [tenant]/       # Dashboard tenant (post-login)
-├── components/             # Komponen UI reusable (shadcn/ui)
-├── hooks/                  # Custom React hooks
-├── i18n/                   # Konfigurasi internationalization
-├── lib/                    # Utilitas, servis, dan konfigurasi
-│   └── prisma/             # Prisma client (tenant & management)
-├── messages/               # File terjemahan (en.json, id.json)
-├── modules/                # Logika bisnis per modul
+├── app/                        # Routing (Next.js App Router)
+│   ├── [locale]/               # Routing per bahasa (i18n)
+│   │   ├── (marketing)/        # Landing page (pre-login)
+│   │   ├── auth/               # Autentikasi (login, register)
+│   │   ├── pos/                # Point of Sale
+│   │   └── [tenant]/           # Dashboard tenant (post-login)
+│   │       ├── accounting/     # Modul akuntansi
+│   │       ├── inventory/      # Modul inventaris
+│   │       ├── purchase/       # Modul pembelian
+│   │       ├── sales/          # Modul penjualan
+│   │       └── ...             # Modul lainnya
+│   ├── api/                    # API Routes
+│   │   ├── accounting/         # API akuntansi
+│   │   ├── cash-bank/          # API kas & bank
+│   │   ├── inventory/          # API inventaris
+│   │   ├── purchase/           # API pembelian
+│   │   └── ...                 # API lainnya
+│   └── themes/                 # Konfigurasi tema
+├── components/                 # Komponen UI reusable (shadcn/ui)
+├── hooks/                      # Custom React hooks
+├── i18n/                       # Konfigurasi internationalization
+├── lib/                        # Utilitas, servis, dan konfigurasi
+│   ├── accounting/             # Servis akuntansi
+│   ├── ai/                     # Integrasi AI
+│   ├── auth/                   # Autentikasi & session
+│   ├── permissions/            # Sistem permission RBAC
+│   ├── prisma/                 # Prisma client (tenant & management)
+│   ├── reporting/              # Reporting registry
+│   └── validation/             # Schema validasi
+├── messages/                   # File terjemahan (en.json, id.json)
+├── modules/                    # Logika bisnis per modul (13 modul)
 ├── prisma/
-│   ├── schema/             # Schema Prisma tenant (17 file modular)
-│   ├── management/         # Schema Prisma management (1 file)
-│   ├── seed/               # Seed data per modul (9 file)
-│   ├── seed.ts             # Entry point seed
-│   └── migrations/         # File migrasi database
-├── scripts/                # Script utilitas (outbox worker, i18n validation)
-├── tests/                  # Unit tests (Vitest)
-└── public/                 # Asset statis
+│   ├── schema/                 # Schema Prisma tenant (14 file modular)
+│   ├── management/             # Schema Prisma management
+│   ├── seed/                   # Seed data per modul
+│   └── migrations/             # File migrasi database
+├── scripts/                    # Script utilitas (outbox worker, i18n)
+├── tests/                      # Unit & architecture tests (Vitest)
+└── public/                     # Asset statis
 ```
 
 ---
@@ -351,7 +344,6 @@ pasak/
 ### Database connection error
 Pastikan PostgreSQL sudah berjalan dan kredensial di `.env` sudah benar:
 ```bash
-# Cek PostgreSQL berjalan
 pg_isready
 ```
 
