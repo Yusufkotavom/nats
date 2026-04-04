@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma as prisma } from "@/lib/prisma/management";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -195,7 +195,7 @@ export const deleteRole = authorizedAction(
   async (id: string) => {
     const role = await prisma.role.findUnique({
       where: { id },
-      include: { _count: { select: { tenantMembers: true } } },
+      include: { _count: { select: { users: true } } },
     });
 
     if (!role) {
@@ -206,7 +206,7 @@ export const deleteRole = authorizedAction(
       return { success: false, error: "Cannot delete superadmin role" };
     }
 
-    if ((role as any)._count.tenantMembers > 0) {
+    if ((role as any)._count.users > 0) {
       return {
         success: false,
         error:

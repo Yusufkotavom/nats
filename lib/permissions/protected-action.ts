@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission, Permission } from "@/lib/permissions/utils";
-import { managementPrisma } from "@/lib/prisma/management";
+import { prisma } from "@/lib/prisma";
 
 export type ActionResponse<T> = { success: boolean; data?: T; error?: string };
 
@@ -15,7 +15,7 @@ export function authorizedAction<T, A extends unknown[]>(
       return { success: false, error: "Unauthorized" };
     }
 
-    const role = await managementPrisma.role.findUnique({
+    const role = await prisma.role.findUnique({
       where: { id: session.roleId },
       select: { isActive: true },
     });

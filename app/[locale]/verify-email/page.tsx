@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { managementPrisma } from "@/lib/prisma/management";
+import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth/auth";
 import { Button } from "@/components/ui/button";
 import { XCircle, CheckCircle2, GalleryVerticalEnd } from "lucide-react";
@@ -19,7 +19,7 @@ export default async function VerifyEmailPage({
 
     if (token) {
         try {
-            const verificationToken = await managementPrisma.verificationToken.findUnique({
+            const verificationToken = await prisma.verificationToken.findUnique({
                 where: { token }
             });
 
@@ -29,28 +29,25 @@ export default async function VerifyEmailPage({
                 errorMessage = "This activation link has expired. Please register again.";
             } else {
                 // Update user email verified date
-                const user = await managementPrisma.user.findUnique({
+                const user = await prisma.user.findUnique({
                     where: { email: verificationToken.identifier },
                     include: {
-                        tenantMembers: {
-                            include: { role: true }
-                        }
+                        role: true
                     }
                 });
 
-                if (user && user.tenantMembers.length > 0) {
-                    await managementPrisma.$transaction([
-                        managementPrisma.user.update({
+                if (user && user.role) {
+                    await prisma.$transaction([
+                        prisma.user.update({
                             where: { id: user.id },
                             data: { emailVerified: new Date() }
                         }),
-                        managementPrisma.verificationToken.delete({
+                        prisma.verificationToken.delete({
                             where: { token }
                         })
                     ]);
 
-                    const firstMember = user.tenantMembers[0];
-                    await createSession(user.id, firstMember.tenantId, firstMember.role);
+                    await createSession(user.id, user.role);
                     isSuccess = true;
                 } else {
                     errorMessage = "Account not found.";

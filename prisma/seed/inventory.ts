@@ -1,5 +1,7 @@
 import { prisma } from "./utils";
 import { Decimal } from "decimal.js";
+import { faker } from "@faker-js/faker";
+import { getRandomItem, generateUniqueSKU } from "./bulk_utils";
 
 export async function seedInventory() {
     console.log("Seeding Inventory Module...");
@@ -197,4 +199,64 @@ export async function seedInventory() {
             }
         }
     }
+}
+
+export async function seedBulkInventory(count: number) {
+    console.log(`Seeding ${count} Bulk Products...`);
+
+    const categories = await prisma.category.findMany();
+    const units = await prisma.unit.findMany();
+    const warehouses = await prisma.warehouse.findMany();
+
+    if (categories.length === 0 || units.length === 0 || warehouses.length === 0) {
+        console.warn("Missing Categories, Units, or Warehouses. Skipping bulk inventory.");
+        return;
+    }
+
+    const products = [];
+    for (let i = 0; i < count; i++) {
+        const name = faker.commerce.productName();
+        const price = parseFloat(faker.commerce.price({ min: 10, max: 2000 }));
+        const cost = price * 0.6;
+        const category = getRandomItem(categories);
+        const unit = getRandomItem(units);
+        const sku = generateUniqueSKU(category.name.substring(0, 3).toUpperCase(), i + 100);
+
+        products.push({
+            sku,
+            name,
+            description: faker.commerce.productDescription(),
+            categoryId: category.id,
+            price: new Decimal(price),
+            cost: new Decimal(cost),
+            baseUnitId: unit.id,
+            minStock: faker.number.int({ min: 5, max: 100 }),
+        });
+    }
+
+    await prisma.product.createMany({
+        data: products,
+        skipDuplicates: true,
+    });
+
+    // Initialize stock for bulk products in a random warehouse
+    console.log("Initializing stock for bulk products...");
+    const allProducts = await prisma.product.findMany({
+        where: { sku: { contains: "-" } }, // Rough filter for bulk products
+        take: count,
+        orderBy: { createdAt: 'desc' }
+    });
+
+    const inventoryData = allProducts.map(p => ({
+        warehouseId: getRandomItem(warehouses).id,
+        productId: p.id,
+        quantity: faker.number.int({ min: 10, max: 500 }),
+        unitCost: p.cost,
+        reorderPoint: p.minStock,
+    }));
+
+    await prisma.inventory.createMany({
+        data: inventoryData,
+        skipDuplicates: true,
+    });
 }

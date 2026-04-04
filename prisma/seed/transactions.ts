@@ -1,5 +1,5 @@
 import { prisma } from "./utils";
-import { managementPrisma } from "../../lib/prisma/management";
+
 import {
     SalesOrderStatus,
     SalesInvoiceStatus,
@@ -7,12 +7,14 @@ import {
     EntryStatus,
 } from "../generated/prisma/client";
 import { Decimal } from "decimal.js";
+import { faker } from "@faker-js/faker";
+import { getRandomItem, generateUniqueSKU } from "./bulk_utils";
 
 export async function seedTransactions() {
     console.log("Seeding Transactions...");
 
     // 1. Get necessary data
-    const adminUser = await managementPrisma.user.findFirst({ where: { email: "admin@example.com" } });
+    const adminUser = await prisma.user.findFirst({ where: { email: "admin@example.com" } });
     if (!adminUser) return;
 
     // Get Customers & Vendors
@@ -167,5 +169,122 @@ export async function seedTransactions() {
                 resetMonthly: false,
             },
         });
+    }
+}
+
+export async function seedBulkTransactions(count: number) {
+    console.log(`Seeding ${count} Bulk Transactions...`);
+
+    const adminUser = await prisma.user.findFirst({ where: { email: "admin@example.com" } });
+    const customers = await prisma.contact.findMany({ where: { type: "CUSTOMER" } });
+    const vendors = await prisma.contact.findMany({ where: { type: "VENDOR" } });
+    const products = await prisma.product.findMany();
+    const accounts = await prisma.account.findMany();
+
+    if (!adminUser || customers.length === 0 || vendors.length === 0 || products.length === 0 || accounts.length === 0) {
+        console.warn("Missing dependencies for bulk transactions. Skipping.");
+        return;
+    }
+
+    const salesAccount = accounts.find(a => a.code === "41200") || accounts[0];
+    const bankAccount = accounts.find(a => a.code === "11110") || accounts[0];
+
+    for (let i = 0; i < count; i++) {
+        const type = faker.helpers.arrayElement(['SO', 'INV', 'JE']);
+        
+        if (type === 'SO') {
+            const customer = getRandomItem(customers);
+            const product = getRandomItem(products);
+            const qty = faker.number.int({ min: 1, max: 10 });
+            const price = product.price;
+            const total = price.mul(qty);
+
+            await prisma.salesOrder.create({
+                data: {
+                    orderNumber: generateUniqueSKU("SO-B", i),
+                    contactId: customer.id,
+                    orderDate: faker.date.past({ years: 1 }),
+                    status: getRandomItem([SalesOrderStatus.CONFIRMED, SalesOrderStatus.SHIPPED, SalesOrderStatus.CLOSED]),
+                    totalAmount: total,
+                    subtotal: total,
+                    createdById: adminUser.id,
+                    items: {
+                        create: [
+                            {
+                                productId: product.id,
+                                quantity: qty,
+                                unitPrice: price,
+                                totalPrice: total,
+                            }
+                        ]
+                    }
+                }
+            });
+        } else if (type === 'INV') {
+            const customer = getRandomItem(customers);
+            const product = getRandomItem(products);
+            const qty = faker.number.int({ min: 1, max: 5 });
+            const price = product.price;
+            const total = price.mul(qty);
+
+            await prisma.salesInvoice.create({
+                data: {
+                    invoiceNumber: generateUniqueSKU("INV-B", i),
+                    contactId: customer.id,
+                    invoiceDate: faker.date.past({ years: 1 }),
+                    dueDate: faker.date.future({ years: 1 }),
+                    status: SalesInvoiceStatus.ISSUED,
+                    totalAmount: total,
+                    subtotal: total,
+                    balanceDue: total,
+                    items: {
+                        create: [
+                            {
+                                description: product.name,
+                                productId: product.id,
+                                quantity: qty,
+                                unitPrice: price,
+                                totalPrice: total,
+                                accountId: salesAccount.id,
+                            }
+                        ]
+                    }
+                }
+            });
+        } else {
+            // Journal Entry
+            const amount = new Decimal(faker.commerce.price({ min: 100, max: 5000 }));
+            await prisma.journalEntry.create({
+                data: {
+                    entryNumber: generateUniqueSKU("JE-B", i),
+                    transactionDate: faker.date.past({ years: 1 }),
+                    description: faker.finance.transactionDescription(),
+                    status: EntryStatus.posted,
+                    userId: adminUser.id,
+                    lines: {
+                        create: [
+                            {
+                                accountId: bankAccount.id,
+                                debitAmount: amount,
+                                creditAmount: new Decimal(0),
+                                lineNumber: 1,
+                                description: "Debit leg",
+                            },
+                            {
+                                accountId: salesAccount.id,
+                                debitAmount: new Decimal(0),
+                                creditAmount: amount,
+                                lineNumber: 2,
+                                description: "Credit leg"
+                            }
+                        ]
+                    }
+                }
+            });
+        }
+
+        if (i % 100 === 0 && i > 0) {
+            console.log(`  Processed Transaction ${i} / ${count}`);
+        }
     }
 }

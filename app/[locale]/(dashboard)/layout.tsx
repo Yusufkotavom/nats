@@ -2,8 +2,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/layout/header/site-header";
 import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
 import { verifySession } from "@/lib/auth/auth";
-import { managementPrisma } from "@/lib/prisma/management";
-import { getTenantPrismaClient } from "@/lib/prisma/tenant-resolver";
+import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { redirect } from "next/navigation";
 
@@ -26,35 +25,23 @@ export default async function DashboardLayout({
   };
 
   if (session?.userId) {
-    const user = await managementPrisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      include: {
-        tenantMembers: {
-          include: { role: true },
-        },
-      },
+      include: { role: true }
     });
+    
     if (user) {
       userData = {
         ...userData,
         name: user.name,
         email: user.email,
-        role: session.role || user.tenantMembers[0]?.role?.name || "Member",
+        role: session.role || user.role?.name || "Member",
       };
     }
   }
 
-  const tenantPrisma = session?.tenantId ? await getTenantPrismaClient(session.tenantId) : null;
-  const companyProfile = tenantPrisma ? await tenantPrisma.companyProfile.findFirst() : null;
-
-  let tenantSubscription = "FREE";
-  if (session?.tenantId) {
-    const tenant = await managementPrisma.tenant.findUnique({
-      where: { id: session.tenantId },
-      select: { subscription: true }
-    });
-    if (tenant) tenantSubscription = tenant.subscription;
-  }
+  const companyProfile = await prisma.companyProfile.findFirst();
+  const tenantSubscription = "LIFETIME"; // Standalone ERP doesn't have expiration
 
   return (
     <SessionProvider

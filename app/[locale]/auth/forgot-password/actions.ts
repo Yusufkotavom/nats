@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma } from "@/lib/prisma/management";
+import { prisma } from "@/lib/prisma";
 import { sendResetPasswordEmail } from "@/lib/mail";
 import { randomBytes } from "crypto";
 import { headers } from "next/headers";
@@ -17,7 +17,7 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
     }
 
     try {
-        const user = await managementPrisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { email },
         });
 
@@ -27,7 +27,7 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
             const token = randomBytes(32).toString("hex");
             const expires = new Date(Date.now() + 3600000); // 1 hour from now
 
-            await managementPrisma.verificationToken.create({
+            await prisma.verificationToken.create({
                 data: {
                     identifier: email,
                     token,

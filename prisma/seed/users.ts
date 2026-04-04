@@ -1,12 +1,13 @@
 import { prisma } from "./utils";
-import { managementPrisma } from "../../lib/prisma/management";
 import { hash } from "bcryptjs";
+import { faker } from "@faker-js/faker";
+import { getRandomItem } from "./bulk_utils";
 
 export async function seedUsers() {
     console.log("Seeding Users and Roles...");
 
     // Seed Roles
-    const superAdminRole = await managementPrisma.role.upsert({
+    const superAdminRole = await prisma.role.upsert({
         where: { name: "superadmin" },
         update: {},
         create: {
@@ -16,7 +17,7 @@ export async function seedUsers() {
         },
     });
 
-    const accountantRole = await managementPrisma.role.upsert({
+    const accountantRole = await prisma.role.upsert({
         where: { name: "Accountant" },
         update: {},
         create: {
@@ -32,7 +33,7 @@ export async function seedUsers() {
         },
     });
 
-    const cashierRole = await managementPrisma.role.upsert({
+    const cashierRole = await prisma.role.upsert({
         where: { name: "Cashier" },
         update: {},
         create: {
@@ -51,7 +52,7 @@ export async function seedUsers() {
         },
     });
 
-    const managerRole = await managementPrisma.role.upsert({
+    const managerRole = await prisma.role.upsert({
         where: { name: "Manager" },
         update: {},
         create: {
@@ -67,75 +68,84 @@ export async function seedUsers() {
     });
 
     // Seed Users
-    const password = await hash("password123", 10);
+    const passwordHash = await hash("password123", 10);
 
-    const defaultTenant = await managementPrisma.tenant.upsert({
-        where: { slug: "default" },
-        update: {},
-        create: {
-            name: "Default Tenant",
-            slug: "default",
-            dbUrl: process.env.DATABASE_URL || "postgresql://yesi:@localhost:5432/yesi",
-        }
-    });
-
-    const adminUser = await managementPrisma.user.upsert({
+    await prisma.user.upsert({
         where: { email: "admin@example.com" },
-        update: { password },
+        update: { password: passwordHash, roleId: superAdminRole.id },
         create: {
             email: "admin@example.com",
             name: "Admin User",
-            password,
+            password: passwordHash,
+            roleId: superAdminRole.id
         },
     });
-    await managementPrisma.tenantMember.upsert({
-        where: { tenantId_userId: { tenantId: defaultTenant.id, userId: adminUser.id } },
-        update: { roleId: superAdminRole.id },
-        create: { tenantId: defaultTenant.id, userId: adminUser.id, roleId: superAdminRole.id }
-    });
 
-    const cashierUser = await managementPrisma.user.upsert({
+    await prisma.user.upsert({
         where: { email: "cashier@example.com" },
-        update: { password },
+        update: { password: passwordHash, roleId: cashierRole.id },
         create: {
             email: "cashier@example.com",
             name: "Jane Cashier",
-            password,
+            password: passwordHash,
+            roleId: cashierRole.id
         },
     });
-    await managementPrisma.tenantMember.upsert({
-        where: { tenantId_userId: { tenantId: defaultTenant.id, userId: cashierUser.id } },
-        update: { roleId: cashierRole.id },
-        create: { tenantId: defaultTenant.id, userId: cashierUser.id, roleId: cashierRole.id }
-    });
 
-    const accountantUser = await managementPrisma.user.upsert({
+    await prisma.user.upsert({
         where: { email: "accountant@example.com" },
-        update: { password },
+        update: { password: passwordHash, roleId: accountantRole.id },
         create: {
             email: "accountant@example.com",
             name: "John Accountant",
-            password,
+            password: passwordHash,
+            roleId: accountantRole.id
         },
     });
-    await managementPrisma.tenantMember.upsert({
-        where: { tenantId_userId: { tenantId: defaultTenant.id, userId: accountantUser.id } },
-        update: { roleId: accountantRole.id },
-        create: { tenantId: defaultTenant.id, userId: accountantUser.id, roleId: accountantRole.id }
-    });
 
-    const managerUser = await managementPrisma.user.upsert({
+    await prisma.user.upsert({
         where: { email: "manager@example.com" },
-        update: { password },
+        update: { password: passwordHash, roleId: managerRole.id },
         create: {
             email: "manager@example.com",
             name: "Mike Manager",
-            password,
+            password: passwordHash,
+            roleId: managerRole.id
         },
     });
-    await managementPrisma.tenantMember.upsert({
-        where: { tenantId_userId: { tenantId: defaultTenant.id, userId: managerUser.id } },
-        update: { roleId: managerRole.id },
-        create: { tenantId: defaultTenant.id, userId: managerUser.id, roleId: managerRole.id }
+}
+
+export async function seedBulkUsers(count: number) {
+    console.log(`Seeding ${count} Bulk Users...`);
+
+    const roles = await prisma.role.findMany({
+        where: { name: { not: "superadmin" } }
+    });
+
+    if (roles.length === 0) {
+        console.warn("No roles found for bulk users. Skipping.");
+        return;
+    }
+
+    const passwordHash = await hash("password123", 10);
+    const users = [];
+
+    for (let i = 0; i < count; i++) {
+        const firstName = faker.person.firstName();
+        const lastName = faker.person.lastName();
+        const email = faker.internet.email({ firstName, lastName }).toLowerCase();
+        
+        users.push({
+            email: `bulk_${i}_${email}`, // Ensure uniqueness
+            name: `${firstName} ${lastName}`,
+            password: passwordHash,
+            roleId: getRandomItem(roles).id,
+        });
+    }
+
+    // Using createMany for performance
+    await prisma.user.createMany({
+        data: users,
+        skipDuplicates: true,
     });
 }

@@ -1,5 +1,7 @@
 import { prisma } from "./utils";
 import { ContactType } from "../generated/prisma/client";
+import { faker } from "@faker-js/faker";
+import { getRandomItem } from "./bulk_utils";
 
 export async function seedContacts() {
     console.log("Seeding Contacts (Customers & Vendors)...");
@@ -87,4 +89,29 @@ export async function seedContacts() {
             });
         }
     }
+}
+
+export async function seedBulkContacts(count: number) {
+    console.log(`Seeding ${count} Bulk Contacts (Customers & Vendors)...`);
+
+    const contacts = [];
+    for (let i = 0; i < count; i++) {
+        const isCustomer = faker.datatype.boolean();
+        const type = isCustomer ? ContactType.CUSTOMER : ContactType.VENDOR;
+        const name = type === ContactType.CUSTOMER ? faker.company.name() : `${faker.company.name()} Supplies`;
+
+        contacts.push({
+            name,
+            email: faker.internet.email({ provider: 'example.com' }).toLowerCase(),
+            phone: faker.phone.number(),
+            address: faker.location.streetAddress(),
+            type,
+            isActive: true,
+        });
+    }
+
+    await prisma.contact.createMany({
+        data: contacts,
+        skipDuplicates: true,
+    });
 }

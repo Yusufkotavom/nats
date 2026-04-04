@@ -1,7 +1,7 @@
 import { IntegrationEvent } from '../events';
 
 import { Decimal } from 'decimal.js';
-import { getRequiredDefaultAccount } from '@/lib/accounting/default-accounts';
+import { getRequiredDefaultAccount } from '@/lib/accounting/default-account.service';
 import { JournalService } from '@/modules/accounting/services/journal.service';
 import type { Prisma } from '@/prisma/generated/prisma/client';
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma as prisma } from "@/lib/prisma/management";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/permissions/protected-action";
@@ -21,13 +21,6 @@ interface UserUpdateData {
   roleId?: string;
 }
 
-/**
- * Fetch users with pagination.
- *
- * @param page  - Page number
- * @param limit - Items per page
- * @returns     - Object containing users list and pagination metadata
- */
 export async function getUsers(page: number, limit: number) {
   const skip = (page - 1) * limit;
 
@@ -40,16 +33,11 @@ export async function getUsers(page: number, limit: number) {
         id: true,
         name: true,
         email: true,
-        tenantMembers: {
+        role: {
           select: {
-            role: {
-              select: {
-                name: true,
-                id: true,
-              },
-            },
+            name: true,
+            id: true,
           },
-          take: 1,
         },
         createdAt: true,
       },
@@ -57,24 +45,11 @@ export async function getUsers(page: number, limit: number) {
     prisma.user.count(),
   ]);
 
-  // Map tenantMembers[0].role back to role for the frontend
-  const mappedData = data.map(user => ({
-    ...user,
-    role: user.tenantMembers[0]?.role || { id: "", name: "Unknown" },
-  }));
-
-  return { data: mappedData, total, totalPages: Math.ceil(total / limit) };
+  return { data, total, totalPages: Math.ceil(total / limit) };
 }
 
-/**
- * Fetch all available roles.
- * Used for role selection in user management.
- *
- * @returns - List of roles
- */
 export async function getRoles() {
   const session = await getSession();
-  // Allow if user can view users or edit them
   if (!session || (!hasPermission(session.permissions, "users.create") && !hasPermission(session.permissions, "users.edit"))) {
     return [];
   }
@@ -118,12 +93,7 @@ export const createUser = authorizedAction(
           name: data.name,
           email: data.email,
           password: hashedPassword,
-          tenantMembers: {
-            create: {
-              roleId: data.roleId,
-              tenantId: (await prisma.tenant.findFirst())?.id || "",
-            },
-          },
+          roleId: data.roleId,
         },
       });
       revalidatePath("/admin/users");
@@ -157,7 +127,6 @@ export const updateUser = authorizedAction(
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateData: any = { ...data };
-      delete updateData.roleId;
 
       if (data.password) {
         updateData.password = await bcrypt.hash(data.password, 10);
@@ -165,18 +134,6 @@ export const updateUser = authorizedAction(
         delete updateData.password;
       }
 
-      if (data.roleId) {
-        const firstTenant = await prisma.tenant.findFirst();
-        updateData.tenantMembers = {
-          deleteMany: {},
-          create: {
-            roleId: data.roleId,
-            tenantId: firstTenant?.id || "",
-          },
-        };
-      }
-
-      // Remove undefined fields
       Object.keys(updateData).forEach(
         (key) => updateData[key] === undefined && delete updateData[key]
       );
@@ -194,13 +151,6 @@ export const updateUser = authorizedAction(
   }
 );
 
-/**
- * Delete a user.
- * Permission: "users.delete"
- *
- * @param id - The ID of the user to delete
- * @returns  - Success flag or error
- */
 export const deleteUser = authorizedAction(
   "users.delete",
   async (id: string) => {

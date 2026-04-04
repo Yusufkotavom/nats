@@ -1,5 +1,7 @@
 import { prisma } from "./utils";
 import { ContactType, SalaryComponentType, PayrollPeriodStatus } from "../generated/prisma/client";
+import { faker } from "@faker-js/faker";
+import { getRandomItem } from "./bulk_utils";
 
 export async function seedHR() {
     console.log("Seeding HR Module...");
@@ -163,5 +165,70 @@ export async function seedHR() {
                 status: PayrollPeriodStatus.DRAFT,
             },
         });
+    }
+}
+
+export async function seedBulkHR(count: number) {
+    console.log(`Seeding ${count} Bulk Employees...`);
+
+    const departments = await prisma.department.findMany();
+    const salaryComponents = await prisma.salaryComponent.findMany();
+
+    if (departments.length === 0 || salaryComponents.length === 0) {
+        console.warn("Missing Departments or Salary Components. Skipping bulk HR.");
+        return;
+    }
+
+    const basicComp = salaryComponents.find(c => c.name === "Basic Salary");
+    const transportComp = salaryComponents.find(c => c.name === "Transport Allowance");
+    const taxComp = salaryComponents.find(c => c.name === "Income Tax");
+
+    for (let i = 0; i < count; i++) {
+        const firstName = faker.person.firstName();
+        const lastName = faker.person.lastName();
+        const email = faker.internet.email({ firstName, lastName, provider: 'company.com' }).toLowerCase();
+        const dept = getRandomItem(departments);
+
+        const contact = await prisma.contact.create({
+            data: {
+                name: `${firstName} ${lastName}`,
+                email,
+                type: ContactType.EMPLOYEE,
+                isActive: true,
+                phone: faker.phone.number(),
+                address: faker.location.streetAddress(),
+            }
+        });
+
+        await prisma.employeeDetail.create({
+            data: {
+                contactId: contact.id,
+                jobTitle: faker.person.jobTitle(),
+                department: dept.name,
+                joinDate: faker.date.past({ years: 5 }),
+            }
+        });
+
+        const baseSalary = faker.number.int({ min: 3000, max: 15000 });
+
+        await prisma.salaryStructure.create({
+            data: {
+                name: `Structure - ${contact.name}`,
+                contactId: contact.id,
+                baseSalary,
+                isActive: true,
+                items: {
+                    create: [
+                        { componentId: basicComp!.id, amount: baseSalary, formula: "" },
+                        { componentId: transportComp!.id, amount: 500, formula: "" },
+                        { componentId: taxComp!.id, amount: baseSalary * 0.1, formula: "" }
+                    ]
+                }
+            }
+        });
+
+        if (i % 100 === 0 && i > 0) {
+            console.log(`  Processed HR ${i} / ${count}`);
+        }
     }
 }

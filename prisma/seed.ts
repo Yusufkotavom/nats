@@ -1,12 +1,13 @@
 import { prisma } from "./seed/utils";
 import { seedAccounting } from "./seed/accounting";
 import { seedCompany } from "./seed/company";
-import { seedUsers } from "./seed/users";
-import { seedInventory } from "./seed/inventory";
-import { seedContacts } from "./seed/contacts";
-import { seedHR } from "./seed/hr";
-import { seedProjects } from "./seed/projects";
-import { seedTransactions } from "./seed/transactions";
+import { seedUsers, seedBulkUsers } from "./seed/users";
+import { seedInventory, seedBulkInventory } from "./seed/inventory";
+import { seedContacts, seedBulkContacts } from "./seed/contacts";
+import { seedHR, seedBulkHR } from "./seed/hr";
+import { seedProjects, seedBulkProjects } from "./seed/projects";
+import { seedTransactions, seedBulkTransactions } from "./seed/transactions";
+import { SEED_COUNT } from "./seed/bulk_utils";
 
 async function main() {
   console.log("🚀 Start seeding...");
@@ -21,6 +22,14 @@ async function main() {
     await seedHR();         // Departments, Employees, Salary Components
     await seedProjects();   // Projects
     await seedTransactions(); // Sales, Purchases, JEs
+
+    console.log("🛠️ Starting Bulk Seeding...");
+    await seedBulkUsers(SEED_COUNT);
+    await seedBulkContacts(SEED_COUNT);
+    await seedBulkInventory(SEED_COUNT);
+    await seedBulkHR(SEED_COUNT);
+    await seedBulkProjects(SEED_COUNT);
+    await seedBulkTransactions(SEED_COUNT);
 
     const end = Date.now();
     console.log(`✅ Seeding completed in ${(end - start) / 1000}s`);

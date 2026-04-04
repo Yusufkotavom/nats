@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { createRole, updateRole } from "../actions";
-import { Prisma } from "@/prisma/generated/management-client";
+import { Prisma } from "@/prisma/generated/prisma/client";
 type Role = Prisma.RoleGetPayload<{}>;
 
 interface RoleDialogProps {

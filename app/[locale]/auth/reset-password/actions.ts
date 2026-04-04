@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma } from "@/lib/prisma/management";
+import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { redirect } from "next/navigation";
 
@@ -28,7 +28,7 @@ export async function resetPassword(prevState: any, formData: FormData) {
     }
 
     try {
-        const verificationToken = await managementPrisma.verificationToken.findUnique({
+        const verificationToken = await prisma.verificationToken.findUnique({
             where: { token },
         });
 
@@ -42,12 +42,12 @@ export async function resetPassword(prevState: any, formData: FormData) {
 
         const hashedPassword = await hash(password, 10);
 
-        await managementPrisma.$transaction([
-            managementPrisma.user.update({
+        await prisma.$transaction([
+            prisma.user.update({
                 where: { email: verificationToken.identifier },
                 data: { password: hashedPassword },
             }),
-            managementPrisma.verificationToken.delete({
+            prisma.verificationToken.delete({
                 where: { token },
             }),
         ]);

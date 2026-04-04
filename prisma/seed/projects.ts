@@ -1,4 +1,7 @@
 import { prisma } from "./utils";
+import { faker } from "@faker-js/faker";
+import { getRandomItem, generateUniqueSKU } from "./bulk_utils";
+import { ProjectStatus } from "../generated/prisma/client";
 
 export async function seedProjects() {
     console.log("Seeding Projects...");
@@ -53,4 +56,39 @@ export async function seedProjects() {
             },
         });
     }
+}
+
+export async function seedBulkProjects(count: number) {
+    console.log(`Seeding ${count} Bulk Projects...`);
+
+    const customers = await prisma.contact.findMany({
+        where: { type: "CUSTOMER" }
+    });
+
+    if (customers.length === 0) {
+        console.warn("No customers found for bulk projects. Skipping.");
+        return;
+    }
+
+    const projects = [];
+    for (let i = 0; i < count; i++) {
+        const name = faker.company.catchPhrase();
+        const code = generateUniqueSKU("PROJ", i + 100);
+        const startDate = faker.date.past({ years: 2 });
+        const endDate = faker.date.future({ years: 1, refDate: startDate });
+
+        projects.push({
+            name,
+            code,
+            description: faker.lorem.paragraph(),
+            startDate,
+            endDate,
+            status: getRandomItem([ProjectStatus.ACTIVE, ProjectStatus.COMPLETED, ProjectStatus.ON_HOLD, ProjectStatus.CANCELLED]),
+        });
+    }
+
+    await prisma.project.createMany({
+        data: projects,
+        skipDuplicates: true,
+    });
 }

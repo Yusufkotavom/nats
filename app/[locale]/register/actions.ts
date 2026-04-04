@@ -1,26 +1,16 @@
 "use server";
 
-import { managementPrisma } from "@/lib/prisma/management";
-import { provisionTenantDatabase } from "@/app/management/(admin)/tenants/actions";
+import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
-import { createSession } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
-import { SubscriptionType } from "@/prisma/generated/management-client";
 import { randomUUID } from "crypto";
 import { sendActivationEmail } from "@/lib/mail";
-
-function generateSlug(companyName: string): string {
-    return companyName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "");
-}
 
 export async function registerUserAndTenant(prevState: unknown, formData: FormData) {
     const fullName = formData.get("fullName") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-    const companyName = formData.get("companyName") as string;
+    const companyName = formData.get("companyName") as string; // Optional or mapped to CompanyProfile if needed later
 
     const errors: { fullName?: string[]; email?: string[]; password?: string[]; companyName?: string[] } = {};
 
@@ -36,16 +26,14 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         errors.password = ["Password must be at least 6 characters long"];
     }
 
-    if (!companyName || companyName.trim().length < 2) {
-        errors.companyName = ["Company Name is required and should be at least 2 characters"];
-    }
+    // companyName check can be optional for single-tenant if the company is already set up
 
     if (Object.keys(errors).length > 0) {
         return { errors };
     }
 
     // Check if user already exists
-    const existingUser = await managementPrisma.user.findUnique({
+    const existingUser = await prisma.user.findUnique({
         where: { email },
     });
 
@@ -57,78 +45,34 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         };
     }
 
-    // Generate a unique slug
-    let slug = generateSlug(companyName);
-    let slugCounter = 1;
-    while (true) {
-        const existingTenant = await managementPrisma.tenant.findUnique({
-            where: { slug: slugCounter === 1 ? slug : `${slug}-${slugCounter}` },
-        });
-        if (!existingTenant) {
-            if (slugCounter > 1) {
-                slug = `${slug}-${slugCounter}`;
-            }
-            break;
-        }
-        slugCounter++;
-    }
-
     // Fetch the superadmin role
-    const superAdminRole = await managementPrisma.role.findUnique({
+    const superAdminRole = await prisma.role.findUnique({
         where: { name: "superadmin" },
     });
 
     if (!superAdminRole) {
         return {
             errors: {
-                email: ["System configuration error: superadmin role not found"],
+                email: ["System configuration error: superadmin role not found. Please seed the database."],
             },
         };
     }
 
-    // Use a transaction if possible, or create sequentially
     try {
         const hashedPassword = await hash(password, 10);
 
-        const newTenant = await managementPrisma.tenant.create({
-            data: {
-                name: companyName,
-                slug,
-                companyName,
-                email,
-                isActive: true,
-                subscription: SubscriptionType.FREE,
-            },
-        });
-
-        const newUser = await managementPrisma.user.create({
+        const newUser = await prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
                 name: fullName,
+                roleId: superAdminRole.id
             },
         });
-
-        const tenantMember = await managementPrisma.tenantMember.create({
-            data: {
-                tenantId: newTenant.id,
-                userId: newUser.id,
-                roleId: superAdminRole.id,
-            },
-            include: {
-                role: true,
-            },
-        });
-
-        // Provision database
-        const provisionResult = await provisionTenantDatabase(newTenant.id);
-        if (!provisionResult.success) {
-            console.error("Failed to provision database:", provisionResult.error);
-        }
 
         // Generate email verification token
         const token = randomUUID();
-        await managementPrisma.verificationToken.create({
+        await prisma.verificationToken.create({
             data: {
                 identifier: email,
                 token,

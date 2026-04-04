@@ -6,14 +6,11 @@ const isDev = process.env.NODE_ENV !== 'production';
 // Basic setup
 const transportTargets = [];
 
-// 1. Standard console logging (always on, but formatted based on environment)
+// 1. Standard console logging
 if (isDev) {
     transportTargets.push({
-        target: 'pino-pretty',
-        options: {
-            colorize: true,
-            ignore: 'pid,hostname',
-        },
+        target: 'pino/file',
+        options: { destination: 1 }, // stdout
         level: 'debug'
     });
 } else {
