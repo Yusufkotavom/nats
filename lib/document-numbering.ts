@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { formatSequence } from "@/lib/utils/format-sequence";
 import { getSession } from "@/lib/auth/auth";
-import { managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
 
 /**
  * Ensures a document numbering format exists for an entity type or creates the default.

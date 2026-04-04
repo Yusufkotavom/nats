@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
 import { sendResetPasswordEmail } from "@/lib/mail";
 import { randomBytes } from "crypto";
 import { headers } from "next/headers";

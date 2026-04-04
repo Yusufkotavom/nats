@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { managementPrisma } from '../lib/prisma/tenant';
+import { managementPrisma } from "../lib/prisma/management";
 import { execSync } from 'child_process';
 
 async function main() {

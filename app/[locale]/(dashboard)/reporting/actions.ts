@@ -2,7 +2,7 @@
 
 import { serverRegistry } from "@/lib/reporting/server-registry";
 import { prisma } from "@/lib/prisma";
-import { managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
 import { getSession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
 import { ReportFormat } from "@/lib/reporting/types";

@@ -1,7 +1,8 @@
 "use server";
 
 import { verifySession } from "@/lib/auth/auth";
-import { managementPrisma, getTenantPrismaClient } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
+import { getTenantPrismaClient } from "@/lib/prisma/tenant-resolver";
 import { serializePrisma } from "@/lib/prisma";
 
 export async function getSubscriptionData() {

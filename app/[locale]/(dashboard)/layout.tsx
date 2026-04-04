@@ -2,7 +2,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/layout/header/site-header";
 import { AppSidebar } from "@/components/layout/sidebar/app-sidebar";
 import { verifySession } from "@/lib/auth/auth";
-import { managementPrisma, getTenantPrismaClient } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
+import { getTenantPrismaClient } from "@/lib/prisma/tenant-resolver";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { redirect } from "next/navigation";
 

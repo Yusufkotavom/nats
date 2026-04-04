@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma as prisma } from "@/lib/prisma/tenant";
+import { managementPrisma as prisma } from "@/lib/prisma/management";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/permissions/protected-action";

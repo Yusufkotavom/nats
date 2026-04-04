@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
 import { provisionTenantDatabase } from "@/app/management/(admin)/tenants/actions";
 import { hash } from "bcryptjs";
 import { createSession } from "@/lib/auth/auth";

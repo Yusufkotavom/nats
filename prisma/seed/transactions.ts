@@ -1,5 +1,5 @@
 import { prisma } from "./utils";
-import { managementPrisma } from "../../lib/prisma/tenant";
+import { managementPrisma } from "../../lib/prisma/management";
 import {
     SalesOrderStatus,
     SalesInvoiceStatus,

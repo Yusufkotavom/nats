@@ -1,4 +1,5 @@
-import { getTenantPrismaClient, managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
+import { getTenantPrismaClient } from "@/lib/prisma/tenant-resolver";
 import { PrismaClient } from "@/prisma/generated/prisma/client";
 import { Decimal } from "decimal.js";
 import { ContactType, AccountType, NormalBalance, DefaultAccountPurpose, CashAccountType, SalesOrderStatus, SalesInvoiceStatus, PurchaseOrderStatus, EntryStatus, CashTransactionType, CashTransactionStatus, ProductionOrderStatus, EmploymentStatus, Gender, MaritalStatus, SalaryComponentType, PayrollPeriodStatus, SalarySlipStatus, AssetStatus, DepreciationMethod } from "@/prisma/generated/prisma/client";

@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission, Permission } from "@/lib/permissions/utils";
-import { managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
 
 export type ActionResponse<T> = { success: boolean; data?: T; error?: string };
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
 import { compare } from "bcryptjs";
 import { createSession } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { managementPrisma } from "@/lib/prisma/tenant";
+import { managementPrisma } from "@/lib/prisma/management";
 import { createSession } from "@/lib/auth/auth";
 import { Button } from "@/components/ui/button";
 import { XCircle, CheckCircle2, GalleryVerticalEnd } from "lucide-react";
