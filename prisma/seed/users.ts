@@ -52,6 +52,26 @@ export async function seedUsers() {
         },
     });
 
+    const customerRole = await prisma.role.upsert({
+        where: { name: "Customer" },
+        update: {},
+        create: {
+            name: "Customer",
+            description: "Default Customer Role",
+            permissions: ["profile.view", "orders.view", "orders.create"],
+        },
+    });
+
+    const merchantRole = await prisma.role.upsert({
+        where: { name: "Merchant" },
+        update: {},
+        create: {
+            name: "Merchant",
+            description: "Merchant/Vendor Role",
+            permissions: ["products.manage", "orders.manage", "sales.view"],
+        },
+    });
+
     const managerRole = await prisma.role.upsert({
         where: { name: "Manager" },
         update: {},
@@ -78,6 +98,28 @@ export async function seedUsers() {
             name: "Admin User",
             password: passwordHash,
             roleId: superAdminRole.id
+        },
+    });
+
+    await prisma.user.upsert({
+        where: { email: "merchant@example.com" },
+        update: { password: passwordHash, roleId: merchantRole.id },
+        create: {
+            email: "merchant@example.com",
+            name: "Sample Merchant",
+            password: passwordHash,
+            roleId: merchantRole.id
+        },
+    });
+
+    await prisma.user.upsert({
+        where: { email: "customer@example.com" },
+        update: { password: passwordHash, roleId: customerRole.id },
+        create: {
+            email: "customer@example.com",
+            name: "Sample Customer",
+            password: passwordHash,
+            roleId: customerRole.id
         },
     });
 

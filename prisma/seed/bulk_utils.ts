@@ -11,6 +11,23 @@ export function getRandomItems<T>(items: T[], count: number): T[] {
     return shuffled.slice(0, count);
 }
 
+export function getRandomDateInLastMonths(months: number = 6): Date {
+    const now = new Date();
+    const start = new Date();
+    start.setMonth(now.getMonth() - months);
+    return faker.date.between({ from: start, to: now });
+}
+
+export function getWeightedRandomStatus<T>(statuses: T[], weights: number[]): T {
+    const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+    let random = Math.random() * totalWeight;
+    for (let i = 0; i < weights.length; i++) {
+        if (random < weights[i]) return statuses[i];
+        random -= weights[i];
+    }
+    return statuses[statuses.length - 1];
+}
+
 export async function runInChunks<T>(
     items: T[],
     chunkSize: number,
