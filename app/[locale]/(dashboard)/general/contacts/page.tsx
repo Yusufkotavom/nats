@@ -45,6 +45,15 @@ import {
 import { CustomPagination } from "@/components/ui/custom-pagination";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const ALL_TYPES_VALUE = "ALL";
 
 type Contact = Awaited<ReturnType<typeof getContacts>>["data"][number];
 
@@ -58,6 +67,9 @@ export default function ContactsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<ContactType | undefined>(
+    undefined
+  );
   const [contacts, setContacts] = useState<Contact[]>([]);
   const confirm = useConfirm();
 
@@ -82,15 +94,22 @@ export default function ContactsPage() {
     }
   };
 
+  const handleTypeFilterChange = (value: string) => {
+    const selectedType =
+      value === ALL_TYPES_VALUE ? undefined : (value as ContactType);
+    setTypeFilter(selectedType);
+    setPage(1);
+  };
+
   useEffect(() => {
     async function fetchData() {
-      const data = await getContacts({ page, search });
+      const data = await getContacts({ page, search, type: typeFilter });
       setContacts(data.data);
       setTotal(data.total);
     }
 
     fetchData();
-  }, [search, page]);
+  }, [search, page, typeFilter]);
 
   const getTypeBadgeColor = (type: ContactType) => {
     switch (type) {
@@ -143,6 +162,24 @@ export default function ContactsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Select
+          value={typeFilter ?? ALL_TYPES_VALUE}
+          onValueChange={handleTypeFilterChange}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder={t("all_types")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_TYPES_VALUE}>{t("all_types")}</SelectItem>
+            <SelectItem value={ContactType.CUSTOMER}>
+              {t("customer")}
+            </SelectItem>
+            <SelectItem value={ContactType.VENDOR}>{t("vendor")}</SelectItem>
+            <SelectItem value={ContactType.EMPLOYEE}>
+              {t("employee")}
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <Button type="submit" variant="secondary">
           {tCommon("search")}
         </Button>

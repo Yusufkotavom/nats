@@ -183,6 +183,7 @@
             "phone": "Phone",
             "address": "Address",
             "status": "Status",
+            "all_types": "All Types",
             "no_contacts_found": "No contacts found.",
             "create_error": "Failed to create contact",
             "update_error": "Failed to update contact",

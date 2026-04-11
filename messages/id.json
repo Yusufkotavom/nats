@@ -180,6 +180,7 @@
             "phone": "Telepon",
             "address": "Alamat",
             "status": "Status",
+            "all_types": "Semua Tipe",
             "no_contacts_found": "Tidak ada kontak ditemukan.",
             "create_error": "Gagal membuat kontak",
             "update_error": "Gagal memperbarui kontak",

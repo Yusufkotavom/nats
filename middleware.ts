@@ -94,13 +94,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl);
   }
 
-  // 3. Redirect to /dashboard if the user is authenticated and trying to access the root marketing page
-  if (pathToCheck === "/" && session?.userId) {
+  // 3. Redirect root path: authenticated users go to dashboard, unauthenticated go to login
+  if (pathToCheck === "/") {
     if (!["en", "id"].includes(locale)) {
       return response;
     }
-    const dashboardUrl = new URL(`/${locale}/dashboard`, request.nextUrl);
-    return NextResponse.redirect(dashboardUrl);
+    const targetPath = session?.userId ? "dashboard" : "auth";
+    const redirectUrl = new URL(`/${locale}/${targetPath}`, request.nextUrl);
+    return NextResponse.redirect(redirectUrl);
   }
 
   return response;
