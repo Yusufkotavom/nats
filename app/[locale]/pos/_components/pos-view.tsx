@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { POSProduct, POSCartItem, closePOSSession, getHeldOrders, holdOrder } from '../actions';
-import { Button } from '@/components/ui/button';
-import { LogOut, History, Search, RotateCcw } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useState, useMemo, useEffect } from "react";
+import {
+  POSProduct,
+  POSCartItem,
+  closePOSSession,
+  getHeldOrders,
+  holdOrder,
+  getPOSProducts,
+} from "../actions";
+import { Button } from "@/components/ui/button";
+import { LogOut, History, Search, RotateCcw } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,24 +19,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-import { CartView } from './cart-view';
-import { ProductGrid } from './product-grid';
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { CartView } from "./cart-view";
+import { ProductGrid } from "./product-grid";
 
 import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
-import { HeldOrdersDialog } from './held-orders-dialog';
-import { POSHistoryDialog } from './pos-history-dialog';
-import { useQuery } from '@tanstack/react-query';
-import { Badge } from '@/components/ui/badge';
-import { useSession } from '@/components/providers/session-provider';
-import Link from 'next/link';
-import { LayoutDashboard } from 'lucide-react';
-import { Clock } from './clock';
-import { useTranslations } from 'next-intl';
+import { HeldOrdersDialog } from "./held-orders-dialog";
+import { POSHistoryDialog } from "./pos-history-dialog";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { useSession } from "@/components/providers/session-provider";
+import Link from "next/link";
+import { LayoutDashboard } from "lucide-react";
+import { Clock } from "./clock";
+import { useTranslations } from "next-intl";
+import { useDebounce } from "use-debounce";
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -37,45 +45,88 @@ interface POSViewProps {
   session: SuperJSONResult;
 }
 
-export function POSView({ initialProducts: serializedProducts, categories: serializedCategories, session: serializedSession }: POSViewProps) {
-  const t = useTranslations('POS');
-  const initialProducts = SuperJSON.deserialize<POSProduct[]>(serializedProducts);
+export function POSView({
+  initialProducts: serializedProducts,
+  categories: serializedCategories,
+  session: serializedSession,
+}: POSViewProps) {
+  const t = useTranslations("POS");
+  const initialData = SuperJSON.deserialize<{
+    items: POSProduct[];
+    total: number;
+    hasMore: boolean;
+  }>(serializedProducts);
   const categories = SuperJSON.deserialize<any[]>(serializedCategories);
   const session = SuperJSON.deserialize<any>(serializedSession);
 
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [globalDiscount, setGlobalDiscount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const sessionData = useSession();
-  const isCashier = sessionData?.role === 'Cashier';
+  const isCashier = sessionData?.role === "Cashier";
+
+  const {
+    data: productData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ["pos-products", debouncedSearchQuery, selectedCategory],
+    queryFn: async ({ pageParam = 1 }) => {
+      const res = await getPOSProducts(
+        pageParam as number,
+        20,
+        debouncedSearchQuery,
+        selectedCategory || undefined,
+      );
+      return SuperJSON.deserialize<{
+        items: POSProduct[];
+        total: number;
+        hasMore: boolean;
+      }>(res);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.hasMore ? allPages.length + 1 : undefined;
+    },
+    initialData:
+      debouncedSearchQuery === "" && !selectedCategory
+        ? {
+            pages: [initialData],
+            pageParams: [1],
+          }
+        : undefined,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
+
+  const products = useMemo(() => {
+    return productData?.pages.flatMap((page) => page.items) ?? [];
+  }, [productData]);
 
   const { data: heldOrders = [] } = useQuery({
-    queryKey: ['heldOrders'],
+    queryKey: ["heldOrders"],
     queryFn: async () => {
       const res = await getHeldOrders();
       return SuperJSON.deserialize<any[]>(res);
     },
   });
 
-  const filteredProducts = useMemo(() => {
-    return initialProducts.filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory ? product.categoryId === selectedCategory : true;
-      return matchesSearch && matchesCategory;
-    });
-  }, [initialProducts, searchQuery, selectedCategory]);
-
   const addToCart = (product: POSProduct) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
         );
       }
       return [...prev, { ...product, quantity: 1, discount: 0 }];
@@ -84,13 +135,15 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart((prev) =>
-      prev.map((item) => {
-        if (item.id === productId) {
-          const newQty = Math.max(0, item.quantity + delta);
-          return { ...item, quantity: newQty };
-        }
-        return item;
-      }).filter((item) => item.quantity > 0)
+      prev
+        .map((item) => {
+          if (item.id === productId) {
+            const newQty = Math.max(0, item.quantity + delta);
+            return { ...item, quantity: newQty };
+          }
+          return item;
+        })
+        .filter((item) => item.quantity > 0),
     );
   };
 
@@ -101,7 +154,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
           return { ...item, discount };
         }
         return item;
-      })
+      }),
     );
   };
 
@@ -115,13 +168,13 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
   };
 
   const handleCloseSession = async () => {
-    if (confirm(t('confirm_close_session'))) {
+    if (confirm(t("confirm_close_session"))) {
       try {
         await closePOSSession(session.id, 0); // TODO: Dialog to enter actual cash
-        toast({ title: t('session_closed') });
+        toast({ title: t("session_closed") });
         router.refresh();
       } catch (e) {
-        toast({ variant: 'destructive', title: t('error_closing') });
+        toast({ variant: "destructive", title: t("error_closing") });
       }
     }
   };
@@ -131,34 +184,40 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
       try {
         await holdOrder(
           cart,
-          cart.reduce((acc, item) => acc + item.price * item.quantity, 0) - globalDiscount, // Approx total
-          t('auto_held_history'),
+          cart.reduce((acc, item) => acc + item.price * item.quantity, 0) -
+            globalDiscount, // Approx total
+          t("auto_held_history"),
           undefined,
           "Walk-in Customer",
-          globalDiscount
+          globalDiscount,
         );
-        toast({ title: t('order_held') });
+        toast({ title: t("order_held") });
         setCart([]);
         setGlobalDiscount(0);
       } catch (e) {
         console.error(e);
-        toast({ variant: 'destructive', title: t('failed_hold') });
+        toast({ variant: "destructive", title: t("failed_hold") });
         return; // Don't navigate if hold fails
       }
     }
     router.push(`/pos/invoices/${invoiceId}`);
   };
 
-  const handleResume = (items: POSCartItem[], customerName?: string, customerId?: string, resumedGlobalDiscount?: number) => {
-    setCart(prev => {
+  const handleResume = (
+    items: POSCartItem[],
+    customerName?: string,
+    customerId?: string,
+    resumedGlobalDiscount?: number,
+  ) => {
+    setCart((prev) => {
       const newCart = [...prev];
-      items.forEach(newItem => {
-        const existingIndex = newCart.findIndex(c => c.id === newItem.id);
+      items.forEach((newItem) => {
+        const existingIndex = newCart.findIndex((c) => c.id === newItem.id);
         if (existingIndex >= 0) {
           const existing = newCart[existingIndex];
           newCart[existingIndex] = {
             ...existing,
-            quantity: existing.quantity + newItem.quantity
+            quantity: existing.quantity + newItem.quantity,
           };
         } else {
           newCart.push(newItem);
@@ -169,7 +228,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
     if (resumedGlobalDiscount !== undefined) {
       setGlobalDiscount(resumedGlobalDiscount);
     }
-    toast({ title: t('items_added') });
+    toast({ title: t("items_added") });
   };
 
   return (
@@ -177,11 +236,11 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
       {/* Header */}
       <header className="flex h-16 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">{t('pos')}</h1>
+          <h1 className="text-xl font-bold">{t("pos")}</h1>
           <div className="relative w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={t('search_products')}
+              placeholder={t("search_products")}
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -195,9 +254,12 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             trigger={
               <Button variant="outline" size="sm" className="relative mr-2">
                 <RotateCcw className="mr-2 h-4 w-4" />
-                {t('held_orders')}
+                {t("held_orders")}
                 {heldOrders.length > 0 && (
-                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                  >
                     {heldOrders.length}
                   </Badge>
                 )}
@@ -205,9 +267,14 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             }
           />
 
-          <Button variant="outline" size="sm" className="mr-2" onClick={() => setHistoryOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mr-2"
+            onClick={() => setHistoryOpen(true)}
+          >
             <History className="mr-2 h-4 w-4" />
-            {t('history')}
+            {t("history")}
           </Button>
 
           <div className="text-sm text-muted-foreground">
@@ -216,11 +283,11 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
                 {session.cashier.name}
               </span>
             )}
-            {t('session')}: {session.sessionNumber}
+            {t("session")}: {session.sessionNumber}
           </div>
           {session.warehouse && (
             <Badge variant="outline" className="text-sm font-normal">
-              {t('location')}: {session.warehouse.name}
+              {t("location")}: {session.warehouse.name}
             </Badge>
           )}
 
@@ -228,7 +295,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             <Button variant="outline" size="sm" asChild>
               <Link href="/accounting/dashboard">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
-                {t('dashboard')}
+                {t("dashboard")}
               </Link>
             </Button>
           )}
@@ -240,7 +307,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/avatars/01.png" alt="Cashier" />
                   <AvatarFallback>
-                    {session.cashier?.name?.slice(0, 2).toUpperCase() || 'CA'}
+                    {session.cashier?.name?.slice(0, 2).toUpperCase() || "CA"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -248,7 +315,9 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{t('cashier')}</p>
+                  <p className="text-sm font-medium leading-none">
+                    {t("cashier")}
+                  </p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {session.cashier?.name}
                   </p>
@@ -257,7 +326,7 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleCloseSession}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>{t('close_session')}</span>
+                <span>{t("close_session")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -274,9 +343,9 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
               onClick={() => setSelectedCategory(null)}
               className="whitespace-nowrap"
             >
-              {t('all_items')}
+              {t("all_items")}
             </Button>
-            {categories.map(cat => (
+            {categories.map((cat) => (
               <Button
                 key={cat.id}
                 variant={selectedCategory === cat.id ? "default" : "outline"}
@@ -287,7 +356,16 @@ export function POSView({ initialProducts: serializedProducts, categories: seria
               </Button>
             ))}
           </div>
-          <ProductGrid products={filteredProducts} onAddToCart={addToCart} />
+          <ProductGrid
+            products={products}
+            onAddToCart={addToCart}
+            onFetchNextPage={fetchNextPage}
+            hasNextPage={!!hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            isLoading={isLoading}
+            isError={isError}
+            onRetry={() => refetch()}
+          />
         </div>
 
         {/* Right: Cart */}

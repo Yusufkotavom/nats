@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth/auth';
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { SuperJSON } from "@/lib/superjson";
 import type { ActionResponse } from "@/lib/permissions/protected-action";
@@ -22,7 +22,7 @@ export type POSProduct = {
   categoryName: string | null;
   availableDiscounts: {
     code: string;
-    type: 'PERCENTAGE' | 'FIXED_AMOUNT';
+    type: "PERCENTAGE" | "FIXED_AMOUNT";
     value: number;
   }[];
 };
@@ -39,7 +39,7 @@ export async function getPOSSessions() {
   }
 
   const sessions = await prisma.pOSSession.findMany({
-    orderBy: { startTime: 'desc' },
+    orderBy: { startTime: "desc" },
     include: {
       warehouse: {
         select: {
@@ -56,10 +56,19 @@ export async function getPOSSessions() {
   return SuperJSON.serialize(sessions);
 }
 
-export async function getPOSProducts(query?: string, categoryId?: string) {
+export async function getPOSProducts(
+  page: number = 1,
+  pageSize: number = 20,
+  query?: string,
+  categoryId?: string,
+) {
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "pos.access")) {
-    return SuperJSON.serialize([]);
+    return SuperJSON.serialize({
+      items: [],
+      total: 0,
+      hasMore: false,
+    });
   }
 
   const where: any = {
@@ -68,39 +77,41 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
 
   if (query) {
     where.OR = [
-      { name: { contains: query, mode: 'insensitive' } },
-      { sku: { contains: query, mode: 'insensitive' } },
+      { name: { contains: query, mode: "insensitive" } },
+      { sku: { contains: query, mode: "insensitive" } },
     ];
   }
 
-  if (categoryId && categoryId !== 'all') {
+  if (categoryId && categoryId !== "all") {
     where.categoryId = categoryId;
   }
 
   const now = new Date();
 
-  const products = await prisma.product.findMany({
-    where,
-    include: {
-      category: true,
-      inventory: {
-        include: {
-          warehouse: true,
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+        inventory: {
+          include: {
+            warehouse: true,
+          },
+        },
+        discounts: {
+          where: {
+            isActive: true,
+            startDate: { lte: now },
+            OR: [{ endDate: null }, { endDate: { gte: now } }],
+          },
         },
       },
-      discounts: {
-        where: {
-          isActive: true,
-          startDate: { lte: now },
-          OR: [
-            { endDate: null },
-            { endDate: { gte: now } }
-          ]
-        }
-      }
-    },
-    orderBy: { name: 'asc' },
-  });
+      orderBy: { name: "asc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.product.count({ where }),
+  ]);
 
   const mapped = products.map((p) => {
     const totalStock = p.inventory.reduce((acc, inv) => acc + inv.quantity, 0);
@@ -113,15 +124,19 @@ export async function getPOSProducts(query?: string, categoryId?: string) {
       categoryId: p.categoryId,
       categoryName: p.category?.name || null,
       stock: totalStock,
-      availableDiscounts: p.discounts.map(d => ({
+      availableDiscounts: p.discounts.map((d) => ({
         code: d.code,
         type: d.type,
-        value: d.value.toNumber()
-      }))
+        value: d.value.toNumber(),
+      })),
     };
   });
 
-  return SuperJSON.serialize(mapped);
+  return SuperJSON.serialize({
+    items: mapped,
+    total,
+    hasMore: page * pageSize < total,
+  });
 }
 
 export async function getPOSCategories() {
@@ -131,7 +146,7 @@ export async function getPOSCategories() {
   }
 
   const categories = await prisma.category.findMany({
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
   });
   return SuperJSON.serialize(categories);
 }
@@ -143,7 +158,7 @@ export async function getWarehouses() {
   }
 
   const warehouses = await prisma.warehouse.findMany({
-    orderBy: { name: 'asc' },
+    orderBy: { name: "asc" },
   });
   return SuperJSON.serialize(warehouses);
 }
@@ -156,8 +171,8 @@ export async function getOpenPOSSession() {
 
   const posSession = await prisma.pOSSession.findFirst({
     where: {
-      status: 'OPEN',
-      cashierId: userId
+      status: "OPEN",
+      cashierId: userId,
     },
     include: {
       warehouse: true,
@@ -172,15 +187,24 @@ export async function getOpenPOSSession() {
 export async function openPOSSession(openingCash: number, warehouseId: string) {
   const session = await getSession();
   const userId = session?.userId;
-  if (!userId || !hasPermission(session.permissions, "pos.access")) throw new Error('Unauthorized');
+  if (!userId || !hasPermission(session.permissions, "pos.access"))
+    throw new Error("Unauthorized");
 
-  const newSession = await POSSessionService.open(userId, openingCash, warehouseId);
+  const newSession = await POSSessionService.open(
+    userId,
+    openingCash,
+    warehouseId,
+  );
 
-  revalidatePath('/pos');
+  revalidatePath("/pos");
   return SuperJSON.serialize(newSession);
 }
 
-export async function closePOSSession(sessionId: string, actualCash: number, notes?: string) {
+export async function closePOSSession(
+  sessionId: string,
+  actualCash: number,
+  notes?: string,
+) {
   const sessionUser = await getSession();
   if (!sessionUser || !hasPermission(sessionUser.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -188,13 +212,13 @@ export async function closePOSSession(sessionId: string, actualCash: number, not
 
   await POSSessionService.close(sessionId, actualCash, notes);
 
-  revalidatePath('/pos');
+  revalidatePath("/pos");
 }
 
 export async function getPOSSessionTransactions(sessionId: string) {
   const transactions = await prisma.salesInvoice.findMany({
     where: { posSessionId: sessionId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     include: {
       contact: {
         select: {
@@ -213,15 +237,24 @@ export async function getPOSSessionTransactions(sessionId: string) {
 
 export async function processPOSTransaction(
   sessionId: string,
-  items: { productId: string; quantity: number; price: number; discount: number }[],
-  paymentMethod: 'CASH' | 'CARD' | 'QRIS',
+  items: {
+    productId: string;
+    quantity: number;
+    price: number;
+    discount: number;
+  }[],
+  paymentMethod: "CASH" | "CARD" | "QRIS",
   amountPaid: number,
   globalDiscount: number = 0,
-  customerId?: string
+  customerId?: string,
 ): Promise<
   ActionResponse<{
     invoiceId: string;
-    outbox: { outboxIds: string[]; alreadyQueuedIds: string[]; processed: boolean };
+    outbox: {
+      outboxIds: string[];
+      alreadyQueuedIds: string[];
+      processed: boolean;
+    };
   }>
 > {
   try {
@@ -231,7 +264,7 @@ export async function processPOSTransaction(
       paymentMethod,
       amountPaid,
       globalDiscount,
-      customerId
+      customerId,
     );
 
     return {
@@ -241,7 +274,10 @@ export async function processPOSTransaction(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to process POS transaction",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to process POS transaction",
     };
   }
 }
@@ -252,11 +288,11 @@ export async function holdOrder(
   note?: string,
   customerId?: string,
   customerName?: string,
-  globalDiscount: number = 0
+  globalDiscount: number = 0,
 ) {
   const session = await getSession();
   const userId = session?.userId;
-  if (!userId) throw new Error('Unauthorized');
+  if (!userId) throw new Error("Unauthorized");
 
   const heldOrder = await HeldOrderService.hold(
     userId,
@@ -265,10 +301,10 @@ export async function holdOrder(
     note,
     customerId,
     customerName,
-    globalDiscount
+    globalDiscount,
   );
 
-  revalidatePath('/pos');
+  revalidatePath("/pos");
   return SuperJSON.serialize(heldOrder);
 }
 
@@ -277,18 +313,21 @@ export async function validateDiscountCode(code: string) {
     where: { code, isActive: true },
     include: {
       products: {
-        select: { id: true }
-      }
-    }
+        select: { id: true },
+      },
+    },
   });
 
   if (!discount) {
-    throw new Error('Invalid discount code');
+    throw new Error("Invalid discount code");
   }
 
   const now = new Date();
-  if (discount.startDate > now || (discount.endDate && discount.endDate < now)) {
-    throw new Error('Discount code is expired or not yet active');
+  if (
+    discount.startDate > now ||
+    (discount.endDate && discount.endDate < now)
+  ) {
+    throw new Error("Discount code is expired or not yet active");
   }
 
   return SuperJSON.serialize(discount);
@@ -296,12 +335,12 @@ export async function validateDiscountCode(code: string) {
 
 export async function getHeldOrders() {
   const session = await getSession();
-  if (!session?.userId) throw new Error('Unauthorized');
+  if (!session?.userId) throw new Error("Unauthorized");
 
   await HeldOrderService.cleanupExpired();
 
   const heldOrders = await prisma.heldOrder.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     include: { customer: true },
   });
 
@@ -310,7 +349,7 @@ export async function getHeldOrders() {
 
 export async function getPOSInvoice(id: string) {
   const session = await getSession();
-  if (!session?.userId) throw new Error('Unauthorized');
+  if (!session?.userId) throw new Error("Unauthorized");
 
   const invoice = await prisma.salesInvoice.findUnique({
     where: { id },
@@ -338,19 +377,19 @@ export async function getPOSInvoice(id: string) {
 
 export async function resumeOrder(heldOrderId: string) {
   const session = await getSession();
-  if (!session?.userId) throw new Error('Unauthorized');
+  if (!session?.userId) throw new Error("Unauthorized");
 
   const heldOrder = await HeldOrderService.resume(heldOrderId);
 
-  revalidatePath('/pos');
+  revalidatePath("/pos");
   return SuperJSON.serialize(heldOrder);
 }
 
 export async function deleteHeldOrder(heldOrderId: string) {
   const session = await getSession();
-  if (!session?.userId) throw new Error('Unauthorized');
+  if (!session?.userId) throw new Error("Unauthorized");
 
   await HeldOrderService.delete(heldOrderId);
 
-  revalidatePath('/pos');
+  revalidatePath("/pos");
 }
