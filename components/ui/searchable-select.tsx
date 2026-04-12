@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -70,7 +71,7 @@ export function SearchableSelect({
         }
       >
         <InputGroupAddon>
-          <Search className="size-4 text-muted-foreground" />
+          <Search className="size-2 text-muted-foreground" />
         </InputGroupAddon>
         <InputGroupInput
           value={inputValue}
@@ -81,24 +82,26 @@ export function SearchableSelect({
         />
       </InputGroup>
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Search..." onValueChange={onSearch} />
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup>
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                value={option.label}
-                onSelect={() => {
-                  onValueChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                {option.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
+        <Command>
+          <CommandInput placeholder="Search..." onValueChange={onSearch} />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  onSelect={() => {
+                    onValueChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  {option.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
       </CommandDialog>
     </>
   );
