@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  GalleryVerticalEnd,
-} from "lucide-react";
+import { GalleryVerticalEnd } from "lucide-react";
 
 import { NavMain } from "@/components/layout/sidebar/nav-main";
 import {
@@ -22,7 +20,7 @@ import { getNavigationBySection } from "@/modules/plugins";
 export function AppSidebar({
   user,
   companyName = "Company Name",
-  subscriptionPlan = "FREE",
+  descText = "Community Edition",
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: {
@@ -32,7 +30,7 @@ export function AppSidebar({
     role: string;
   };
   companyName?: string;
-  subscriptionPlan?: string;
+  descText?: string;
 }) {
   const navigation = getNavigationBySection();
   return (
@@ -43,19 +41,28 @@ export function AppSidebar({
             {
               name: companyName,
               logo: GalleryVerticalEnd,
-              plan: subscriptionPlan + " Plan",
-            }
+              plan: descText,
+            },
           ]}
         />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain label="Navigation.operations" items={navigation["Operations"]} />
+        <NavMain
+          label="Navigation.operations"
+          items={navigation["Operations"]}
+        />
         <NavMain
           label="Navigation.finance_accounting"
           items={navigation["Finance & Accounting"]}
         />
-        <NavMain label="Navigation.intelligence" items={navigation["Intelligence"]} />
-        <NavMain label="Navigation.administration" items={navigation["Administration"]} />
+        <NavMain
+          label="Navigation.intelligence"
+          items={navigation["Intelligence"]}
+        />
+        <NavMain
+          label="Navigation.administration"
+          items={navigation["Administration"]}
+        />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

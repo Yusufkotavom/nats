@@ -1,26 +1,26 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2, Download } from "lucide-react";
-import { deleteFile, getFiles } from "../actions";
+import { deleteFile } from "../actions";
 import { useState } from "react";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useAlert } from "@/hooks/use-alert";
 import { useFormatDate } from "@/hooks/use-format-date";
 import { useTranslations } from "next-intl";
+import { Column, DataTable } from "@/components/ui/data-table";
 
 export function FileTable({
   files,
+  pagination,
 }: {
-  files: Awaited<ReturnType<typeof getFiles>>;
+  files: any[];
+  pagination?: {
+    totalEntries: number;
+    pageSize: number;
+    currentPage: number;
+    onPageChange: (page: number) => void;
+  };
 }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const confirm = useConfirm();
@@ -59,66 +59,65 @@ export function FileTable({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  const columns: Column<any>[] = [
+    {
+      header: t("name"),
+      cell: (file) => (
+        <a
+          href={file.url}
+          target="_blank"
+          rel="noreferrer"
+          className="hover:underline flex items-center gap-2 font-medium"
+        >
+          {file.name}
+        </a>
+      ),
+    },
+    {
+      header: t("type"),
+      accessorKey: "mimeType",
+    },
+    {
+      header: t("size"),
+      cell: (file) => formatSize(file.size),
+    },
+    {
+      header: t("uploaded_by"),
+      cell: (file) => file.uploadedBy?.name || file.uploadedById || t("unknown"),
+    },
+    {
+      header: t("date"),
+      cell: (file) => formatDate(file.createdAt),
+    },
+    {
+      header: t("actions"),
+      className: "text-right",
+      cell: (file) => (
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="icon" asChild>
+            <a href={file.url} download>
+              <Download className="h-4 w-4" />
+            </a>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(file.id)}
+            disabled={deletingId === file.id}
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("type")}</TableHead>
-            <TableHead>{t("size")}</TableHead>
-            <TableHead>{t("uploaded_by")}</TableHead>
-            <TableHead>{t("date")}</TableHead>
-            <TableHead className="text-right">{t("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {files.map((file) => (
-            <TableRow key={file.id}>
-              <TableCell className="font-medium">
-                <a
-                  href={file.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:underline flex items-center gap-2"
-                >
-                  {file.name}
-                </a>
-              </TableCell>
-              <TableCell>{file.mimeType}</TableCell>
-              <TableCell>{formatSize(file.size)}</TableCell>
-              <TableCell>{file.uploadedById || t("unknown")}</TableCell>
-              <TableCell>
-                {formatDate(file.createdAt)}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" asChild>
-                    <a href={file.url} download>
-                      <Download className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(file.id)}
-                    disabled={deletingId === file.id}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-          {files.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center h-24">
-                {t("no_files_found")}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      data={files}
+      columns={columns}
+      pagination={pagination}
+      emptyMessage={t("no_files_found")}
+    />
   );
 }

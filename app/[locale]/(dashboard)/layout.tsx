@@ -27,9 +27,9 @@ export default async function DashboardLayout({
   if (session?.userId) {
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      include: { role: true }
+      include: { role: true },
     });
-    
+
     if (user) {
       userData = {
         ...userData,
@@ -41,7 +41,6 @@ export default async function DashboardLayout({
   }
 
   const companyProfile = await prisma.companyProfile.findFirst();
-  const tenantSubscription = "LIFETIME"; // Standalone ERP doesn't have expiration
 
   return (
     <SessionProvider
@@ -50,19 +49,19 @@ export default async function DashboardLayout({
         permissions: session.permissions,
         companyProfile: companyProfile
           ? {
-            name: companyProfile.name,
-            address: companyProfile.address,
-            phone: companyProfile.phone,
-            email: companyProfile.email,
-            website: companyProfile.website,
-            taxId: companyProfile.taxId,
-            currency: companyProfile.currency,
-            currencySymbol: companyProfile.currencySymbol,
-            dateFormat: companyProfile.dateFormat,
-            currencyFormat: companyProfile.currencyFormat,
-            locale: companyProfile.locale,
-            timezone: companyProfile.timezone,
-          }
+              name: companyProfile.name,
+              address: companyProfile.address,
+              phone: companyProfile.phone,
+              email: companyProfile.email,
+              website: companyProfile.website,
+              taxId: companyProfile.taxId,
+              currency: companyProfile.currency,
+              currencySymbol: companyProfile.currencySymbol,
+              dateFormat: companyProfile.dateFormat,
+              currencyFormat: companyProfile.currencyFormat,
+              locale: companyProfile.locale,
+              timezone: companyProfile.timezone,
+            }
           : null,
       }}
     >
@@ -77,7 +76,6 @@ export default async function DashboardLayout({
         <AppSidebar
           user={userData}
           companyName={companyProfile?.name || "Company Name"}
-          subscriptionPlan={tenantSubscription}
         />
         <SidebarInset>
           <SiteHeader />

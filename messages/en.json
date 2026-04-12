@@ -146,6 +146,7 @@
         "Files": {
             "title": "Files",
             "upload_file": "Upload File",
+            "search_files": "Search files...",
             "delete_file": "Delete File",
             "delete_confirm_desc": "Are you sure you want to delete this file?",
             "delete_error": "Failed to delete file",

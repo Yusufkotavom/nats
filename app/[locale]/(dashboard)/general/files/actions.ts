@@ -95,11 +95,41 @@ export async function deleteFile(id: string) {
  *
  * @returns - List of files with uploader info
  */
-export async function getFiles() {
+export async function getFiles(
+  page: number = 1,
+  limit: number = 10,
+  search?: string,
+) {
   const session = await getSession();
-  if (!session) return [];
+  if (!session) return { data: [], total: 0 };
 
-  return await prisma.file.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const skip = (page - 1) * limit;
+
+  const where = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: "insensitive" as const } },
+          { mimeType: { contains: search, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+
+  const [data, total] = await Promise.all([
+    prisma.file.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      include: {
+        uploadedBy: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    }),
+    prisma.file.count({ where }),
+  ]);
+
+  return { data, total };
 }

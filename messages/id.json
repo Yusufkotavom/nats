@@ -137,6 +137,7 @@
         "Files": {
             "title": "Berkas",
             "upload_file": "Unggah Berkas",
+            "search_files": "Cari berkas...",
             "delete_file": "Hapus Berkas",
             "delete_confirm_desc": "Apakah Anda yakin ingin menghapus berkas ini?",
             "delete_error": "Gagal menghapus berkas",
