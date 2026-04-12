@@ -195,6 +195,7 @@ export default function JournalEntryPage() {
       {
         header: t("description"),
         accessorKey: "description",
+        className: "text-sm text-wrap whitespace-normal",
       },
       {
         header: t("created_by"),
