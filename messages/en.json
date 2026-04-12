@@ -408,6 +408,7 @@
         "delete_warehouse_desc": "Are you sure you want to delete this warehouse?",
         "view_details": "View Details",
         "address": "Address",
+        "pricing": "Pricing",
         "items": "Items",
         "no_locations_found": "No locations found.",
         "inventory_movements": "Inventory Movements",

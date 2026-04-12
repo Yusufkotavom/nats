@@ -405,6 +405,7 @@
         "delete_warehouse_desc": "Apakah Anda yakin ingin menghapus gudang ini?",
         "view_details": "Lihat Detail",
         "address": "Alamat",
+        "pring": "Penentuan Harga",
         "items": "Item",
         "no_locations_found": "Lokasi tidak ditemukan.",
         "inventory_movements": "Pergerakan Persediaan",
