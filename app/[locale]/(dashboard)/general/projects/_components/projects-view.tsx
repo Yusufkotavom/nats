@@ -23,6 +23,10 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ProjectForm } from "@/app/[locale]/(dashboard)/general/_components/project-form";
+import {
+  PageListFilter,
+  PageListContent,
+} from "@/components/layout/page/list-layout";
 
 export function ProjectsView() {
   const t = useTranslations("General.Projects");
@@ -128,10 +132,10 @@ export function ProjectsView() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
+    <>
+      <PageListFilter>
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
           <CustomInput
             placeholder={tCommon("search")}
             value={search}
@@ -139,20 +143,22 @@ export function ProjectsView() {
             className="pl-8"
           />
         </div>
-      </div>
+      </PageListFilter>
 
-      <DataTable
-        data={data?.projects || []}
-        columns={columns}
-        isLoading={isLoading}
-        pagination={{
-          totalEntries: data?.total || 0,
-          pageSize: 10,
-          currentPage: page,
-          onPageChange: setPage,
-        }}
-        emptyMessage={t("no_projects_found")}
-      />
+      <PageListContent>
+        <DataTable
+          data={data?.projects || []}
+          columns={columns}
+          isLoading={isLoading}
+          pagination={{
+            totalEntries: data?.total || 0,
+            pageSize: 10,
+            currentPage: page,
+            onPageChange: setPage,
+          }}
+          emptyMessage={t("no_projects_found")}
+        />
+      </PageListContent>
 
       {editingProject && (
         <ProjectForm
@@ -161,6 +167,6 @@ export function ProjectsView() {
           onOpenChange={setIsEditDialogOpen}
         />
       )}
-    </div>
+    </>
   );
 }
