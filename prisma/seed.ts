@@ -16,19 +16,19 @@ async function main() {
   try {
     await seedCompany();
     await seedAccounting(); // Accounts, Tax Rates
-    await seedUsers();      // Roles, Users
-    await seedInventory();  // Warehouses, Units, Categories, Products
-    await seedContacts();   // Customers, Vendors
-    await seedHR();         // Departments, Employees, Salary Components
-    await seedProjects();   // Projects
+    await seedUsers(); // Roles, Users
+    await seedInventory(); // Warehouses, Units, Categories, Products
+    await seedContacts(); // Customers, Vendors
+    await seedHR(); // Departments, Employees, Salary Components
+    await seedProjects(); // Projects
     await seedTransactions(); // Sales, Purchases, JEs
 
     console.log("🛠️ Starting Bulk Seeding...");
-    await seedBulkUsers(SEED_COUNT);
-    await seedBulkContacts(SEED_COUNT);
+    await seedBulkUsers(50);
+    await seedBulkContacts(50);
     await seedBulkInventory(SEED_COUNT);
-    await seedBulkHR(SEED_COUNT);
-    await seedBulkProjects(SEED_COUNT);
+    await seedBulkHR(50);
+    await seedBulkProjects(50);
     await seedBulkTransactions(SEED_COUNT);
 
     const end = Date.now();
