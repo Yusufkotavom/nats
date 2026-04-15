@@ -1,124 +1,124 @@
 # NATS — Enterprise Resource Planning System
 
-NATS adalah sistem ERP berbasis Next.js yang dirancang dengan arsitektur modular untuk menangani berbagai fungsi bisnis mulai dari akuntansi, inventaris, penjualan, pembelian, POS, hingga penggajian.
+NATS is a Next.js-based ERP system designed with a modular architecture to handle various business functions ranging from accounting, inventory, sales, purchasing, POS, to payroll.
 
-## Prasyarat
+## Prerequisites
 
-Sebelum memulai, pastikan perangkat Anda telah terinstal:
+Before starting, ensure your machine has the following installed:
 
-- **Node.js**: Versi 18.x atau lebih baru
-- **NPM**: Biasanya terinstal bersama Node.js
-- **PostgreSQL**: Database utama sistem
-- **MinIO** (Opsional): Untuk penyimpanan file jika tidak menggunakan storage lokal
-- **SMTP Server** (Opsional): Untuk fitur pengiriman email (seperti verifikasi akun pengguna)
+- **Node.js**: Version 18.x or later
+- **NPM**: Usually installed with Node.js
+- **PostgreSQL**: Main system database
+- **MinIO** (Optional): For file storage if not using local storage
+- **SMTP Server** (Optional): For email delivery features (such as user account verification)
 
 ---
 
-## Langkah Instalasi
+## Installation Steps
 
-Ikuti langkah-langkah di bawah ini untuk menjalankan projek di lingkungan lokal Anda:
+Follow these steps to run the project in your local environment:
 
-### 1. Klon Repositori
+### 1. Clone Repository
 
 ```bash
-git clone <url-repository-ini>
+git clone <this-repository-url>
 cd nats
 ```
 
-### 2. Instalasi Dependensi
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Konfigurasi Environment Variables
+### 3. Configure Environment Variables
 
-Salin file `.env.example` menjadi `.env` dan sesuaikan nilai variabel di dalamnya:
+Copy the `.env.example` file to `.env` and adjust the variable values inside:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit file `.env` dan isi variabel berikut:
+Edit the `.env` file and fill in the following variables:
 
-#### Variabel Wajib
+#### Required Variables
 
-| Variabel       | Deskripsi                                                     | Contoh                                           |
-| -------------- | ------------------------------------------------------------- | ------------------------------------------------ |
-| `DATABASE_URL` | URL koneksi PostgreSQL untuk database**tenant** (data bisnis) | `postgresql://user:password@localhost:5432/nats` |
+| Variable       | Description                                                           | Example                                          |
+| -------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
+| `DATABASE_URL` | PostgreSQL connection URL for the **tenant** database (business data) | `postgresql://user:password@localhost:5432/nats` |
 
-#### Variabel Opsional
+#### Optional Variables
 
-| Variabel                   | Deskripsi                                      | Default         |
-| -------------------------- | ---------------------------------------------- | --------------- |
-| `STORAGE_DRIVER`           | Driver penyimpanan file (`local` atau `minio`) | `local`         |
-| `MAX_FILE_SIZE`            | Ukuran maksimal file upload dalam bytes        | `5242880` (5MB) |
-| `MINIO_ENDPOINT`           | Endpoint server MinIO                          | `play.min.io`   |
-| `MINIO_PORT`               | Port server MinIO                              | `9000`          |
-| `MINIO_ACCESS_KEY`         | Access key MinIO                               | -               |
-| `MINIO_SECRET_KEY`         | Secret key MinIO                               | -               |
-| `MINIO_BUCKET_NAME`        | Nama bucket MinIO                              | `nats-files`    |
-| `SMTP_HOST`                | Host SMTP server                               | -               |
-| `SMTP_PORT`                | Port SMTP server                               | -               |
-| `SMTP_USER`                | Username SMTP                                  | -               |
-| `SMTP_PASS`                | Password SMTP                                  | -               |
-| `SMTP_FROM`                | Alamat email pengirim                          | -               |
-| `INTEGRATION_DISPATCH_KEY` | Kunci rahasia untuk otentikasi worker          | -               |
+| Variable                   | Description                              | Default         |
+| -------------------------- | ---------------------------------------- | --------------- |
+| `STORAGE_DRIVER`           | File storage driver (`local` or `minio`) | `local`         |
+| `MAX_FILE_SIZE`            | Maximum file upload size in bytes        | `5242880` (5MB) |
+| `MINIO_ENDPOINT`           | MinIO server endpoint                    | `play.min.io`   |
+| `MINIO_PORT`               | MinIO server port                        | `9000`          |
+| `MINIO_ACCESS_KEY`         | MinIO access key                         | -               |
+| `MINIO_SECRET_KEY`         | MinIO secret key                         | -               |
+| `MINIO_BUCKET_NAME`        | MinIO bucket name                        | `nats-files`    |
+| `SMTP_HOST`                | SMTP server host                         | -               |
+| `SMTP_PORT`                | SMTP server port                         | -               |
+| `SMTP_USER`                | SMTP username                            | -               |
+| `SMTP_PASS`                | SMTP password                            | -               |
+| `SMTP_FROM`                | Sender email address                     | -               |
+| `INTEGRATION_DISPATCH_KEY` | Secret key for worker authentication     | -               |
 
-### 4. Membuat Database PostgreSQL
+### 4. Create PostgreSQL Database
 
-Buat database di PostgreSQL untuk **tenant** (data bisnis ERP):
+Create a database in PostgreSQL for the **tenant** (ERP business data):
 
 ```bash
-# Masuk ke PostgreSQL
+# Log in to PostgreSQL
 psql -U postgres
 
-# Buat database tenant (data bisnis)
+# Create tenant database (business data)
 CREATE DATABASE nats;
 
-# Keluar
+# Exit
 \q
 ```
 
 #### 5a. Generate Prisma Client
 
-Generate kedua Prisma client (tenant dan management):
+Generate the Prisma client:
 
 ```bash
-# Generate Prisma Client untuk tenant database (schema di prisma/schema/)
+# Generate Prisma Client for tenant database (schema in prisma/schema/)
 npx prisma generate
 ```
 
-#### 5b. Jalankan Migrasi Database
+#### 5b. Run Database Migrations
 
-Terapkan skema database ke PostgreSQL:
+Apply the database schema to PostgreSQL:
 
 ```bash
-# Migrasi tenant database
+# Migrate tenant database
 npx prisma migrate dev
 ```
 
-#### 5c. Seed Data Awal
+#### 5c. Seed Initial Data
 
 ```bash
 npx prisma db seed
 ```
 
-Lihat bagian [Seed Database](#seed-database) di bawah untuk detail lengkap data yang di-seed.
+See the [Seed Database](#seed-database) section below for full details on the seeded data.
 
-### 6. Menjalankan Aplikasi
+### 6. Run Application
 
 ```bash
 npm run dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Instalasi Menggunakan Docker
+## Installation Using Docker
 
-Untuk instalasi yang lebih mudah dan konsisten, Anda dapat menggunakan Docker:
+For an easier and more consistent installation, you can use Docker:
 
 ### 1. Build Docker Image
 
@@ -126,33 +126,33 @@ Untuk instalasi yang lebih mudah dan konsisten, Anda dapat menggunakan Docker:
 docker build -t nats-app .
 ```
 
-### 2. Jalankan Kontainer
+### 2. Run Container
 
 ```bash
 docker run -p 3000:3000 --env-file .env nats-app
 ```
 
-Pastikan file `.env` sudah dikonfigurasi dengan benar (terutama `DATABASE_URL` yang bisa diakses dari dalam kontainer).
+Ensure the `.env` file is correctly configured (especially `DATABASE_URL` which must be accessible from within the container).
 
-### Menggunakan Docker Compose (Direkomendasikan)
+### Using Docker Compose (Recommended)
 
-Untuk menjalankan aplikasi beserta database PostgreSQL secara otomatis:
+To run the application along with the PostgreSQL database automatically:
 
 ```bash
 docker-compose up -d
 ```
 
-Ini akan menjalankan aplikasi di [http://localhost:3000](http://localhost:3000) dan database di port 5432.
+This will run the application at [http://localhost:3000](http://localhost:3000) and the database on port 5432.
 
-#### Inisialisasi Database di Docker
+#### Database Initialization in Docker
 
-Setelah kontainer berjalan, jalankan perintah berikut untuk inisialisasi database:
+After the containers are running, execute the following commands to initialize the database:
 
 ```bash
-# Jalankan migrasi database
+# Run database migrations
 docker-compose exec app npx prisma migrate deploy
 
-# Seed data awal
+# Seed initial data
 docker-compose exec app npx prisma db seed
 ```
 
@@ -160,12 +160,12 @@ docker-compose exec app npx prisma db seed
 
 ### Tenant Database
 
-Database ini menyimpan **data bisnis ERP** yang dikelompokkan dalam skema modular di folder `prisma/schema/`:
+This database stores **ERP business data** grouped into modular schemas in the `prisma/schema/` folder:
 
-| File Schema             | Modul                                           |
+| Schema File             | Module                                          |
 | ----------------------- | ----------------------------------------------- |
 | `01_general.prisma`     | Company Profile, Roles, Permissions             |
-| `02_integration.prisma` | Outbox Pattern untuk integrasi antar-modul      |
+| `02_integration.prisma` | Outbox Pattern for inter-module integration     |
 | `03_accounting.prisma`  | Chart of Accounts, Journal Entry, Fiscal Year   |
 | `04_people.prisma`      | Employee, Department                            |
 | `05_inventory.prisma`   | Product, Warehouse, Stock Movement              |
@@ -183,101 +183,101 @@ Database ini menyimpan **data bisnis ERP** yang dikelompokkan dalam skema modula
 
 ## Seed Database
 
-Perintah `npx prisma db seed` akan mengisi kedua database (management dan tenant) dengan data awal. Berikut detail lengkapnya:
+The `npx prisma db seed` command will populate the database with initial data. Here are the full details:
 
-#### Role yang Tersedia
+#### Available Roles
 
-| Role         | Deskripsi           | Permission                                                                                                                            |
+| Role         | Description         | Permission                                                                                                                            |
 | ------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `superadmin` | Super Administrator | `*` (akses penuh)                                                                                                                     |
-| `Accountant` | Akuntan             | `accounting.view`, `accounting.create`, `reports.view`, `budgeting.view`, `budgeting.create`                                          |
-| `Cashier`    | Kasir POS           | `pos.access`, `sales.create`, `sales.view`, `sales.payments`, `products.view`, `customers.create`, `customers.view`, `inventory.view` |
-| `Manager`    | Manajer Department  | `hr.view`, `hr.create`, `budgeting.view`, `budgeting.approve`                                                                         |
+| `superadmin` | Super Administrator | `*` (full access)                                                                                                                     |
+| `Accountant` | Accountant          | `accounting.view`, `accounting.create`, `reports.view`, `budgeting.view`, `budgeting.create`                                          |
+| `Cashier`    | POS Cashier         | `pos.access`, `sales.create`, `sales.view`, `sales.payments`, `products.view`, `customers.create`, `customers.view`, `inventory.view` |
+| `Manager`    | Department Manager  | `hr.view`, `hr.create`, `budgeting.view`, `budgeting.approve`                                                                         |
 
-#### User Default
+#### Default Users
 
-Semua user menggunakan password: **`password123`**
+All users use the password: **`password123`**
 
-| Email                    | Nama            | Role       |
+| Email                    | Name            | Role       |
 | ------------------------ | --------------- | ---------- |
 | `admin@example.com`      | Admin User      | superadmin |
 | `cashier@example.com`    | Jane Cashier    | Cashier    |
 | `accountant@example.com` | John Accountant | Accountant |
 | `manager@example.com`    | Mike Manager    | Manager    |
 
-> **⚠️ Penting:** Segera ubah password default setelah login pertama kali di lingkungan production.
+> **⚠️ Important:** Change the default password immediately after the first login in a production environment.
 
-### Data Tenant (Bisnis ERP)
+### Tenant Data (ERP Business Data)
 
-Seed juga mengisi **tenant database** dengan data contoh berikut:
+The seed also populates the **tenant database** with the following example data:
 
-| Modul Seed           | Data yang Dibuat                                                            |
-| -------------------- | --------------------------------------------------------------------------- |
-| `seedCompany()`      | Profil perusahaan (NATS Accounting)                                         |
-| `seedAccounting()`   | Chart of Accounts, Tax Rates                                                |
-| `seedUsers()`        | Roles & Users di management DB (lihat tabel di atas)                        |
-| `seedInventory()`    | Warehouse, Unit of Measure, Kategori Produk, Produk (dengan SKU)            |
-| `seedContacts()`     | Customer (cth: Acme Corp) dan Vendor (cth: Office Supplies Co)              |
-| `seedHR()`           | Department, Employee, Salary Component                                      |
-| `seedProjects()`     | Contoh Proyek                                                               |
-| `seedTransactions()` | Sales Order, Sales Invoice, Purchase Order, Journal Entry (Opening Balance) |
+| Seed Module          | Data Created                                                                     |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `seedCompany()`      | Company profile (NATS Accounting)                                                |
+| `seedAccounting()`   | Chart of Accounts, Tax Rates                                                     |
+| `seedUsers()`        | Roles & Users (see table above)                                                  |
+| `seedInventory()`    | Warehouse, Unit of Measure, Product Categories, Products (with SKUs)             |
+| `seedContacts()`     | Customers (e.g., Acme Corp) and Vendors (e.g., Office Supplies Co)               |
+| `seedHR()`           | Departments, Employees, Salary Components                                        |
+| `seedProjects()`     | Example Projects                                                                 |
+| `seedTransactions()` | Sales Orders, Sales Invoices, Purchase Orders, Journal Entries (Opening Balance) |
 
-#### Urutan Eksekusi Seed
+#### Seed Execution Order
 
-Seed dijalankan berurutan karena ada dependensi antar-modul:
+Seeds are run sequentially due to inter-module dependencies:
 
 ```
-1. Company      → Profil perusahaan (tidak ada dependensi)
+1. Company      → Company Profile (no dependencies)
 2. Accounting   → Chart of Accounts, Tax Rates
-3. Users        → Roles, Users, Tenant (management DB)
-4. Inventory    → Warehouse, Products (membutuhkan Company)
-5. Contacts     → Customer, Vendor
-6. HR           → Department, Employee, Salary
-7. Projects     → Proyek
-8. Transactions → Sales, Purchase, Journal Entry (membutuhkan semua di atas)
+3. Users        → Roles, Users, Tenant
+4. Inventory    → Warehouse, Products (requires Company)
+5. Contacts     → Customers, Vendors
+6. HR           → Departments, Employees, Salary
+7. Projects     → Projects
+8. Transactions → Sales, Purchase, Journal Entries (requires all above)
 ```
 
-> **Catatan:** Semua seed menggunakan strategi `upsert`, sehingga aman dijalankan berulang kali tanpa duplikasi data.
+> **Note:** All seeds use an `upsert` strategy, making them safe to run repeatedly without data duplication.
 
 ---
 
-## Modul Bisnis
+## Business Modules
 
-NATS terdiri dari modul-modul bisnis berikut yang tersedia di direktori `modules/`:
+NATS consists of the following business modules available in the `modules/` directory:
 
-| Modul      | Direktori               | Deskripsi                             |
-| ---------- | ----------------------- | ------------------------------------- |
-| Akuntansi  | `modules/accounting/`   | Chart of Accounts, Journal Entry      |
-| Kas & Bank | `modules/cash-bank/`    | Transaksi kas, transfer, sinkronisasi |
-| Aset Tetap | `modules/fixed-assets/` | Manajemen aset dan penyusutan         |
-| SDM        | `modules/hr/`           | Data karyawan                         |
-| Integrasi  | `modules/integration/`  | Outbox pattern, event handlers        |
-| Inventaris | `modules/inventory/`    | Produk, gudang, stok                  |
-| Penggajian | `modules/payroll/`      | Slip gaji, komponen gaji              |
-| Plugin     | `modules/plugins/`      | Registrasi modul dan permission       |
-| POS        | `modules/pos/`          | Point of Sale, sesi kasir             |
-| Produksi   | `modules/production/`   | BOM, produksi, receipt                |
-| Pembelian  | `modules/purchase/`     | PO, invoice, pembayaran, retur        |
-| Pelaporan  | `modules/reporting/`    | Custom report registry                |
-| Penjualan  | `modules/sales/`        | SO, invoice, pengiriman, retur        |
+| Module       | Directory               | Description                         |
+| ------------ | ----------------------- | ----------------------------------- |
+| Accounting   | `modules/accounting/`   | Chart of Accounts, Journal Entry    |
+| Cash & Bank  | `modules/cash-bank/`    | Cash transactions, transfers, sync  |
+| Fixed Assets | `modules/fixed-assets/` | Asset management and depreciation   |
+| HR           | `modules/hr/`           | Employee data                       |
+| Integration  | `modules/integration/`  | Outbox pattern, event handlers      |
+| Inventory    | `modules/inventory/`    | Products, warehouses, stock         |
+| Payroll      | `modules/payroll/`      | Salary slips, salary components     |
+| Plugin       | `modules/plugins/`      | Module registration and permissions |
+| POS          | `modules/pos/`          | Point of Sale, cashier sessions     |
+| Production   | `modules/production/`   | BOM, production, receipts           |
+| Purchasing   | `modules/purchase/`     | PO, invoices, payments, returns     |
+| Reporting    | `modules/reporting/`    | Custom report registry              |
+| Sales        | `modules/sales/`        | SO, invoices, delivery, returns     |
 
 ---
 
-## Fitur Utama & Operasional
+## Key Features & Operations
 
 ### Integration Outbox & Worker
 
-Projek ini menggunakan pola Outbox untuk memastikan operasi antar-modul bersifat retryable dan idempotent.
+This project uses the Outbox pattern to ensure inter-module operations are retryable and idempotent.
 
-- **Worker CLI**: Untuk menjalankan pemrosesan outbox secara manual:
+- **Worker CLI**: To run outbox processing manually:
   ```bash
   npm run outbox:work
   ```
-- **Penyelesaian Inline**: Secara default, operasi diproses secara inline. Untuk mode async murni, atur `INTEGRATION_PROCESS_INLINE=false`.
+- **Inline Completion**: By default, operations are processed inline. For pure async mode, set `INTEGRATION_PROCESS_INLINE=false`.
 
-### Internasionalisasi (i18n)
+### Internationalization (i18n)
 
-Dukungan bahasa Inggris dan Indonesia tersedia di folder `messages/`. Untuk validasi file i18n:
+Support for English and Indonesian is available in the `messages/` folder. To validate i18n files:
 
 ```bash
 npm run i18n:validate
@@ -285,7 +285,7 @@ npm run i18n:validate
 
 ### Testing
 
-Unit test tersedia menggunakan Vitest:
+Unit tests are available using Vitest:
 
 ```bash
 npm run test
@@ -293,55 +293,55 @@ npm run test
 
 ---
 
-## Lisensi
+## License
 
-Proyek ini dilisensikan di bawah [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## Struktur Direktori
+## Directory Structure
 
 ```
 nats/
 ├── app/                        # Routing (Next.js App Router)
-│   ├── [locale]/               # Routing per bahasa (i18n)
+│   ├── [locale]/               # Per-language routing (i18n)
 │   │   ├── (marketing)/        # Landing page (pre-login)
-│   │   ├── auth/               # Autentikasi (login, register)
+│   │   ├── auth/               # Authentication (login, register)
 │   │   ├── pos/                # Point of Sale
-│   │   └── [tenant]/           # Dashboard tenant (post-login)
-│   │       ├── accounting/     # Modul akuntansi
-│   │       ├── inventory/      # Modul inventaris
-│   │       ├── purchase/       # Modul pembelian
-│   │       ├── sales/          # Modul penjualan
-│   │       └── ...             # Modul lainnya
+│   │   └── [tenant]/           # Tenant dashboard (post-login)
+│   │       ├── accounting/     # Accounting module
+│   │       ├── inventory/      # Inventory module
+│   │       ├── purchase/       # Purchasing module
+│   │       ├── sales/          # Sales module
+│   │       └── ...             # Other modules
 │   ├── api/                    # API Routes
-│   │   ├── accounting/         # API akuntansi
-│   │   ├── cash-bank/          # API kas & bank
-│   │   ├── inventory/          # API inventaris
-│   │   ├── purchase/           # API pembelian
-│   │   └── ...                 # API lainnya
-│   └── themes/                 # Konfigurasi tema
-├── components/                 # Komponen UI reusable (shadcn/ui)
+│   │   ├── accounting/         # Accounting API
+│   │   ├── cash-bank/          # Cash & bank API
+│   │   ├── inventory/          # Inventory API
+│   │   ├── purchase/           # Purchasing API
+│   │   └── ...                 # Other APIs
+│   └── themes/                 # Theme configuration
+├── components/                 # Reusable UI components (shadcn/ui)
 ├── hooks/                      # Custom React hooks
-├── i18n/                       # Konfigurasi internationalization
-├── lib/                        # Utilitas, servis, dan konfigurasi
-│   ├── accounting/             # Servis akuntansi
-│   ├── ai/                     # Integrasi AI
-│   ├── auth/                   # Autentikasi & session
-│   ├── permissions/            # Sistem permission RBAC
+├── i18n/                       # Internationalization configuration
+├── lib/                        # Utilities, services, and configuration
+│   ├── accounting/             # Accounting services
+│   ├── ai/                     # AI integration
+│   ├── auth/                   # Authentication & session
+│   ├── permissions/            # RBAC permission system
 │   ├── prisma/                 # Prisma client (tenant & management)
 │   ├── reporting/              # Reporting registry
-│   └── validation/             # Schema validasi
-├── messages/                   # File terjemahan (en.json, id.json)
-├── modules/                    # Logika bisnis per modul (13 modul)
+│   └── validation/             # Validation schemas
+├── messages/                   # Translation files (en.json, id.json)
+├── modules/                    # Per-module business logic
 ├── prisma/
-│   ├── schema/                 # Schema Prisma tenant (14 file modular)
-│   ├── management/             # Schema Prisma management
-│   ├── seed/                   # Seed data per modul
-│   └── migrations/             # File migrasi database
-├── scripts/                    # Script utilitas (outbox worker, i18n)
+│   ├── schema/                 # Modular tenant Prisma schemas
+│   ├── management/             # Management Prisma schema
+│   ├── seed/                   # Per-module seed data
+│   └── migrations/             # Database migration files
+├── scripts/                    # Utility scripts (outbox worker, i18n)
 ├── tests/                      # Unit & architecture tests (Vitest)
-└── public/                     # Asset statis
+└── public/                     # Static assets
 ```
 
 ---
@@ -350,32 +350,32 @@ nats/
 
 ### Database connection error
 
-Pastikan PostgreSQL sudah berjalan dan kredensial di `.env` sudah benar:
+Ensure PostgreSQL is running and credentials in `.env` are correct:
 
 ```bash
 pg_isready
 ```
 
-### Prisma client belum ter-generate
+### Prisma client not generated
 
-Jika muncul error `Cannot find module '@prisma/client'`:
+If the error `Cannot find module '@prisma/client'` appears:
 
 ```bash
 npx prisma generate
 ```
 
-### Seed gagal dijalankan
+### Seed failed to run
 
-Jika seed gagal, pastikan migrasi sudah berhasil terlebih dahulu:
+If seeding fails, ensure migrations have succeeded first:
 
 ```bash
 npx prisma migrate dev
 npx prisma db seed
 ```
 
-### Port 3000 sudah digunakan
+### Port 3000 already in use
 
-Script `npm run dev` secara otomatis akan mematikan proses di port 3000, tetapi jika masih bermasalah:
+The `npm run dev` script automatically kills processes on port 3000, but if issues persist:
 
 ```bash
 lsof -ti:3000 | xargs kill -9
@@ -384,6 +384,6 @@ npm run dev
 
 ---
 
-## Kontak & Kontribusi
+## Contact & Contribution
 
-(Tambahkan informasi kontak jika diperlukan)
+(Add contact information if needed)
