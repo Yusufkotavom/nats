@@ -48,4 +48,5 @@ prisma/generated
 prisma/migrations
 
 .agents
+.agent
 skills-lock.json
