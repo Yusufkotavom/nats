@@ -116,6 +116,48 @@ Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
 
 ---
 
+## Instalasi Menggunakan Docker
+
+Untuk instalasi yang lebih mudah dan konsisten, Anda dapat menggunakan Docker:
+
+### 1. Build Docker Image
+
+```bash
+docker build -t nats-app .
+```
+
+### 2. Jalankan Kontainer
+
+```bash
+docker run -p 3000:3000 --env-file .env nats-app
+```
+
+Pastikan file `.env` sudah dikonfigurasi dengan benar (terutama `DATABASE_URL` yang bisa diakses dari dalam kontainer).
+
+### Menggunakan Docker Compose (Direkomendasikan)
+
+Untuk menjalankan aplikasi beserta database PostgreSQL secara otomatis:
+
+```bash
+docker-compose up -d
+```
+
+Ini akan menjalankan aplikasi di [http://localhost:3000](http://localhost:3000) dan database di port 5432.
+
+#### Inisialisasi Database di Docker
+
+Setelah kontainer berjalan, jalankan perintah berikut untuk inisialisasi database:
+
+```bash
+# Jalankan migrasi database
+docker-compose exec app npx prisma migrate deploy
+
+# Seed data awal
+docker-compose exec app npx prisma db seed
+```
+
+---
+
 ### Tenant Database
 
 Database ini menyimpan **data bisnis ERP** yang dikelompokkan dalam skema modular di folder `prisma/schema/`:
@@ -248,6 +290,12 @@ Unit test tersedia menggunakan Vitest:
 ```bash
 npm run test
 ```
+
+---
+
+## Lisensi
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).
 
 ---
 
