@@ -13,14 +13,17 @@ NATS adalah sistem ERP berbasis Next.js yang dirancang untuk menangani berbagai 
 
 ## Screenshots
 
-![Dashboard](https://via.placeholder.com/800x450?text=NATS+Dashboard+Screenshot)
-_Tampilan Dashboard Utama_
+![1776302209274](image/README/1776302209274.png)
+_Main Dashboard View_
 
-![Accounting](https://via.placeholder.com/800x450?text=NATS+Accounting+Module)
-_Modul Akuntansi & Laporan Keuangan_
+![1776302243874](image/README/1776302243874.png)
+_Acconting Module_
 
-![POS Interface](https://via.placeholder.com/800x450?text=NATS+POS+Interface)
-_Antarmuka Point of Sale (POS)_
+![1776302322989](image/README/1776302322989.png)
+_Financial Report_
+
+![1776302374473](image/README/1776302374473.png)
+_Point of Sale (POS)_
 
 ## Panduan Instalasi
 
