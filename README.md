@@ -81,10 +81,20 @@ npx prisma migrate dev --name init
 
 #### 5. Seed Initial Data
 
-Populate the database with initial data (roles, default users, etc.):
+Populate the database with initial data (roles, default users, etc.). Choose one of the following options:
+
+**Option A: Complete Seeding (Recommended for Testing)**
+Includes sample products, transactions, and bulk data:
 
 ```bash
 npm run prisma db seed
+```
+
+**Option B: Minimal Seeding (Clean Start)**
+Includes only essential data: Company Profile, Chart of Accounts, and Default Roles/Users:
+
+```bash
+npm run prisma:seed:minimal
 ```
 
 **Default Credentials:**
@@ -124,7 +134,11 @@ After the containers are running, initialize the database:
 
 ```bash
 docker-compose exec app npx prisma migrate deploy
-docker-compose exec app npx prisma db seed
+# Run complete seed
+docker-compose exec app npm run prisma db seed
+
+# OR run minimal seed
+docker-compose exec app npm run prisma:seed:minimal
 ```
 
 ---
