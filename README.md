@@ -1,15 +1,15 @@
 # NATS — Enterprise Resource Planning System (v1.0.0-alpha)
 
-NATS adalah sistem ERP berbasis Next.js yang dirancang untuk menangani berbagai fungsi bisnis mulai dari akuntansi, inventaris, penjualan, pembelian, POS, hingga penggajian.
+NATS is a Next.js-based ERP system designed to handle various business functions ranging from accounting, inventory, sales, purchasing, POS, to payroll.
 
-## Fitur Utama
+## Key Features
 
-- **Akuntansi**: Buku besar, jurnal, dan laporan keuangan otomatis.
-- **Inventaris**: Manajemen stok, gudang, dan pergerakan barang.
-- **Penjualan & Pembelian**: Alur kerja lengkap dari pesanan hingga faktur.
-- **Point of Sale (POS)**: Antarmuka kasir yang responsif dan mudah digunakan.
-- **Penggajian (Payroll)**: Manajemen struktur gaji dan slip gaji otomatis.
-- **AI Integration**: Fitur cerdas untuk membantu analisis data bisnis.
+- **Accounting**: Automated general ledger, journals, and financial reports.
+- **Inventory**: Management of stock, warehouses, and item movements.
+- **Sales & Purchasing**: Complete workflow from orders to invoices.
+- **Point of Sale (POS)**: Responsive and user-friendly cashier interface.
+- **Payroll**: Automated salary structure management and payslip generation.
+- **AI Integration**: Smart features to assist in business data analysis.
 
 ## Screenshots
 
@@ -17,7 +17,7 @@ NATS adalah sistem ERP berbasis Next.js yang dirancang untuk menangani berbagai 
 _Main Dashboard View_
 
 ![1776302243874](image/README/1776302243874.png)
-_Acconting Module_
+_Accounting Module_
 
 ![1776302322989](image/README/1776302322989.png)
 _Financial Report_
@@ -25,20 +25,20 @@ _Financial Report_
 ![1776302374473](image/README/1776302374473.png)
 _Point of Sale (POS)_
 
-## Panduan Instalasi
+## Installation Guide
 
-Ikuti langkah-langkah di bawah ini untuk menjalankan NATS di lingkungan lokal Anda.
+Follow the steps below to run NATS in your local environment.
 
 ### Prerequisites
 
-Sebelum memulai, pastikan sistem Anda memiliki komponen berikut:
+Before starting, ensure your system has the following components:
 
-- **Node.js**: Versi 20.x atau lebih baru.
-- **NPM**: Biasanya disertakan dengan instalasi Node.js.
-- **PostgreSQL**: Database utama sistem.
-- **Git**: Untuk manajemen source code.
+- **Node.js**: Version 20.x or later.
+- **NPM**: Usually included with the Node.js installation.
+- **PostgreSQL**: The main system database.
+- **Git**: For source code management.
 
-### Langkah-langkah Instalasi
+### Installation Steps
 
 #### 1. Clone Repository
 
@@ -47,67 +47,67 @@ git clone <repository-url>
 cd nats
 ```
 
-#### 2. Install Dependensi
+#### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-#### 3. Konfigurasi Environment Variables
+#### 3. Configure Environment Variables
 
-Salin file `.env.example` menjadi `.env` dan sesuaikan nilainya:
+Copy the `.env.example` file to `.env` and adjust its values:
 
 ```bash
 cp .env.example .env
 ```
 
-Pastikan variabel `DATABASE_URL` sudah benar mengarah ke instance PostgreSQL Anda:
+Ensure the `DATABASE_URL` variable correctly points to your PostgreSQL instance:
 `DATABASE_URL="postgresql://user:password@localhost:5432/nats"`
 
-#### 4. Persiapan Database
+#### 4. Database Preparation
 
-Buat database di PostgreSQL:
+Create a database in PostgreSQL:
 
 ```bash
 psql -U postgres -c "CREATE DATABASE nats;"
 ```
 
-Lakukan migrasi database dan pembuatan schema:
+Perform database migration and schema creation:
 
 ```bash
 npx prisma generate
 npx prisma migrate dev --name init
 ```
 
-#### 5. Seed Data Awal
+#### 5. Seed Initial Data
 
-Isi database dengan data awal (roles, default users, dll):
+Populate the database with initial data (roles, default users, etc.):
 
 ```bash
 npm run prisma db seed
 ```
 
-#### 6. Jalankan Aplikasi
+#### 6. Run Application
 
-Jalankan server pengembangan:
+Run the development server:
 
 ```bash
 npm run dev
 ```
 
-Aplikasi dapat diakses di [http://localhost:3000](http://localhost:3000).
+The application can be accessed at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Instalasi Menggunakan Docker (Opsional)
+## Installation Using Docker (Optional)
 
-Jika Anda ingin menjalankan aplikasi menggunakan Docker Compose:
+If you want to run the application using Docker Compose:
 
 ```bash
 docker-compose up -d
 ```
 
-Setelah kontainer berjalan, lakukan inisialisasi database:
+After the containers are running, initialize the database:
 
 ```bash
 docker-compose exec app npx prisma migrate deploy
@@ -116,6 +116,6 @@ docker-compose exec app npx prisma db seed
 
 ---
 
-## Lisensi
+## License
 
-Proyek ini dilisensikan di bawah [LICENSE](LICENSE).
+This project is licensed under [LICENSE](LICENSE).
