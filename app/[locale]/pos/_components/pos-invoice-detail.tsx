@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { SuperJSONResult } from 'superjson';
-import { SuperJSON } from '@/lib/superjson';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { useState } from "react";
+import { SuperJSONResult } from "superjson";
+import { SuperJSON } from "@/lib/superjson";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -13,19 +13,28 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { ArrowLeft, Printer, Calendar, User, FileText, CreditCard } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useFormatCurrency } from '@/hooks/use-format-currency';
-import { useFormatDate } from '@/hooks/use-format-date';
+} from "@/components/ui/table";
+import {
+  ArrowLeft,
+  Printer,
+  Calendar,
+  User,
+  FileText,
+  CreditCard,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useFormatDate } from "@/hooks/use-format-date";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
-import { Badge } from '@/components/ui/badge';
+import { Badge } from "@/components/ui/badge";
 
 interface POSInvoiceDetailProps {
   invoice: SuperJSONResult;
 }
 
-export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetailProps) {
+export function POSInvoiceDetail({
+  invoice: serializedInvoice,
+}: POSInvoiceDetailProps) {
   const invoice = SuperJSON.deserialize<any>(serializedInvoice);
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
@@ -37,14 +46,18 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
       {/* Header */}
       <header className="flex h-16 items-center justify-between border-b bg-background px-4 shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/pos')}>
+          <Button variant="ghost" size="sm" onClick={() => router.push("/pos")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to POS
           </Button>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold">Transaction Details</h1>
             <Badge variant="outline">{invoice.invoiceNumber}</Badge>
-            <Badge className={invoice.status === 'PAID' ? 'bg-green-600' : 'bg-yellow-600'}>
+            <Badge
+              className={
+                invoice.status === "PAID" ? "bg-green-600" : "bg-yellow-600"
+              }
+            >
               {invoice.status}
             </Badge>
           </div>
@@ -62,22 +75,32 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
           <div className="grid gap-6 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Customer Info</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Customer Info
+                </CardTitle>
                 <User className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{invoice.contact?.name || 'Walk-in'}</div>
+                <div className="text-2xl font-bold">
+                  {invoice.contact?.name || "Walk-in"}
+                </div>
                 {invoice.contact?.phone && (
-                  <p className="text-xs text-muted-foreground">{invoice.contact.phone}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {invoice.contact.phone}
+                  </p>
                 )}
                 {invoice.contact?.email && (
-                  <p className="text-xs text-muted-foreground">{invoice.contact.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {invoice.contact.email}
+                  </p>
                 )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Transaction Info</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Transaction Info
+                </CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -89,22 +112,24 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
                 </p>
                 {invoice.posSession?.cashier?.name && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Cashier: {invoice.posSession.cashier.name}
+                    Cashier: {invoice.posSession.cashier?.name}
                   </p>
                 )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Order Reference</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Order Reference
+                </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {invoice.salesOrder?.orderNumber || '-'}
+                  {invoice.salesOrder?.orderNumber || "-"}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Session: {invoice.posSession?.sessionNumber || '-'}
+                  Session: {invoice.posSession?.sessionNumber || "-"}
                 </p>
               </CardContent>
             </Card>
@@ -131,12 +156,20 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="font-medium">{item.product.name}</div>
-                        <div className="text-xs text-muted-foreground">{item.product.sku}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {item.product.sku}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                      <TableCell className="text-right">
+                        {item.quantity}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(item.unitPrice)}
+                      </TableCell>
                       <TableCell className="text-right text-red-500">
-                        {item.discount > 0 ? `-${formatCurrency(item.discount)}` : '-'}
+                        {item.discount > 0
+                          ? `-${formatCurrency(item.discount)}`
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right font-bold">
                         {formatCurrency(item.totalPrice)}
@@ -186,7 +219,9 @@ export function POSInvoiceDetail({ invoice: serializedInvoice }: POSInvoiceDetai
                 <TableBody>
                   {invoice.payments.map((payment: any) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="font-medium">{payment.paymentNumber}</TableCell>
+                      <TableCell className="font-medium">
+                        {payment.paymentNumber}
+                      </TableCell>
                       <TableCell>{formatDate(payment.paymentDate)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

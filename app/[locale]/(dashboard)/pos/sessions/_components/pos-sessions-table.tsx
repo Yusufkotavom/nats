@@ -19,7 +19,9 @@ interface POSSessionsTableProps {
   sessions: SuperJSONResult;
 }
 
-export function POSSessionsTable({ sessions: serializedSessions }: POSSessionsTableProps) {
+export function POSSessionsTable({
+  sessions: serializedSessions,
+}: POSSessionsTableProps) {
   const t = useTranslations("POS");
   const sessions = SuperJSON.deserialize<any[]>(serializedSessions);
   const formatCurrency = useFormatCurrency();
@@ -53,7 +55,7 @@ export function POSSessionsTable({ sessions: serializedSessions }: POSSessionsTa
                 <TableCell className="font-medium">
                   {session.sessionNumber}
                 </TableCell>
-                <TableCell>{session.cashier.name}</TableCell>
+                <TableCell>{session.cashier?.name}</TableCell>
                 <TableCell>{session.warehouse?.name || "-"}</TableCell>
                 <TableCell>
                   {format(new Date(session.startTime), "PP p")}
@@ -71,7 +73,9 @@ export function POSSessionsTable({ sessions: serializedSessions }: POSSessionsTa
                     ? formatCurrency(session.closingCash)
                     : "-"}
                 </TableCell>
-                <TableCell className={`text-right ${session.difference?.isNegative() ? "text-red-500" : "text-green-500"}`}>
+                <TableCell
+                  className={`text-right ${session.difference?.isNegative() ? "text-red-500" : "text-green-500"}`}
+                >
                   {session.difference
                     ? formatCurrency(session.difference)
                     : "-"}
