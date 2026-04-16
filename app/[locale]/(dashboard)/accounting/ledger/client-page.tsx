@@ -5,12 +5,7 @@ import { getAccountHistory, getLedgerAccounts } from "./actions";
 import { DataTable, Column } from "@/components/ui/data-table";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ScaleIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CustomInput } from "@/components/ui/custom-input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +51,9 @@ interface LedgerClientPageProps {
 
 import { useTranslations } from "next-intl";
 
-export default function LedgerClientPage({ initialAccount }: LedgerClientPageProps) {
+export default function LedgerClientPage({
+  initialAccount,
+}: LedgerClientPageProps) {
   const t = useTranslations("Accounting");
   const tCommon = useTranslations("Common");
   const router = useRouter();
@@ -162,10 +159,12 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
       header: t("description"),
       cell: (entry) => (
         <div className="flex flex-col">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground text-wrap whitespace-normal">
             {entry.description}
           </span>
-          <span className="text-xs">{entry.journalEntry.description}</span>
+          <span className="text-xs text-wrap whitespace-normal">
+            {entry.journalEntry.description}
+          </span>
         </div>
       ),
     },
@@ -336,11 +335,11 @@ export default function LedgerClientPage({ initialAccount }: LedgerClientPagePro
             pagination={
               entries?.pagination.total
                 ? {
-                  totalEntries: entries.pagination.total,
-                  pageSize: pageSize,
-                  currentPage: page,
-                  onPageChange: setPage,
-                }
+                    totalEntries: entries.pagination.total,
+                    pageSize: pageSize,
+                    currentPage: page,
+                    onPageChange: setPage,
+                  }
                 : undefined
             }
           />

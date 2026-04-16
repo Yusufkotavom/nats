@@ -6,7 +6,7 @@ NATS is a Next.js-based ERP system designed with a modular architecture to handl
 
 Before starting, ensure your machine has the following installed:
 
-- **Node.js**: Version 18.x or later
+- **Node.js**: Version 24.11.x or later
 - **NPM**: Usually installed with Node.js
 - **PostgreSQL**: Main system database
 - **MinIO** (Optional): For file storage if not using local storage
@@ -43,9 +43,9 @@ Edit the `.env` file and fill in the following variables:
 
 #### Required Variables
 
-| Variable       | Description                                                           | Example                                          |
-| -------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
-| `DATABASE_URL` | PostgreSQL connection URL for the **tenant** database (business data) | `postgresql://user:password@localhost:5432/nats` |
+| Variable       | Description                                                          | Example                                          |
+| -------------- | -------------------------------------------------------------------- | ------------------------------------------------ |
+| `DATABASE_URL` | PostgreSQL connection URL for the**tenant** database (business data) | `postgresql://user:password@localhost:5432/nats` |
 
 #### Optional Variables
 
