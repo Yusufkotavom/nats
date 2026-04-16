@@ -87,6 +87,19 @@ Populate the database with initial data (roles, default users, etc.):
 npm run prisma db seed
 ```
 
+**Default Credentials:**
+
+- **Password**: `password123` (for all default users)
+
+| Role            | Email                    | Name            |
+| :-------------- | :----------------------- | :-------------- |
+| **Super Admin** | `admin@example.com`      | Admin User      |
+| **Accountant**  | `accountant@example.com` | John Accountant |
+| **Cashier**     | `cashier@example.com`    | Jane Cashier    |
+| **Manager**     | `manager@example.com`    | Mike Manager    |
+| **Merchant**    | `merchant@example.com`   | Sample Merchant |
+| **Customer**    | `customer@example.com`   | Sample Customer |
+
 #### 6. Run Application
 
 Run the development server:
