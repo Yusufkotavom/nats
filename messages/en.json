@@ -1133,6 +1133,7 @@
         "session": "Session",
         "location": "Location",
         "close_session": "Close Session",
+        "logout": "Logout",
         "all_items": "All Items",
         "transaction_success": "Transaction Successful",
         "paid_via": "Paid {amount} via {method}",

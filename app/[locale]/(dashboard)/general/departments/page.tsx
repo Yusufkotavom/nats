@@ -1,11 +1,9 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback } from "react";
-import {
-  getDepartments,
-  deleteDepartment,
-} from "../actions";
+import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getDepartments, deleteDepartment } from "../actions";
 import { DepartmentFormDialog } from "@/app/[locale]/(dashboard)/general/_components/department-form";
 import {
   Table,
@@ -43,19 +41,17 @@ export default function DepartmentsPage() {
   const tCommon = useTranslations("Common");
   const confirm = useConfirm();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | undefined>(undefined);
+  const [selectedDepartment, setSelectedDepartment] = useState<
+    Department | undefined
+  >(undefined);
 
-  const fetchDepartments = useCallback(async () => {
-    const depts = await getDepartments();
-    setDepartments(depts);
-  }, []);
-
-  useEffect(() => {
-    fetchDepartments();
-  }, [fetchDepartments]);
+  const { data: departments = [], isLoading } = useQuery({
+    queryKey: ["departments"],
+    queryFn: () => getDepartments(),
+  });
 
   const handleAdd = () => {
     setSelectedDepartment(undefined);
@@ -77,7 +73,7 @@ export default function DepartmentsPage() {
     const result = await deleteDepartment(dept.id);
     if (result.success) {
       toast({ title: t("department_deleted") });
-      fetchDepartments();
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
     } else {
       toast({
         title: tCommon("error"),
@@ -93,8 +89,8 @@ export default function DepartmentsPage() {
 
   const handleFormSuccess = useCallback(() => {
     setIsDialogOpen(false);
-    fetchDepartments();
-  }, [fetchDepartments]);
+    queryClient.invalidateQueries({ queryKey: ["departments"] });
+  }, [queryClient]);
 
   const TABLE_COLUMN_COUNT = 4;
 
@@ -123,7 +119,13 @@ export default function DepartmentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {departments.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={TABLE_COLUMN_COUNT} className="text-center">
+                  {tCommon("loading")}
+                </TableCell>
+              </TableRow>
+            ) : departments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={TABLE_COLUMN_COUNT} className="text-center">
                   {t("no_departments_found")}
@@ -134,17 +136,23 @@ export default function DepartmentsPage() {
                 <TableRow key={dept.id}>
                   <TableCell>{dept.code}</TableCell>
                   <TableCell className="font-medium">{dept.name}</TableCell>
-                  <TableCell>{dept.description || "—"}</TableCell>
+                  <TableCell className="text-wrap whitespace-normal">
+                    {dept.description || "—"}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">{tCommon("open_menu")}</span>
+                          <span className="sr-only">
+                            {tCommon("open_menu")}
+                          </span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{tCommon("actions")}</DropdownMenuLabel>
+                        <DropdownMenuLabel>
+                          {tCommon("actions")}
+                        </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <Protect permission="departments.edit">
                           <DropdownMenuItem onClick={() => handleEdit(dept)}>

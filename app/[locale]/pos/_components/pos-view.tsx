@@ -9,6 +9,7 @@ import {
   holdOrder,
   getPOSProducts,
 } from "../actions";
+import { logout } from "@/app/[locale]/auth/actions";
 import { Button } from "@/components/ui/button";
 import { LogOut, History, Search, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -179,6 +180,11 @@ export function POSView({
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = "/auth";
+  };
+
   const handleViewHistoryItem = async (invoiceId: string) => {
     if (cart.length > 0) {
       try {
@@ -327,6 +333,14 @@ export function POSView({
               <DropdownMenuItem onClick={handleCloseSession}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>{t("close_session")}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{t("logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

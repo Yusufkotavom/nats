@@ -1124,6 +1124,7 @@
         "session": "Sesi",
         "location": "Lokasi",
         "close_session": "Tutup Sesi",
+        "logout": "Keluar",
         "all_items": "Semua Item",
         "transaction_success": "Transaksi Berhasil",
         "paid_via": "Dibayar {amount} melalui {method}",

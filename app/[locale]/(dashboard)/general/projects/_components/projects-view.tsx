@@ -91,6 +91,7 @@ export function ProjectsView() {
     {
       header: t("description"),
       accessorKey: "description",
+      className: "text-wrap whitespace-normal",
     },
     {
       header: t("status"),
