@@ -47,7 +47,7 @@ export function PurchaseTrendsChart({ data }: PurchaseTrendsChartProps) {
           }
         />
         <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="amount" fill="var(--color-amount)" radius={4} />
+        <Bar dataKey="amount" fill="var(--color-chart-1)" radius={4} />
       </BarChart>
     </ChartContainer>
   );
