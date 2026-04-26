@@ -2,8 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react";
 import {
-  POSProduct,
-  POSCartItem,
   closePOSSession,
   getHeldOrders,
   holdOrder,
@@ -39,6 +37,7 @@ import { LayoutDashboard } from "lucide-react";
 import { Clock } from "./clock";
 import { useTranslations } from "next-intl";
 import { useDebounce } from "use-debounce";
+import { POSCartItem, POSProduct } from "../types";
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -284,9 +283,9 @@ export function POSView({
           </Button>
 
           <div className="text-sm text-muted-foreground">
-            {session.cashier?.name && (
+            {sessionData?.userName && (
               <span className="mr-3 font-medium text-foreground">
-                {session.cashier?.name}
+                {sessionData.userName}
               </span>
             )}
             {t("session")}: {session.sessionNumber}
@@ -313,7 +312,7 @@ export function POSView({
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/avatars/01.png" alt="Cashier" />
                   <AvatarFallback>
-                    {session.cashier?.name?.slice(0, 2).toUpperCase() || "CA"}
+                    {sessionData?.userName?.slice(0, 2).toUpperCase() || "CA"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -325,7 +324,7 @@ export function POSView({
                     {t("cashier")}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {session.cashier?.name}
+                    {sessionData?.userName}
                   </p>
                 </div>
               </DropdownMenuLabel>

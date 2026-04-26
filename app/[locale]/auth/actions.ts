@@ -28,8 +28,8 @@ export async function login(prevState: unknown, formData: FormData) {
   const user = await prisma.user.findUnique({
     where: { email },
     include: {
-      role: true
-    }
+      role: true,
+    },
   });
 
   if (!user) {
@@ -60,7 +60,7 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  await createSession(user.id, user.role);
+  await createSession(user.id, user.name, user.role);
 
   if (user.role.name === "Cashier") {
     redirect("/pos");
@@ -79,7 +79,7 @@ export async function loginDemo() {
 
   let user = await prisma.user.findUnique({
     where: { email },
-    include: { role: true }
+    include: { role: true },
   });
 
   const superAdminRole = await prisma.role.findUnique({
@@ -97,12 +97,12 @@ export async function loginDemo() {
         email,
         password: hashedPassword,
         name: "Demo Admin",
-        roleId: superAdminRole.id
+        roleId: superAdminRole.id,
       },
-      include: { role: true }
+      include: { role: true },
     });
   }
 
-  await createSession(user.id, user.role);
+  await createSession(user.id, user.name, user.role);
   redirect("/dashboard");
 }

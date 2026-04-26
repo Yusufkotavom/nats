@@ -3,10 +3,12 @@ import { prisma } from "@/lib/prisma";
 export interface POSReceiptData {
   invoice: any;
   payment: any;
-  cashierId?: string | null;
+  cashierName?: string | null;
 }
 
-export async function getPOSReceiptData(input: { invoiceId: string }): Promise<POSReceiptData> {
+export async function getPOSReceiptData(input: {
+  invoiceId: string;
+}): Promise<POSReceiptData> {
   const invoice = await prisma.salesInvoice.findUnique({
     where: { id: input.invoiceId },
     include: {
@@ -24,19 +26,25 @@ export async function getPOSReceiptData(input: { invoiceId: string }): Promise<P
     throw new Error(`Invoice with ID ${input.invoiceId} not found`);
   }
 
+  let cashierName = null;
+  if (invoice.posSession?.cashierId) {
+    const user = await prisma.user.findUnique({
+      where: { id: invoice.posSession.cashierId },
+      select: { name: true },
+    });
+    cashierName = user?.name;
+  }
+
   // Find associated payment
   const payment = await prisma.salesPayment.findFirst({
     where: {
-      // SalesPayment in prisma schema has salesInvoiceId relationship
-      // Let's check schema provided in search result:
-      // salesInvoice   SalesInvoice @relation(fields: [salesInvoiceId], references: [id])
-      salesInvoiceId: input.invoiceId
-    }
+      salesInvoiceId: input.invoiceId,
+    },
   });
 
   return {
     invoice,
     payment,
-    cashierId: invoice.posSession?.cashierId
+    cashierName,
   };
 }

@@ -9,28 +9,7 @@ import type { ActionResponse } from "@/lib/permissions/protected-action";
 import { POSTransactionService } from "@/modules/pos/services/pos-transaction.service";
 import { POSSessionService } from "@/modules/pos/services/pos-session.service";
 import { HeldOrderService } from "@/modules/pos/services/held-order.service";
-
-// Types
-export type POSProduct = {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  image: string | null;
-  categoryId: string | null;
-  stock: number;
-  categoryName: string | null;
-  availableDiscounts: {
-    code: string;
-    type: "PERCENTAGE" | "FIXED_AMOUNT";
-    value: number;
-  }[];
-};
-
-export type POSCartItem = POSProduct & {
-  quantity: number;
-  discount: number;
-};
+import { POSCartItem } from "./types";
 
 export async function getPOSSessions() {
   const session = await getSession();
@@ -53,7 +32,21 @@ export async function getPOSSessions() {
       },
     },
   });
-  return SuperJSON.serialize(sessions);
+
+  const sessionsWithCashier = await Promise.all(
+    sessions.map(async (s: any) => {
+      const cashier = await prisma.user.findUnique({
+        where: { id: s.cashierId },
+        select: { name: true },
+      });
+      return {
+        ...s,
+        cashier,
+      };
+    }),
+  );
+
+  return SuperJSON.serialize(sessionsWithCashier);
 }
 
 export async function getPOSProducts(
@@ -181,7 +174,15 @@ export async function getOpenPOSSession() {
 
   if (!posSession) return null;
 
-  return SuperJSON.serialize(posSession);
+  const cashier = await prisma.user.findUnique({
+    where: { id: posSession.cashierId },
+    select: { name: true },
+  });
+
+  return SuperJSON.serialize({
+    ...posSession,
+    cashier,
+  });
 }
 
 export async function openPOSSession(openingCash: number, warehouseId: string) {
@@ -230,9 +231,27 @@ export async function getPOSSessionTransactions(sessionId: string) {
           product: true,
         },
       },
+      posSession: true,
     },
   });
-  return SuperJSON.serialize(transactions);
+
+  const transactionsWithCashier = await Promise.all(
+    transactions.map(async (t: any) => {
+      const cashier = await prisma.user.findUnique({
+        where: { id: t.posSession?.cashierId },
+        select: { name: true },
+      });
+      return {
+        ...t,
+        posSession: {
+          ...t.posSession,
+          cashier,
+        },
+      };
+    }),
+  );
+
+  return SuperJSON.serialize(transactionsWithCashier);
 }
 
 export async function processPOSTransaction(

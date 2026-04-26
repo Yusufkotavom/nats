@@ -45,6 +45,7 @@ export default async function DashboardLayout({
   return (
     <SessionProvider
       session={{
+        userName: session.userName,
         role: session.role,
         permissions: session.permissions,
         companyProfile: companyProfile

@@ -15,6 +15,7 @@ export default async function POSLayout({
   return (
     <SessionProvider
       session={{
+        userName: session.userName,
         role: session.role,
         permissions: session.permissions,
         companyProfile: companyProfile

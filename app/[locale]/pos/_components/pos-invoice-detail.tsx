@@ -25,6 +25,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useFormatDate } from "@/hooks/use-format-date";
+import { useSession } from "@/components/providers/session-provider";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { Badge } from "@/components/ui/badge";
 
@@ -36,6 +37,7 @@ export function POSInvoiceDetail({
   invoice: serializedInvoice,
 }: POSInvoiceDetailProps) {
   const invoice = SuperJSON.deserialize<any>(serializedInvoice);
+  const sessionData = useSession();
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
@@ -110,9 +112,9 @@ export function POSInvoiceDetail({
                 <p className="text-xs text-muted-foreground">
                   {formatDate(invoice.createdAt, "HH:mm:ss")}
                 </p>
-                {invoice.posSession?.cashier?.name && (
+                {sessionData?.userName && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Cashier: {invoice.posSession.cashier?.name}
+                    Cashier: {sessionData.userName}
                   </p>
                 )}
               </CardContent>

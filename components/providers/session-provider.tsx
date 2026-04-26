@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 
 export type SessionData = {
+  userName: string;
   role: string;
   permissions: string[];
   companyProfile: {
