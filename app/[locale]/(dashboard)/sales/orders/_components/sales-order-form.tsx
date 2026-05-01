@@ -56,6 +56,7 @@ import {
   ArrowLeftSquare,
   InfoIcon,
   PrinterIcon,
+  DoorClosedIcon,
 } from "lucide-react";
 import {
   createSalesOrder,
@@ -85,6 +86,13 @@ import { checkBudgetAvailability } from "@/app/[locale]/(dashboard)/budgeting/ac
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import {
+  PageFormActions,
+  PageFormContent,
+  PageFormHeader,
+  PageFormLayout,
+  PageFormTitle,
+} from "@/components/layout/page/form-layout";
 
 interface SalesOrderFormProps {
   order?: SuperJSONResult;
@@ -369,133 +377,158 @@ export function SalesOrderForm({
     : order?.orderNumber;
 
   return (
-    <div className="flex-1 space-y-4 px-4 pt-0">
-      <div className="flex items-center justify-between space-y-2">
-        <div className="flex gap-5">
-          <h2 className="text-xl font-bold tracking-tight flex-1">
-            {displayOrderNumber === "Draft"
+    <PageFormLayout>
+      <form onSubmit={handleSubmit}>
+        <PageFormHeader>
+          <div className="flex gap-5 items-center">
+            <PageFormTitle title={displayOrderNumber === "Draft"
               ? "Draft Sales Order"
-              : `Sales Order ${displayOrderNumber || "New"}`}
-          </h2>
-          <div className="flex items-center gap-2">
-            <div
-              className={cn(
-                "h-2.5 w-2.5 rounded-full",
-                formData.status === "DRAFT"
-                  ? "bg-gray-500"
-                  : formData.status === "CONFIRMED"
-                    ? "bg-blue-500"
-                    : formData.status === "PARTIALLY_SHIPPED"
-                      ? "bg-yellow-500"
-                      : formData.status === "CLOSED"
-                        ? "bg-green-500"
-                        : "bg-red-500",
-              )}
-            />
-            <span className="font-medium">
-              {formData.status?.replace("_", " ")}
-            </span>
-            {order && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <InfoIcon className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="min-w-1/3">
-                  <DialogHeader>
-                    <DialogTitle>Status History</DialogTitle>
-                  </DialogHeader>
-                  <Table className="text-sm">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="font-medium">Event</TableHead>
-                        <TableHead className="text-right">Timestamp</TableHead>
-                        <TableHead className="text-right">User</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>Created</TableCell>
-                        <TableCell className="text-right">
-                          {order.createdAt && formatDate(order.createdAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {order.createdById || "System"}
-                        </TableCell>
-                      </TableRow>
+              : `Sales Order ${displayOrderNumber || "New"}`} />
+            <div className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full",
+                  formData.status === "DRAFT"
+                    ? "bg-gray-500"
+                    : formData.status === "CONFIRMED"
+                      ? "bg-blue-500"
+                      : formData.status === "PARTIALLY_SHIPPED"
+                        ? "bg-yellow-500"
+                        : formData.status === "CLOSED"
+                          ? "bg-green-500"
+                          : "bg-red-500",
+                )}
+              />
+              <span className="font-medium">
+                {formData.status?.replace("_", " ")}
+              </span>
+              {order && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <InfoIcon className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="min-w-1/3">
+                    <DialogHeader>
+                      <DialogTitle>Status History</DialogTitle>
+                    </DialogHeader>
+                    <Table className="text-sm">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="font-medium">Event</TableHead>
+                          <TableHead className="text-right">Timestamp</TableHead>
+                          <TableHead className="text-right">User</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>Created</TableCell>
+                          <TableCell className="text-right">
+                            {order.createdAt && formatDate(order.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {order.createdById || "System"}
+                          </TableCell>
+                        </TableRow>
 
-                      <TableRow>
-                        <TableCell>Last Updated</TableCell>
-                        <TableCell className="text-right">
-                          {order.updatedAt && formatDate(order.updatedAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {order.updatedById || "System"}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Confirmed</TableCell>
-                        <TableCell className="text-right">
-                          {order.confirmedAt && formatDate(order.confirmedAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {order.confirmedById || "System"}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Closed</TableCell>
-                        <TableCell className="text-right">
-                          {order.closedAt && formatDate(order.closedAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {order.closedById || "System"}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Cancelled</TableCell>
-                        <TableCell className="text-right">
-                          {order.cancelledAt && formatDate(order.cancelledAt)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {order.cancelledById || "System"}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </DialogContent>
-              </Dialog>
-            )}
+                        <TableRow>
+                          <TableCell>Last Updated</TableCell>
+                          <TableCell className="text-right">
+                            {order.updatedAt && formatDate(order.updatedAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {order.updatedById || "System"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Confirmed</TableCell>
+                          <TableCell className="text-right">
+                            {order.confirmedAt && formatDate(order.confirmedAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {order.confirmedById || "System"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Closed</TableCell>
+                          <TableCell className="text-right">
+                            {order.closedAt && formatDate(order.closedAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {order.closedById || "System"}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Cancelled</TableCell>
+                          <TableCell className="text-right">
+                            {order.cancelledAt && formatDate(order.cancelledAt)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {order.cancelledById || "System"}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2 text-sm">
-          {/* Action Buttons */}
-          {isDraft && !readonly && (
-            <>
-              <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {!isLoading && <SaveIcon />}
-                {isEditing ? "Save" : "Create"}
-              </Button>
-              {isEditing && (
+          <PageFormActions>
+            {/* Action Buttons */}
+            {isDraft && !readonly && (
+              <>
+                <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {!isLoading && <SaveIcon />}
+                  {isEditing ? "Save" : "Create"}
+                </Button>
+                {isEditing && (
+                  <Button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={isLoading}
+                  >
+                    <CheckCheckIcon />
+                    Confirm
+                  </Button>
+                )}
+              </>
+            )}
+
+            {formData.status === "CONFIRMED" && !readonly && (
+              <>
+                <Button type="button" onClick={handleClose} disabled={isLoading}>
+                  <CheckCircle />
+                  Finish
+                </Button>
                 <Button
                   type="button"
-                  onClick={handleConfirm}
+                  variant="destructive"
+                  onClick={handleCancel}
                   disabled={isLoading}
                 >
-                  <CheckCheckIcon />
-                  Confirm
+                  <Trash2Icon />
+                  Discard
                 </Button>
-              )}
-            </>
-          )}
+              </>
+            )}
 
-          {formData.status === "CONFIRMED" && !readonly && (
-            <>
-              <Button type="button" onClick={handleClose} disabled={isLoading}>
+            {formData.status === "PARTIALLY_SHIPPED" && !readonly && (
+              <Button
+                type="button"
+                onClick={handleClose}
+                disabled={isLoading}
+                className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+              >
                 <CheckCircle />
                 Finish
               </Button>
+            )}
+
+            {/* Allow cancelling Drafts too */}
+            {isDraft && isEditing && !readonly && (
               <Button
                 type="button"
                 variant="destructive"
@@ -505,72 +538,47 @@ export function SalesOrderForm({
                 <Trash2Icon />
                 Discard
               </Button>
-            </>
-          )}
+            )}
 
-          {formData.status === "PARTIALLY_SHIPPED" && !readonly && (
+            {order && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReportPreviewOpen(true)}
+                >
+                  <PrinterIcon className="mr-2 h-4 w-4" />
+                  Print
+                </Button>
+                <ReportPreviewDialog
+                  isOpen={isReportPreviewOpen}
+                  onOpenChange={setIsReportPreviewOpen}
+                  code="SALES_ORDER"
+                  input={{ orderId: order.id }}
+                  title={`Sales Order #${order.orderNumber}`}
+                />
+              </>
+            )}
+
             <Button
               type="button"
-              onClick={handleClose}
-              disabled={isLoading}
-              className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  window.close();
+                }
+              }}
             >
-              <CheckCircle />
-              Finish
+              <ArrowLeftSquare className="mr-2 h-4 w-4" />
+              Close
             </Button>
-          )}
 
-          {/* Allow cancelling Drafts too */}
-          {isDraft && isEditing && !readonly && (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
-              <Trash2Icon />
-              Discard
-            </Button>
-          )}
-
-          {order && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsReportPreviewOpen(true)}
-              >
-                <PrinterIcon className="mr-2 h-4 w-4" />
-                Print
-              </Button>
-              <ReportPreviewDialog
-                isOpen={isReportPreviewOpen}
-                onOpenChange={setIsReportPreviewOpen}
-                code="SALES_ORDER"
-                input={{ orderId: order.id }}
-                title={`Sales Order #${order.orderNumber}`}
-              />
-            </>
-          )}
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              if (window.history.length > 1) {
-                router.back();
-              } else {
-                window.close();
-              }
-            }}
-          >
-            Close
-          </Button>
-
-        </div>
-      </div>
-      <form onSubmit={handleSubmit}>
+          </PageFormActions>
+        </PageFormHeader>
         {budgetWarning && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
@@ -578,7 +586,7 @@ export function SalesOrderForm({
             <AlertDescription>{budgetWarning}</AlertDescription>
           </Alert>
         )}
-        <div className="grid gap-4">
+        <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
           <div className="space-y-4">
             <Card>
               <CardContent>
@@ -846,7 +854,8 @@ export function SalesOrderForm({
               </CardFooter>
             </Card>
           </div>
-        </div>
+
+        </PageFormContent>
       </form>
 
       <AttachmentDialog
@@ -860,6 +869,6 @@ export function SalesOrderForm({
         }}
         readonly={isReadOnly}
       />
-    </div>
+    </PageFormLayout >
   );
 }

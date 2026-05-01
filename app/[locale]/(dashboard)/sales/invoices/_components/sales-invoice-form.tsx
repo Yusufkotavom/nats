@@ -59,6 +59,13 @@ import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import {
+  PageFormActions,
+  PageFormContent,
+  PageFormHeader,
+  PageFormLayout,
+  PageFormTitle,
+} from "@/components/layout/page/form-layout";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -401,68 +408,65 @@ export function SalesInvoiceForm({
     : salesOrders;
 
   return (
-    <div className="flex-1 space-y-4 px-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-xl font-bold tracking-tight">
-          {isEditing ? "Edit Sales Invoice" : "New Sales Invoice"}
-        </h2>
-        <div className="flex gap-2">
-          {invoice && (
-            <Button asChild type="button" variant="outline" size="sm">
-              <Link
-                href={`/admin/integrations/outbox?search=${encodeURIComponent(invoice.id)}`}
+    <PageFormLayout>
+      <form onSubmit={handleSubmit}>
+        <PageFormHeader>
+          <PageFormTitle title={isEditing ? "Edit Sales Invoice" : "New Sales Invoice"} />
+          <PageFormActions>
+            {invoice && (
+              <Button asChild type="button" variant="outline" size="sm">
+                <Link
+                  href={`/admin/integrations/outbox?search=${encodeURIComponent(invoice.id)}`}
+                >
+                  Outbox
+                </Link>
+              </Button>
+            )}
+            {invoice && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsReportPreviewOpen(true)}
               >
-                Outbox
-              </Link>
-            </Button>
-          )}
-          {invoice && (
+                <PrinterIcon className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+            )}
+            {invoice?.status === "DRAFT" && (
+              <Button
+                type="button"
+                variant="default"
+                onClick={handlePost}
+                disabled={isLoading}
+              >
+                Post Invoice
+              </Button>
+            )}
+            {!readonly && (
+              <>
+                <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isEditing ? "Update" : "Create"}
+                </Button>
+              </>
+            )}
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              onClick={() => setIsReportPreviewOpen(true)}
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  window.close();
+                }
+              }}
             >
-              <PrinterIcon className="mr-2 h-4 w-4" />
-              Print
+              Close
             </Button>
-          )}
-          {invoice?.status === "DRAFT" && (
-            <Button
-              type="button"
-              variant="default"
-              onClick={handlePost}
-              disabled={isLoading}
-            >
-              Post Invoice
-            </Button>
-          )}
-          {!readonly && (
-            <>
-              <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? "Update" : "Create"}
-              </Button>
-            </>
-          )}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              if (window.history.length > 1) {
-                router.back();
-              } else {
-                window.close();
-              }
-            }}
-          >
-            Close
-          </Button>
-
-        </div>
-      </div>
-      <form onSubmit={handleSubmit}>
-        <div className="grid gap-4">
+          </PageFormActions>
+        </PageFormHeader>
+        <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
           <div className="space-y-4">
             <Card>
               <CardContent className="grid gap-4 md:grid-cols-2 mt-4">
@@ -878,7 +882,7 @@ export function SalesInvoiceForm({
               </CardContent>
             </Card>
           </div>
-        </div>
+        </PageFormContent>
       </form>
 
       <AttachmentDialog
@@ -902,6 +906,6 @@ export function SalesInvoiceForm({
           title={`Invoice #${invoice.invoiceNumber}`}
         />
       )}
-    </div>
+    </PageFormLayout>
   );
 }

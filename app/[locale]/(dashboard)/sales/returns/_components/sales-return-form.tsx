@@ -45,6 +45,13 @@ import { uploadFile } from "@/app/[locale]/(dashboard)/general/files/actions";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import {
+    PageFormActions,
+    PageFormContent,
+    PageFormHeader,
+    PageFormLayout,
+    PageFormTitle,
+} from "@/components/layout/page/form-layout";
 
 interface SalesReturnFormProps {
     returnItem?: SuperJSONResult;
@@ -293,37 +300,35 @@ export function SalesReturnForm({
     };
 
     return (
-        <div className="flex-1 space-y-4 px-4">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-xl font-bold tracking-tight">
-                    {returnItem ? "Edit Sales Return" : "New Sales Return"}
-                </h2>
-                <div className="flex">
-                    {!readonly && (
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsAttachmentDialogOpen(true)}
-                            >
-                                <Paperclip className="mr-2 h-4 w-4" />
-                                Attachments ({attachments.length})
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => router.back()}
-                                disabled={loading}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading ? "Saving..." : returnItem ? "Update" : "Create"}
-                            </Button>
-                        </div>
-                    )}
-                    {readonly && (
-                        <div className="flex justify-end gap-2">
+        <PageFormLayout>
+            <form onSubmit={handleSubmit} className="space-y-8 w-full">
+                <PageFormHeader>
+                    <PageFormTitle title={returnItem ? "Edit Sales Return" : "New Sales Return"} />
+                    <PageFormActions>
+                        {!readonly && (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsAttachmentDialogOpen(true)}
+                                >
+                                    <Paperclip className="mr-2 h-4 w-4" />
+                                    Attachments ({attachments.length})
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => router.back()}
+                                    disabled={loading}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={loading}>
+                                    {loading ? "Saving..." : returnItem ? "Update" : "Create"}
+                                </Button>
+                            </>
+                        )}
+                        {readonly && (
                             <Button
                                 type="button"
                                 variant="outline"
@@ -331,11 +336,10 @@ export function SalesReturnForm({
                             >
                                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
                             </Button>
-                        </div>
-                    )}
-                </div>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-8 w-full">
+                        )}
+                    </PageFormActions>
+                </PageFormHeader>
+                <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                         <Label>Return Number</Label>
@@ -592,6 +596,7 @@ export function SalesReturnForm({
                         </div>
                     </div>
                 </div>
+                </PageFormContent>
             </form>
             <AttachmentDialog
                 open={isAttachmentDialogOpen}
@@ -604,6 +609,6 @@ export function SalesReturnForm({
                 }}
                 readonly={readonly}
             />
-        </div>
+        </PageFormLayout>
     );
 }
