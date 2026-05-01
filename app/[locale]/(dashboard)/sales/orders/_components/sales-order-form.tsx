@@ -557,12 +557,17 @@ export function SalesOrderForm({
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                window.close();
+              }
+            }}
           >
-            <ArrowLeftSquare />
-            Back
+            Close
           </Button>
+
         </div>
       </div>
       <form onSubmit={handleSubmit}>

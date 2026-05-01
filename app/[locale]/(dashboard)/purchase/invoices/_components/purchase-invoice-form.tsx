@@ -458,9 +458,20 @@ export function PurchaseInvoiceForm({
               </Button>
             </>
           )}
-          <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                window.close();
+              }
+            }}
+          >
+            Close
           </Button>
+
         </div>
       </div>
       <form onSubmit={handleSubmit}>
