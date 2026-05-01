@@ -58,6 +58,7 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -91,6 +92,7 @@ export function SalesInvoiceForm({
   const formatDate = useFormatDate();
   const confirm = useConfirm();
   const { toast } = useToast();
+  const t = useTranslations("Sales");
 
   const [attachments, setAttachments] = useState<Attachment[]>(
     invoice?.attachments?.map((a) => ({
@@ -454,7 +456,7 @@ export function SalesInvoiceForm({
             <Card>
               <CardContent className="grid gap-4 md:grid-cols-2 mt-4">
                 <CustomSelect
-                  label="Sales Order (Optional)"
+                  label={t("sales_order_optional")}
                   value={formData.salesOrderId || "none"}
                   onValueChange={(val) =>
                     handleSalesOrderChange(val === "none" ? "" : val)
@@ -477,7 +479,7 @@ export function SalesInvoiceForm({
 
                 <div className="col-span-2 grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Department</Label>
+                    <Label>{t("department")}</Label>
                     <SearchableSelect
                       value={formData.departmentId || ""}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
@@ -487,7 +489,7 @@ export function SalesInvoiceForm({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Project</Label>
+                    <Label>{t("project")}</Label>
                     <SearchableSelect
                       value={formData.projectId || ""}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
@@ -499,7 +501,7 @@ export function SalesInvoiceForm({
                 </div>
 
                 <CustomInput
-                  label="Invoice Number"
+                  label={t("invoice_number")}
                   value={formData.invoiceNumber}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -513,7 +515,7 @@ export function SalesInvoiceForm({
 
                 <CustomSelect
                   value={formData.contactId}
-                  label="Customer"
+                  label={t("customer")}
                   onValueChange={(val) => {
                     setFormData((prev) => ({
                       ...prev,
@@ -532,7 +534,7 @@ export function SalesInvoiceForm({
                 </CustomSelect>
 
                 <CustomInput
-                  label="Invoice Date"
+                  label={t("invoice_date")}
                   type="date"
                   value={
                     formData.invoiceDate
@@ -551,7 +553,7 @@ export function SalesInvoiceForm({
                 />
 
                 <CustomInput
-                  label="Due Date"
+                  label={t("due_date")}
                   type="date"
                   value={
                     formData.dueDate
@@ -572,7 +574,7 @@ export function SalesInvoiceForm({
                 {isEditing && (
                   <CustomSelect
                     value={formData.status}
-                    label="Status"
+                    label={t("status")}
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onValueChange={(val: any) =>
                       setFormData((prev) => ({ ...prev, status: val }))
@@ -593,7 +595,7 @@ export function SalesInvoiceForm({
                   </CustomSelect>
                 )}
                 <CustomTextarea
-                  label="Notes"
+                  label={t("notes")}
                   value={formData.notes || ""}
                   onChange={(e) =>
                     setFormData((prev) => ({
