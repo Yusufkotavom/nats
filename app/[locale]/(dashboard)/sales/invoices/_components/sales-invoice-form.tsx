@@ -43,6 +43,7 @@ import { TaxRate } from "@/prisma/generated/prisma/client";
 import { SalesInvoiceWithDetails, SalesInvoiceInput } from "../types";
 import { SalesOrderWithDetails } from "../../orders/types";
 import { useFormatDate } from "@/hooks";
+import { format } from "date-fns";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { generateId } from "@/lib/utils";
@@ -535,7 +536,7 @@ export function SalesInvoiceForm({
                   type="date"
                   value={
                     formData.invoiceDate
-                      ? formatDate(formData.invoiceDate)
+                      ? format(formData.invoiceDate, "yyyy-MM-dd")
                       : ""
                   }
                   onChange={(e) =>
@@ -554,7 +555,7 @@ export function SalesInvoiceForm({
                   type="date"
                   value={
                     formData.dueDate
-                      ? formatDate(formData.dueDate)
+                      ? format(formData.dueDate, "yyyy-MM-dd")
                       : ""
                   }
                   onChange={(e) =>
