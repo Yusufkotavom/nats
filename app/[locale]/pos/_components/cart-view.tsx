@@ -20,6 +20,7 @@ import { CheckoutDialog } from "./checkout-dialog";
 import { HoldOrderDialog } from "./hold-order-dialog";
 import { DiscountDialog } from "./discount-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ProductImage } from "./product-image";
@@ -64,6 +65,7 @@ export function CartView({
 
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null);
@@ -71,14 +73,14 @@ export function CartView({
   const router = useRouter();
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       if (
         document.activeElement?.tagName === "INPUT" ||
         document.activeElement?.tagName === "TEXTAREA"
       ) {
         return;
       }
-
+ 
       if (e.key === "F9") {
         e.preventDefault();
         if (cart.length > 0) setCheckoutOpen(true);
@@ -88,7 +90,12 @@ export function CartView({
       } else if (e.key === "F7") {
         e.preventDefault();
         if (cart.length > 0) {
-          if (confirm(t("confirm_clear_cart"))) {
+          const ok = await confirm({
+            title: t("clear_cart"),
+            description: t("confirm_clear_cart"),
+            variant: "destructive",
+          });
+          if (ok) {
             onClear();
           }
         }
@@ -97,10 +104,10 @@ export function CartView({
         openGlobalDiscount();
       }
     };
-
+ 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart, onClear]);
+  }, [cart, onClear, confirm, t]);
 
   const subtotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
@@ -278,8 +285,13 @@ export function CartView({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            if (confirm(t("confirm_clear_cart"))) onClear();
+          onClick={async () => {
+            const ok = await confirm({
+              title: t("clear_cart"),
+              description: t("confirm_clear_cart"),
+              variant: "destructive",
+            });
+            if (ok) onClear();
           }}
           disabled={cart.length === 0}
           className="text-destructive hover:text-destructive"

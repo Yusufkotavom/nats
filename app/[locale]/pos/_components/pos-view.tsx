@@ -9,7 +9,7 @@ import {
 } from "../actions";
 import { logout } from "@/app/[locale]/auth/actions";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Search, RotateCcw, Keyboard } from "lucide-react";
+import { LogOut, History, Search, RotateCcw, Keyboard, PowerOff, PowerOffIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter } from "next/navigation";
 import { CartView } from "./cart-view";
 import { ProductGrid } from "./product-grid";
@@ -72,6 +73,7 @@ export function POSView({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const { toast } = useToast();
+  const confirm = useConfirm();
   const router = useRouter();
   const sessionData = useSession();
   const isCashier = sessionData?.role === "Cashier";
@@ -199,7 +201,13 @@ export function POSView({
   };
 
   const handleCloseSession = async () => {
-    if (confirm(t("confirm_close_session"))) {
+    const ok = await confirm({
+      title: t("close_session"),
+      description: t("confirm_close_session"),
+      variant: "destructive",
+    });
+
+    if (ok) {
       try {
         await closePOSSession(session.id, 0); // TODO: Dialog to enter actual cash
         toast({ title: t("session_closed") });
@@ -403,7 +411,7 @@ export function POSView({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleCloseSession}>
-                <LogOut className="mr-2 h-4 w-4" />
+                <PowerOffIcon className="mr-2 h-4 w-4" />
                 <span>{t("close_session")}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
