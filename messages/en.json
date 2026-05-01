@@ -1184,6 +1184,7 @@
     },
     "POS": {
         "pos": "POS",
+        "cart": "Cart",
         "search_products": "Search products...",
         "shortcuts": "Keyboard Shortcuts",
         "focus_search": "Focus Search",

@@ -38,7 +38,7 @@ export function Clock({ startTime }: ClockProps) {
 
   return (
     <div className="flex flex-col items-end text-sm mr-2">
-      <div className="font-bold">{time.toLocaleTimeString()}</div>
+      <div className="font-bold" suppressHydrationWarning>{time.toLocaleTimeString()}</div>
       <div className="text-muted-foreground text-xs">
         {t("session")}: {duration}
       </div>

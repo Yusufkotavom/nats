@@ -25,6 +25,14 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter } from "next/navigation";
 import { CartView } from "./cart-view";
 import { ProductGrid } from "./product-grid";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { ShoppingCart } from "lucide-react";
 
 import { SuperJSONResult } from "superjson";
 import { SuperJSON } from "@/lib/superjson";
@@ -275,15 +283,17 @@ export function POSView({
     toast({ title: t("items_added") });
   };
 
+  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <header className="flex h-16 items-center justify-between border-b bg-background px-4">
+      <header className="flex h-16 items-center justify-between border-b bg-background px-2 sm:px-4">
         <div className="flex items-center gap-4 flex-1">
           <h1 className="hidden text-xl font-bold lg:block">{t("pos")}</h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -363,7 +373,7 @@ export function POSView({
             <span className="hidden sm:inline">{t("history")}</span>
           </Button>
 
-          <div className="text-sm text-muted-foreground">
+          <div className="hidden md:block text-sm text-muted-foreground">
             {sessionData?.userName && (
               <span className="mr-3 font-medium text-foreground">
                 {sessionData.userName}
@@ -372,13 +382,13 @@ export function POSView({
             {t("session")}: {session.sessionNumber}
           </div>
           {session.warehouse && (
-            <Badge variant="outline" className="text-sm font-normal">
+            <Badge variant="outline" className="hidden md:inline-flex text-sm font-normal">
               {t("location")}: {session.warehouse.name}
             </Badge>
           )}
 
           {!isCashier && (
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
               <Link href="/accounting/dashboard">
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 {t("dashboard")}
@@ -386,7 +396,9 @@ export function POSView({
             </Button>
           )}
 
-          <Clock startTime={session.startTime} />
+          <div className="hidden sm:block">
+            <Clock startTime={session.startTime} />
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -428,9 +440,9 @@ export function POSView({
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left: Product Grid */}
-        <div className="flex-1 overflow-y-auto bg-muted/20 p-4">
+        <div className="flex-1 overflow-y-auto bg-muted/20 p-2 md:p-4 pb-20 lg:pb-4">
           <div className="relative w-full mb-4">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -481,8 +493,8 @@ export function POSView({
           />
         </div>
 
-        {/* Right: Cart */}
-        <div className="w-[400px] border-l bg-background shadow-xl">
+        {/* Right: Cart Desktop */}
+        <div className="hidden lg:block w-[400px] border-l bg-background shadow-xl">
           <CartView
             cart={cart}
             globalDiscount={globalDiscount}
@@ -493,6 +505,40 @@ export function POSView({
             onClear={clearCart}
             session={session}
           />
+        </div>
+
+        {/* Mobile Cart Trigger */}
+        <div className="lg:hidden absolute bottom-4 left-4 right-4 z-10">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button className="w-full h-14 rounded-full shadow-lg text-lg flex justify-between px-6" size="lg">
+                <span className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  {t("cart")}
+                </span>
+                <span className="bg-primary-foreground text-primary px-3 py-1 rounded-full text-sm font-bold">
+                  {totalItems}
+                </span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[90vh] p-0 flex flex-col">
+              <SheetHeader className="sr-only">
+                <SheetTitle>{t("cart")}</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden">
+                <CartView
+                  cart={cart}
+                  globalDiscount={globalDiscount}
+                  onUpdateGlobalDiscount={setGlobalDiscount}
+                  onUpdateQuantity={updateQuantity}
+                  onUpdateDiscount={updateDiscount}
+                  onRemove={removeFromCart}
+                  onClear={clearCart}
+                  session={session}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 

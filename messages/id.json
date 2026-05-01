@@ -1106,6 +1106,7 @@
     },
     "POS": {
         "cashier": "Kasir",
+        "cart": "Keranjang",
         "sessions": "Sesi",
         "pos_sessions": "Sesi POS",
         "orders": "Pesanan POS",
