@@ -40,7 +40,7 @@ export default async function EditSalesInvoicePage({ params }: PageProps) {
       customers={customers.data}
       salesOrders={salesOrders}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
       taxRates={taxRates}
     />
   );

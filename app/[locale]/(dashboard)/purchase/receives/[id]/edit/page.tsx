@@ -35,7 +35,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       products={products as unknown as SuperJSONResult}
       purchaseOrders={purchaseOrders as unknown as SuperJSONResult}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

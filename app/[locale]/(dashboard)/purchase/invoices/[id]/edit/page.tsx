@@ -59,7 +59,7 @@ export default async function EditPurchaseInvoicePage(props: PageProps) {
       vendors={vendors.data}
       purchaseOrders={serializedPurchaseOrders}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
       taxRates={taxRates}
     />
   );

@@ -38,7 +38,7 @@ export default async function NewPurchaseReturnPage() {
         purchaseInvoices as unknown as SuperJSONResult,
       )}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

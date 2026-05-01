@@ -75,7 +75,7 @@ export default async function EditTransactionPage({ params }: PageProps) {
       readOnly={transaction.status === "APPROVED"}
       contacts={contacts}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

@@ -27,7 +27,7 @@ export default async function NewTransactionPage() {
       glAccounts={glAccounts}
       contacts={contacts}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

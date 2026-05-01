@@ -27,7 +27,7 @@ export default async function NewSalesInvoicePage() {
       customers={customers.data}
       salesOrders={salesOrders}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
       taxRates={taxRates}
     />
   );

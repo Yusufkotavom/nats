@@ -21,7 +21,7 @@ export default async function Page() {
       products={products}
       purchaseOrders={purchaseOrders}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

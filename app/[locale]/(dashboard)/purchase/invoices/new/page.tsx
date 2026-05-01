@@ -29,7 +29,7 @@ export default async function NewPurchaseInvoicePage() {
       vendors={vendors.data}
       purchaseOrders={purchaseOrders}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
       taxRates={taxRates}
     />
   );

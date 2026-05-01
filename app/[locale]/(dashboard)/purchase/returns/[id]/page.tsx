@@ -58,7 +58,7 @@ export default async function ViewPurchaseReturnPage(props: PageProps) {
         purchaseOrders={purchaseOrders as unknown as SuperJSONResult}
         purchaseInvoices={purchaseInvoices as unknown as SuperJSONResult}
         departments={departments}
-        projects={projects}
+        projects={projects.projects}
         readonly
       />
     </div>

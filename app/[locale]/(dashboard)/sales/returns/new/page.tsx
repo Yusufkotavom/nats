@@ -32,7 +32,7 @@ export default async function NewSalesReturnPage() {
       salesOrders={salesOrders}
       salesInvoices={salesInvoices}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

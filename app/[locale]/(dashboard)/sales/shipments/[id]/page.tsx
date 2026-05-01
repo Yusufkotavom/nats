@@ -36,7 +36,7 @@ export default async function ViewSalesShipmentPage({
       }))}
       salesOrders={salesOrdersResult as unknown as SuperJSONResult}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
       readonly
     />
   );

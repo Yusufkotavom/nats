@@ -22,7 +22,7 @@ export default async function NewSalesShipmentPage() {
       }))}
       salesOrders={salesOrdersResult as unknown as SuperJSONResult}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

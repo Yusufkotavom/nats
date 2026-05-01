@@ -99,7 +99,7 @@ export default function CreateJournalEntryPage() {
       accounts={accounts}
       contacts={contacts}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
       initialData={newEntry}
       onSubmit={handleSubmit}
       isSubmitting={createMutation.isPending}

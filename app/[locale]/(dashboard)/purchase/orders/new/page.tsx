@@ -19,7 +19,7 @@ export default async function Page() {
       vendors={vendors.data}
       products={products.products}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
     />
   );
 }

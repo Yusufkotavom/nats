@@ -42,7 +42,7 @@ export default async function ViewPurchaseInvoicePage(props: PageProps) {
       vendors={vendors.data}
       purchaseOrders={purchaseOrders}
       departments={departments}
-      projects={projects}
+      projects={projects.projects}
       taxRates={taxRates}
       readonly
     />
