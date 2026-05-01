@@ -44,11 +44,11 @@ export function CustomPagination({
   let page: number;
   let handlePageChange: (p: number) => void;
 
-  if (controlledPage !== undefined) {
+  if (controlledPage !== undefined && onPageChange) {
     // Controlled Mode
     page = controlledPage;
     handlePageChange = (p) => {
-      onPageChange?.(p);
+      onPageChange(p);
     };
   } else if (onPageChange) {
     // Uncontrolled (Stateful) Mode with Callback
@@ -59,9 +59,9 @@ export function CustomPagination({
     };
   } else {
     // URL Mode (Default)
-    page = getPageFromUrl();
+    page = controlledPage !== undefined ? controlledPage : getPageFromUrl();
     handlePageChange = (p) => {
-      const params = new URLSearchParams(searchParams);
+      const params = new URLSearchParams(searchParams.toString());
       params.set("page", p.toString());
       router.replace(`${pathname}?${params.toString()}`);
     };
