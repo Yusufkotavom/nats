@@ -1,32 +1,46 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Search, RotateCcw, Trash2, User } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getHeldOrders, resumeOrder, deleteHeldOrder, POSCartItem } from '../actions';
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Search, RotateCcw, Trash2, User } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getHeldOrders, resumeOrder, deleteHeldOrder } from "../actions";
+import { POSCartItem } from "../types";
 import { SuperJSON } from "@/lib/superjson";
-import { formatDistanceToNow } from 'date-fns';
-import { useFormatCurrency } from '@/hooks/use-format-currency';
-import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from "date-fns";
+import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 interface HeldOrdersDialogProps {
-  onResume: (items: POSCartItem[], customerName?: string, customerId?: string, globalDiscount?: number) => void;
+  onResume: (
+    items: POSCartItem[],
+    customerName?: string,
+    customerId?: string,
+    globalDiscount?: number,
+  ) => void;
   trigger?: React.ReactNode;
 }
 
 export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
+  const t = useTranslations("POS");
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: heldOrders = [], isLoading } = useQuery({
-    queryKey: ['heldOrders'],
+    queryKey: ["heldOrders"],
     queryFn: async () => {
       const res = await getHeldOrders();
       return SuperJSON.deserialize<any[]>(res);
@@ -46,33 +60,34 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
       // Handle both array and object formats for backward compatibility
       if (Array.isArray(data.items)) {
         items = data.items as POSCartItem[];
-      } else if (data.items && typeof data.items === 'object') {
+      } else if (data.items && typeof data.items === "object") {
         items = (data.items as any).cart || [];
         globalDiscount = (data.items as any).globalDiscount || 0;
       }
 
       onResume(items, data.customerName, data.customerId, globalDiscount);
       setOpen(false);
-      toast({ title: 'Order Resumed' });
-      queryClient.invalidateQueries({ queryKey: ['heldOrders'] });
+      toast({ title: t("order_resumed") });
+      queryClient.invalidateQueries({ queryKey: ["heldOrders"] });
     },
     onError: () => {
-      toast({ variant: 'destructive', title: 'Failed to resume order' });
+      toast({ variant: "destructive", title: t("failed_resume_order") });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteHeldOrder,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['heldOrders'] });
-      toast({ title: 'Held order deleted' });
+      queryClient.invalidateQueries({ queryKey: ["heldOrders"] });
+      toast({ title: t("order_deleted") });
     },
   });
 
-  const filteredOrders = heldOrders.filter(order =>
-    order.holdId.toLowerCase().includes(search.toLowerCase()) ||
-    order.customerName?.toLowerCase().includes(search.toLowerCase()) ||
-    order.user.name.toLowerCase().includes(search.toLowerCase())
+  const filteredOrders = heldOrders.filter(
+    (order) =>
+      order.holdId.toLowerCase().includes(search.toLowerCase()) ||
+      order.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+      order.user.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -80,13 +95,13 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Held Orders</DialogTitle>
+          <DialogTitle>{t("held_orders")}</DialogTitle>
         </DialogHeader>
 
         <div className="flex items-center gap-2 mb-4">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by ID, customer or cashier..."
+            placeholder={t("search_held_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -94,9 +109,13 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
 
         <div className="h-[400px] overflow-y-auto">
           {isLoading ? (
-            <div className="p-4 text-center text-muted-foreground">Loading...</div>
+            <div className="p-4 text-center text-muted-foreground">
+              {t("loading")}
+            </div>
           ) : filteredOrders.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">No held orders found</div>
+            <div className="p-4 text-center text-muted-foreground">
+              {t("no_held_orders")}
+            </div>
           ) : (
             <div className="space-y-4">
               {filteredOrders.map((order) => (
@@ -106,26 +125,36 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
                       <div className="flex items-center gap-2">
                         <span className="font-bold">{order.holdId}</span>
                         <Badge variant="outline" className="text-xs">
-                          {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(order.createdAt), {
+                            addSuffix: true,
+                          })}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                         <User className="h-3 w-3" />
-                        {order.customerName || 'Walk-in Customer'}
+                        {order.customerName || t("walk_in_customer")}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        Held by: {order.user.name}
+                        {t("held_by", { name: order.user.name })}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-lg">{formatCurrency(order.totalAmount)}</div>
-                      <div className="text-xs text-muted-foreground">{Array.isArray(order.items) ? order.items.length : (order.items as any).cart?.length || 0} items</div>
+                      <div className="font-bold text-lg">
+                        {formatCurrency(order.totalAmount)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {t("items_count", {
+                          count: Array.isArray(order.items)
+                            ? order.items.length
+                            : (order.items as any).cart?.length || 0,
+                        })}
+                      </div>
                     </div>
                   </div>
 
                   {order.note && (
                     <div className="text-sm bg-muted/50 p-2 rounded">
-                      Note: {order.note}
+                      {t("note_label")}: {order.note}
                     </div>
                   )}
 
@@ -137,7 +166,7 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
                       disabled={deleteMutation.isPending}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
+                      {t("delete")}
                     </Button>
                     <Button
                       size="sm"
@@ -145,7 +174,7 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
                       disabled={resumeMutation.isPending}
                     >
                       <RotateCcw className="h-4 w-4 mr-1" />
-                      Resume
+                      {t("resume")}
                     </Button>
                   </div>
                 </div>

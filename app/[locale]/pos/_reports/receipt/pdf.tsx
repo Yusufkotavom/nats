@@ -68,8 +68,11 @@ export const POSReceiptPdf = ({
   data,
   company,
   config,
+  translations = {},
 }: ReportContext<POSReceiptData>) => {
   const { invoice, payment, cashierName } = data;
+  const t = (key: string) => translations[key] || key;
+
   const currencyOptions = {
     currency: company.currency,
     currencySymbol: company.currencySymbol,
@@ -143,7 +146,7 @@ export const POSReceiptPdf = ({
           <Text style={styles.companyInfo}>{company.address}</Text>
           <Text style={styles.companyInfo}>{company.phone}</Text>
 
-          <Text style={styles.title}>SALES RECEIPT</Text>
+          <Text style={styles.title}>{t("pos_receipt").toUpperCase()}</Text>
           <Text style={styles.meta}>#{invoice.invoiceNumber}</Text>
           <Text style={styles.meta}>
             {formatDate(invoice.invoiceDate, dateOptions)}
@@ -153,12 +156,12 @@ export const POSReceiptPdf = ({
         {/* Cashier/Customer Info */}
         <View style={{ marginBottom: 5 }}>
           <View style={styles.row}>
-            <Text>Cashier:</Text>
+            <Text>{t("cashier")}:</Text>
             <Text>{cashierName || "System"}</Text>
           </View>
           <View style={styles.row}>
-            <Text>Customer:</Text>
-            <Text>{invoice.contact?.name || "Walk-in"}</Text>
+            <Text>{t("customer")}:</Text>
+            <Text>{invoice.contact?.name || t("walk_in_customer")}</Text>
           </View>
         </View>
 
@@ -187,19 +190,19 @@ export const POSReceiptPdf = ({
         {/* Totals */}
         <View>
           <View style={styles.row}>
-            <Text>Subtotal</Text>
+            <Text>{t("subtotal")}</Text>
             <Text>{formatCurrency(invoice.subtotal, currencyOptions)}</Text>
           </View>
           {Number(invoice.globalDiscount) > 0 && (
             <View style={styles.row}>
-              <Text>Discount</Text>
+              <Text>{t("discount")}</Text>
               <Text>
                 -{formatCurrency(invoice.globalDiscount, currencyOptions)}
               </Text>
             </View>
           )}
           <View style={[styles.totalRow, { marginTop: 3, fontSize: 11 }]}>
-            <Text>TOTAL</Text>
+            <Text>{t("total").toUpperCase()}</Text>
             <Text>{formatCurrency(invoice.totalAmount, currencyOptions)}</Text>
           </View>
         </View>
@@ -210,22 +213,21 @@ export const POSReceiptPdf = ({
         {payment && (
           <View>
             <View style={styles.row}>
-              <Text>Paid ({payment.method})</Text>
+              <Text>
+                {t("paid_via")
+                  .replace("{amount}", "")
+                  .replace("{method}", payment.method)
+                  .trim()}
+              </Text>
               <Text>{formatCurrency(payment.amount, currencyOptions)}</Text>
             </View>
-            {/* 
-                   If we had change amount, we would show it here. 
-                   Usually POS calculates change but it might not be stored in payment record directly 
-                   unless we add 'tenderedAmount' to payment model. 
-                   For now we assume exact or display what's recorded.
-                */}
           </View>
         )}
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text>Thank you for your purchase!</Text>
-          <Text>Please come again.</Text>
+          <Text>{t("thank_you")}</Text>
+          <Text>{t("come_again")}</Text>
           {company.email && (
             <Text style={{ marginTop: 2 }}>{company.email}</Text>
           )}

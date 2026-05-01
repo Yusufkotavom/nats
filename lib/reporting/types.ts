@@ -33,6 +33,7 @@ export interface ReportContext<T = any> {
     currencyFormat?: string;
     locale?: string;
   };
+  translations?: Record<string, string>;
 }
 
 export interface ReportDefinition<TInput = any, TData = any> {

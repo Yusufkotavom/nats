@@ -28,6 +28,7 @@ import { useFormatDate } from "@/hooks/use-format-date";
 import { useSession } from "@/components/providers/session-provider";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { Badge } from "@/components/ui/badge";
+import { useTranslations } from "next-intl";
 
 interface POSInvoiceDetailProps {
   invoice: SuperJSONResult;
@@ -36,6 +37,7 @@ interface POSInvoiceDetailProps {
 export function POSInvoiceDetail({
   invoice: serializedInvoice,
 }: POSInvoiceDetailProps) {
+  const t = useTranslations("POS");
   const invoice = SuperJSON.deserialize<any>(serializedInvoice);
   const sessionData = useSession();
   const router = useRouter();
@@ -50,10 +52,10 @@ export function POSInvoiceDetail({
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => router.push("/pos")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to POS
+            {t("back_to_pos")}
           </Button>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">Transaction Details</h1>
+            <h1 className="text-xl font-bold">{t("transaction_details")}</h1>
             <Badge variant="outline">{invoice.invoiceNumber}</Badge>
             <Badge
               className={
@@ -66,7 +68,7 @@ export function POSInvoiceDetail({
         </div>
         <Button onClick={() => setIsReceiptOpen(true)}>
           <Printer className="mr-2 h-4 w-4" />
-          Print Receipt
+          {t("print_receipt")}
         </Button>
       </header>
 
@@ -78,13 +80,13 @@ export function POSInvoiceDetail({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Customer Info
+                  {t("customer_info")}
                 </CardTitle>
                 <User className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {invoice.contact?.name || "Walk-in"}
+                  {invoice.contact?.name || t("walk_in_customer")}
                 </div>
                 {invoice.contact?.phone && (
                   <p className="text-xs text-muted-foreground">
@@ -101,7 +103,7 @@ export function POSInvoiceDetail({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Transaction Info
+                  {t("transaction_info")}
                 </CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -114,7 +116,7 @@ export function POSInvoiceDetail({
                 </p>
                 {sessionData?.userName && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Cashier: {sessionData.userName}
+                    {t("cashier")}: {sessionData.userName}
                   </p>
                 )}
               </CardContent>
@@ -122,7 +124,7 @@ export function POSInvoiceDetail({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Order Reference
+                  {t("order_reference")}
                 </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -131,7 +133,7 @@ export function POSInvoiceDetail({
                   {invoice.salesOrder?.orderNumber || "-"}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Session: {invoice.posSession?.sessionNumber || "-"}
+                  {t("session")}: {invoice.posSession?.sessionNumber || "-"}
                 </p>
               </CardContent>
             </Card>
@@ -140,17 +142,23 @@ export function POSInvoiceDetail({
           {/* Items Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Items</CardTitle>
+              <CardTitle>{t("items")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                    <TableHead className="text-right">Discount</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>{t("product")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("quantity")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t("unit_price")}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {t("discount")}
+                    </TableHead>
+                    <TableHead className="text-right">{t("total")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -182,20 +190,22 @@ export function POSInvoiceDetail({
               </Table>
               <div className="mt-6 flex flex-col items-end gap-2">
                 <div className="flex w-[250px] justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">{t("subtotal")}</span>
                   <span>{formatCurrency(invoice.subtotal)}</span>
                 </div>
                 <div className="flex w-[250px] justify-between text-sm text-red-500">
-                  <span className="text-muted-foreground">Global Discount</span>
+                  <span className="text-muted-foreground">
+                    {t("global_discount")}
+                  </span>
                   <span>-{formatCurrency(invoice.globalDiscount || 0)}</span>
                 </div>
                 <div className="flex w-[250px] justify-between text-sm">
-                  <span className="text-muted-foreground">Tax</span>
+                  <span className="text-muted-foreground">{t("tax")}</span>
                   <span>{formatCurrency(invoice.totalTax || 0)}</span>
                 </div>
                 <Separator className="my-2 w-[250px]" />
                 <div className="flex w-[250px] justify-between text-lg font-bold">
-                  <span>Total</span>
+                  <span>{t("total")}</span>
                   <span>{formatCurrency(invoice.totalAmount)}</span>
                 </div>
               </div>
@@ -205,17 +215,17 @@ export function POSInvoiceDetail({
           {/* Payments */}
           <Card>
             <CardHeader>
-              <CardTitle>Payments</CardTitle>
+              <CardTitle>{t("payments")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Payment #</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>{t("payment_number")}</TableHead>
+                    <TableHead>{t("date")}</TableHead>
+                    <TableHead>{t("method")}</TableHead>
+                    <TableHead>{t("account")}</TableHead>
+                    <TableHead className="text-right">{t("amount")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -249,7 +259,7 @@ export function POSInvoiceDetail({
         onOpenChange={setIsReceiptOpen}
         code="POS_RECEIPT"
         input={{ invoiceId: invoice.id }}
-        title="POS Receipt"
+        title={t("pos_receipt")}
       />
     </div>
   );

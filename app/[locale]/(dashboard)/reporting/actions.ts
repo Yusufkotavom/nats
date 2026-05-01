@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
 import { ReportFormat } from "@/lib/reporting/types";
+import { getTranslations } from "next-intl/server";
 
 export async function getReportData(code: string, input: any) {
   const startTime = Date.now();
@@ -22,9 +23,58 @@ export async function getReportData(code: string, input: any) {
     // Fetch Data
     const data = await reportDef.fetchData(input);
 
+    // Fetch Translations based on code
+    let translations = {};
+    try {
+      if (code.startsWith("POS_")) {
+        const t = await getTranslations("POS");
+        // Convert to a plain object for serialization
+        // We only pick some common keys or all if it's small
+        // For POS, let's get all POS keys
+        const keys = [
+          "pos_receipt",
+          "cashier",
+          "customer",
+          "walk_in_customer",
+          "subtotal",
+          "discount",
+          "total",
+          "paid_via",
+          "thank_you",
+          "come_again",
+          "invoice",
+          "date",
+        ];
+        const transObj: Record<string, string> = {};
+        keys.forEach((key) => {
+          transObj[key] = t(key);
+        });
+        translations = transObj;
+      } else {
+        const t = await getTranslations("Common");
+        const keys = [
+          "date",
+          "amount",
+          "description",
+          "total",
+          "quantity",
+          "price",
+        ];
+        const transObj: Record<string, string> = {};
+        keys.forEach((key) => {
+          transObj[key] = t(key);
+        });
+        translations = transObj;
+      }
+    } catch (e) {
+      console.warn("Failed to fetch translations for report", e);
+    }
+
     // Fetch Context Info
     const companyProfile = await prisma.companyProfile.findFirst();
-    const user = await prisma.user.findUnique({ where: { id: session.userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+    });
 
     // Fetch Template Config from DB
     const reportTemplate = await prisma.reportTemplate.findUnique({
@@ -32,7 +82,7 @@ export async function getReportData(code: string, input: any) {
     });
 
     const config = {
-      ...(reportTemplate?.config as Record<string, any> || {}),
+      ...((reportTemplate?.config as Record<string, any>) || {}),
     };
 
     const context = {
@@ -54,10 +104,11 @@ export async function getReportData(code: string, input: any) {
         locale: companyProfile?.locale || "en-US",
       },
       config,
+      translations,
     };
 
     // Log success
-    // We do this asynchronously or just await it. 
+    // We do this asynchronously or just await it.
     // Since this is a server action, awaiting is safer.
     if (reportTemplate) {
       await prisma.reportLog.create({
@@ -68,12 +119,11 @@ export async function getReportData(code: string, input: any) {
           format: "PDF", // Defaulting to PDF for now as that's what we primarily support
           parameters: input,
           executionTimeMs: Date.now() - startTime,
-        }
+        },
       });
     }
 
     return { success: true, data: SuperJSON.serialize(context) };
-
   } catch (error: any) {
     console.error("Report Generation Error:", error);
 
@@ -93,8 +143,8 @@ export async function getReportData(code: string, input: any) {
               format: "PDF",
               parameters: input,
               executionTimeMs: Date.now() - startTime,
-              errorMessage: error.message
-            }
+              errorMessage: error.message,
+            },
           });
         }
       }

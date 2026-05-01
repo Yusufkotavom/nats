@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   closePOSSession,
   getHeldOrders,
@@ -9,7 +9,7 @@ import {
 } from "../actions";
 import { logout } from "@/app/[locale]/auth/actions";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Search, RotateCcw } from "lucide-react";
+import { LogOut, History, Search, RotateCcw, Keyboard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -38,6 +38,12 @@ import { Clock } from "./clock";
 import { useTranslations } from "next-intl";
 import { useDebounce } from "use-debounce";
 import { POSCartItem, POSProduct } from "../types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -69,6 +75,31 @@ export function POSView({
   const router = useRouter();
   const sessionData = useSession();
   const isCashier = sessionData?.role === "Cashier";
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F4 or Ctrl+S to focus search
+      if (e.key === "F4" || (e.ctrlKey && e.key === "s")) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+
+      // Alt + 1-9 for categories
+      if (e.altKey && /^[1-9]$/.test(e.key)) {
+        e.preventDefault();
+        const index = parseInt(e.key) - 1;
+        if (index === 0) {
+          setSelectedCategory(null);
+        } else if (categories[index - 1]) {
+          setSelectedCategory(categories[index - 1].id);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [categories]);
 
   const {
     data: productData,
@@ -100,9 +131,9 @@ export function POSView({
     initialData:
       debouncedSearchQuery === "" && !selectedCategory
         ? {
-            pages: [initialData],
-            pageParams: [1],
-          }
+          pages: [initialData],
+          pageParams: [1],
+        }
         : undefined,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
@@ -190,10 +221,10 @@ export function POSView({
         await holdOrder(
           cart,
           cart.reduce((acc, item) => acc + item.price * item.quantity, 0) -
-            globalDiscount, // Approx total
+          globalDiscount, // Approx total
           t("auto_held_history"),
           undefined,
-          "Walk-in Customer",
+          t("walk_in_customer"),
           globalDiscount,
         );
         toast({ title: t("order_held") });
@@ -240,26 +271,68 @@ export function POSView({
     <div className="flex h-full flex-col">
       {/* Header */}
       <header className="flex h-16 items-center justify-between border-b bg-background px-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">{t("pos")}</h1>
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t("search_products")}
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+        <div className="flex items-center gap-4 flex-1">
+          <h1 className="hidden text-xl font-bold lg:block">{t("pos")}</h1>
         </div>
 
         <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="hidden lg:block">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground"
+                  >
+                    <Keyboard className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="w-64 p-3">
+                <div className="space-y-2">
+                  <p className="font-semibold border-b pb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                    {t("shortcuts")}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <span className="font-medium">{t("focus_search")}</span>
+                    <kbd className="justify-self-end rounded border bg-muted px-1.5 font-sans">
+                      F4 / Ctrl+S
+                    </kbd>
+
+                    <span className="font-medium">{t("select_category")}</span>
+                    <kbd className="justify-self-end rounded border bg-muted px-1.5 font-sans">
+                      Alt + 1-9
+                    </kbd>
+
+                    <span className="font-medium">
+                      {t("navigate_products")}
+                    </span>
+                    <kbd className="justify-self-end rounded border bg-muted px-1.5 font-sans">
+                      ↑ ↓ ← →
+                    </kbd>
+
+                    <span className="font-medium">{t("add_to_cart")}</span>
+                    <kbd className="justify-self-end rounded border bg-muted px-1.5 font-sans">
+                      Enter
+                    </kbd>
+
+                    <span className="font-medium">{t("checkout")}</span>
+                    <kbd className="justify-self-end rounded border bg-muted px-1.5 font-sans">
+                      F9
+                    </kbd>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           <HeldOrdersDialog
             onResume={handleResume}
             trigger={
               <Button variant="outline" size="sm" className="relative mr-2">
                 <RotateCcw className="mr-2 h-4 w-4" />
-                {t("held_orders")}
+                <span className="hidden sm:inline">{t("held_orders")}</span>
                 {heldOrders.length > 0 && (
                   <Badge
                     variant="destructive"
@@ -279,7 +352,7 @@ export function POSView({
             onClick={() => setHistoryOpen(true)}
           >
             <History className="mr-2 h-4 w-4" />
-            {t("history")}
+            <span className="hidden sm:inline">{t("history")}</span>
           </Button>
 
           <div className="text-sm text-muted-foreground">
@@ -350,6 +423,16 @@ export function POSView({
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Product Grid */}
         <div className="flex-1 overflow-y-auto bg-muted/20 p-4">
+          <div className="relative w-full mb-4">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              placeholder={`${t("search_products")} (F4)`}
+              className="h-11 pl-10 text-base shadow-sm transition-all focus-visible:ring-2"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
             <Button
               variant={selectedCategory === null ? "default" : "outline"}
@@ -357,8 +440,11 @@ export function POSView({
               className="whitespace-nowrap"
             >
               {t("all_items")}
+              <kbd className="ml-2 hidden rounded border px-1.5 font-sans text-[10px] lg:inline-block">
+                Alt+1
+              </kbd>
             </Button>
-            {categories.map((cat) => (
+            {categories.map((cat, index) => (
               <Button
                 key={cat.id}
                 variant={selectedCategory === cat.id ? "default" : "outline"}
@@ -366,10 +452,16 @@ export function POSView({
                 className="whitespace-nowrap"
               >
                 {cat.name}
+                {index < 8 && (
+                  <kbd className="ml-2 hidden rounded border px-1.5 font-sans text-[10px] lg:inline-block">
+                    Alt+{index + 2}
+                  </kbd>
+                )}
               </Button>
             ))}
           </div>
           <ProductGrid
+            key={`${selectedCategory}-${debouncedSearchQuery}`}
             products={products}
             onAddToCart={addToCart}
             onFetchNextPage={fetchNextPage}

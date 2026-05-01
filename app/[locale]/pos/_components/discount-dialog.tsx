@@ -86,7 +86,9 @@ export function DiscountDialog({
       setCode('');
       toast({
         title: t('discount_applied'),
-        description: `${discount.type === 'PERCENTAGE' ? `${discount.value}%` : `Amount ${discount.value}`} off`
+        description: discount.type === 'PERCENTAGE'
+          ? t('discount_percent_off', { percent: discount.value })
+          : t('discount_amount_off', { amount: discount.value })
       });
 
     } catch (error) {
@@ -146,7 +148,7 @@ export function DiscountDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t('Common.cancel')}
+            {t('cancel')}
           </Button>
           {initialValue > 0 && (
             <Button variant="destructive" onClick={() => { onApply(0, 'FIXED'); onOpenChange(false); }}>

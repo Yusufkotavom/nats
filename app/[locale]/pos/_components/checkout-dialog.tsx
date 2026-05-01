@@ -177,7 +177,7 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('Common.cancel')}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
           <Button onClick={handleConfirm} disabled={!isValid || loading} size="lg" className="w-full sm:w-auto">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('confirm_payment')}

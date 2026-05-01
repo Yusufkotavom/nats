@@ -54,7 +54,7 @@ export function HoldOrderDialog({ open, onOpenChange, onConfirm, isPending }: Ho
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('Common.cancel')}
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending ? t('holding') : t('hold_order_btn')}
