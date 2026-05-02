@@ -47,7 +47,7 @@ export default function CreateMovementPage() {
   }));
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex flex-1 flex-col gap-2 p-4 pt-0">
       <div className="flex items-center gap-4">
         <h2 className="text-2xl font-bold tracking-tight">
           {t("inventory_movements")}

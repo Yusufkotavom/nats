@@ -68,7 +68,7 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+    <div className="flex flex-1 flex-col gap-2 p-4 pt-0">
       <h1 className="text-lg font-bold mb-2">{t("financial_reports")}</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {reports.map((report) => (

@@ -100,6 +100,7 @@ export function SalesInvoiceForm({
   const confirm = useConfirm();
   const { toast } = useToast();
   const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
 
   const [attachments, setAttachments] = useState<Attachment[]>(
     invoice?.attachments?.map((a) => ({
@@ -494,22 +495,22 @@ export function SalesInvoiceForm({
 
                 <div className="col-span-2 grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{t("department")}</Label>
+                    <label className="text-sm font-medium">{t("department")}</label>
                     <SearchableSelect
                       value={formData.departmentId || ""}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
                       options={departments.map(d => ({ value: d.id, label: d.name }))}
-                      placeholder="Select Department"
+                      placeholder={t("placeholder_select_department")}
                       disabled={readonly}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t("project")}</Label>
+                    <label className="text-sm font-medium">{t("project")}</label>
                     <SearchableSelect
                       value={formData.projectId || ""}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
                       options={projects.map(p => ({ value: p.id, label: p.name }))}
-                      placeholder="Select Project"
+                      placeholder={t("placeholder_select_project")}
                       disabled={readonly}
                     />
                   </div>
@@ -656,7 +657,7 @@ export function SalesInvoiceForm({
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Products</CardTitle>
+                <CardTitle>{tCommon("products")}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <DndContext
@@ -668,15 +669,15 @@ export function SalesInvoiceForm({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
-                        <TableHead>Description</TableHead>
+                        <TableHead>{tCommon("description")}</TableHead>
                         {/* Removed Account Header to match cells */}
-                        <TableHead className="w-[100px]">Qty</TableHead>
-                        <TableHead className="w-[120px]">Unit Price</TableHead>
+                        <TableHead className="w-[100px]">{tCommon("quantity")}</TableHead>
+                        <TableHead className="w-[120px]">{tCommon("price")}</TableHead>
                         <TableHead className="w-[120px]">
-                          Discount (%)
+                          {tCommon("discount")} (%)
                         </TableHead>
-                        <TableHead className="w-[180px]">Tax Rate</TableHead>
-                        <TableHead className="w-[100px]">Total</TableHead>
+                        <TableHead className="w-[180px]">{tCommon("tax_rate")}</TableHead>
+                        <TableHead className="w-[100px]">{tCommon("total")}</TableHead>
                         {!readonly && (
                           <TableHead className="w-[50px]"></TableHead>
                         )}
@@ -780,7 +781,7 @@ export function SalesInvoiceForm({
                                   }
                                   disabled={readonly}
                                   className="mt-1"
-                                  placeholder="Amount"
+                                  placeholder={tCommon("amount")}
                                 />
                               )}
                             </TableCell>

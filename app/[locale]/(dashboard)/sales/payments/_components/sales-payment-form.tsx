@@ -26,6 +26,7 @@ import {
   PageFormLayout,
   PageFormTitle,
 } from "@/components/layout/page/form-layout";
+import { useTranslations } from "next-intl";
 import {
   SalesInvoice,
   Contact,
@@ -55,6 +56,8 @@ export function SalesPaymentForm({
 }: SalesPaymentFormProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formatDate = useFormatDate();
   const formatCurrency = useFormatCurrency();
@@ -197,14 +200,14 @@ export function SalesPaymentForm({
     <PageFormLayout>
       <form onSubmit={handleSubmit}>
         <PageFormHeader>
-          <PageFormTitle title={initialData ? (readonly ? "View Payment" : "Edit Payment") : "New Payment"} />
+          <PageFormTitle title={initialData ? (readonly ? t("view_payment") : t("edit_payment")) : t("new_payment")} />
           <PageFormActions>
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
             >
-              {readonly ? "Back" : "Cancel"}
+              {readonly ? tCommon("back") : tCommon("cancel")}
             </Button>
             {initialData ? (
               <Button asChild type="button" variant="outline">
@@ -220,19 +223,19 @@ export function SalesPaymentForm({
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {initialData ? "Update Payment" : "Save Payment"}
+                {initialData ? t("update_payment") : t("save_payment")}
               </Button>
             )}
           </PageFormActions>
         </PageFormHeader>
         <PageFormContent className="grid gap-6 md:grid-cols-2 pt-6 mt-4">
           <CustomSelect
-            label="Invoice"
+            label={t("invoice")}
             value={formData.salesInvoiceId}
             onValueChange={(val) =>
               setFormData((prev) => ({ ...prev, salesInvoiceId: val }))
             }
-            placeholder="Select invoice to pay"
+            placeholder={t("placeholder_select_invoice")}
             disabled={readonly || !!initialData} // Disable changing invoice on edit for safety
           >
             {initialData && readonly && initialData.salesInvoice ? (
@@ -257,17 +260,17 @@ export function SalesPaymentForm({
           </CustomSelect>
 
           <CustomInput
-            label="Payment Number"
+            label={t("payment_number")}
             value={formData.paymentNumber}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, paymentNumber: e.target.value }))
             }
-            placeholder="Auto-generated if empty"
+            placeholder={t("placeholder_auto_generate")}
             disabled={readonly || !!initialData} // Usually payment number is fixed
           />
 
           <CustomInput
-            label="Payment Date"
+            label={t("payment_date")}
             type="date"
             value={dateStr}
             onChange={(e) => setDateStr(e.target.value)}
@@ -276,27 +279,27 @@ export function SalesPaymentForm({
           />
 
           <CustomSelect
-            label="Payment Method"
+            label={t("payment_method")}
             value={formData.method || ""}
             onValueChange={(val) =>
               setFormData((prev) => ({ ...prev, method: val }))
             }
-            placeholder="Select method"
+            placeholder={t("placeholder_select_method")}
             disabled={readonly}
           >
-            <SelectItem value="CASH">Cash</SelectItem>
-            <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
-            <SelectItem value="CHECK">Check</SelectItem>
-            <SelectItem value="OTHER">Other</SelectItem>
+            <SelectItem value="CASH">{t("method_cash")}</SelectItem>
+            <SelectItem value="BANK_TRANSFER">{t("method_bank_transfer")}</SelectItem>
+            <SelectItem value="CHECK">{t("method_check")}</SelectItem>
+            <SelectItem value="OTHER">{t("method_other")}</SelectItem>
           </CustomSelect>
 
           <CustomSelect
-            label="Deposit To (Account)"
+            label={t("deposit_to")}
             value={formData.cashAccountId}
             onValueChange={(val) =>
               setFormData((prev) => ({ ...prev, cashAccountId: val }))
             }
-            placeholder="Select account"
+            placeholder={t("placeholder_select_account")}
             disabled={readonly}
           >
             {readonly && initialData?.cashAccount ? (
@@ -311,7 +314,7 @@ export function SalesPaymentForm({
           </CustomSelect>
 
           <CustomInput
-            label="Amount"
+            label={t("amount")}
             type="number"
             value={formData.amount}
             onChange={(e) =>
@@ -324,18 +327,18 @@ export function SalesPaymentForm({
           />
 
           <CustomInput
-            label="Reference"
+            label={t("reference")}
             value={formData.reference || ""}
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, reference: e.target.value }))
             }
-            placeholder="e.g. Check #123"
+            placeholder={t("placeholder_reference")}
             disabled={readonly}
           />
 
           <div className="md:col-span-2 grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Department</label>
+              <label className="text-sm font-medium">{t("department")}</label>
               <SearchableSelect
                 value={formData.departmentId || ""}
                 onValueChange={(val) =>
@@ -345,12 +348,12 @@ export function SalesPaymentForm({
                   value: d.id,
                   label: d.name,
                 }))}
-                placeholder="Select Department"
+                placeholder={t("placeholder_select_department")}
                 disabled={readonly}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Project</label>
+              <label className="text-sm font-medium">{t("project")}</label>
               <SearchableSelect
                 value={formData.projectId || ""}
                 onValueChange={(val) =>
@@ -360,7 +363,7 @@ export function SalesPaymentForm({
                   value: p.id,
                   label: p.name,
                 }))}
-                placeholder="Select Project"
+                placeholder={t("placeholder_select_project")}
                 disabled={readonly}
               />
             </div>
@@ -368,19 +371,19 @@ export function SalesPaymentForm({
 
           <div className="md:col-span-2">
             <CustomTextarea
-              label="Notes"
+              label={t("notes")}
               value={formData.notes || ""}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, notes: e.target.value }))
               }
-              placeholder="Add any notes here..."
+              placeholder={t("placeholder_notes")}
               disabled={readonly}
             />
           </div>
 
           <div className="md:col-span-2">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">Attachments</label>
+              <label className="text-sm font-medium">{tCommon("attachments")}</label>
               {!readonly && (
                 <Button
                   type="button"
@@ -389,7 +392,7 @@ export function SalesPaymentForm({
                   onClick={() => setAttachmentDialogOpen(true)}
                 >
                   <Paperclip className="mr-2 h-4 w-4" />
-                  Add Files
+                  {tCommon("add_files")}
                 </Button>
               )}
             </div>
@@ -424,7 +427,7 @@ export function SalesPaymentForm({
               ))}
               {attachments.length === 0 && (
                 <span className="text-sm text-muted-foreground">
-                  No attachments
+                  {tCommon("no_attachments")}
                 </span>
               )}
             </div>

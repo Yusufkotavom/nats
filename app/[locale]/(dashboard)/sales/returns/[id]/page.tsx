@@ -46,16 +46,14 @@ export default async function ViewSalesReturnPage(props: PageProps) {
     SuperJSON.deserialize<SalesReturnWithDetails>(returnItem);
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <SalesReturnForm
-        returnItem={returnItem}
-        customers={customers.data}
-        salesOrders={salesOrders as unknown as SuperJSONResult}
-        salesInvoices={salesInvoices as unknown as SuperJSONResult}
-        departments={departments}
-        projects={projects.projects}
-        readonly
-      />
-    </div>
+    <SalesReturnForm
+      returnItem={returnItem}
+      customers={customers.data}
+      salesOrders={salesOrders as unknown as SuperJSONResult}
+      salesInvoices={salesInvoices as unknown as SuperJSONResult}
+      departments={departments}
+      projects={projects.projects}
+      readonly
+    />
   );
 }

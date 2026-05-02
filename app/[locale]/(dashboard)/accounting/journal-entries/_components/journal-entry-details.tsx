@@ -115,7 +115,7 @@ export function JournalEntryDetails({
 
   return (
     entry && (
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0 w-full">
+      <div className="flex flex-1 flex-col gap-2 p-4 pt-0 w-full">
         <div className="flex items-center">
           <div className="flex items-center gap-4 justify-between w-full">
             <div className="flex flex-col">

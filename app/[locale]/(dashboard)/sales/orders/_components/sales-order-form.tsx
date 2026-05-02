@@ -93,6 +93,7 @@ import {
   PageFormLayout,
   PageFormTitle,
 } from "@/components/layout/page/form-layout";
+import { useTranslations } from "next-intl";
 
 interface SalesOrderFormProps {
   order?: SuperJSONResult;
@@ -120,6 +121,8 @@ export function SalesOrderForm({
       : [];
 
   const router = useRouter();
+  const t = useTranslations("Sales");
+  const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
   const [isLoading, setIsLoading] = useState(false);
@@ -378,214 +381,213 @@ export function SalesOrderForm({
 
   return (
     <PageFormLayout>
-      <form onSubmit={handleSubmit}>
-        <PageFormHeader>
-          <div className="flex gap-5 items-center">
-            <PageFormTitle title={displayOrderNumber === "Draft"
-              ? "Draft Sales Order"
-              : `Sales Order ${displayOrderNumber || "New"}`} />
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "h-2.5 w-2.5 rounded-full",
-                  formData.status === "DRAFT"
-                    ? "bg-gray-500"
-                    : formData.status === "CONFIRMED"
-                      ? "bg-blue-500"
-                      : formData.status === "PARTIALLY_SHIPPED"
-                        ? "bg-yellow-500"
-                        : formData.status === "CLOSED"
-                          ? "bg-green-500"
-                          : "bg-red-500",
-                )}
-              />
-              <span className="font-medium">
-                {formData.status?.replace("_", " ")}
-              </span>
-              {order && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                      <InfoIcon className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="min-w-1/3">
-                    <DialogHeader>
-                      <DialogTitle>Status History</DialogTitle>
-                    </DialogHeader>
-                    <Table className="text-sm">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="font-medium">Event</TableHead>
-                          <TableHead className="text-right">Timestamp</TableHead>
-                          <TableHead className="text-right">User</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>Created</TableCell>
-                          <TableCell className="text-right">
-                            {order.createdAt && formatDate(order.createdAt)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {order.createdById || "System"}
-                          </TableCell>
-                        </TableRow>
-
-                        <TableRow>
-                          <TableCell>Last Updated</TableCell>
-                          <TableCell className="text-right">
-                            {order.updatedAt && formatDate(order.updatedAt)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {order.updatedById || "System"}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Confirmed</TableCell>
-                          <TableCell className="text-right">
-                            {order.confirmedAt && formatDate(order.confirmedAt)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {order.confirmedById || "System"}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Closed</TableCell>
-                          <TableCell className="text-right">
-                            {order.closedAt && formatDate(order.closedAt)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {order.closedById || "System"}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>Cancelled</TableCell>
-                          <TableCell className="text-right">
-                            {order.cancelledAt && formatDate(order.cancelledAt)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {order.cancelledById || "System"}
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </DialogContent>
-                </Dialog>
+      <PageFormHeader>
+        <div className="flex gap-5 items-center">
+          <PageFormTitle title={displayOrderNumber === "Draft"
+            ? "Draft Sales Order"
+            : `Sales Order ${displayOrderNumber || "New"}`} />
+          <div className="flex items-center gap-2">
+            <div
+              className={cn(
+                "h-2.5 w-2.5 rounded-full",
+                formData.status === "DRAFT"
+                  ? "bg-gray-500"
+                  : formData.status === "CONFIRMED"
+                    ? "bg-blue-500"
+                    : formData.status === "PARTIALLY_SHIPPED"
+                      ? "bg-yellow-500"
+                      : formData.status === "CLOSED"
+                        ? "bg-green-500"
+                        : "bg-red-500",
               )}
-            </div>
-          </div>
-          <PageFormActions>
-            {/* Action Buttons */}
-            {isDraft && !readonly && (
-              <>
-                <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {!isLoading && <SaveIcon />}
-                  {isEditing ? "Save" : "Create"}
-                </Button>
-                {isEditing && (
-                  <Button
-                    type="button"
-                    onClick={handleConfirm}
-                    disabled={isLoading}
-                  >
-                    <CheckCheckIcon />
-                    Confirm
+            />
+            <span className="font-medium">
+              {formData.status?.replace("_", " ")}
+            </span>
+            {order && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <InfoIcon className="h-4 w-4" />
                   </Button>
-                )}
-              </>
-            )}
+                </DialogTrigger>
+                <DialogContent className="min-w-1/3">
+                  <DialogHeader>
+                    <DialogTitle>Status History</DialogTitle>
+                  </DialogHeader>
+                  <Table className="text-sm">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-medium">Event</TableHead>
+                        <TableHead className="text-right">Timestamp</TableHead>
+                        <TableHead className="text-right">User</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Created</TableCell>
+                        <TableCell className="text-right">
+                          {order.createdAt && formatDate(order.createdAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {order.createdById || "System"}
+                        </TableCell>
+                      </TableRow>
 
-            {formData.status === "CONFIRMED" && !readonly && (
-              <>
-                <Button type="button" onClick={handleClose} disabled={isLoading}>
-                  <CheckCircle />
-                  Finish
-                </Button>
+                      <TableRow>
+                        <TableCell>Last Updated</TableCell>
+                        <TableCell className="text-right">
+                          {order.updatedAt && formatDate(order.updatedAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {order.updatedById || "System"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Confirmed</TableCell>
+                        <TableCell className="text-right">
+                          {order.confirmedAt && formatDate(order.confirmedAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {order.confirmedById || "System"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Closed</TableCell>
+                        <TableCell className="text-right">
+                          {order.closedAt && formatDate(order.closedAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {order.closedById || "System"}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Cancelled</TableCell>
+                        <TableCell className="text-right">
+                          {order.cancelledAt && formatDate(order.cancelledAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {order.cancelledById || "System"}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </div>
+        <PageFormActions>
+          {/* Action Buttons */}
+          {isDraft && !readonly && (
+            <>
+              <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {!isLoading && <SaveIcon className="mr-2 h-4 w-4" />}
+                {isEditing ? tCommon("save") : tCommon("create")}
+              </Button>
+              {isEditing && (
                 <Button
                   type="button"
-                  variant="destructive"
-                  onClick={handleCancel}
+                  onClick={handleConfirm}
                   disabled={isLoading}
                 >
-                  <Trash2Icon />
-                  Discard
+                  <CheckCheckIcon className="mr-2 h-4 w-4" />
+                  {tCommon("confirm")}
                 </Button>
-              </>
-            )}
+              )}
+            </>
+          )}
 
-            {formData.status === "PARTIALLY_SHIPPED" && !readonly && (
-              <Button
-                type="button"
-                onClick={handleClose}
-                disabled={isLoading}
-                className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-              >
-                <CheckCircle />
-                Finish
+          {formData.status === "CONFIRMED" && !readonly && (
+            <>
+              <Button type="button" onClick={handleClose} disabled={isLoading}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {tCommon("finish")}
               </Button>
-            )}
-
-            {/* Allow cancelling Drafts too */}
-            {isDraft && isEditing && !readonly && (
               <Button
                 type="button"
                 variant="destructive"
                 onClick={handleCancel}
                 disabled={isLoading}
               >
-                <Trash2Icon />
-                Discard
+                <Trash2Icon className="mr-2 h-4 w-4" />
+                {tCommon("discard")}
               </Button>
-            )}
+            </>
+          )}
 
-            {order && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsReportPreviewOpen(true)}
-                >
-                  <PrinterIcon className="mr-2 h-4 w-4" />
-                  Print
-                </Button>
-                <ReportPreviewDialog
-                  isOpen={isReportPreviewOpen}
-                  onOpenChange={setIsReportPreviewOpen}
-                  code="SALES_ORDER"
-                  input={{ orderId: order.id }}
-                  title={`Sales Order #${order.orderNumber}`}
-                />
-              </>
-            )}
-
+          {formData.status === "PARTIALLY_SHIPPED" && !readonly && (
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  router.back();
-                } else {
-                  window.close();
-                }
-              }}
+              onClick={handleClose}
+              disabled={isLoading}
+              className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
             >
-              <ArrowLeftSquare className="mr-2 h-4 w-4" />
-              Close
+              <CheckCircle />
+              Finish
             </Button>
+          )}
 
-          </PageFormActions>
-        </PageFormHeader>
-        {budgetWarning && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Budget Warning</AlertTitle>
-            <AlertDescription>{budgetWarning}</AlertDescription>
-          </Alert>
-        )}
+          {/* Allow cancelling Drafts too */}
+          {isDraft && isEditing && !readonly && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={isLoading}
+            >
+              <Trash2Icon />
+              Discard
+            </Button>
+          )}
+
+          {order && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsReportPreviewOpen(true)}
+              >
+                <PrinterIcon className="mr-2 h-4 w-4" />
+                {tCommon("print")}
+              </Button>
+              <ReportPreviewDialog
+                isOpen={isReportPreviewOpen}
+                onOpenChange={setIsReportPreviewOpen}
+                code="SALES_ORDER"
+                input={{ orderId: order.id }}
+                title={`Sales Order #${order.orderNumber}`}
+              />
+            </>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                window.close();
+              }
+            }}
+          >
+            <ArrowLeftSquare className="mr-2 h-4 w-4" />
+            {tCommon("close")}
+          </Button>
+
+        </PageFormActions>
+      </PageFormHeader>
+      {budgetWarning && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Budget Warning</AlertTitle>
+          <AlertDescription>{budgetWarning}</AlertDescription>
+        </Alert>
+      )} <form onSubmit={handleSubmit}>
         <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
           <div className="space-y-4">
             <Card>
@@ -594,11 +596,11 @@ export function SalesOrderForm({
                   <div className="flex flex-col gap-2">
                     <CustomSelect
                       value={formData.contactId}
-                      label="Customer"
+                      label={t("customer")}
                       onValueChange={(val) =>
                         setFormData((prev) => ({ ...prev, contactId: val }))
                       }
-                      placeholder="Select Customer"
+                      placeholder={t("placeholder_select_customer")}
                       disabled={isReadOnly}
                     >
                       {customers.map((c) => (
@@ -610,7 +612,7 @@ export function SalesOrderForm({
                     <div className="grid grid-cols-2 gap-2">
                       <CustomInput
                         type="date"
-                        label="Order Date"
+                        label={t("order_date")}
                         id="order_date"
                         value={
                           formData.orderDate
@@ -629,7 +631,7 @@ export function SalesOrderForm({
                       />
                       <CustomInput
                         type="date"
-                        label="Expected Date"
+                        label={t("expected_date")}
                         id="expected_date"
                         value={
                           formData.expectedDate
@@ -650,22 +652,22 @@ export function SalesOrderForm({
 
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Department</label>
+                        <label className="text-sm font-medium">{t("department")}</label>
                         <SearchableSelect
                           value={formData.departmentId || ""}
                           onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
                           options={departments.map(d => ({ value: d.id, label: d.name }))}
-                          placeholder="Default Budget"
+                          placeholder={t("placeholder_select_department")}
                           disabled={isReadOnly}
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Project</label>
+                        <label className="text-sm font-medium">{t("project")}</label>
                         <SearchableSelect
                           value={formData.projectId || ""}
                           onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
                           options={projects.map(p => ({ value: p.id, label: p.name }))}
-                          placeholder="Default Budget"
+                          placeholder={t("placeholder_select_project")}
                           disabled={isReadOnly}
                         />
                       </div>
@@ -673,14 +675,15 @@ export function SalesOrderForm({
                   </div>
                   <CustomTextarea
                     value={formData.notes || ""}
-                    label="Notes"
-                    className="resize-none"
+                    label={t("notes")}
+                    className="resize-none h-[85%]"
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
                         notes: e.target.value,
                       }))
                     }
+                    placeholder={t("placeholder_notes")}
                     disabled={isReadOnly}
                   />
                   <div className="flex flex-col gap-2">
@@ -691,7 +694,7 @@ export function SalesOrderForm({
                       className="w-fit"
                     >
                       <Paperclip className="mr-2 h-4 w-4" />
-                      Attachments ({attachments.length})
+                      {tCommon("attachments")} ({attachments.length})
                     </Button>
                     <div className="flex flex-wrap gap-2">
                       {attachments.map((file) => (
@@ -717,7 +720,7 @@ export function SalesOrderForm({
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Ordered Items</CardTitle>
+                <CardTitle>{t("ordered_items")}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <DndContext
@@ -729,11 +732,11 @@ export function SalesOrderForm({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead className="w-[120px]">Order Qty</TableHead>
-                        <TableHead className="w-[80px]">Unit</TableHead>
-                        <TableHead className="w-[150px]">Price</TableHead>
-                        <TableHead className="w-[150px]">Total</TableHead>
+                        <TableHead>{tCommon("product")}</TableHead>
+                        <TableHead className="w-[120px]">{tCommon("quantity")}</TableHead>
+                        <TableHead className="w-[80px]">{tCommon("unit")}</TableHead>
+                        <TableHead className="w-[150px]">{tCommon("price")}</TableHead>
+                        <TableHead className="w-[150px]">{tCommon("total")}</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -750,7 +753,7 @@ export function SalesOrderForm({
                                 onValueChange={(val) =>
                                   handleItemChange(index, "productId", val)
                                 }
-                                placeholder="Select Product"
+                                placeholder={tCommon("placeholder_select_product")}
                                 disabled={isReadOnly}
                               >
                                 {products?.map(

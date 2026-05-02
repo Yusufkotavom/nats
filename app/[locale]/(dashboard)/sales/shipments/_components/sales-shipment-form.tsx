@@ -44,12 +44,9 @@ import { uploadFile } from "@/app/[locale]/(dashboard)/general/files/actions";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
-    PageFormActions,
-    PageFormContent,
-    PageFormHeader,
-    PageFormLayout,
     PageFormTitle,
 } from "@/components/layout/page/form-layout";
+import { useTranslations } from "next-intl";
 
 interface SalesShipmentFormProps {
     shipment?: SuperJSONResult;
@@ -69,6 +66,8 @@ export function SalesShipmentForm({
     readonly = false,
 }: SalesShipmentFormProps) {
     const router = useRouter();
+    const t = useTranslations("Sales");
+    const tCommon = useTranslations("Common");
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
 
@@ -270,7 +269,7 @@ export function SalesShipmentForm({
         <PageFormLayout>
             <form onSubmit={handleSubmit} className="space-y-8 w-full">
                 <PageFormHeader>
-                    <PageFormTitle title={shipment ? "Edit Sales Shipment" : "New Sales Shipment"} />
+                    <PageFormTitle title={shipment ? t("edit_shipment") : t("new_shipment")} />
                     <PageFormActions>
                         {!readonly && (
                             <>
@@ -291,7 +290,7 @@ export function SalesShipmentForm({
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={loading}>
-                                    {loading ? "Saving..." : shipment ? "Update" : "Create"}
+                                    {loading ? tCommon("saving") : shipment ? tCommon("update") : tCommon("create")}
                                 </Button>
                             </>
                         )}
@@ -301,35 +300,30 @@ export function SalesShipmentForm({
                                 variant="outline"
                                 onClick={() => router.back()}
                             >
-                                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                <ArrowLeft className="mr-2 h-4 w-4" /> {tCommon("back")}
                             </Button>
                         )}
                     </PageFormActions>
                 </PageFormHeader>
                 <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
                 <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <Label>Shipment Number</Label>
                         <CustomInput
-                            value={shipment?.shipmentNumber || "Auto-generated"}
+                            label={t("shipment_number")}
+                            value={shipment?.shipmentNumber || t("placeholder_auto_generate")}
                             disabled={true}
                         />
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label>Customer</Label>
                         <CustomSelect
+                            label={t("customer")}
                             defaultValue={formData.contactId}
                             onValueChange={(val: any) => handleContactChange(val)}
                             options={customers.map((c) => ({ label: c.name, value: c.id }))}
                             disabled={readonly}
-                            placeholder="Select customer..."
+                            placeholder={t("placeholder_select_customer")}
                         />
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label>Sales Order (Optional)</Label>
                         <CustomSelect
+                            label={t("sales_order_optional")}
                             value={formData.salesOrderId || ""}
                             onValueChange={(val: any) => handleSalesOrderChange(val)}
                             options={filteredSalesOrders.map((so) => ({
@@ -337,46 +331,44 @@ export function SalesShipmentForm({
                                 value: so.id,
                             }))}
                             disabled={readonly || !formData.contactId}
-                            placeholder="Select SO..."
+                            placeholder={t("placeholder_select_so")}
                         />
-                    </div>
 
                     <div className="col-span-2 grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Department</Label>
-                            <SearchableSelect
-                                value={formData.departmentId || ""}
-                                onValueChange={(val) =>
-                                    setFormData((prev) => ({ ...prev, departmentId: val || null }))
-                                }
-                                options={departments.map((d) => ({
-                                    value: d.id,
-                                    label: d.name,
-                                }))}
-                                placeholder="Select Department"
-                                disabled={readonly}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Project</Label>
-                            <SearchableSelect
-                                value={formData.projectId || ""}
-                                onValueChange={(val) =>
-                                    setFormData((prev) => ({ ...prev, projectId: val || null }))
-                                }
-                                options={projects.map((p) => ({
-                                    value: p.id,
-                                    label: p.name,
-                                }))}
-                                placeholder="Select Project"
-                                disabled={readonly}
-                            />
-                        </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">{t("department")}</label>
+                                <SearchableSelect
+                                    value={formData.departmentId || ""}
+                                    onValueChange={(val) =>
+                                        setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                                    }
+                                    options={departments.map((d) => ({
+                                        value: d.id,
+                                        label: d.name,
+                                    }))}
+                                    placeholder={t("placeholder_select_department")}
+                                    disabled={readonly}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">{t("project")}</label>
+                                <SearchableSelect
+                                    value={formData.projectId || ""}
+                                    onValueChange={(val) =>
+                                        setFormData((prev) => ({ ...prev, projectId: val || null }))
+                                    }
+                                    options={projects.map((p) => ({
+                                        value: p.id,
+                                        label: p.name,
+                                    }))}
+                                    placeholder={t("placeholder_select_project")}
+                                    disabled={readonly}
+                                />
+                            </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Shipment Date</Label>
                         <CustomInput
+                            label={t("shipment_date")}
                             type="date"
                             value={formData.shipmentDate.toISOString().split("T")[0]}
                             onChange={(e) =>
@@ -388,48 +380,41 @@ export function SalesShipmentForm({
                             disabled={readonly}
                             required
                         />
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label>Tracking Number</Label>
                         <CustomInput
+                            label={t("tracking_number")}
                             value={formData.trackingNumber || ""}
                             onChange={(e) =>
                                 setFormData({ ...formData, trackingNumber: e.target.value })
                             }
                             disabled={readonly}
-                            placeholder="Tracking Number"
+                            placeholder={t("tracking_number")}
                         />
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label>Carrier</Label>
                         <CustomInput
+                            label={t("carrier")}
                             value={formData.carrier || ""}
                             onChange={(e) =>
                                 setFormData({ ...formData, carrier: e.target.value })
                             }
                             disabled={readonly}
-                            placeholder="Carrier"
+                            placeholder={t("carrier")}
                         />
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label>Notes</Label>
                         <CustomTextarea
+                            label={t("notes")}
                             value={formData.notes || ""}
                             onChange={(e) =>
                                 setFormData({ ...formData, notes: e.target.value })
                             }
-                            placeholder="Additional notes..."
+                            placeholder={t("placeholder_notes")}
                             disabled={readonly}
                         />
-                    </div>
                 </div>
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">Shipment Items</h3>
+                        <h3 className="text-lg font-medium">{t("shipment_items")}</h3>
                     </div>
 
                     <div className="rounded-md border">
@@ -442,9 +427,9 @@ export function SalesShipmentForm({
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-[40px]"></TableHead>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead className="w-[150px]">Quantity</TableHead>
-                                        <TableHead className="w-[80px]">Unit</TableHead>
+                                        <TableHead>{tCommon("product")}</TableHead>
+                                        <TableHead className="w-[150px]">{tCommon("quantity")}</TableHead>
+                                        <TableHead className="w-[80px]">{tCommon("unit")}</TableHead>
                                         {!readonly && <TableHead className="w-[50px]"></TableHead>}
                                     </TableRow>
                                 </TableHeader>
@@ -459,8 +444,7 @@ export function SalesShipmentForm({
                                                     colSpan={5}
                                                     className="text-center h-24 text-muted-foreground"
                                                 >
-                                                    No items selected. Select a Sales Order to populate
-                                                    items.
+                                                    {t("no_shipments_found")}
                                                 </TableCell>
                                             </TableRow>
                                         ) : (

@@ -28,7 +28,7 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Trash2, ArrowLeft, Paperclip } from "lucide-react";
+import { Trash2, ArrowLeft, Paperclip, ArrowLeftSquare } from "lucide-react";
 import { createSalesReturn, updateSalesReturn } from "../actions";
 import { SalesReturnInput, SalesReturnWithDetails } from "../types";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -52,6 +52,8 @@ import {
     PageFormLayout,
     PageFormTitle,
 } from "@/components/layout/page/form-layout";
+import { Card, CardContent } from "@/components/ui/card";
+import { useTranslations } from "next-intl";
 
 interface SalesReturnFormProps {
     returnItem?: SuperJSONResult;
@@ -76,6 +78,8 @@ export function SalesReturnForm({
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const formatCurrency = useFormatCurrency();
+    const t = useTranslations("Sales");
+    const tCommon = useTranslations("Common");
 
     const returnItem = serializedReturnItem
         ? SuperJSON.deserialize<SalesReturnWithDetails>(serializedReturnItem)
@@ -301,303 +305,297 @@ export function SalesReturnForm({
 
     return (
         <PageFormLayout>
-            <form onSubmit={handleSubmit} className="space-y-8 w-full">
-                <PageFormHeader>
-                    <PageFormTitle title={returnItem ? "Edit Sales Return" : "New Sales Return"} />
-                    <PageFormActions>
-                        {!readonly && (
-                            <>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => setIsAttachmentDialogOpen(true)}
-                                >
-                                    <Paperclip className="mr-2 h-4 w-4" />
-                                    Attachments ({attachments.length})
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => router.back()}
-                                    disabled={loading}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button type="submit" disabled={loading}>
-                                    {loading ? "Saving..." : returnItem ? "Update" : "Create"}
-                                </Button>
-                            </>
-                        )}
-                        {readonly && (
+            <PageFormHeader>
+                <PageFormTitle title={returnItem ? t("edit_return") : t("new_return")} />
+                <PageFormActions>
+                    {!readonly && (
+                        <>
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => router.back()}
+                                disabled={loading}
                             >
-                                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                                {tCommon("cancel")}
                             </Button>
-                        )}
-                    </PageFormActions>
-                </PageFormHeader>
-                <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <Label>Return Number</Label>
-                        <CustomInput
-                            value={formData.returnNumber}
-                            onChange={(e) =>
-                                setFormData({ ...formData, returnNumber: e.target.value })
-                            }
-                            placeholder="Leave blank to auto-generate"
-                            disabled={readonly}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Customer</Label>
-                        <CustomSelect
-                            defaultValue={formData.contactId}
-                            onValueChange={(val: any) => handleContactChange(val)}
-                            options={customers.map((c) => ({ label: c.name, value: c.id }))}
-                            disabled={readonly}
-                            placeholder="Select customer..."
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Sales Order (Optional)</Label>
-                        <CustomSelect
-                            value={formData.salesOrderId || ""}
-                            onValueChange={(val: any) => handleSalesOrderChange(val)}
-                            options={filteredSalesOrders.map((so) => ({
-                                label: so.orderNumber,
-                                value: so.id,
-                            }))}
-                            disabled={readonly || !formData.contactId}
-                            placeholder="Select SO..."
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Sales Invoice (Optional)</Label>
-                        <CustomSelect
-                            value={formData.salesInvoiceId || ""}
-                            onValueChange={(val: any) =>
-                                setFormData((prev) => ({ ...prev, salesInvoiceId: val }))
-                            }
-                            options={filteredSalesInvoices.map((si) => ({
-                                label: si.invoiceNumber,
-                                value: si.id,
-                            }))}
-                            disabled={readonly || !formData.contactId}
-                            placeholder="Select Invoice..."
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Department</Label>
-                            <SearchableSelect
-                                value={formData.departmentId || ""}
-                                onValueChange={(val) =>
-                                    setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                            <Button type="submit" disabled={loading}>
+                                {loading ? tCommon("saving") : returnItem ? tCommon("update") : tCommon("create")}
+                            </Button>
+                        </>
+                    )}
+                    {readonly && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                if (window.history.length > 1) {
+                                    router.back();
+                                } else {
+                                    window.close();
                                 }
-                                options={departments.map((d) => ({
-                                    value: d.id,
-                                    label: d.name,
-                                }))}
-                                placeholder="Select Department"
-                                disabled={readonly}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Project</Label>
-                            <SearchableSelect
-                                value={formData.projectId || ""}
-                                onValueChange={(val) =>
-                                    setFormData((prev) => ({ ...prev, projectId: val || null }))
-                                }
-                                options={projects.map((p) => ({
-                                    value: p.id,
-                                    label: p.name,
-                                }))}
-                                placeholder="Select Project"
-                                disabled={readonly}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Return Date</Label>
-                            <CustomInput
-                                type="date"
-                                value={
-                                    formData.returnDate instanceof Date
-                                        ? formData.returnDate.toISOString().split("T")[0]
-                                        : formData.returnDate
-                                }
-                                onChange={(e) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        returnDate: new Date(e.target.value),
-                                    }))
-                                }
-                                disabled={readonly}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Status</Label>
-                        <CustomSelect
-                            value={formData.status || "DRAFT"}
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            onValueChange={(val: any) =>
-                                setFormData((prev) => ({ ...prev, status: val }))
-                            }
-                            options={[
-                                { label: "Draft", value: "DRAFT" },
-                                { label: "Approved", value: "APPROVED" },
-                                { label: "Completed", value: "COMPLETED" },
-                                { label: "Cancelled", value: "CANCELLED" },
-                            ]}
-                            disabled={
-                                readonly ||
-                                returnItem?.status === "COMPLETED" ||
-                                returnItem?.status === "CANCELLED"
-                            }
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Notes</Label>
-                        <CustomTextarea
-                            value={formData.notes || ""}
-                            onChange={(e) =>
-                                setFormData({ ...formData, notes: e.target.value })
-                            }
-                            placeholder="Additional notes..."
-                            disabled={readonly}
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">Return Items</h3>
-                    </div>
-
-                    <div className="rounded-md border">
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragEnd}
+                            }}
                         >
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[40px]"></TableHead>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead className="w-[150px]">Quantity</TableHead>
-                                        <TableHead className="w-[80px]">Unit</TableHead>
-                                        <TableHead className="w-[150px]">Unit Price</TableHead>
-                                        <TableHead className="w-[150px] text-right">
-                                            Total
-                                        </TableHead>
-                                        {!readonly && <TableHead className="w-[50px]"></TableHead>}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <SortableContext
-                                        items={formData.items.map((item) => item.id)}
-                                        strategy={verticalListSortingStrategy}
-                                    >
-                                        {formData.items.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell
-                                                    colSpan={7}
-                                                    className="text-center h-24 text-muted-foreground"
-                                                >
-                                                    No items selected. Select a Sales Order to populate
-                                                    items.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            formData.items.map((item, index) => (
-                                                <SortableTableRow key={item.id} id={item.id}>
-                                                    <TableCell>
-                                                        {getProductName(item.productId)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <CustomInput
-                                                            type="number"
-                                                            min="0"
-                                                            value={item.quantity}
-                                                            onChange={(e) =>
-                                                                handleItemChange(
-                                                                    index,
-                                                                    "quantity",
-                                                                    Number(e.target.value),
-                                                                )
-                                                            }
-                                                            disabled={readonly}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-muted-foreground">
-                                                        {getProductUnit(item.productId)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <CustomInput
-                                                            type="number"
-                                                            min="0"
-                                                            step="0.01"
-                                                            value={item.unitPrice}
-                                                            onChange={(e) =>
-                                                                handleItemChange(
-                                                                    index,
-                                                                    "unitPrice",
-                                                                    Number(e.target.value),
-                                                                )
-                                                            }
-                                                            disabled={readonly}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {(item.quantity * item.unitPrice).toLocaleString()}
-                                                    </TableCell>
-                                                    {!readonly && (
-                                                        <TableCell>
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => handleRemoveItem(index)}
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </TableCell>
-                                                    )}
-                                                </SortableTableRow>
-                                            ))
-                                        )}
-                                    </SortableContext>
-                                </TableBody>
-                            </Table>
-                        </DndContext>
-                    </div>
+                            <ArrowLeftSquare className="mr-2 h-4 w-4" />
+                            {tCommon("close")}
+                        </Button>
+                    )}
+                </PageFormActions>
+            </PageFormHeader>
+            <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
+                <form onSubmit={handleSubmit} className="space-y-8 w-full">
+                    <Card>
+                        <CardContent>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <CustomInput
+                                    label={t("return_number")}
+                                    value={formData.returnNumber}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, returnNumber: e.target.value })
+                                    }
+                                    placeholder={t("placeholder_auto_generate")}
+                                    disabled={readonly}
+                                />
 
-                    <div className="flex justify-end">
-                        <div className="text-right">
-                            <span className="font-medium mr-4">Total Amount:</span>
-                            <span className="text-xl font-bold">
-                                {formatCurrency(calculateTotal())}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                </PageFormContent>
-            </form>
+                                <CustomSelect
+                                    label={t("customer")}
+                                    defaultValue={formData.contactId}
+                                    onValueChange={(val: any) => handleContactChange(val)}
+                                    options={customers.map((c) => ({ label: c.name, value: c.id }))}
+                                    disabled={readonly}
+                                    placeholder={t("placeholder_select_customer")}
+                                />
+
+                                <CustomSelect
+                                    label={t("sales_order_optional")}
+                                    value={formData.salesOrderId || ""}
+                                    onValueChange={(val: any) => handleSalesOrderChange(val)}
+                                    options={filteredSalesOrders.map((so) => ({
+                                        label: so.orderNumber,
+                                        value: so.id,
+                                    }))}
+                                    disabled={readonly || !formData.contactId}
+                                    placeholder={t("placeholder_select_so")}
+                                />
+
+                                <CustomSelect
+                                    label={t("sales_invoice_optional")}
+                                    value={formData.salesInvoiceId || ""}
+                                    onValueChange={(val: any) =>
+                                        setFormData((prev) => ({ ...prev, salesInvoiceId: val }))
+                                    }
+                                    options={filteredSalesInvoices.map((si) => ({
+                                        label: si.invoiceNumber,
+                                        value: si.id,
+                                    }))}
+                                    disabled={readonly || !formData.contactId}
+                                    placeholder={t("placeholder_select_invoice")}
+                                />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">{t("department")}</label>
+                                        <SearchableSelect
+                                            value={formData.departmentId || ""}
+                                            onValueChange={(val) =>
+                                                setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                                            }
+                                            options={departments.map((d) => ({
+                                                value: d.id,
+                                                label: d.name,
+                                            }))}
+                                            placeholder={t("placeholder_select_department")}
+                                            disabled={readonly}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">{t("project")}</label>
+                                        <SearchableSelect
+                                            value={formData.projectId || ""}
+                                            onValueChange={(val) =>
+                                                setFormData((prev) => ({ ...prev, projectId: val || null }))
+                                            }
+                                            options={projects.map((p) => ({
+                                                value: p.id,
+                                                label: p.name,
+                                            }))}
+                                            placeholder={t("placeholder_select_project")}
+                                            disabled={readonly}
+                                        />
+                                    </div>
+                                </div>
+
+                                <CustomInput
+                                    label={t("return_date")}
+                                    type="date"
+                                    value={
+                                        formData.returnDate instanceof Date
+                                            ? formData.returnDate.toISOString().split("T")[0]
+                                            : formData.returnDate
+                                    }
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            returnDate: new Date(e.target.value),
+                                        }))
+                                    }
+                                    disabled={readonly}
+                                />
+
+                                <CustomSelect
+                                    label={t("status")}
+                                    value={formData.status || "DRAFT"}
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    onValueChange={(val: any) =>
+                                        setFormData((prev) => ({ ...prev, status: val }))
+                                    }
+                                    options={[
+                                        { label: t("status_draft"), value: "DRAFT" },
+                                        { label: t("status_approved"), value: "APPROVED" },
+                                        { label: t("status_completed"), value: "COMPLETED" },
+                                        { label: t("status_cancelled"), value: "CANCELLED" },
+                                    ]}
+                                    disabled={
+                                        readonly ||
+                                        returnItem?.status === "COMPLETED" ||
+                                        returnItem?.status === "CANCELLED"
+                                    }
+                                />
+
+                                <CustomTextarea
+                                    label={t("notes")}
+                                    value={formData.notes || ""}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, notes: e.target.value })
+                                    }
+                                    placeholder={t("placeholder_notes")}
+                                    disabled={readonly}
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-medium">Return Items</h3>
+                                </div>
+
+                                <div className="rounded-md border">
+                                    <DndContext
+                                        sensors={sensors}
+                                        collisionDetection={closestCenter}
+                                        onDragEnd={handleDragEnd}
+                                    >
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[40px]"></TableHead>
+                                                    <TableHead>{tCommon("product")}</TableHead>
+                                                    <TableHead className="w-[150px]">{tCommon("quantity")}</TableHead>
+                                                    <TableHead className="w-[80px]">{tCommon("unit")}</TableHead>
+                                                    <TableHead className="w-[150px]">{tCommon("price")}</TableHead>
+                                                    <TableHead className="w-[150px] text-right">
+                                                        {tCommon("total")}
+                                                    </TableHead>
+                                                    {!readonly && <TableHead className="w-[50px]"></TableHead>}
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                <SortableContext
+                                                    items={formData.items.map((item) => item.id)}
+                                                    strategy={verticalListSortingStrategy}
+                                                >
+                                                    {formData.items.length === 0 ? (
+                                                        <TableRow>
+                                                            <TableCell
+                                                                colSpan={7}
+                                                                className="text-center h-24 text-muted-foreground"
+                                                            >
+                                                                {t("no_returns_found")}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ) : (
+                                                        formData.items.map((item, index) => (
+                                                            <SortableTableRow key={item.id} id={item.id}>
+                                                                <TableCell>
+                                                                    {getProductName(item.productId)}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <CustomInput
+                                                                        type="number"
+                                                                        min="0"
+                                                                        value={item.quantity}
+                                                                        onChange={(e) =>
+                                                                            handleItemChange(
+                                                                                index,
+                                                                                "quantity",
+                                                                                Number(e.target.value),
+                                                                            )
+                                                                        }
+                                                                        disabled={readonly}
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="text-muted-foreground">
+                                                                    {getProductUnit(item.productId)}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <CustomInput
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="0.01"
+                                                                        value={item.unitPrice}
+                                                                        onChange={(e) =>
+                                                                            handleItemChange(
+                                                                                index,
+                                                                                "unitPrice",
+                                                                                Number(e.target.value),
+                                                                            )
+                                                                        }
+                                                                        disabled={readonly}
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    {(item.quantity * item.unitPrice).toLocaleString()}
+                                                                </TableCell>
+                                                                {!readonly && (
+                                                                    <TableCell>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => handleRemoveItem(index)}
+                                                                        >
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TableCell>
+                                                                )}
+                                                            </SortableTableRow>
+                                                        ))
+                                                    )}
+                                                </SortableContext>
+                                            </TableBody>
+                                        </Table>
+                                    </DndContext>
+                                </div>
+                                <div className="flex justify-between">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setIsAttachmentDialogOpen(true)}
+                                    >
+                                        <Paperclip className="mr-2 h-4 w-4" />
+                                        {tCommon("attachments")} ({attachments.length})
+                                    </Button>
+                                    <div className="text-right">
+                                        <span className="font-medium mr-4">{tCommon("total")}:</span>
+                                        <span className="text-xl font-bold">
+                                            {formatCurrency(calculateTotal())}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent></Card>
+                </form>
+            </PageFormContent>
+
             <AttachmentDialog
                 open={isAttachmentDialogOpen}
                 onOpenChange={setIsAttachmentDialogOpen}
@@ -609,6 +607,6 @@ export function SalesReturnForm({
                 }}
                 readonly={readonly}
             />
-        </PageFormLayout>
+        </PageFormLayout >
     );
 }

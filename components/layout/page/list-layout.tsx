@@ -9,7 +9,7 @@ export function PageListLayout({
 }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
   return (
     <div
-      className={cn("flex flex-1 flex-col gap-4 p-4 pt-0", className)}
+      className={cn("flex flex-1 flex-col gap-2 p-4 pt-0", className)}
       {...props}
     />
   );

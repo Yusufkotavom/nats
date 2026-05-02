@@ -20,7 +20,7 @@ export default async function SetupPage() {
     }));
 
     return (
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div className="flex flex-1 flex-col gap-2 p-4 pt-0">
             <SetupWizard
                 initialStatus={status}
                 accounts={accounts.map((a) => ({
