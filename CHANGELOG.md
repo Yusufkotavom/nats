@@ -5,6 +5,23 @@ Semua perubahan penting pada proyek ini akan didokumentasikan di file ini.
 Format ini didasarkan pada [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-05-08
+
+### Changed
+- POS transaction flow sekarang melakukan konsumsi bahan berbasis BOM aktif bila tersedia, bukan hanya mengurangi stok produk jual.
+- Fallback tetap dipertahankan: jika BOM tidak tersedia, sistem tetap mengurangi stok produk jual (backward compatible).
+
+### Fixed
+- Menambahkan guard tegas untuk mencegah konsumsi BOM non-integer pada model stok yang masih integer agar tidak terjadi drift stok diam-diam.
+
+### Docs
+- Menambahkan `AGENTS.md` berisi aturan wajib/larangan implementasi, changelog policy, dan definition of done.
+- Menambahkan `CLAUDE.md` sebagai baseline panduan agent yang merujuk ke `AGENTS.md`.
+- Menambahkan `docs/architecture.md` untuk memperjelas struktur layer dan alur kritis POS -> Inventory.
+- Menambahkan `docs/docs-index.json` sebagai registry dokumen berbasis JSON untuk tracking update dokumen.
+- Menambahkan dokumentasi domain restoran di `docs/restaurant-pos-inventory-sync.md`.
+- Memperbarui `README.md` agar merujuk seluruh dokumen engineering penting.
+
 ## [1.0.0-alpha] - 2026-04-16
 
 ### Added

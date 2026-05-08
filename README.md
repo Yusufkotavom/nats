@@ -146,3 +146,16 @@ docker-compose exec app npm run prisma:seed:minimal
 ## License
 
 This project is licensed under [LICENSE](LICENSE).
+
+---
+
+## Engineering Documentation
+
+Dokumen wajib untuk pengembangan terstruktur:
+
+- [AGENTS.md](AGENTS.md): aturan wajib/larangan implementasi dan definition of done.
+- [CLAUDE.md](CLAUDE.md): ringkasan panduan agent yang mengikuti AGENTS.md.
+- [Architecture](docs/architecture.md): struktur layer dan alur kritis sistem.
+- [Restaurant POS-Inventory Sync](docs/restaurant-pos-inventory-sync.md): audit gap + kontrak behavior domain restoran.
+- [Docs Registry JSON](docs/docs-index.json): daftar dokumen dan trigger update untuk tracking otomatis.
+- [CHANGELOG.md](CHANGELOG.md): catatan perubahan wajib setiap perubahan berdampak.

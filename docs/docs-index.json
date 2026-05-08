@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-08",
+  "policy": {
+    "changelogRequired": true,
+    "docUpdateRequiredOnBehaviorChange": true,
+    "owner": "engineering"
+  },
+  "documents": [
+    {
+      "id": "readme",
+      "path": "README.md",
+      "type": "entrypoint",
+      "status": "active",
+      "mustUpdateWhen": [
+        "install steps changed",
+        "module scope changed",
+        "developer workflow changed"
+      ]
+    },
+    {
+      "id": "changelog",
+      "path": "CHANGELOG.md",
+      "type": "change-log",
+      "status": "active",
+      "mustUpdateWhen": [
+        "any behavior-impacting change",
+        "any structure-impacting change",
+        "any docs policy change"
+      ]
+    },
+    {
+      "id": "agents-rules",
+      "path": "AGENTS.md",
+      "type": "governance",
+      "status": "active",
+      "mustUpdateWhen": [
+        "engineering guardrails changed",
+        "definition of done changed"
+      ]
+    },
+    {
+      "id": "claude-rules",
+      "path": "CLAUDE.md",
+      "type": "agent-guidance",
+      "status": "active",
+      "mustUpdateWhen": [
+        "agent instruction baseline changed"
+      ]
+    },
+    {
+      "id": "architecture",
+      "path": "docs/architecture.md",
+      "type": "architecture",
+      "status": "active",
+      "mustUpdateWhen": [
+        "layer responsibility changed",
+        "critical data flow changed"
+      ]
+    },
+    {
+      "id": "restaurant-pos-inventory-sync",
+      "path": "docs/restaurant-pos-inventory-sync.md",
+      "type": "domain",
+      "status": "active",
+      "mustUpdateWhen": [
+        "pos-inventory behavior changed",
+        "bom consumption rule changed",
+        "waste/loss flow changed"
+      ]
+    }
+  ]
+}
+
