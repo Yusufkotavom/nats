@@ -21,6 +21,14 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Menambahkan `docs/docs-index.json` sebagai registry dokumen berbasis JSON untuk tracking update dokumen.
 - Menambahkan dokumentasi domain restoran di `docs/restaurant-pos-inventory-sync.md`.
 - Memperbarui `README.md` agar merujuk seluruh dokumen engineering penting.
+- Menegaskan aturan wajib membuat test baru jika perubahan/fitur belum memiliki coverage test, dan menyinkronkannya di `AGENTS.md`, `CLAUDE.md`, serta `docs/docs-index.json`.
+
+### Added
+- Menambahkan workflow CI utama (`.github/workflows/ci.yml`) untuk `pull_request` dan `push` ke `main` dengan tahapan `npm ci`, `prisma generate`, `lint`, `test`, dan `build`.
+- Menambahkan workflow dependency review (`.github/workflows/dependency-review.yml`) untuk memeriksa risiko dependency pada PR ke `main`.
+
+### Changed
+- Memperbarui workflow release (`.github/workflows/release.yml`) agar menggunakan `npm ci`, menambahkan `permissions` eksplisit, dan `timeout` job untuk kestabilan pipeline.
 
 ## [1.0.0-alpha] - 2026-04-16
 

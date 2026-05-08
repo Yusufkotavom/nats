@@ -21,11 +21,12 @@ Dokumen ini adalah kontrak kerja untuk semua agent/kontributor di repo ini.
    - Action/controller di `app/*/actions.ts`.
    - Validasi bersama di `lib/*`.
 3. Tambahkan/ubah test untuk setiap perubahan perilaku.
-4. Update dokumen jika ada perubahan:
+4. Jika fitur/perubahan belum punya test sama sekali, wajib buat test baru pada scope yang relevan (service/action/api/component).
+5. Update dokumen jika ada perubahan:
    - Arsitektur: `docs/architecture.md`
    - Domain restoran POS-Inventory: `docs/restaurant-pos-inventory-sync.md`
    - Registry dokumen: `docs/docs-index.json`
-5. Update `CHANGELOG.md` menggunakan kategori:
+6. Update `CHANGELOG.md` menggunakan kategori:
    - `Added`, `Changed`, `Fixed`, `Removed`, `Docs`.
 
 ## 3) Yang Tidak Boleh
@@ -33,8 +34,9 @@ Dokumen ini adalah kontrak kerja untuk semua agent/kontributor di repo ini.
 1. Tidak boleh bypass service domain dengan menaruh business logic besar di UI/page.
 2. Tidak boleh ubah schema/flow tanpa menjelaskan dampak backward-compatibility.
 3. Tidak boleh merge perubahan yang mengubah behavior tanpa test.
-4. Tidak boleh menghapus/menimpa dokumentasi lama tanpa migrasi informasi.
-5. Tidak boleh mengklaim fitur selesai jika:
+4. Tidak boleh menutup task fitur/fix baru jika belum ada test dan belum ada alasan teknis tertulis kenapa test tidak bisa dibuat saat ini.
+5. Tidak boleh menghapus/menimpa dokumentasi lama tanpa migrasi informasi.
+6. Tidak boleh mengklaim fitur selesai jika:
    - belum ada verifikasi minimal,
    - atau belum tercatat di changelog.
 
@@ -59,6 +61,6 @@ Sebuah perubahan dianggap selesai hanya jika semua poin ini terpenuhi:
 1. Gap-check terdokumentasi singkat (di PR/commit note/dokumen terkait).
 2. Implementasi reuse arsitektur existing.
 3. Test relevan pass atau alasan jelas jika belum bisa dijalankan.
-4. `CHANGELOG.md` ter-update.
-5. Dokumen domain/arsitektur ter-update bila ada dampak.
-
+4. Untuk perubahan yang sebelumnya tidak ter-cover, test baru sudah ditambahkan.
+5. `CHANGELOG.md` ter-update.
+6. Dokumen domain/arsitektur ter-update bila ada dampak.

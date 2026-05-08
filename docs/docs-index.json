@@ -4,6 +4,8 @@
   "policy": {
     "changelogRequired": true,
     "docUpdateRequiredOnBehaviorChange": true,
+    "testRequiredForBehaviorChange": true,
+    "newTestRequiredIfCoverageMissing": true,
     "owner": "engineering"
   },
   "documents": [
@@ -71,4 +73,3 @@
     }
   ]
 }
-
