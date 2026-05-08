@@ -7,6 +7,7 @@ import { getReportData } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
 import { Loader2 } from "lucide-react";
 import { ReportContext } from "@/lib/reporting/types";
+import { POSReceiptHtmlPreview } from "@/app/[locale]/pos/_reports/receipt/html-preview";
 
 // Dynamically import PDFViewer to avoid SSR issues
 const PDFViewer = dynamic(
@@ -77,6 +78,10 @@ export function ReportPreview({ code, input, className }: ReportPreviewProps) {
   }
 
   const ReportComponent = clientRegistry[code as keyof typeof clientRegistry];
+
+  if (code === "POS_RECEIPT") {
+    return <POSReceiptHtmlPreview {...data} />;
+  }
 
   if (!ReportComponent) {
     return (

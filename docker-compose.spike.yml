@@ -1,0 +1,35 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:4010:3000"
+    environment:
+      - DATABASE_URL=postgresql://nats:nats_spike_password@db:5432/nats?schema=public
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - SESSION_SECRET=nats_spike_session_secret_change_me_min_32_chars
+      - STORAGE_DRIVER=local
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=nats
+      - POSTGRES_PASSWORD=nats_spike_password
+      - POSTGRES_DB=nats
+    volumes:
+      - nats_spike_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nats -d nats"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  nats_spike_db_data:

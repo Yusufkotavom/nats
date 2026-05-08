@@ -87,7 +87,7 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
     (order) =>
       order.holdId.toLowerCase().includes(search.toLowerCase()) ||
       order.customerName?.toLowerCase().includes(search.toLowerCase()) ||
-      order.user.name.toLowerCase().includes(search.toLowerCase()),
+      order.user?.name?.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -135,7 +135,7 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
                         {order.customerName || t("walk_in_customer")}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {t("held_by", { name: order.user.name })}
+                        {t("held_by", { name: order.user?.name || "-" })}
                       </div>
                     </div>
                     <div className="text-right">

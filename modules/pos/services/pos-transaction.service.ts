@@ -105,14 +105,21 @@ export class POSTransactionService {
                 orderItems: salesOrder.items,
             });
 
+            const ingredientItems = await this.resolveIngredientConsumptionItems(tx, shipment.items);
+            const movementItems = ingredientItems.length > 0
+                ? ingredientItems
+                : shipment.items.map((item) => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                }));
+
             await InventoryService.createInventoryMovement(tx, {
                 type: MovementType.OUT,
                 reference: shipment.shipmentNumber,
-                items: shipment.items.map((item) => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                })),
-                notes: `POS Sale ${salesOrder.orderNumber}`,
+                items: movementItems,
+                notes: ingredientItems.length > 0
+                    ? `POS Sale ${salesOrder.orderNumber} (BOM consumption)`
+                    : `POS Sale ${salesOrder.orderNumber}`,
                 transactionDate: new Date(),
                 warehouseId: session.warehouseId || undefined,
             });
@@ -152,6 +159,55 @@ export class POSTransactionService {
                 processed: processingResults.every((r) => r.processed),
             },
         };
+    }
+
+    private static async resolveIngredientConsumptionItems(
+        tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+        soldItems: Array<{ productId: string; quantity: number }>,
+    ): Promise<Array<{ productId: string; quantity: number }>> {
+        if (soldItems.length === 0) return [];
+
+        const aggregatedIngredients = new Map<string, number>();
+        let hasAnyBOM = false;
+
+        for (const soldItem of soldItems) {
+            const bom = await tx.billOfMaterial.findFirst({
+                where: {
+                    productId: soldItem.productId,
+                    isActive: true,
+                },
+                include: {
+                    items: true,
+                },
+                orderBy: { createdAt: "desc" },
+            });
+
+            if (!bom) continue;
+            hasAnyBOM = true;
+
+            for (const bomItem of bom.items) {
+                const rawRequiredQty = new Decimal(bomItem.quantity).mul(soldItem.quantity);
+                if (!rawRequiredQty.isInteger()) {
+                    throw new Error(
+                        `BOM quantity for product ${bomItem.productId} results in non-integer consumption (${rawRequiredQty.toString()}). ` +
+                        "Current inventory quantity only supports integer values. Please align base unit/conversion first.",
+                    );
+                }
+
+                const requiredQty = rawRequiredQty.toNumber();
+                aggregatedIngredients.set(
+                    bomItem.productId,
+                    (aggregatedIngredients.get(bomItem.productId) || 0) + requiredQty,
+                );
+            }
+        }
+
+        if (!hasAnyBOM) return [];
+
+        return Array.from(aggregatedIngredients.entries()).map(([productId, quantity]) => ({
+            productId,
+            quantity,
+        }));
     }
 
     private static async validateSession(

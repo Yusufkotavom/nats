@@ -42,6 +42,9 @@ const prismaMock = vi.hoisted(() => ({
     salesShipment: {
         create: vi.fn(),
     },
+    billOfMaterial: {
+        findFirst: vi.fn(),
+    },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
@@ -117,6 +120,7 @@ describe("POSTransactionService", () => {
                 items: [{ productId: "prod-1", quantity: 2 }]
             };
             prismaMock.salesShipment.create.mockResolvedValue(mockShipment);
+            prismaMock.billOfMaterial.findFirst.mockResolvedValue(null);
 
             // Mock Inventory Movement (Resolved via mock above)
             createInventoryMovementMock.mockResolvedValue({});
@@ -195,6 +199,117 @@ describe("POSTransactionService", () => {
 
             expect(result.invoiceId).toBe("inv-1");
             expect(result.outbox.processed).toBe(true);
+        });
+
+        it("should consume ingredient stock from active BOM when available", async () => {
+            prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+            prismaMock.pOSSession.findUnique.mockResolvedValue({
+                id: mockSessionId,
+                status: "OPEN",
+                warehouseId: "wh-1",
+                cashierId: "user-1",
+            });
+            prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
+            prismaMock.salesOrder.create.mockResolvedValue({
+                id: "so-1",
+                orderNumber: "SO-POS-1",
+                items: [{ id: "so-item-1", productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.salesInvoice.create.mockResolvedValue({
+                id: "inv-1",
+                invoiceNumber: "INV-POS-1",
+                invoiceDate: new Date(),
+                totalAmount: new Decimal(200),
+                globalDiscount: new Decimal(0),
+            });
+            prismaMock.cashAccount.findFirst.mockResolvedValue({ id: "cash-acc-1" });
+            prismaMock.salesPayment.create.mockResolvedValue({
+                id: "pay-1",
+                paymentNumber: "PAY-POS-1",
+                paymentDate: new Date(),
+                amount: new Decimal(200),
+                reference: "INV-POS-1",
+                cashAccountId: "cash-acc-1",
+                contactId: "contact-walk-in",
+                salesInvoiceId: "inv-1",
+            });
+            prismaMock.salesShipment.create.mockResolvedValue({
+                id: "shp-1",
+                shipmentNumber: "SHP-POS-1",
+                items: [{ productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.billOfMaterial.findFirst.mockResolvedValue({
+                id: "bom-1",
+                items: [
+                    { productId: "ing-1", quantity: new Decimal(3) },
+                    { productId: "ing-2", quantity: new Decimal(1) },
+                ],
+            });
+            createInventoryMovementMock.mockResolvedValue({});
+            enqueueIntegrationEventOnceMock
+                .mockResolvedValueOnce({ id: "outbox-inv", alreadyQueued: false })
+                .mockResolvedValueOnce({ id: "outbox-pay", alreadyQueued: false });
+            maybeProcessIntegrationOutboxEventMock.mockResolvedValue({ processed: true });
+
+            await POSTransactionService.process(mockSessionId, mockItems, mockPaymentMethod, mockAmountPaid);
+
+            expect(createInventoryMovementMock).toHaveBeenCalledWith(
+                prismaMock,
+                expect.objectContaining({
+                    type: "OUT",
+                    items: expect.arrayContaining([
+                        expect.objectContaining({ productId: "ing-1", quantity: 6 }),
+                        expect.objectContaining({ productId: "ing-2", quantity: 2 }),
+                    ]),
+                }),
+            );
+        });
+
+        it("should fail if BOM consumption results in non-integer quantity", async () => {
+            prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+            prismaMock.pOSSession.findUnique.mockResolvedValue({
+                id: mockSessionId,
+                status: "OPEN",
+                warehouseId: "wh-1",
+                cashierId: "user-1",
+            });
+            prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
+            prismaMock.salesOrder.create.mockResolvedValue({
+                id: "so-1",
+                orderNumber: "SO-POS-1",
+                items: [{ id: "so-item-1", productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.salesInvoice.create.mockResolvedValue({
+                id: "inv-1",
+                invoiceNumber: "INV-POS-1",
+                invoiceDate: new Date(),
+                totalAmount: new Decimal(200),
+                globalDiscount: new Decimal(0),
+            });
+            prismaMock.cashAccount.findFirst.mockResolvedValue({ id: "cash-acc-1" });
+            prismaMock.salesPayment.create.mockResolvedValue({
+                id: "pay-1",
+                paymentNumber: "PAY-POS-1",
+                paymentDate: new Date(),
+                amount: new Decimal(200),
+                reference: "INV-POS-1",
+                cashAccountId: "cash-acc-1",
+                contactId: "contact-walk-in",
+                salesInvoiceId: "inv-1",
+            });
+            prismaMock.salesShipment.create.mockResolvedValue({
+                id: "shp-1",
+                shipmentNumber: "SHP-POS-1",
+                items: [{ productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.billOfMaterial.findFirst.mockResolvedValue({
+                id: "bom-1",
+                items: [{ productId: "ing-1", quantity: new Decimal(0.25) }],
+            });
+
+            await expect(
+                POSTransactionService.process(mockSessionId, mockItems, mockPaymentMethod, mockAmountPaid),
+            ).rejects.toThrow("Current inventory quantity only supports integer values");
         });
 
         it("should throw error if session is not open", async () => {

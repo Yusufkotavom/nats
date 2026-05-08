@@ -14,6 +14,8 @@ RUN npm ci
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+ARG DATABASE_URL="postgresql://nats:nats_spike_password@db:5432/nats?schema=public"
+ENV DATABASE_URL=${DATABASE_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
