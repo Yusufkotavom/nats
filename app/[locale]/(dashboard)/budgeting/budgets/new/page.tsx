@@ -14,12 +14,17 @@ export default async function NewBudgetPage() {
   ]);
 
   const accounts = accountsResult.success ? SuperJSON.deserialize<any[]>(accountsResult.data) : [];
+  const projectList = Array.isArray((projects as any)?.projects)
+    ? (projects as any).projects
+    : Array.isArray(projects)
+      ? projects
+      : [];
 
 
   return (
     <BudgetForm
       departments={SuperJSON.serialize(departments)}
-      projects={SuperJSON.serialize(projects)}
+      projects={SuperJSON.serialize(projectList)}
       accounts={SuperJSON.serialize(accounts)}
     />
   );

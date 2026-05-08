@@ -50,3 +50,4 @@ prisma/migrations
 .agents
 .agent
 skills-lock.json
+.env*.local
