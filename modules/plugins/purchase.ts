@@ -15,6 +15,7 @@ export const purchasePlugin: ModulePlugin = {
             { title: "Purchase.dashboard", url: "/purchase/dashboard" },
             { title: "Purchase.orders", url: "/purchase/orders" },
             { title: "Purchase.invoices", url: "/purchase/invoices" },
+            { title: "Purchase.quick_purchase", url: "/purchase/quick" },
             { title: "Purchase.returns", url: "/purchase/returns" },
             { title: "Purchase.payments", url: "/purchase/payments" },
             { title: "Purchase.receives", url: "/purchase/receives" },
@@ -51,4 +52,3 @@ export const purchasePlugin: ModulePlugin = {
     },
   ],
 };
-

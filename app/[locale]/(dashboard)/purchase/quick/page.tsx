@@ -1,0 +1,33 @@
+import { Metadata } from "next";
+import { SuperJSON } from "@/lib/superjson";
+import { getQuickPurchaseFormData } from "./actions";
+import { QuickPurchaseForm } from "./_components/quick-purchase-form";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Quick Purchase | NATS",
+  description: "Fast purchase flow for cash daily and monthly credit",
+};
+
+export default async function QuickPurchasePage() {
+  const serialized = await getQuickPurchaseFormData();
+  const data = SuperJSON.deserialize<{
+    vendors: { id: string; name: string }[];
+    products: { id: string; name: string; sku: string; cost: number }[];
+    cashAccounts: { id: string; name: string }[];
+  }>(serialized);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Quick Purchase</h1>
+        <p className="text-sm text-muted-foreground">
+          Satu form untuk alur beli cepat: Receive + Invoice + Payment (cash) atau Receive + Invoice (credit).
+        </p>
+      </div>
+      <QuickPurchaseForm data={data} />
+    </div>
+  );
+}
+

@@ -431,6 +431,7 @@
         "search_returns": "Cari retur...",
         "purchase_receives": "Penerimaan Pembelian",
         "new_receive": "Penerimaan Baru",
+        "quick_purchase": "Pembelian Cepat",
         "delete_purchase_receive": "Hapus Penerimaan Pembelian",
         "delete_purchase_receive_desc": "Apakah Anda yakin ingin menghapus penerimaan ini? Tindakan ini tidak dapat dibatalkan.",
         "no_receives_found": "Tidak ada penerimaan pembelian ditemukan.",

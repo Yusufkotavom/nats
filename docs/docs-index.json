@@ -72,6 +72,17 @@
       ]
     },
     {
+      "id": "quick-purchase-implementation-needs",
+      "path": "docs/quick-purchase-implementation-needs.md",
+      "type": "implementation-needs",
+      "status": "active",
+      "mustUpdateWhen": [
+        "quick purchase scope changed",
+        "purchase orchestration design changed",
+        "dp/preorder flow design changed"
+      ]
+    },
+    {
       "id": "user-guide-start-here",
       "path": "docs/user-guide/00-start-here.md",
       "type": "user-guide",

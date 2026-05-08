@@ -17,6 +17,8 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Menyempurnakan default account mapping untuk skenario operasional awam pada seed/setup: menambahkan pemetaan `GOODS_RECEIVED_NOT_INVOICED`, `WIP_INVENTORY`, dan `PRODUCTION_OVERHEAD` agar modul purchase/production siap dipakai tanpa mapping kosong.
 - Menyempurnakan `seed-restaurant-minimal` untuk skenario restoran yang lebih realistis: menambahkan bahan dapur lanjutan (bumbu, kecap, telur, LPG), memperbaiki harga/cost dasar bahan, serta mengisi konfigurasi `baseUnit`, `purchaseUnit`, `salesUnit`, dan conversion factor per produk.
 - Menyesuaikan `seed-restaurant-minimal` dengan menghapus LPG dari master bahan dan BOM agar biaya gas dicatat sebagai pengeluaran umum/overhead, bukan konsumsi bahan per porsi.
+- Menambahkan `Quick Purchase` fase 1 (`Cash Daily` dan `Monthly Credit`) dalam satu alur ringkas yang mengorkestrasi dokumen Purchase Receive, Purchase Invoice, dan Purchase Payment (khusus cash).
+- Menambahkan akses menu sidebar `Purchase > Quick Purchase` beserta label i18n (`en`/`id`) untuk mempercepat operasional belanja harian/bulanan.
 
 ### Fixed
 - Menambahkan guard tegas untuk mencegah konsumsi BOM non-integer pada model stok yang masih integer agar tidak terjadi drift stok diam-diam.
@@ -42,6 +44,9 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbarui user guide setup awal untuk user non-akuntansi dengan urutan input dari nol sampai siap transaksi, serta memperjelas posisi budgeting minimum (`Default/Global` status `APPROVED`).
 - Menambahkan panduan arah jurnal saldo awal kas/bank (debit kas/bank, kredit ekuitas saldo awal/modal) pada setup awal agar user non-akuntansi tidak keliru.
 - Memperbarui dokumentasi modul budgeting dengan aturan edit: hanya status `DRAFT` atau `REJECTED` yang bisa diedit.
+- Menambahkan dokumen audit kebutuhan implementasi `Quick Purchase` di `docs/quick-purchase-implementation-needs.md` dan mendaftarkannya ke `docs/docs-index.json` untuk tracking scope belanja harian cash, bulanan, dan pre-order/DP.
+- Memperbarui user guide modul purchase dengan panduan penggunaan route `Quick Purchase` untuk flow cepat `cash harian` dan `credit bulanan`.
+- Memperbarui `docs/quick-purchase-implementation-needs.md` menjadi dokumen gabungan audit + status implementasi (fase 1 sudah jalan, backlog fase 2/3 dan hardening).
 
 ### Added
 - Menambahkan halaman edit budget `/budgeting/budgets/[id]/edit` dengan guard status (`DRAFT`/`REJECTED`) serta tombol `Edit` pada list/detail budget untuk status yang memenuhi syarat.
