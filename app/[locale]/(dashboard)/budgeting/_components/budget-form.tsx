@@ -77,9 +77,18 @@ interface BudgetFormProps {
 }
 
 export function BudgetForm({ departments: departmentsData, projects: projectsData, accounts: accountsData, initialData, isEdit }: BudgetFormProps) {
-  const departments = useMemo(() => SuperJSON.deserialize<Department[]>(departmentsData) || [], [departmentsData]);
-  const projects = useMemo(() => SuperJSON.deserialize<Project[]>(projectsData) || [], [projectsData]);
-  const accounts = useMemo(() => SuperJSON.deserialize<Account[]>(accountsData) || [], [accountsData]);
+  const departments = useMemo(() => {
+    const data = SuperJSON.deserialize<unknown>(departmentsData);
+    return Array.isArray(data) ? (data as Department[]) : [];
+  }, [departmentsData]);
+  const projects = useMemo(() => {
+    const data = SuperJSON.deserialize<unknown>(projectsData);
+    return Array.isArray(data) ? (data as Project[]) : [];
+  }, [projectsData]);
+  const accounts = useMemo(() => {
+    const data = SuperJSON.deserialize<unknown>(accountsData);
+    return Array.isArray(data) ? (data as Account[]) : [];
+  }, [accountsData]);
 
   const router = useRouter();
   const { toast } = useToast();
@@ -142,10 +151,16 @@ export function BudgetForm({ departments: departmentsData, projects: projectsDat
 
     try {
       if (isEdit && formData.id) {
-        await updateBudget(formData.id, dataToSubmit);
+        const result = await updateBudget(formData.id, dataToSubmit);
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to update budget");
+        }
         toast({ title: "Budget updated", description: "Your budget has been updated successfully." });
       } else {
-        await createBudget(dataToSubmit);
+        const result = await createBudget(dataToSubmit);
+        if (!result?.success) {
+          throw new Error(result?.error || "Failed to create budget");
+        }
         toast({ title: "Budget created", description: "Your budget has been created successfully." });
       }
       router.push("/budgeting");

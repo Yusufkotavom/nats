@@ -70,6 +70,71 @@
         "bom consumption rule changed",
         "waste/loss flow changed"
       ]
+    },
+    {
+      "id": "user-guide-start-here",
+      "path": "docs/user-guide/00-start-here.md",
+      "type": "user-guide",
+      "status": "active",
+      "mustUpdateWhen": [
+        "user onboarding flow changed",
+        "setup sequence changed",
+        "module navigation changed"
+      ]
+    },
+    {
+      "id": "user-guide-setup",
+      "path": "docs/user-guide/01-setup-awal.md",
+      "type": "user-guide",
+      "status": "active",
+      "mustUpdateWhen": [
+        "environment setup changed",
+        "seed/setup prerequisites changed",
+        "default account or login flow changed"
+      ]
+    },
+    {
+      "id": "user-guide-master-data",
+      "path": "docs/user-guide/02-master-data.md",
+      "type": "user-guide",
+      "status": "active",
+      "mustUpdateWhen": [
+        "master data contract changed",
+        "unit conversion behavior changed",
+        "bom setup rules changed"
+      ]
+    },
+    {
+      "id": "user-guide-ops",
+      "path": "docs/user-guide/03-operasional-harian.md",
+      "type": "user-guide",
+      "status": "active",
+      "mustUpdateWhen": [
+        "daily process changed",
+        "handoff between modules changed",
+        "end-of-day checks changed"
+      ]
+    },
+    {
+      "id": "user-guide-modules",
+      "path": "docs/user-guide/modules/",
+      "type": "user-guide",
+      "status": "active",
+      "mustUpdateWhen": [
+        "module feature flow changed",
+        "permission flow changed",
+        "ui path changed"
+      ]
+    },
+    {
+      "id": "user-guide-troubleshooting",
+      "path": "docs/user-guide/troubleshooting.md",
+      "type": "user-guide",
+      "status": "active",
+      "mustUpdateWhen": [
+        "new recurring issue appears",
+        "error handling behavior changed"
+      ]
     }
   ]
 }

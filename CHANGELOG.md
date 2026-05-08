@@ -13,6 +13,9 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 - Menambahkan guard tegas untuk mencegah konsumsi BOM non-integer pada model stok yang masih integer agar tidak terjadi drift stok diam-diam.
+- Menampilkan kembali aksi `Edit` pada menu dropdown daftar BOM di halaman production BOM list.
+- Memperbaiki menu Budgeting agar tidak lagi mengarah ke route yang belum tersedia (`/budgeting/dashboard`, `/budgeting/plans`, `/budgeting/variance`) sehingga menghilangkan error 404 pada navigasi.
+- Memperbaiki crash halaman `/budgeting/budgets/new` (`TypeError: ...map is not a function`) dengan memastikan data `projects` yang dikirim ke form selalu berupa array dan menambahkan guard deserialisasi array pada `BudgetForm`.
 
 ### Docs
 - Menambahkan `AGENTS.md` berisi aturan wajib/larangan implementasi, changelog policy, dan definition of done.
@@ -26,9 +29,18 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 - Menambahkan workflow CI utama (`.github/workflows/ci.yml`) untuk `pull_request` dan `push` ke `main` dengan tahapan `npm ci`, `prisma generate`, `lint`, `test`, dan `build`.
 - Menambahkan workflow dependency review (`.github/workflows/dependency-review.yml`) untuk memeriksa risiko dependency pada PR ke `main`.
+- Menambahkan seeder baru `prisma/seed-restaurant-minimal.ts` dan script `npm run prisma:seed:restaurant:minimal` untuk baseline data restoran tanpa transaksi.
+- Menambahkan user guide modular end-to-end di `docs/user-guide/*` untuk seluruh modul utama.
+- Menambahkan public docs page di app (`/[locale]/docs` dan alias `/docs`) untuk membaca panduan pengguna langsung dari aplikasi.
 
 ### Changed
 - Memperbarui workflow release (`.github/workflows/release.yml`) agar menggunakan `npm ci`, menambahkan `permissions` eksplisit, dan `timeout` job untuk kestabilan pipeline.
+- Menyesuaikan `seed-restaurant-minimal` agar semua kuantitas inventory awal bernilai `0` (inventori harus terbentuk melalui transaksi operasional).
+- Menyesuaikan pricing/cost bahan berbasis `GR` pada `seed-restaurant-minimal` menjadi nilai per gram agar BOM dan COGS tidak salah skala.
+- Memperbarui `README.md` dan `docs/docs-index.json` agar user guide baru dan linking antar dokumen terdaftar resmi.
+
+### Added
+- Menambahkan data 3 karyawan minimal (`EMPLOYEE` + `EmployeeDetail`) pada `seed-restaurant-minimal` untuk kebutuhan setup awal operasional restoran.
 
 ## [1.0.0-alpha] - 2026-04-16
 

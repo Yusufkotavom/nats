@@ -97,6 +97,13 @@ Includes only essential data: Company Profile, Chart of Accounts, and Default Ro
 npm run prisma:seed:minimal
 ```
 
+**Option C: Restaurant Minimal (No Transactions)**
+Extends minimal seed with restaurant master data only (menu, raw materials, BOM), without sales/purchase transactions. All initial inventory quantities are set to `0`:
+
+```bash
+npm run prisma:seed:restaurant:minimal
+```
+
 **Default Credentials:**
 
 - **Password**: `password123` (for all default users)
@@ -159,3 +166,19 @@ Dokumen wajib untuk pengembangan terstruktur:
 - [Restaurant POS-Inventory Sync](docs/restaurant-pos-inventory-sync.md): audit gap + kontrak behavior domain restoran.
 - [Docs Registry JSON](docs/docs-index.json): daftar dokumen dan trigger update untuk tracking otomatis.
 - [CHANGELOG.md](CHANGELOG.md): catatan perubahan wajib setiap perubahan berdampak.
+
+## User Documentation
+
+Panduan pengguna end-to-end tersedia di aplikasi publik:
+
+- `/docs` (redirect ke locale default)
+- `/{locale}/docs` (contoh: `/en/docs`, `/id/docs`)
+
+Source dokumen modular ada di:
+
+- `docs/user-guide/00-start-here.md`
+- `docs/user-guide/01-setup-awal.md`
+- `docs/user-guide/02-master-data.md`
+- `docs/user-guide/03-operasional-harian.md`
+- `docs/user-guide/modules/*.md`
+- `docs/user-guide/troubleshooting.md`

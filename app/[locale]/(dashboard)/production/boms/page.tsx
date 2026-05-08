@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { getBOMs, deleteBOM } from "./actions";
 import { Protect } from "@/components/ui/protect";
 import { Button } from "@/components/ui/button";
-import { Plus, MoreHorizontal, Eye, Trash2 } from "lucide-react";
+import { Plus, MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import {
     PageListActions,
@@ -169,6 +169,13 @@ export default function BOMsPage() {
                                 <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
                             </Link>
                         </DropdownMenuItem>
+                        <Protect permission="inventory.edit">
+                            <DropdownMenuItem asChild>
+                                <Link href={`/production/boms/${bom.id}/edit`}>
+                                    <Pencil className="mr-2 h-4 w-4" /> {tCommon("edit")}
+                                </Link>
+                            </DropdownMenuItem>
+                        </Protect>
                         <DropdownMenuSeparator />
                         <Protect permission="inventory.delete">
                             <DropdownMenuItem
