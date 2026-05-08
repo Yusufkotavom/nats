@@ -16,7 +16,7 @@ import {
 } from "@/components/layout/page/list-layout";
 import { PurchaseInvoiceFilters } from "./_components/purchase-invoice-filters";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { PurchaseInvoiceWithDetails } from "./types";
@@ -41,6 +41,7 @@ export default function PurchaseInvoicesPage() {
   const t = useTranslations("Purchase");
   const tCommon = useTranslations("Common");
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
   const status = searchParams.get("status") || "ALL";
@@ -220,16 +221,24 @@ export default function PurchaseInvoicesPage() {
     },
   ];
 
+  const handleCreateInvoice = () => {
+    const localeSegment = pathname?.split("/")[1];
+    const locale = localeSegment === "id" || localeSegment === "en" ? localeSegment : "en";
+    // Fallback to hard navigation so button stays reliable even if client router is stale.
+    window.location.assign(`/${locale}/purchase/invoices/new`);
+  };
+
   return (
     <PageListLayout>
       <PageListHeader>
         <PageListTitle title={t("purchase_invoices")} />
         <PageListActions>
           <Protect permission="purchase.create">
-            <Button asChild>
-              <Link href="/purchase/invoices/new">
-                <Plus className="mr-2 h-4 w-4" /> {t("new_invoice")}
-              </Link>
+            <Button
+              type="button"
+              onClick={handleCreateInvoice}
+            >
+              <Plus className="mr-2 h-4 w-4" /> {t("new_invoice")}
             </Button>
           </Protect>
         </PageListActions>

@@ -12,6 +12,11 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Fallback tetap dipertahankan: jika BOM tidak tersedia, sistem tetap mengurangi stok produk jual (backward compatible).
 - Mengubah default formatter `formatCurrency()` dari `USD` ke `IDR` dan default locale ke `id-ID`, serta membuat opsi `locale` benar-benar dipakai agar tampilan nominal lintas modul konsisten mengikuti konteks Indonesia.
 - Menyesuaikan script `start` agar menggunakan server standalone (`node .next/standalone/server.js`) sesuai konfigurasi build `output: standalone`.
+- Menyesuaikan alur `Purchase Invoice` agar nomor invoice mengikuti konfigurasi `Admin > Settings > Document Numbering`: jika dikosongkan maka sistem auto-generate `PURCHASE_INVOICE`, namun input manual tetap didukung.
+- Menambahkan shortcut menu `Accounting > Default Accounts` di sidebar ke route `/accounting/configuration/default-accounts` agar setup akun default (termasuk `GOODS_RECEIVED_NOT_INVOICED`) dapat diakses langsung.
+- Menyempurnakan default account mapping untuk skenario operasional awam pada seed/setup: menambahkan pemetaan `GOODS_RECEIVED_NOT_INVOICED`, `WIP_INVENTORY`, dan `PRODUCTION_OVERHEAD` agar modul purchase/production siap dipakai tanpa mapping kosong.
+- Menyempurnakan `seed-restaurant-minimal` untuk skenario restoran yang lebih realistis: menambahkan bahan dapur lanjutan (bumbu, kecap, telur, LPG), memperbaiki harga/cost dasar bahan, serta mengisi konfigurasi `baseUnit`, `purchaseUnit`, `salesUnit`, dan conversion factor per produk.
+- Menyesuaikan `seed-restaurant-minimal` dengan menghapus LPG dari master bahan dan BOM agar biaya gas dicatat sebagai pengeluaran umum/overhead, bukan konsumsi bahan per porsi.
 
 ### Fixed
 - Menambahkan guard tegas untuk mencegah konsumsi BOM non-integer pada model stok yang masih integer agar tidak terjadi drift stok diam-diam.
@@ -20,6 +25,11 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki crash halaman `/budgeting/budgets/new` (`TypeError: ...map is not a function`) dengan memastikan data `projects` yang dikirim ke form selalu berupa array dan menambahkan guard deserialisasi array pada `BudgetForm`.
 - Memperbaiki crash/empty state halaman `/budgeting` (`Cannot read properties of undefined (reading 'name')`) dengan memetakan `createdBy` ke data user secara manual pada action budget list dan menambahkan fallback render aman bila data user tidak ditemukan.
 - Memperbaiki kegagalan build Vercel `Module not found: '@/prisma/generated/prisma/*'` dengan memastikan `prisma generate` selalu dijalankan sebelum `next build`.
+- Memperbaiki input tanggal pada form Sales/Purchase Invoice agar mengikuti `dateFormat` dari Company Settings (termasuk input manual), sehingga tidak lagi terkunci pada format browser `MM/dd/yyyy`.
+- Mengembalikan calendar picker pada field tanggal Sales/Purchase Invoice (dengan input manual tetap aktif) agar pemilihan tanggal via klik dan format sesuai settings bisa berjalan bersamaan.
+- Memperbaiki aksi tombol `New Purchase Invoice` agar menggunakan `router.push` langsung (menghindari kasus klik tidak terdeteksi pada kombinasi `Button asChild + Link`).
+- Menambahkan fallback hard navigation (`window.location.assign`) pada tombol `New Purchase Invoice` dengan locale aktif agar klik tetap bekerja saat client routing tidak merespons.
+- Memperbaiki tombol `Create` pada form `New Purchase Invoice` dengan mengaitkan tombol submit ke elemen form (`form=\"purchase-invoice-form\"`) karena tombol berada di header di luar tag `<form>`.
 
 ### Docs
 - Menambahkan `AGENTS.md` berisi aturan wajib/larangan implementasi, changelog policy, dan definition of done.

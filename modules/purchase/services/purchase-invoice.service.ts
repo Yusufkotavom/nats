@@ -2,12 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
 import { PurchaseInvoiceInput } from "@/app/[locale]/(dashboard)/purchase/invoices/types";
 import { CalculationService } from "@/lib/utils/calculation-service";
+import { generateDocumentNumber } from "@/lib/document-numbering";
 
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class PurchaseInvoiceService {
     static async create(data: PurchaseInvoiceInput, userId: string) {
-        await this.assertUniqueInvoiceNumber(data.invoiceNumber, data.contactId);
+        const invoiceNumber = data.invoiceNumber || (await this.generateInvoiceNumber());
+        await this.assertUniqueInvoiceNumber(invoiceNumber, data.contactId);
 
         const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
@@ -15,7 +17,7 @@ export class PurchaseInvoiceService {
         return await prisma.$transaction(async (tx) => {
             const result = await tx.purchaseInvoice.create({
                 data: {
-                    invoiceNumber: data.invoiceNumber,
+                    invoiceNumber,
                     contactId: data.contactId,
                     purchaseOrderId: data.purchaseOrderId,
                     invoiceDate: data.invoiceDate,
@@ -72,8 +74,10 @@ export class PurchaseInvoiceService {
             throw new Error("Cannot edit paid or cancelled invoice");
         }
 
-        if (data.invoiceNumber !== currentInvoice.invoiceNumber) {
-            await this.assertUniqueInvoiceNumber(data.invoiceNumber, data.contactId);
+        const invoiceNumber = data.invoiceNumber || currentInvoice.invoiceNumber;
+
+        if (invoiceNumber !== currentInvoice.invoiceNumber || data.contactId !== currentInvoice.contactId) {
+            await this.assertUniqueInvoiceNumber(invoiceNumber, data.contactId);
         }
 
         const taxRates = await prisma.taxRate.findMany();
@@ -87,7 +91,7 @@ export class PurchaseInvoiceService {
             return await tx.purchaseInvoice.update({
                 where: { id },
                 data: {
-                    invoiceNumber: data.invoiceNumber,
+                    invoiceNumber,
                     contactId: data.contactId,
                     purchaseOrderId: data.purchaseOrderId,
                     invoiceDate: data.invoiceDate,
@@ -112,6 +116,10 @@ export class PurchaseInvoiceService {
                 },
             });
         });
+    }
+
+    private static async generateInvoiceNumber(): Promise<string> {
+        return await generateDocumentNumber("PURCHASE_INVOICE", "Purchase Invoice", "PI-");
     }
 
     static async delete(id: string) {

@@ -465,6 +465,7 @@ export async function seedAccounting() {
     const defaultAccounts = [
         { purpose: DefaultAccountPurpose.ACCOUNTS_RECEIVABLE, code: "11200" },
         { purpose: DefaultAccountPurpose.ACCOUNTS_PAYABLE, code: "21100" },
+        { purpose: DefaultAccountPurpose.GOODS_RECEIVED_NOT_INVOICED, code: "21100" },
         { purpose: DefaultAccountPurpose.INVENTORY_ASSET, code: "11300" },
         { purpose: DefaultAccountPurpose.COGS, code: "52000" },
         { purpose: DefaultAccountPurpose.SALES_REVENUE, code: "41200" },
@@ -481,6 +482,8 @@ export async function seedAccounting() {
         { purpose: DefaultAccountPurpose.EXCHANGE_GAIN_LOSS, code: "81000" },
         { purpose: DefaultAccountPurpose.SALARIES_EXPENSE, code: "51400" },
         { purpose: DefaultAccountPurpose.PAYROLL_LIABILITY, code: "21300" },
+        { purpose: DefaultAccountPurpose.WIP_INVENTORY, code: "11300" },
+        { purpose: DefaultAccountPurpose.PRODUCTION_OVERHEAD, code: "51200" },
     ];
 
     for (const fa of defaultAccounts) {

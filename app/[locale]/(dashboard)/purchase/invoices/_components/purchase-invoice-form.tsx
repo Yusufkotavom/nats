@@ -34,7 +34,7 @@ import {
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
-import { Loader2, Plus, Trash2, GripVertical, PlusIcon } from "lucide-react";
+import { Loader2, Plus, Trash2, GripVertical, PlusIcon, CalendarIcon } from "lucide-react";
 import {
   createPurchaseInvoice,
   updatePurchaseInvoice,
@@ -44,7 +44,7 @@ import {
 import { TaxRate } from "@/prisma/generated/prisma/client";
 import { PurchaseInvoiceWithDetails, PurchaseInvoiceInput } from "../types";
 import { PurchaseOrderWithDetails } from "../../orders/types";
-import { useFormatDate } from "@/hooks";
+import { format, parse, isValid } from "date-fns";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SortableTableRow } from "@/components/ui/sortable-row";
 import { generateId } from "@/lib/utils";
@@ -58,6 +58,10 @@ import { Paperclip } from "lucide-react";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import Link from "next/link";
+import { useCompanyProfile } from "@/components/providers/session-provider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface PurchaseInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -88,9 +92,16 @@ export function PurchaseInvoiceForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!invoice;
-  const formatDate = useFormatDate();
+  const companyProfile = useCompanyProfile();
+  const inputDateFormat = companyProfile?.dateFormat || "dd/MM/yyyy";
   const confirm = useConfirm();
   const { toast } = useToast();
+  const [invoiceDateInput, setInvoiceDateInput] = useState(
+    invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), inputDateFormat) : format(new Date(), inputDateFormat),
+  );
+  const [dueDateInput, setDueDateInput] = useState(
+    invoice?.dueDate ? format(new Date(invoice.dueDate), inputDateFormat) : format(new Date(), inputDateFormat),
+  );
 
   const [attachments, setAttachments] = useState<Attachment[]>(
     invoice?.attachments?.map((a) => ({
@@ -134,6 +145,32 @@ export function PurchaseInvoiceForm({
         taxRateId: item.taxRateId || undefined,
       })) || [],
   });
+
+  const parseManualDate = (value: string): Date | null => {
+    const trimmed = value.trim();
+    const parsedBySetting = parse(trimmed, inputDateFormat, new Date());
+    if (isValid(parsedBySetting)) {
+      return parsedBySetting;
+    }
+
+    const isoFormat = /^(\d{4})-(\d{2})-(\d{2})$/;
+    const isoMatch = trimmed.match(isoFormat);
+    if (isoMatch) {
+      const year = Number(isoMatch[1]);
+      const month = Number(isoMatch[2]);
+      const day = Number(isoMatch[3]);
+      const date = new Date(year, month - 1, day);
+      if (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+      ) {
+        return date;
+      }
+    }
+
+    return null;
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -284,14 +321,6 @@ export function PurchaseInvoiceForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.invoiceNumber) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter invoice number",
-        variant: "destructive",
-      });
-      return;
-    }
     if (!formData.contactId) {
       toast({
         title: "Validation Error",
@@ -331,6 +360,7 @@ export function PurchaseInvoiceForm({
     try {
       const submissionData = {
         ...formData,
+        invoiceNumber: formData.invoiceNumber?.trim() || undefined,
         items: formData.items.map(({ id, ...item }) => item),
         attachmentIds: attachments.map((a) => a.id),
       };
@@ -452,7 +482,7 @@ export function PurchaseInvoiceForm({
           )}
           {!readonly && (
             <>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" form="purchase-invoice-form" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? "Update" : "Create"}
               </Button>
@@ -474,7 +504,7 @@ export function PurchaseInvoiceForm({
 
         </div>
       </div>
-      <form onSubmit={handleSubmit}>
+      <form id="purchase-invoice-form" onSubmit={handleSubmit}>
         <div className="grid gap-4">
           <div className="space-y-4">
             <Card>
@@ -533,7 +563,7 @@ export function PurchaseInvoiceForm({
                       invoiceNumber: e.target.value,
                     }))
                   }
-                  placeholder="e.g. INV-001"
+                  placeholder="Auto-generate if empty"
                   disabled={readonly}
                 />
 
@@ -557,43 +587,107 @@ export function PurchaseInvoiceForm({
                   ))}
                 </CustomSelect>
 
-                <CustomInput
-                  label="Invoice Date"
-                  type="date"
-                  value={
-                    formData.invoiceDate
-                      ? formatDate(formData.invoiceDate)
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      invoiceDate: e.target.value
-                        ? new Date(e.target.value)
-                        : new Date(),
-                    }))
-                  }
-                  disabled={readonly}
-                />
+                <div className="space-y-1">
+                  <Label>Invoice Date</Label>
+                  <div className="flex items-center gap-2">
+                    <CustomInput
+                      type="text"
+                      value={invoiceDateInput}
+                      placeholder={inputDateFormat}
+                      onChange={(e) => setInvoiceDateInput(e.target.value)}
+                      onBlur={() => {
+                        const parsed = parseManualDate(invoiceDateInput);
+                        if (!parsed) {
+                          toast({
+                            title: "Invalid date",
+                            description: `Use format ${inputDateFormat}`,
+                            variant: "destructive",
+                          });
+                          setInvoiceDateInput(format(formData.invoiceDate, inputDateFormat));
+                          return;
+                        }
+                        setFormData((prev) => ({ ...prev, invoiceDate: parsed }));
+                        setInvoiceDateInput(format(parsed, inputDateFormat));
+                      }}
+                      disabled={readonly}
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          disabled={readonly}
+                          className={cn("shrink-0")}
+                        >
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={formData.invoiceDate}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            setFormData((prev) => ({ ...prev, invoiceDate: date }));
+                            setInvoiceDateInput(format(date, inputDateFormat));
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
 
-                <CustomInput
-                  label="Due Date"
-                  type="date"
-                  value={
-                    formData.dueDate
-                      ? formatDate(formData.dueDate)
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      dueDate: e.target.value
-                        ? new Date(e.target.value)
-                        : new Date(),
-                    }))
-                  }
-                  disabled={readonly}
-                />
+                <div className="space-y-1">
+                  <Label>Due Date</Label>
+                  <div className="flex items-center gap-2">
+                    <CustomInput
+                      type="text"
+                      value={dueDateInput}
+                      placeholder={inputDateFormat}
+                      onChange={(e) => setDueDateInput(e.target.value)}
+                      onBlur={() => {
+                        const parsed = parseManualDate(dueDateInput);
+                        if (!parsed) {
+                          toast({
+                            title: "Invalid date",
+                            description: `Use format ${inputDateFormat}`,
+                            variant: "destructive",
+                          });
+                          setDueDateInput(format(formData.dueDate, inputDateFormat));
+                          return;
+                        }
+                        setFormData((prev) => ({ ...prev, dueDate: parsed }));
+                        setDueDateInput(format(parsed, inputDateFormat));
+                      }}
+                      disabled={readonly}
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          disabled={readonly}
+                          className={cn("shrink-0")}
+                        >
+                          <CalendarIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={formData.dueDate}
+                          onSelect={(date) => {
+                            if (!date) return;
+                            setFormData((prev) => ({ ...prev, dueDate: date }));
+                            setDueDateInput(format(date, inputDateFormat));
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
 
                 {isEditing && (
                   <CustomSelect

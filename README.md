@@ -98,7 +98,7 @@ npm run prisma:seed:minimal
 ```
 
 **Option C: Restaurant Minimal (No Transactions)**
-Extends minimal seed with restaurant master data only (menu, raw materials, BOM), without sales/purchase transactions. All initial inventory quantities are set to `0`:
+Extends minimal seed with restaurant master data only (menu, expanded raw materials incl. spices/oil/LPG, BOM), without sales/purchase transactions. Includes realistic base/purchase/sales units with conversion factors. All initial inventory quantities are set to `0`:
 
 ```bash
 npm run prisma:seed:restaurant:minimal

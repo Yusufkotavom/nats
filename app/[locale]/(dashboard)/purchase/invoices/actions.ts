@@ -177,6 +177,7 @@ export const updatePurchaseInvoice = authorizedAction(
       });
 
       if (!currentInvoice) throw new Error("Invoice not found");
+      const invoiceNumber = data.invoiceNumber || currentInvoice.invoiceNumber;
 
       if (
         currentInvoice.status === "PAID" ||
@@ -190,14 +191,14 @@ export const updatePurchaseInvoice = authorizedAction(
 
       // Check for duplicate if invoice number changed
       if (
-        data.invoiceNumber !== currentInvoice.invoiceNumber ||
+        invoiceNumber !== currentInvoice.invoiceNumber ||
         data.contactId !== currentInvoice.contactId
       ) {
         const existing = await prisma.purchaseInvoice.findUnique({
           where: {
             contactId_invoiceNumber: {
               contactId: data.contactId,
-              invoiceNumber: data.invoiceNumber,
+              invoiceNumber,
             },
           },
         });
@@ -269,7 +270,7 @@ export const updatePurchaseInvoice = authorizedAction(
         return await tx.purchaseInvoice.update({
           where: { id },
           data: {
-            invoiceNumber: data.invoiceNumber,
+            invoiceNumber,
             contactId: data.contactId,
             purchaseOrderId: data.purchaseOrderId,
             invoiceDate: data.invoiceDate,

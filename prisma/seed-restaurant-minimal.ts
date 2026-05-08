@@ -63,8 +63,12 @@ async function main() {
     const getUnit = async (symbol: string) => prisma.unit.findUniqueOrThrow({ where: { symbol } });
     const unitPrs = await getUnit("PRS");
     const unitGr = await getUnit("GR");
+    const unitKg = await getUnit("KG");
+    const unitMl = await getUnit("ML");
+    const unitL = await getUnit("L");
     const unitPcs = await getUnit("PCS");
     const unitBtl = await getUnit("BTL");
+    const unitDzn = await getUnit("DZN");
 
     const products = [
       // Raw materials
@@ -72,54 +76,155 @@ async function main() {
         sku: "BBK-BERAS-001",
         name: "Beras Putih",
         categoryId: categoryBahan.id,
-        // Base unit GR => price/cost must be per gram (not per kg).
-        price: m(17),
-        cost: m(15),
-        averageCost: m(15),
-        minStock: 1000,
+        price: m(19),
+        cost: m(16),
+        averageCost: m(16),
+        minStock: 30000,
         baseUnitId: unitGr.id,
+        purchaseUnitId: unitKg.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitGr.id,
+        salesConversionFactor: m(1),
       },
       {
         sku: "BBK-GURAMI-001",
         name: "Ikan Gurami Segar",
         categoryId: categoryBahan.id,
-        price: m(38000),
-        cost: m(32000),
-        averageCost: m(32000),
-        minStock: 30,
+        price: m(47000),
+        cost: m(40000),
+        averageCost: m(40000),
+        minStock: 20,
         baseUnitId: unitPcs.id,
+        purchaseUnitId: unitPcs.id,
+        purchaseConversionFactor: m(1),
+        salesUnitId: unitPcs.id,
+        salesConversionFactor: m(1),
       },
       {
         sku: "BBK-TEH-001",
         name: "Teh Celup",
         categoryId: categoryBahan.id,
-        price: m(800),
-        cost: m(500),
-        averageCost: m(500),
-        minStock: 100,
+        price: m(950),
+        cost: m(700),
+        averageCost: m(700),
+        minStock: 120,
         baseUnitId: unitPcs.id,
+        purchaseUnitId: unitDzn.id,
+        purchaseConversionFactor: m(12),
+        salesUnitId: unitPcs.id,
+        salesConversionFactor: m(1),
       },
       {
         sku: "BBK-GULA-001",
         name: "Gula Pasir",
         categoryId: categoryBahan.id,
-        // Base unit GR => price/cost must be per gram (not per kg).
-        price: m(18),
-        cost: m(16),
-        averageCost: m(16),
-        minStock: 1000,
+        price: m(20),
+        cost: m(17),
+        averageCost: m(17),
+        minStock: 20000,
         baseUnitId: unitGr.id,
+        purchaseUnitId: unitKg.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitGr.id,
+        salesConversionFactor: m(1),
       },
       {
         sku: "BBK-MINYAK-001",
         name: "Minyak Goreng",
         categoryId: categoryBahan.id,
-        // Base unit GR => price/cost must be per gram (approximation for v1 integer model).
-        price: m(22),
-        cost: m(20),
-        averageCost: m(20),
-        minStock: 500,
+        price: m(20),
+        cost: m(17),
+        averageCost: m(17),
+        minStock: 30000,
+        baseUnitId: unitMl.id,
+        purchaseUnitId: unitL.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitMl.id,
+        salesConversionFactor: m(1),
+      },
+      {
+        sku: "BBK-BAWANGMERAH-001",
+        name: "Bawang Merah",
+        categoryId: categoryBahan.id,
+        price: m(45),
+        cost: m(38),
+        averageCost: m(38),
+        minStock: 8000,
         baseUnitId: unitGr.id,
+        purchaseUnitId: unitKg.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitGr.id,
+        salesConversionFactor: m(1),
+      },
+      {
+        sku: "BBK-BAWANGPUTIH-001",
+        name: "Bawang Putih",
+        categoryId: categoryBahan.id,
+        price: m(44),
+        cost: m(36),
+        averageCost: m(36),
+        minStock: 8000,
+        baseUnitId: unitGr.id,
+        purchaseUnitId: unitKg.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitGr.id,
+        salesConversionFactor: m(1),
+      },
+      {
+        sku: "BBK-CABAI-001",
+        name: "Cabai Merah",
+        categoryId: categoryBahan.id,
+        price: m(70),
+        cost: m(60),
+        averageCost: m(60),
+        minStock: 5000,
+        baseUnitId: unitGr.id,
+        purchaseUnitId: unitKg.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitGr.id,
+        salesConversionFactor: m(1),
+      },
+      {
+        sku: "BBK-KECAP-001",
+        name: "Kecap Manis",
+        categoryId: categoryBahan.id,
+        price: m(32),
+        cost: m(28),
+        averageCost: m(28),
+        minStock: 10000,
+        baseUnitId: unitMl.id,
+        purchaseUnitId: unitL.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitMl.id,
+        salesConversionFactor: m(1),
+      },
+      {
+        sku: "BBK-GARAM-001",
+        name: "Garam Halus",
+        categoryId: categoryBahan.id,
+        price: m(13),
+        cost: m(10),
+        averageCost: m(10),
+        minStock: 5000,
+        baseUnitId: unitGr.id,
+        purchaseUnitId: unitKg.id,
+        purchaseConversionFactor: m(1000),
+        salesUnitId: unitGr.id,
+        salesConversionFactor: m(1),
+      },
+      {
+        sku: "BBK-TELUR-001",
+        name: "Telur Ayam",
+        categoryId: categoryBahan.id,
+        price: m(2200),
+        cost: m(1850),
+        averageCost: m(1850),
+        minStock: 60,
+        baseUnitId: unitPcs.id,
+        purchaseUnitId: unitDzn.id,
+        purchaseConversionFactor: m(12),
+        salesUnitId: unitPcs.id,
+        salesConversionFactor: m(1),
       },
       // Sellable menu / drinks
       {
@@ -131,6 +236,10 @@ async function main() {
         averageCost: m(14000),
         minStock: 10,
         baseUnitId: unitPrs.id,
+        purchaseUnitId: unitPrs.id,
+        purchaseConversionFactor: m(1),
+        salesUnitId: unitPrs.id,
+        salesConversionFactor: m(1),
       },
       {
         sku: "MENU-GURAMI-001",
@@ -141,6 +250,10 @@ async function main() {
         averageCost: m(24000),
         minStock: 10,
         baseUnitId: unitPrs.id,
+        purchaseUnitId: unitPrs.id,
+        purchaseConversionFactor: m(1),
+        salesUnitId: unitPrs.id,
+        salesConversionFactor: m(1),
       },
       {
         sku: "MENU-ESTEH-001",
@@ -151,16 +264,24 @@ async function main() {
         averageCost: m(3000),
         minStock: 20,
         baseUnitId: unitPrs.id,
+        purchaseUnitId: unitPrs.id,
+        purchaseConversionFactor: m(1),
+        salesUnitId: unitPrs.id,
+        salesConversionFactor: m(1),
       },
       {
         sku: "MENU-AQUA-001",
         name: "Air Mineral Aqua",
         categoryId: categoryMinuman.id,
-        price: m(6000),
-        cost: m(4000),
-        averageCost: m(4000),
+        price: m(6500),
+        cost: m(4200),
+        averageCost: m(4200),
         minStock: 24,
         baseUnitId: unitBtl.id,
+        purchaseUnitId: unitDzn.id,
+        purchaseConversionFactor: m(12),
+        salesUnitId: unitBtl.id,
+        salesConversionFactor: m(1),
       },
     ] as const;
 
@@ -175,8 +296,10 @@ async function main() {
           averageCost: p.averageCost,
           minStock: p.minStock,
           baseUnitId: p.baseUnitId,
-          purchaseUnitId: p.baseUnitId,
-          salesUnitId: p.baseUnitId,
+          purchaseUnitId: p.purchaseUnitId,
+          purchaseConversionFactor: p.purchaseConversionFactor,
+          salesUnitId: p.salesUnitId,
+          salesConversionFactor: p.salesConversionFactor,
           isActive: true,
         },
         create: {
@@ -188,8 +311,10 @@ async function main() {
           averageCost: p.averageCost,
           minStock: p.minStock,
           baseUnitId: p.baseUnitId,
-          purchaseUnitId: p.baseUnitId,
-          salesUnitId: p.baseUnitId,
+          purchaseUnitId: p.purchaseUnitId,
+          purchaseConversionFactor: p.purchaseConversionFactor,
+          salesUnitId: p.salesUnitId,
+          salesConversionFactor: p.salesConversionFactor,
           isActive: true,
         },
       });
@@ -202,6 +327,12 @@ async function main() {
       "BBK-TEH-001",
       "BBK-GULA-001",
       "BBK-MINYAK-001",
+      "BBK-BAWANGMERAH-001",
+      "BBK-BAWANGPUTIH-001",
+      "BBK-CABAI-001",
+      "BBK-KECAP-001",
+      "BBK-GARAM-001",
+      "BBK-TELUR-001",
       "MENU-NASGOR-001",
       "MENU-GURAMI-001",
       "MENU-ESTEH-001",
@@ -245,6 +376,12 @@ async function main() {
     const bahanTeh = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-TEH-001" } });
     const bahanGula = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-GULA-001" } });
     const bahanMinyak = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-MINYAK-001" } });
+    const bahanBawangMerah = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-BAWANGMERAH-001" } });
+    const bahanBawangPutih = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-BAWANGPUTIH-001" } });
+    const bahanCabai = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-CABAI-001" } });
+    const bahanKecap = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-KECAP-001" } });
+    const bahanGaram = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-GARAM-001" } });
+    const bahanTelur = await prisma.product.findUniqueOrThrow({ where: { sku: "BBK-TELUR-001" } });
 
     const upsertBom = async (
       bomNumber: string,
@@ -299,12 +436,23 @@ async function main() {
 
     await upsertBom("BOM-MENU-NASGOR-001", menuNasgor.id, "BOM Nasi Goreng", [
       { productId: bahanBeras.id, quantity: 200, unitCost: bahanBeras.cost },
-      { productId: bahanMinyak.id, quantity: 15, unitCost: bahanMinyak.cost },
+      { productId: bahanMinyak.id, quantity: 25, unitCost: bahanMinyak.cost },
+      { productId: bahanBawangMerah.id, quantity: 12, unitCost: bahanBawangMerah.cost },
+      { productId: bahanBawangPutih.id, quantity: 8, unitCost: bahanBawangPutih.cost },
+      { productId: bahanCabai.id, quantity: 6, unitCost: bahanCabai.cost },
+      { productId: bahanKecap.id, quantity: 15, unitCost: bahanKecap.cost },
+      { productId: bahanGaram.id, quantity: 3, unitCost: bahanGaram.cost },
+      { productId: bahanTelur.id, quantity: 1, unitCost: bahanTelur.cost },
     ]);
 
     await upsertBom("BOM-MENU-GURAMI-001", menuGurami.id, "BOM Gurami Bakar", [
       { productId: bahanGurami.id, quantity: 1, unitCost: bahanGurami.cost },
       { productId: bahanMinyak.id, quantity: 20, unitCost: bahanMinyak.cost },
+      { productId: bahanBawangMerah.id, quantity: 10, unitCost: bahanBawangMerah.cost },
+      { productId: bahanBawangPutih.id, quantity: 10, unitCost: bahanBawangPutih.cost },
+      { productId: bahanCabai.id, quantity: 5, unitCost: bahanCabai.cost },
+      { productId: bahanKecap.id, quantity: 20, unitCost: bahanKecap.cost },
+      { productId: bahanGaram.id, quantity: 2, unitCost: bahanGaram.cost },
     ]);
 
     await upsertBom("BOM-MENU-ESTEH-001", menuEsTeh.id, "BOM Es Teh", [

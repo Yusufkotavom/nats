@@ -16,6 +16,7 @@ export const accountingPlugin: ModulePlugin = {
             { title: "Accounting.journal", url: "/accounting/journal-entries" },
             { title: "Accounting.ledger", url: "/accounting/ledger" },
             { title: "Accounting.chart_of_accounts", url: "/accounting/accounts" },
+            { title: "Accounting.default_accounts", url: "/accounting/configuration/default-accounts" },
             { title: "Accounting.reports", url: "/accounting/reports" },
           ],
         },
@@ -80,4 +81,3 @@ export const accountingPlugin: ModulePlugin = {
     },
   ],
 };
-

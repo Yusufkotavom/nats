@@ -74,7 +74,7 @@ Ikuti urutan ini dari atas ke bawah. Jangan lompat.
 1. Sinkron schema database.
 2. Jalankan seeder sesuai kebutuhan:
    - minimal umum
-   - minimal restoran (tanpa transaksi)
+   - minimal restoran (tanpa transaksi, termasuk master bahan dapur lanjutan seperti bumbu/minyak/LPG serta konfigurasi unit base/purchase/sales + conversion factor)
 
 ## 4. Verifikasi Akun Default
 

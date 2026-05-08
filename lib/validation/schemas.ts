@@ -97,7 +97,7 @@ export const purchaseInvoiceItemSchema = z.object({
 });
 
 export const purchaseInvoiceSchema = z.object({
-  invoiceNumber: z.string().min(1, "Invoice number is required"), // Vendor provided
+  invoiceNumber: z.string().optional(), // Auto-generated if missing
   contactId: requiredIdSchema,
   purchaseOrderId: z.string().optional(),
   invoiceDate: dateSchema,

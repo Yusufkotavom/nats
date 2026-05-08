@@ -102,6 +102,10 @@ export const RECOMMENDED_DEFAULT_ACCOUNT_MAPPINGS: {
         { purpose: "UNCATEGORIZED_INCOME", code: "49000" },
         { purpose: "UNCATEGORIZED_ASSET", code: "11900" },
         { purpose: "EXCHANGE_GAIN_LOSS", code: "81000" },
+        { purpose: "SALARIES_EXPENSE", code: "51400" },
+        { purpose: "PAYROLL_LIABILITY", code: "21300" },
+        { purpose: "WIP_INVENTORY", code: "11300" },
+        { purpose: "PRODUCTION_OVERHEAD", code: "51200" },
     ];
 
 /** Default units to seed during initial setup */

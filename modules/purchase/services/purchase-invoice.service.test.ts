@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const enqueueIntegrationEventMock = vi.hoisted(() => vi.fn());
+const generateDocumentNumberMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
+}));
+
+vi.mock("@/lib/document-numbering", () => ({
+    generateDocumentNumber: generateDocumentNumberMock,
 }));
 
 const prismaMock = vi.hoisted(() => ({
@@ -58,6 +63,7 @@ const MOCK_INVOICE_INPUT = {
 describe("PurchaseInvoiceService", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        generateDocumentNumberMock.mockResolvedValue("PI-2605-0001");
     });
 
     describe("create", () => {
@@ -96,6 +102,42 @@ describe("PurchaseInvoiceService", () => {
             await expect(
                 PurchaseInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID),
             ).rejects.toThrow("Invoice number already exists for this vendor");
+        });
+
+        it("generates invoice number when not provided", async () => {
+            prismaMock.purchaseInvoice.findUnique.mockResolvedValue(null);
+            prismaMock.taxRate.findMany.mockResolvedValue([]);
+
+            const createdInvoice = {
+                id: "inv-003",
+                invoiceNumber: "PI-2605-0001",
+                totalAmount: 200,
+            };
+
+            prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
+                const tx = {
+                    purchaseInvoice: {
+                        create: vi.fn().mockResolvedValue(createdInvoice),
+                    },
+                    integrationOutbox: {
+                        create: vi.fn().mockResolvedValue({ id: "outbox-003" }),
+                    },
+                };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (cb as any)(tx);
+            });
+
+            const { invoiceNumber } = await PurchaseInvoiceService.create(
+                { ...MOCK_INVOICE_INPUT, invoiceNumber: undefined },
+                MOCK_USER_ID,
+            );
+
+            expect(generateDocumentNumberMock).toHaveBeenCalledWith(
+                "PURCHASE_INVOICE",
+                "Purchase Invoice",
+                "PI-",
+            );
+            expect(invoiceNumber).toBe("PI-2605-0001");
         });
 
         it("enqueues PURCHASE_INVOICE_CREATED integration event", async () => {

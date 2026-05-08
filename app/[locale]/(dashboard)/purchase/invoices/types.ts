@@ -14,7 +14,7 @@ export interface PurchaseInvoiceItemInput {
 }
 
 export interface PurchaseInvoiceInput {
-  invoiceNumber: string;
+  invoiceNumber?: string;
   contactId: string;
   purchaseOrderId?: string;
   invoiceDate: Date;
