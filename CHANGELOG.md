@@ -10,12 +10,16 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Changed
 - POS transaction flow sekarang melakukan konsumsi bahan berbasis BOM aktif bila tersedia, bukan hanya mengurangi stok produk jual.
 - Fallback tetap dipertahankan: jika BOM tidak tersedia, sistem tetap mengurangi stok produk jual (backward compatible).
+- Mengubah default formatter `formatCurrency()` dari `USD` ke `IDR` dan default locale ke `id-ID`, serta membuat opsi `locale` benar-benar dipakai agar tampilan nominal lintas modul konsisten mengikuti konteks Indonesia.
+- Menyesuaikan script `start` agar menggunakan server standalone (`node .next/standalone/server.js`) sesuai konfigurasi build `output: standalone`.
 
 ### Fixed
 - Menambahkan guard tegas untuk mencegah konsumsi BOM non-integer pada model stok yang masih integer agar tidak terjadi drift stok diam-diam.
 - Menampilkan kembali aksi `Edit` pada menu dropdown daftar BOM di halaman production BOM list.
 - Memperbaiki menu Budgeting agar tidak lagi mengarah ke route yang belum tersedia (`/budgeting/dashboard`, `/budgeting/plans`, `/budgeting/variance`) sehingga menghilangkan error 404 pada navigasi.
 - Memperbaiki crash halaman `/budgeting/budgets/new` (`TypeError: ...map is not a function`) dengan memastikan data `projects` yang dikirim ke form selalu berupa array dan menambahkan guard deserialisasi array pada `BudgetForm`.
+- Memperbaiki crash/empty state halaman `/budgeting` (`Cannot read properties of undefined (reading 'name')`) dengan memetakan `createdBy` ke data user secara manual pada action budget list dan menambahkan fallback render aman bila data user tidak ditemukan.
+- Memperbaiki kegagalan build Vercel `Module not found: '@/prisma/generated/prisma/*'` dengan memastikan `prisma generate` selalu dijalankan sebelum `next build`.
 
 ### Docs
 - Menambahkan `AGENTS.md` berisi aturan wajib/larangan implementasi, changelog policy, dan definition of done.
@@ -25,6 +29,12 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Menambahkan dokumentasi domain restoran di `docs/restaurant-pos-inventory-sync.md`.
 - Memperbarui `README.md` agar merujuk seluruh dokumen engineering penting.
 - Menegaskan aturan wajib membuat test baru jika perubahan/fitur belum memiliki coverage test, dan menyinkronkannya di `AGENTS.md`, `CLAUDE.md`, serta `docs/docs-index.json`.
+- Memperbarui user guide setup awal untuk user non-akuntansi dengan urutan input dari nol sampai siap transaksi, serta memperjelas posisi budgeting minimum (`Default/Global` status `APPROVED`).
+- Menambahkan panduan arah jurnal saldo awal kas/bank (debit kas/bank, kredit ekuitas saldo awal/modal) pada setup awal agar user non-akuntansi tidak keliru.
+- Memperbarui dokumentasi modul budgeting dengan aturan edit: hanya status `DRAFT` atau `REJECTED` yang bisa diedit.
+
+### Added
+- Menambahkan halaman edit budget `/budgeting/budgets/[id]/edit` dengan guard status (`DRAFT`/`REJECTED`) serta tombol `Edit` pada list/detail budget untuk status yang memenuhi syarat.
 
 ### Added
 - Menambahkan workflow CI utama (`.github/workflows/ci.yml`) untuk `pull_request` dan `push` ke `main` dengan tahapan `npm ci`, `prisma generate`, `lint`, `test`, dan `build`.

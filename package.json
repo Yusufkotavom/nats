@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "sh -c 'lsof -ti:3000 | xargs kill -9 2>/dev/null || true' && next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "prisma generate && next build",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint",
     "test": "vitest",
     "outbox:work": "tsx scripts/outbox-worker.ts",

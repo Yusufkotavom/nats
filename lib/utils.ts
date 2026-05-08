@@ -66,17 +66,18 @@ export const formatCurrency = (
   options?: FormatCurrencyOptions,
 ) => {
   const {
-    currency = "USD",
+    currency = "IDR",
     currencySymbol,
     currencyFormat = "standard",
+    locale,
   } = options || {};
 
   const numericAmount = amount instanceof Decimal ? amount.toNumber() : amount;
 
-  let targetLocale = "en-US";
-  if (currencyFormat === "european") {
+  let targetLocale = locale || "id-ID";
+  if (!locale && currencyFormat === "european") {
     targetLocale = "de-DE";
-  } else if (currencyFormat === "indian") {
+  } else if (!locale && currencyFormat === "indian") {
     targetLocale = "en-IN";
   }
 
@@ -96,6 +97,8 @@ export const formatCurrency = (
   return new Intl.NumberFormat(targetLocale, {
     style: "currency",
     currency: currency,
+    minimumFractionDigits: currency === "IDR" ? 0 : 2,
+    maximumFractionDigits: currency === "IDR" ? 0 : 2,
   }).format(numericAmount);
 };
 

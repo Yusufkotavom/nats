@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getSession } from "@/lib/auth/auth";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { Button } from "@/components/ui/button";
 import {
   PageListLayout,
   PageListHeader,
@@ -70,6 +72,11 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
             }>
               {budget.status}
             </Badge>
+            {(budget.status === "DRAFT" || budget.status === "REJECTED") && (
+              <Link href={`/budgeting/budgets/${budget.id}/edit`}>
+                <Button variant="outline" size="sm">Edit</Button>
+              </Link>
+            )}
             {session?.userId && (
               <BudgetActions budget={budgetResponse.data} currentUserId={session.userId} />
             )}

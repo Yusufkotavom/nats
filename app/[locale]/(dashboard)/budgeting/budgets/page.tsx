@@ -73,13 +73,22 @@ export default async function BudgetsListPage() {
                         {budget.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{budget.createdByUser.name}</TableCell>
+                    <TableCell>{budget.createdByUser?.name || budget.createdByUser?.email || "-"}</TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/budgeting/budgets/${budget.id}`}>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </Link>
+                      <div className="inline-flex items-center gap-2">
+                        {(budget.status === "DRAFT" || budget.status === "REJECTED") && (
+                          <Link href={`/budgeting/budgets/${budget.id}/edit`}>
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                          </Link>
+                        )}
+                        <Link href={`/budgeting/budgets/${budget.id}`}>
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

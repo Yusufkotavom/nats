@@ -53,7 +53,21 @@ export async function getBudgets(): Promise<ActionResponse> {
         items: true,
       },
     });
-    return { success: true, data: SuperJSON.serialize(budgets) };
+    const userIds = Array.from(new Set(budgets.map((budget) => budget.createdBy).filter(Boolean)));
+    const users = userIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true, email: true },
+        })
+      : [];
+    const usersById = new Map(users.map((user) => [user.id, user]));
+
+    const budgetsWithCreator = budgets.map((budget) => ({
+      ...budget,
+      createdByUser: usersById.get(budget.createdBy) || null,
+    }));
+
+    return { success: true, data: SuperJSON.serialize(budgetsWithCreator) };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
