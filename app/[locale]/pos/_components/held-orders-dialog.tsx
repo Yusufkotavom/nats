@@ -27,6 +27,7 @@ interface HeldOrdersDialogProps {
     customerName?: string,
     customerId?: string,
     globalDiscount?: number,
+    diningSpotId?: string,
   ) => void;
   trigger?: React.ReactNode;
 }
@@ -65,7 +66,13 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
         globalDiscount = (data.items as any).globalDiscount || 0;
       }
 
-      onResume(items, data.customerName, data.customerId, globalDiscount);
+      onResume(
+        items,
+        data.customerName,
+        data.customerId,
+        globalDiscount,
+        data.diningSpotId || undefined,
+      );
       setOpen(false);
       toast({ title: t("order_resumed") });
       queryClient.invalidateQueries({ queryKey: ["heldOrders"] });
@@ -134,6 +141,11 @@ export function HeldOrdersDialog({ onResume, trigger }: HeldOrdersDialogProps) {
                         <User className="h-3 w-3" />
                         {order.customerName || t("walk_in_customer")}
                       </div>
+                      {order.diningSpot ? (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          Spot: {order.diningSpot.spotCode} - {order.diningSpot.spotName}
+                        </div>
+                      ) : null}
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {t("held_by", { name: order.user?.name || "-" })}
                       </div>

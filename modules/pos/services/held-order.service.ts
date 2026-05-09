@@ -14,6 +14,7 @@ export class HeldOrderService {
         customerId?: string,
         customerName?: string,
         globalDiscount: number = 0,
+        diningSpotId?: string,
     ) {
         const posSession = await prisma.pOSSession.findFirst({
             where: { cashierId: userId, status: "OPEN" },
@@ -37,6 +38,7 @@ export class HeldOrderService {
                 note,
                 customerId,
                 customerName,
+                diningSpotId,
             },
         });
     }

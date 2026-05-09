@@ -6,6 +6,9 @@ import {
   getHeldOrders,
   holdOrder,
   getPOSProducts,
+  getDiningSpots,
+  openDiningSpot,
+  closeDiningSpot,
 } from "../actions";
 import { logout } from "@/app/[locale]/auth/actions";
 import { Button } from "@/components/ui/button";
@@ -47,6 +50,7 @@ import { Clock } from "./clock";
 import { useTranslations } from "next-intl";
 import { useDebounce } from "use-debounce";
 import { POSCartItem, POSProduct } from "../types";
+import { POSDiningSpot } from "../types";
 import {
   Tooltip,
   TooltipContent,
@@ -58,12 +62,14 @@ interface POSViewProps {
   initialProducts: SuperJSONResult;
   categories: SuperJSONResult;
   session: SuperJSONResult;
+  diningSpots: SuperJSONResult;
 }
 
 export function POSView({
   initialProducts: serializedProducts,
   categories: serializedCategories,
   session: serializedSession,
+  diningSpots: serializedDiningSpots,
 }: POSViewProps) {
   const t = useTranslations("POS");
   const initialData = SuperJSON.deserialize<{
@@ -73,6 +79,7 @@ export function POSView({
   }>(serializedProducts);
   const categories = SuperJSON.deserialize<any[]>(serializedCategories);
   const session = SuperJSON.deserialize<any>(serializedSession);
+  const initialDiningSpots = SuperJSON.deserialize<POSDiningSpot[]>(serializedDiningSpots);
 
   const [cart, setCart] = useState<POSCartItem[]>([]);
   const [globalDiscount, setGlobalDiscount] = useState(0);
@@ -80,6 +87,7 @@ export function POSView({
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedDiningSpotId, setSelectedDiningSpotId] = useState<string>("");
   const { toast } = useToast();
   const confirm = useConfirm();
   const router = useRouter();
@@ -160,6 +168,15 @@ export function POSView({
     },
   });
 
+  const { data: diningSpots = [], refetch: refetchDiningSpots } = useQuery({
+    queryKey: ["diningSpots"],
+    queryFn: async () => {
+      const res = await getDiningSpots();
+      return SuperJSON.deserialize<POSDiningSpot[]>(res);
+    },
+    initialData: initialDiningSpots,
+  });
+
   const addToCart = (product: POSProduct) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
@@ -231,6 +248,45 @@ export function POSView({
     window.location.href = "/auth";
   };
 
+  const selectedSpot = useMemo(
+    () => diningSpots.find((spot) => spot.id === selectedDiningSpotId),
+    [diningSpots, selectedDiningSpotId],
+  );
+
+  const handleOpenSpot = async () => {
+    if (!selectedDiningSpotId) {
+      toast({ variant: "destructive", title: "Pilih meja/lokasi terlebih dahulu" });
+      return;
+    }
+    try {
+      await openDiningSpot(selectedDiningSpotId);
+      toast({ title: "Meja/lokasi dibuka" });
+      await refetchDiningSpots();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Gagal membuka meja/lokasi",
+      });
+    }
+  };
+
+  const handleCloseSpot = async () => {
+    if (!selectedDiningSpotId) {
+      toast({ variant: "destructive", title: "Pilih meja/lokasi terlebih dahulu" });
+      return;
+    }
+    try {
+      await closeDiningSpot(selectedDiningSpotId);
+      toast({ title: "Meja/lokasi ditutup" });
+      await refetchDiningSpots();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Gagal menutup meja/lokasi",
+      });
+    }
+  };
+
   const handleViewHistoryItem = async (invoiceId: string) => {
     if (cart.length > 0) {
       try {
@@ -242,6 +298,7 @@ export function POSView({
           undefined,
           t("walk_in_customer"),
           globalDiscount,
+          selectedDiningSpotId || undefined,
         );
         toast({ title: t("order_held") });
         setCart([]);
@@ -260,6 +317,7 @@ export function POSView({
     customerName?: string,
     customerId?: string,
     resumedGlobalDiscount?: number,
+    diningSpotId?: string,
   ) => {
     setCart((prev) => {
       const newCart = [...prev];
@@ -280,6 +338,9 @@ export function POSView({
     if (resumedGlobalDiscount !== undefined) {
       setGlobalDiscount(resumedGlobalDiscount);
     }
+    if (diningSpotId) {
+      setSelectedDiningSpotId(diningSpotId);
+    }
     toast({ title: t("items_added") });
   };
 
@@ -291,6 +352,41 @@ export function POSView({
       <header className="flex h-16 items-center justify-between border-b bg-background px-2 sm:px-4">
         <div className="flex items-center gap-4 flex-1">
           <h1 className="hidden text-xl font-bold lg:block">{t("pos")}</h1>
+          <div className="hidden md:flex items-center gap-2">
+            <select
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+              value={selectedDiningSpotId}
+              onChange={(e) => setSelectedDiningSpotId(e.target.value)}
+            >
+              <option value="">Pilih meja/lokasi</option>
+              {diningSpots.map((spot) => (
+                <option key={spot.id} value={spot.id}>
+                  [{spot.area.name}] {spot.spotCode} - {spot.spotName}
+                </option>
+              ))}
+            </select>
+            {selectedSpot ? (
+              <Badge variant={selectedSpot.status === "AVAILABLE" ? "outline" : "default"}>
+                {selectedSpot.status}
+              </Badge>
+            ) : null}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleOpenSpot}
+              disabled={!selectedSpot || selectedSpot.status !== "AVAILABLE"}
+            >
+              Buka
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCloseSpot}
+              disabled={!selectedSpot || selectedSpot.status === "AVAILABLE"}
+            >
+              Tutup
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
@@ -504,6 +600,7 @@ export function POSView({
             onRemove={removeFromCart}
             onClear={clearCart}
             session={session}
+            selectedDiningSpotId={selectedDiningSpotId || undefined}
           />
         </div>
 
@@ -535,6 +632,7 @@ export function POSView({
                   onRemove={removeFromCart}
                   onClear={clearCart}
                   session={session}
+                  selectedDiningSpotId={selectedDiningSpotId || undefined}
                 />
               </div>
             </SheetContent>

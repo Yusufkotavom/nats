@@ -19,3 +19,18 @@ export type POSCartItem = POSProduct & {
   quantity: number;
   discount: number;
 };
+
+export type POSDiningSpot = {
+  id: string;
+  spotCode: string;
+  spotName: string;
+  spotType: "TABLE" | "ROOM";
+  status: "AVAILABLE" | "ORDERING" | "BILLING" | "CLOSED";
+  area: {
+    id: string;
+    name: string;
+  };
+  _count?: {
+    heldOrders: number;
+  };
+};

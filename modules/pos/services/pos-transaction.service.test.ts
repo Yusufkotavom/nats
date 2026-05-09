@@ -45,6 +45,10 @@ const prismaMock = vi.hoisted(() => ({
     billOfMaterial: {
         findFirst: vi.fn(),
     },
+    diningSpot: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+    },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));

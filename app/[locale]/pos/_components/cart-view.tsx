@@ -44,6 +44,7 @@ interface CartViewProps {
   onRemove: (productId: string) => void;
   onClear: () => void;
   session: any;
+  selectedDiningSpotId?: string;
 }
 
 export function CartView({
@@ -55,6 +56,7 @@ export function CartView({
   onRemove,
   onClear,
   session,
+  selectedDiningSpotId,
 }: CartViewProps) {
   const t = useTranslations("POS");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -146,6 +148,7 @@ export function CartView({
         amount,
         globalDiscount,
         customerId,
+        selectedDiningSpotId,
       );
 
       if (!result.success) {
@@ -205,6 +208,7 @@ export function CartView({
         undefined,
         customerName,
         globalDiscount,
+        selectedDiningSpotId,
       );
       toast({ title: t("order_held_success") });
       onClear();

@@ -3,6 +3,7 @@ import {
   getPOSProducts,
   getPOSCategories,
   getWarehouses,
+  getDiningSpots,
 } from "./actions";
 import { POSSessionDialog } from "./_components/pos-session-dialog";
 import { LogoutButton } from "./_components/logout-button";
@@ -16,6 +17,7 @@ export default async function POSPage() {
   const session = await getOpenPOSSession();
   const products = await getPOSProducts();
   const categories = await getPOSCategories();
+  const diningSpots = await getDiningSpots();
   const warehouses = await getWarehouses();
 
   if (!session) {
@@ -50,6 +52,7 @@ export default async function POSPage() {
         initialProducts={products}
         categories={categories}
         session={session}
+        diningSpots={diningSpots}
       />
     </div>
   );

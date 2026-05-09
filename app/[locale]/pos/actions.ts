@@ -9,6 +9,7 @@ import type { ActionResponse } from "@/lib/permissions/protected-action";
 import { POSTransactionService } from "@/modules/pos/services/pos-transaction.service";
 import { POSSessionService } from "@/modules/pos/services/pos-session.service";
 import { HeldOrderService } from "@/modules/pos/services/held-order.service";
+import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
 import { POSCartItem } from "./types";
 
 export async function getPOSSessions() {
@@ -185,6 +186,63 @@ export async function getOpenPOSSession() {
   });
 }
 
+export async function getDiningSpots() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize([]);
+  }
+
+  await DiningSpotService.ensureDefaultLayout();
+
+  const spots = await prisma.diningSpot.findMany({
+    where: { isActive: true },
+    include: {
+      area: true,
+      sessions: {
+        where: { closedAt: null },
+        orderBy: { openedAt: "desc" },
+        take: 1,
+      },
+      _count: {
+        select: { heldOrders: true },
+      },
+    },
+    orderBy: [{ area: { sortOrder: "asc" } }, { spotCode: "asc" }],
+  });
+
+  return SuperJSON.serialize(spots);
+}
+
+export async function openDiningSpot(
+  diningSpotId: string,
+  guestCount?: number,
+  notes?: string,
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const result = await DiningSpotService.openSpot(
+    diningSpotId,
+    session.userId,
+    guestCount,
+    notes,
+  );
+  revalidatePath("/pos");
+  return SuperJSON.serialize(result);
+}
+
+export async function closeDiningSpot(diningSpotId: string, notes?: string) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  await DiningSpotService.closeSpot(diningSpotId, session.userId, notes);
+  revalidatePath("/pos");
+}
+
 export async function openPOSSession(openingCash: number, warehouseId: string) {
   const session = await getSession();
   const userId = session?.userId;
@@ -266,6 +324,7 @@ export async function processPOSTransaction(
   amountPaid: number,
   globalDiscount: number = 0,
   customerId?: string,
+  diningSpotId?: string,
 ): Promise<
   ActionResponse<{
     invoiceId: string;
@@ -284,6 +343,7 @@ export async function processPOSTransaction(
       amountPaid,
       globalDiscount,
       customerId,
+      diningSpotId,
     );
 
     return {
@@ -308,6 +368,7 @@ export async function holdOrder(
   customerId?: string,
   customerName?: string,
   globalDiscount: number = 0,
+  diningSpotId?: string,
 ) {
   const session = await getSession();
   const userId = session?.userId;
@@ -321,6 +382,7 @@ export async function holdOrder(
     customerId,
     customerName,
     globalDiscount,
+    diningSpotId,
   );
 
   revalidatePath("/pos");
@@ -360,7 +422,7 @@ export async function getHeldOrders() {
 
   const heldOrders = await prisma.heldOrder.findMany({
     orderBy: { createdAt: "desc" },
-    include: { customer: true },
+    include: { customer: true, diningSpot: true },
   });
 
   return SuperJSON.serialize(heldOrders);

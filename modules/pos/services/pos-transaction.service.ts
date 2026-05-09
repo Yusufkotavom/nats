@@ -44,10 +44,12 @@ export class POSTransactionService {
         amountPaid: number,
         globalDiscount: number = 0,
         customerId?: string,
+        diningSpotId?: string,
     ): Promise<POSTransactionOutboxResult> {
         const result = await prisma.$transaction(async (tx) => {
             const session = await this.validateSession(tx, sessionId);
             const contactId = await this.resolveCustomer(tx, customerId);
+            await this.validateDiningSpotForCheckout(tx, diningSpotId);
 
             const itemsWithCalculations = items.map((item) => {
                 const subtotal = new Decimal(item.price).mul(item.quantity);
@@ -221,6 +223,22 @@ export class POSTransactionService {
             throw new Error("Session is not open");
         }
         return session;
+    }
+
+    private static async validateDiningSpotForCheckout(
+        tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+        diningSpotId?: string,
+    ) {
+        if (!diningSpotId) return;
+        const spot = await tx.diningSpot.findUnique({ where: { id: diningSpotId } });
+        if (!spot) throw new Error("Dining spot not found");
+        if (spot.status !== "ORDERING" && spot.status !== "BILLING") {
+            throw new Error("Dining spot is not ready for billing");
+        }
+        await tx.diningSpot.update({
+            where: { id: diningSpotId },
+            data: { status: "BILLING" },
+        });
     }
 
     private static async resolveCustomer(

@@ -105,6 +105,17 @@
       ]
     },
     {
+      "id": "pos-restaurant-extension-plan",
+      "path": "docs/pos-restaurant-extension-plan.md",
+      "type": "implementation-plan",
+      "status": "active",
+      "mustUpdateWhen": [
+        "restaurant pos scope changed",
+        "table-room-kitchen workflow changed",
+        "phase roadmap changed"
+      ]
+    },
+    {
       "id": "user-guide-start-here",
       "path": "docs/user-guide/00-start-here.md",
       "type": "user-guide",

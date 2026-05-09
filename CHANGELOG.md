@@ -8,6 +8,11 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased] - 2026-05-08
 
 ### Added
+- Menambahkan fondasi `POS restoran` fase 1:
+  - model data baru `DiningArea`, `DiningSpot`, `DiningSpotSession` + enum status/tipe/service di schema POS,
+  - service domain `DiningSpotService` untuk lifecycle buka/tutup spot,
+  - action server POS untuk `getDiningSpots`, `openDiningSpot`, `closeDiningSpot`.
+- Menambahkan test baru untuk `DiningSpotService` (`modules/pos/services/dining-spot.service.test.ts`) untuk validasi alur open/close spot.
 - Menambahkan test coverage untuk action `Quick Purchase` (`app/[locale]/(dashboard)/purchase/quick/actions.test.ts`) dengan 12 test case mencakup:
   - Jalur sukses `CASH_DAILY` (receive + invoice + payment)
   - Jalur sukses `MONTHLY_CREDIT` (receive + invoice tanpa payment)
@@ -19,6 +24,13 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Menyelaraskan flow POS agar order dapat dikaitkan ke spot meja/lokasi:
+  - `holdOrder` dan held-order payload sekarang mendukung `diningSpotId`,
+  - tampilan POS menambahkan selector spot + indikator status + aksi buka/tutup spot,
+  - daftar held order menampilkan informasi spot dan me-restore spot saat resume order.
+- Menambahkan guard transaksi POS untuk mode restoran:
+  - checkout dengan `diningSpotId` hanya valid saat spot dalam status `ORDERING`/`BILLING`,
+  - status spot di-update ke `BILLING` saat checkout diproses.
 - Menyelaraskan layout halaman `Purchase > Quick Purchase` dengan pola `/purchase/invoices/new`: menggunakan wrapper `flex-1 space-y-4 px-4`, header + action bar di atas, section form berbasis `Card`, dan field catatan memakai `CustomTextarea` untuk konsistensi UI purchase.
 - POS transaction flow sekarang melakukan konsumsi bahan berbasis BOM aktif bila tersedia, bukan hanya mengurangi stok produk jual.
 - Fallback tetap dipertahankan: jika BOM tidak tersedia, sistem tetap mengurangi stok produk jual (backward compatible).
@@ -46,6 +58,10 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki tombol `Create` pada form `New Purchase Invoice` dengan mengaitkan tombol submit ke elemen form (`form=\"purchase-invoice-form\"`) karena tombol berada di header di luar tag `<form>`.
 
 ### Docs
+- Memperluas dokumentasi user-facing POS di `docs/user-guide/modules/pos.md` dengan panduan operasional restoran yang lebih detail: dining spot (meja/lokasi), hold-resume, status spot, validasi checkout, dan troubleshooting cepat.
+- Menambahkan dokumen user-facing `docs/user-guide/modules/client-kickoff-questionnaire.md` untuk daftar pertanyaan wajib saat meeting kickoff client (E2E alignment).
+- Menambahkan blueprint implementasi `POS restoran` di `docs/pos-restaurant-extension-plan.md` mencakup master area/meja-kamar, indikator status meja, binding order ke spot, kitchen ticket/station, lifecycle buka-tutup meja, desain data Prisma, roadmap phase, dan test plan.
+- Memperbarui `docs/docs-index.json` untuk mendaftarkan dokumen `pos-restaurant-extension-plan`.
 - Menambahkan template khusus Google Forms di `docs/client-e2e-alignment-google-form.md` berisi struktur section, tipe pertanyaan, opsi jawaban, dan aturan pengisian cepat untuk alignment implementasi POS-Inventory-Dapur-Purchase-Accounting.
 - Memperbarui `docs/docs-index.json` untuk mendaftarkan dokumen `client-e2e-alignment-google-form`.
 - Menambahkan template form perencanaan implementasi end-to-end untuk client di `docs/client-e2e-alignment-form.md` dengan format opsi cepat + catatan mencakup alignment POS, persediaan barang dagang, pencatatan dapur/BOM, purchase, accounting, approval, laporan, dan prioritas MVP/Phase 2.

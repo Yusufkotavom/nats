@@ -50,7 +50,77 @@ model HeldOrder {
   totalAmount Decimal
 
   note String?
+  serviceType POSServiceType @default(DINE_IN)
+
+  diningSpotId String?
+  diningSpot   DiningSpot? @relation(fields: [diningSpotId], references: [id])
 
   posSessionId String?
   posSession   POSSession? @relation(fields: [posSessionId], references: [id])
+}
+
+model DiningArea {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  spots DiningSpot[]
+}
+
+model DiningSpot {
+  id          String           @id @default(cuid())
+  areaId      String
+  area        DiningArea       @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  spotCode    String           @unique
+  spotName    String
+  spotType    DiningSpotType   @default(TABLE)
+  capacity    Int              @default(2)
+  status      DiningSpotStatus @default(AVAILABLE)
+  layoutX     Int?
+  layoutY     Int?
+  layoutW     Int?
+  layoutH     Int?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  sessions   DiningSpotSession[]
+  heldOrders HeldOrder[]
+}
+
+model DiningSpotSession {
+  id           String           @id @default(cuid())
+  diningSpotId String
+  diningSpot   DiningSpot       @relation(fields: [diningSpotId], references: [id], onDelete: Cascade)
+  status       DiningSpotStatus @default(ORDERING)
+  openedAt     DateTime         @default(now())
+  closedAt     DateTime?
+  openedBy     String
+  closedBy     String?
+  guestCount   Int?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+enum POSServiceType {
+  DINE_IN
+  TAKE_AWAY
+  DELIVERY
+}
+
+enum DiningSpotType {
+  TABLE
+  ROOM
+}
+
+enum DiningSpotStatus {
+  AVAILABLE
+  ORDERING
+  BILLING
+  CLOSED
 }
