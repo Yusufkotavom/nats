@@ -19,6 +19,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Menyelaraskan layout halaman `Purchase > Quick Purchase` dengan pola `/purchase/invoices/new`: menggunakan wrapper `flex-1 space-y-4 px-4`, header + action bar di atas, section form berbasis `Card`, dan field catatan memakai `CustomTextarea` untuk konsistensi UI purchase.
 - POS transaction flow sekarang melakukan konsumsi bahan berbasis BOM aktif bila tersedia, bukan hanya mengurangi stok produk jual.
 - Fallback tetap dipertahankan: jika BOM tidak tersedia, sistem tetap mengurangi stok produk jual (backward compatible).
 - Mengubah default formatter `formatCurrency()` dari `USD` ke `IDR` dan default locale ke `id-ID`, serta membuat opsi `locale` benar-benar dipakai agar tampilan nominal lintas modul konsisten mengikuti konteks Indonesia.
@@ -45,6 +46,10 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki tombol `Create` pada form `New Purchase Invoice` dengan mengaitkan tombol submit ke elemen form (`form=\"purchase-invoice-form\"`) karena tombol berada di header di luar tag `<form>`.
 
 ### Docs
+- Menambahkan template khusus Google Forms di `docs/client-e2e-alignment-google-form.md` berisi struktur section, tipe pertanyaan, opsi jawaban, dan aturan pengisian cepat untuk alignment implementasi POS-Inventory-Dapur-Purchase-Accounting.
+- Memperbarui `docs/docs-index.json` untuk mendaftarkan dokumen `client-e2e-alignment-google-form`.
+- Menambahkan template form perencanaan implementasi end-to-end untuk client di `docs/client-e2e-alignment-form.md` dengan format opsi cepat + catatan mencakup alignment POS, persediaan barang dagang, pencatatan dapur/BOM, purchase, accounting, approval, laporan, dan prioritas MVP/Phase 2.
+- Memperbarui `docs/docs-index.json` untuk mendaftarkan dokumen planning template `client-e2e-alignment-form`.
 - Menambahkan `AGENTS.md` berisi aturan wajib/larangan implementasi, changelog policy, dan definition of done.
 - Menambahkan `CLAUDE.md` sebagai baseline panduan agent yang merujuk ke `AGENTS.md`.
 - Menambahkan `docs/architecture.md` untuk memperjelas struktur layer dan alur kritis POS -> Inventory.

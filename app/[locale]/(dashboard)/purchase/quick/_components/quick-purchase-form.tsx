@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SelectItem } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SuperJSON } from "@/lib/superjson";
@@ -121,132 +123,151 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <CustomSelect label="Mode" value={mode} onValueChange={(v) => setMode(v as QuickPurchaseMode)}>
-          <SelectItem value="CASH_DAILY">Cash Daily</SelectItem>
-          <SelectItem value="MONTHLY_CREDIT">Monthly Credit</SelectItem>
-        </CustomSelect>
+    <div className="flex-1 space-y-4 px-4">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-xl font-bold tracking-tight">Quick Purchase</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => router.push("/purchase/dashboard")}>
+            Batal
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Proses Quick Purchase
+          </Button>
+        </div>
+      </div>
 
-        <CustomSelect label="Vendor" value={contactId} onValueChange={setContactId} placeholder="Pilih vendor">
-          {data.vendors.map((vendor) => (
-            <SelectItem key={vendor.id} value={vendor.id}>
-              {vendor.name}
-            </SelectItem>
-          ))}
-        </CustomSelect>
+      <p className="text-sm text-muted-foreground">
+        Satu form untuk alur beli cepat: Receive + Invoice + Payment (cash) atau Receive + Invoice (credit).
+      </p>
 
-        <CustomInput
-          label="Tanggal Transaksi"
-          type="date"
-          value={transactionDate}
-          onChange={(e) => setTransactionDate(e.target.value)}
-        />
+      <Card>
+        <CardContent className="grid grid-cols-1 gap-4 pt-6 md:grid-cols-2">
+          <CustomSelect label="Mode" value={mode} onValueChange={(v) => setMode(v as QuickPurchaseMode)}>
+            <SelectItem value="CASH_DAILY">Cash Daily</SelectItem>
+            <SelectItem value="MONTHLY_CREDIT">Monthly Credit</SelectItem>
+          </CustomSelect>
 
-        {mode === "MONTHLY_CREDIT" ? (
-          <CustomInput
-            label="Jatuh Tempo"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-        ) : (
-          <CustomSelect
-            label="Kas/Bank"
-            value={cashAccountId}
-            onValueChange={setCashAccountId}
-            placeholder="Pilih kas/bank"
-          >
-            {data.cashAccounts.map((cash) => (
-              <SelectItem key={cash.id} value={cash.id}>
-                {cash.name}
+          <CustomSelect label="Vendor" value={contactId} onValueChange={setContactId} placeholder="Pilih vendor">
+            {data.vendors.map((vendor) => (
+              <SelectItem key={vendor.id} value={vendor.id}>
+                {vendor.name}
               </SelectItem>
             ))}
           </CustomSelect>
-        )}
-      </div>
 
-      <div className="space-y-3 rounded-md border p-4">
-        <div className="flex items-center justify-between">
-          <Label>Items</Label>
+          <CustomInput
+            label="Tanggal Transaksi"
+            type="date"
+            value={transactionDate}
+            onChange={(e) => setTransactionDate(e.target.value)}
+          />
+
+          {mode === "MONTHLY_CREDIT" ? (
+            <CustomInput
+              label="Jatuh Tempo"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          ) : (
+            <CustomSelect
+              label="Kas/Bank"
+              value={cashAccountId}
+              onValueChange={setCashAccountId}
+              placeholder="Pilih kas/bank"
+            >
+              {data.cashAccounts.map((cash) => (
+                <SelectItem key={cash.id} value={cash.id}>
+                  {cash.name}
+                </SelectItem>
+              ))}
+            </CustomSelect>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Items</CardTitle>
           <Button variant="outline" size="sm" onClick={addItem}>
             <Plus className="mr-2 h-4 w-4" />
             Tambah Item
           </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+
+          {items.map((row) => {
+            const selected = productMap.get(row.productId);
+            return (
+              <div key={row.id} className="grid grid-cols-1 gap-3 rounded-md border p-3 md:grid-cols-12">
+                <div className="md:col-span-5">
+                  <CustomSelect
+                    label="Produk"
+                    value={row.productId}
+                    onValueChange={(value) => {
+                      const product = productMap.get(value);
+                      updateItem(row.id, {
+                        productId: value,
+                        unitCost: product ? Number(product.cost) : 0,
+                      });
+                    }}
+                    placeholder="Pilih produk"
+                  >
+                    {data.products.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} ({product.sku})
+                      </SelectItem>
+                    ))}
+                  </CustomSelect>
+                </div>
+                <div className="md:col-span-2">
+                  <CustomInput
+                    label="Qty"
+                    type="number"
+                    min={0}
+                    value={String(row.quantity)}
+                    onChange={(e) => updateItem(row.id, { quantity: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="md:col-span-4">
+                  <CurrencyInput
+                    label="Unit Cost"
+                    value={row.unitCost}
+                    onChange={(value) => updateItem(row.id, { unitCost: Number(value) || 0 })}
+                  />
+                </div>
+                <div className="md:col-span-1 flex items-end">
+                  <Button variant="ghost" size="icon" onClick={() => removeItem(row.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                {selected ? (
+                  <p className="text-xs text-muted-foreground md:col-span-12">
+                    Default cost produk: {selected.cost.toLocaleString("id-ID")}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-6 pt-6">
+        <CustomTextarea
+          label="Catatan"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Opsional"
+        />
+
+        <div className="flex items-center justify-between rounded-md border p-4">
+          <div className="text-sm text-muted-foreground">Total Estimasi</div>
+          <div className="text-lg font-semibold">{total.toLocaleString("id-ID")}</div>
         </div>
-
-        {items.map((row) => {
-          const selected = productMap.get(row.productId);
-          return (
-            <div key={row.id} className="grid grid-cols-1 gap-3 rounded-md border p-3 md:grid-cols-12">
-              <div className="md:col-span-5">
-                <CustomSelect
-                  label="Produk"
-                  value={row.productId}
-                  onValueChange={(value) => {
-                    const product = productMap.get(value);
-                    updateItem(row.id, {
-                      productId: value,
-                      unitCost: product ? Number(product.cost) : 0,
-                    });
-                  }}
-                  placeholder="Pilih produk"
-                >
-                  {data.products.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} ({product.sku})
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
-              </div>
-              <div className="md:col-span-2">
-                <CustomInput
-                  label="Qty"
-                  type="number"
-                  min={0}
-                  value={String(row.quantity)}
-                  onChange={(e) => updateItem(row.id, { quantity: Number(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="md:col-span-4">
-                <CurrencyInput
-                  label="Unit Cost"
-                  value={row.unitCost}
-                  onChange={(value) => updateItem(row.id, { unitCost: Number(value) || 0 })}
-                />
-              </div>
-              <div className="md:col-span-1 flex items-end">
-                <Button variant="ghost" size="icon" onClick={() => removeItem(row.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              {selected ? (
-                <p className="text-xs text-muted-foreground md:col-span-12">
-                  Default cost produk: {selected.cost.toLocaleString("id-ID")}
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-
-      <CustomInput label="Catatan" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" />
-
-      <div className="flex items-center justify-between rounded-md border p-4">
-        <div className="text-sm text-muted-foreground">Total Estimasi</div>
-        <div className="text-lg font-semibold">{total.toLocaleString("id-ID")}</div>
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => router.push("/purchase/dashboard")}>
-          Batal
-        </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Proses Quick Purchase
-        </Button>
-      </div>
+      </CardContent>
+      </Card>
     </div>
   );
 }
-

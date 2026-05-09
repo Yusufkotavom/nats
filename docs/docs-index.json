@@ -83,6 +83,28 @@
       ]
     },
     {
+      "id": "client-e2e-alignment-form",
+      "path": "docs/client-e2e-alignment-form.md",
+      "type": "planning-template",
+      "status": "active",
+      "mustUpdateWhen": [
+        "kickoff questionnaire scope changed",
+        "pos-inventory-kitchen alignment questions changed",
+        "implementation phase definition changed"
+      ]
+    },
+    {
+      "id": "client-e2e-alignment-google-form",
+      "path": "docs/client-e2e-alignment-google-form.md",
+      "type": "planning-template",
+      "status": "active",
+      "mustUpdateWhen": [
+        "google form structure changed",
+        "question type or options changed",
+        "kickoff data collection process changed"
+      ]
+    },
+    {
       "id": "user-guide-start-here",
       "path": "docs/user-guide/00-start-here.md",
       "type": "user-guide",

@@ -18,16 +18,5 @@ export default async function QuickPurchasePage() {
     cashAccounts: { id: string; name: string }[];
   }>(serialized);
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Quick Purchase</h1>
-        <p className="text-sm text-muted-foreground">
-          Satu form untuk alur beli cepat: Receive + Invoice + Payment (cash) atau Receive + Invoice (credit).
-        </p>
-      </div>
-      <QuickPurchaseForm data={data} />
-    </div>
-  );
+  return <QuickPurchaseForm data={data} />;
 }
-
