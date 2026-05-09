@@ -20,80 +20,89 @@ Cara isi cepat:
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| Produk disimpan sebagai | Barang jual jadi / Bahan baku + barang jadi / Keduanya |  |  |
-| Unit barang | Tanpa konversi / Dengan konversi (cth KG->GR) |  |  |
-| Kontrol stok negatif | Dilarang / Boleh dengan warning |  |  |
-| Penilaian biaya stok | Average Cost / FIFO (jika tersedia) |  |  |
-| Reorder point | Tidak perlu / Per produk / Per gudang+produk |  |  |
-| Multi harga jual | Tidak / Ya (eceran, grosir, dine-in, online) |  |  |
+| Data barang yang dipakai harian | Hanya menu jadi / Hanya bahan baku / Keduanya |  |  |
+| Cara hitung satuan barang | Satuan sederhana (pcs, porsi) / Campuran (kg-gram, liter-ml) |  |  |
+| Jika stok habis saat jual | Harus ditolak / Boleh lanjut dengan peringatan |  |  |
+| Titik stok minimum | Tidak pakai batas minimum / Pakai batas minimum per barang |  |  |
+| Harga jual | Satu harga / Beda harga per channel (dine-in, takeaway, online) |  |  |
+| Barang yang sering kosong | Jarang / Kadang / Sering |  |  |
+| Frekuensi stock opname | Harian / Mingguan / Bulanan / Tidak terjadwal |  |  |
 
 ## C. Behavior POS (Penjualan)
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| Saat transaksi POS sukses | Kurangi stok barang jual / Kurangi bahan via BOM / Hybrid |  |  |
-| Metode pembayaran POS | Cash / Bank Transfer / QRIS / E-wallet / Campuran |  |  |
-| Split bill | Tidak / Ya |  |  |
-| Hold order | Tidak / Ya |  |  |
-| Void transaksi | Supervisor only / Kasir+Supervisor |  |  |
-| Sinkron stok real-time | Wajib / Boleh delay end-of-day |  |  |
+| Jenis layanan utama | Dine-in / Takeaway / Delivery / Campuran |  |  |
+| Pemesanan berdasarkan | Tanpa meja / Meja restoran / Kamar-lokasi / Campuran |  |  |
+| Proses meja/lokasi | Tidak perlu buka-tutup / Perlu status buka-tutup meja |  |  |
+| Metode pembayaran yang dipakai | Cash / Transfer / QRIS / E-wallet / Kartu / Campuran |  |  |
+| Pembayaran gabungan (split bill) | Tidak perlu / Kadang perlu / Sering perlu |  |  |
+| Menahan pesanan sementara (hold) | Tidak perlu / Perlu |  |  |
+| Pembatalan item/transaksi | Bebas kasir / Harus supervisor / Harus manager |  |  |
+| Kecepatan update stok setelah transaksi | Langsung saat transaksi / Boleh di akhir shift |  |  |
 
 ## D. Pencatatan Dapur dan Produksi
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| Pemakaian bahan | Otomatis dari BOM saat jual / Manual issue harian / Hybrid |  |  |
-| BOM per menu | Tidak perlu / Wajib untuk menu utama / Wajib semua menu |  |  |
-| Toleransi waste | Tidak dicatat / Dicatat per shift / Dicatat per item |  |  |
-| Produksi batch (prep) | Tidak / Ya (contoh bumbu dasar, saus) |  |  |
-| Approval perubahan BOM | Tidak / Head Chef / Owner |  |  |
+| Pengurangan bahan saat menu terjual | Otomatis / Manual / Campuran |  |  |
+| Kebutuhan resep standar per menu | Tidak perlu / Per menu utama / Semua menu |  |  |
+| Pencatatan bahan terbuang/rusak | Tidak dicatat / Dicatat per shift / Dicatat per item |  |  |
+| Persiapan batch (prep) harian | Tidak ada / Ada untuk item tertentu / Ada untuk banyak item |  |  |
+| Perubahan resep/harga pokok | Siapa saja / Head Chef / Owner |  |  |
+| Estimasi kebutuhan dapur | Manual / Ingin dibantu sistem |  |  |
 
 ## E. Pembelian dan Penerimaan
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| Alur pembelian utama | Quick Purchase / PO -> Receive -> Invoice / Campuran |  |  |
-| Pembelian harian | Cash daily / Hutang bulanan / Campuran |  |  |
-| Wajib receive sebelum invoice | Ya / Tidak |  |  |
-| Partial receive | Tidak / Ya |  |  |
-| Retur pembelian | Tidak / Ya |  |  |
+| Cara belanja paling sering | Belanja cepat harian / PO formal / Campuran |  |  |
+| Pola pembayaran supplier | Tunai langsung / Tempo bulanan / Campuran |  |  |
+| Barang datang tidak sesuai | Langsung ditolak / Tetap diterima sebagian / Tergantung supplier |  |  |
+| Retur ke supplier | Jarang / Kadang / Sering |  |  |
+| Approval pembelian | Tidak perlu / Perlu untuk nominal tertentu / Selalu perlu |  |  |
+| Bukti pembelian | Kertas / Digital / Campuran |  |  |
 
 ## F. Akuntansi dan Jurnal
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| Posting jurnal | Otomatis realtime / Approval lalu post / End-of-day batch |  |  |
-| Kebutuhan costing | Dasar / Menengah / Detail (per menu/per shift) |  |  |
-| Pajak transaksi | Non-PKP / PPN / Custom |  |  |
-| Tutup buku periodik | Bulanan / Mingguan / Tidak fixed |  |  |
-| Akun default per modul | Ikuti standar seed / Custom chart of accounts |  |  |
+| Pencatatan transaksi ke laporan keuangan | Otomatis langsung / Dicek dulu lalu disahkan / Rekap akhir hari |  |  |
+| Detail laporan biaya yang diinginkan | Ringkas / Menengah / Sangat detail (per menu/per shift) |  |  |
+| Pengaturan pajak | Tidak pakai pajak / Pajak standar / Pajak khusus |  |  |
+| Penutupan laporan | Harian / Mingguan / Bulanan |  |  |
+| Struktur akun | Pakai default sistem / Disesuaikan dengan bisnis |  |  |
+| Siapa yang review laporan | Owner / Admin keuangan / Manager outlet |  |  |
 
 ## G. Kontrol, Approval, dan Akses
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| Struktur approval | Tanpa approval / 1 level / 2 level+ |  |  |
-| Akses role | Standard (Admin/Manager/Cashier) / Custom role |  |  |
-| Batas diskon POS | Tidak ada / Per kasir / Per role |  |  |
-| Audit trail | Basic / Detail per field |  |  |
+| Level persetujuan | Tidak perlu approval / 1 level / 2 level atau lebih |  |  |
+| Pengaturan hak akses user | Standar / Per jabatan detail / Per orang |  |  |
+| Batas diskon di kasir | Tidak dibatasi / Dibatasi per kasir / Dibatasi per jabatan |  |  |
+| Riwayat perubahan data | Dasar / Lengkap per perubahan |  |  |
+| Kebutuhan PIN supervisor di kasir | Tidak perlu / Per aksi tertentu / Wajib |  |  |
 
 ## H. Laporan dan KPI
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| KPI utama | Sales / Margin / COGS / Waste / Cashflow |  |  |
-| Frekuensi laporan | Harian / Mingguan / Bulanan |  |  |
-| Format ekspor | PDF / Excel / Keduanya |  |  |
-| Dashboard manajemen | Ringkas / Lengkap |  |  |
+| Laporan paling penting | Penjualan / Laba kotor / Biaya bahan / Waste / Arus kas |  |  |
+| Kapan laporan dibutuhkan | Real-time / Akhir shift / Harian / Mingguan / Bulanan |  |  |
+| Format laporan yang disukai | Di layar saja / PDF / Excel / Keduanya |  |  |
+| Tingkat detail dashboard | Ringkas untuk owner / Detail untuk operasional |  |  |
+| Laporan per outlet | Tidak perlu / Perlu |  |  |
 
 ## I. Migrasi Data dan Integrasi
 
 | Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
 |---|---|---|---|
-| Sumber data lama | Excel / POS lain / ERP lain / Tidak ada |  |  |
-| Scope migrasi awal | Master only / Master+saldo / Full history |  |  |
-| Integrasi eksternal | Tidak ada / Payment / E-commerce / Lainnya |  |  |
-| Kebutuhan API | Tidak / Ya (read-only) / Ya (read-write) |  |  |
+| Data lama berasal dari | Excel / Aplikasi POS lama / Sistem lain / Tidak ada |  |  |
+| Data yang mau dipindahkan di awal | Data master saja / Master + saldo awal / Full histori |  |  |
+| Integrasi yang dibutuhkan | Tidak ada / Payment / Marketplace / Delivery app / Lainnya |  |  |
+| Kebutuhan sinkron data ke sistem lain | Tidak perlu / Perlu lihat data / Perlu kirim dan terima data |  |  |
+| Siapa pemilik data final | Tetap di sistem lama / Pindah ke sistem baru / Campuran sementara |  |  |
 
 ## J. Prioritas Implementasi
 

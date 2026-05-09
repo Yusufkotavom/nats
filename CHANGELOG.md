@@ -58,6 +58,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki tombol `Create` pada form `New Purchase Invoice` dengan mengaitkan tombol submit ke elemen form (`form=\"purchase-invoice-form\"`) karena tombol berada di header di luar tag `<form>`.
 
 ### Docs
+- Memperbarui `docs/client-e2e-alignment-form.md` agar pertanyaan lebih detail namun non-teknis (lebih mudah diisi user/client operasional), lalu regenerate versi kirim `docs/client-e2e-alignment-form.docx`.
 - Memperluas dokumentasi user-facing POS di `docs/user-guide/modules/pos.md` dengan panduan operasional restoran yang lebih detail: dining spot (meja/lokasi), hold-resume, status spot, validasi checkout, dan troubleshooting cepat.
 - Menambahkan dokumen user-facing `docs/user-guide/modules/client-kickoff-questionnaire.md` untuk daftar pertanyaan wajib saat meeting kickoff client (E2E alignment).
 - Menambahkan blueprint implementasi `POS restoran` di `docs/pos-restaurant-extension-plan.md` mencakup master area/meja-kamar, indikator status meja, binding order ke spot, kitchen ticket/station, lifecycle buka-tutup meja, desain data Prisma, roadmap phase, dan test plan.
