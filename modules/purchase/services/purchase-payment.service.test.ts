@@ -2,6 +2,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const enqueueIntegrationEventMock = vi.hoisted(() => vi.fn());
 
+vi.mock("next/navigation", () => ({
+    useRouter: vi.fn(),
+    usePathname: vi.fn(),
+    useSearchParams: vi.fn(),
+    useParams: vi.fn(),
+    redirect: vi.fn(),
+    notFound: vi.fn(),
+}));
+
+vi.mock("next-intl/server", () => ({
+    getLocale: vi.fn(() => Promise.resolve("en")),
+    getTranslations: vi.fn(),
+}));
+
+vi.mock("@/i18n/routing", () => ({
+    redirect: vi.fn(),
+}));
+
 vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
 }));
@@ -9,12 +27,20 @@ vi.mock("@/modules/integration/outbox", () => ({
 const prismaMock = vi.hoisted(() => ({
     purchaseInvoice: {
         findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
     },
     purchasePayment: {
         count: vi.fn(),
     },
     cashAccount: {
         findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+    },
+    documentNumbering: {
+        findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
     },
     $transaction: vi.fn(),
 }));

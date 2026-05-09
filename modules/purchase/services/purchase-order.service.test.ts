@@ -1,9 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const enqueueIntegrationEventMock = vi.hoisted(() => vi.fn());
+const generateDocumentNumberMock = vi.hoisted(() => vi.fn());
+
+vi.mock("next/navigation", () => ({
+    useRouter: vi.fn(),
+    usePathname: vi.fn(),
+    useSearchParams: vi.fn(),
+    useParams: vi.fn(),
+    redirect: vi.fn(),
+    notFound: vi.fn(),
+}));
+
+vi.mock("next-intl/server", () => ({
+    getLocale: vi.fn(() => Promise.resolve("en")),
+    getTranslations: vi.fn(),
+}));
+
+vi.mock("@/i18n/routing", () => ({
+    redirect: vi.fn(),
+}));
 
 vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
+}));
+
+vi.mock("@/lib/document-numbering", () => ({
+    generateDocumentNumber: generateDocumentNumberMock,
 }));
 
 const prismaMock = vi.hoisted(() => ({

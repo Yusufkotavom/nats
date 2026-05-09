@@ -2,6 +2,24 @@ import { checkBudgetAvailability } from "./actions";
 import { prisma } from "@/lib/prisma";
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+vi.mock("next/navigation", () => ({
+    useRouter: vi.fn(),
+    usePathname: vi.fn(),
+    useSearchParams: vi.fn(),
+    useParams: vi.fn(),
+    redirect: vi.fn(),
+    notFound: vi.fn(),
+}));
+
+vi.mock("next-intl/server", () => ({
+    getLocale: vi.fn(() => Promise.resolve("en")),
+    getTranslations: vi.fn(),
+}));
+
+vi.mock("@/i18n/routing", () => ({
+    redirect: vi.fn(),
+}));
+
 // Mocking Prisma
 vi.mock("@/lib/prisma", () => ({
   prisma: {

@@ -7,6 +7,17 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased] - 2026-05-08
 
+### Added
+- Menambahkan test coverage untuk action `Quick Purchase` (`app/[locale]/(dashboard)/purchase/quick/actions.test.ts`) dengan 12 test case mencakup:
+  - Jalur sukses `CASH_DAILY` (receive + invoice + payment)
+  - Jalur sukses `MONTHLY_CREDIT` (receive + invoice tanpa payment)
+  - Validasi field wajib (vendor, items, cash account)
+  - Fail path untuk setiap langkah orkestrasi (receive creation/completion, invoice creation/posting, payment creation/posting)
+
+### Fixed
+- Memperbaiki test suite yang gagal karena missing mock untuk `next/navigation`, `next-intl/server`, dan `next/headers` dengan menambahkan mock global di `vitest.setup.ts` dan mock `generateDocumentNumber` di test service yang membutuhkan.
+- Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
+
 ### Changed
 - POS transaction flow sekarang melakukan konsumsi bahan berbasis BOM aktif bila tersedia, bukan hanya mengurangi stok produk jual.
 - Fallback tetap dipertahankan: jika BOM tidak tersedia, sistem tetap mengurangi stok produk jual (backward compatible).

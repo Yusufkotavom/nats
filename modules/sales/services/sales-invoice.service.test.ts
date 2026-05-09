@@ -1,9 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const enqueueIntegrationEventMock = vi.hoisted(() => vi.fn());
+const generateDocumentNumberMock = vi.hoisted(() => vi.fn());
+
+vi.mock("next/navigation", () => ({
+    useRouter: vi.fn(),
+    usePathname: vi.fn(),
+    useSearchParams: vi.fn(),
+    useParams: vi.fn(),
+    redirect: vi.fn(),
+    notFound: vi.fn(),
+}));
+
+vi.mock("next-intl/server", () => ({
+    getLocale: vi.fn(() => Promise.resolve("en")),
+    getTranslations: vi.fn(),
+}));
+
+vi.mock("@/i18n/routing", () => ({
+    redirect: vi.fn(),
+}));
 
 vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
+}));
+
+vi.mock("@/lib/document-numbering", () => ({
+    generateDocumentNumber: generateDocumentNumberMock,
 }));
 
 const prismaMock = vi.hoisted(() => ({
@@ -44,6 +67,7 @@ const MOCK_INVOICE_INPUT = {
 describe("SalesInvoiceService", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        generateDocumentNumberMock.mockResolvedValue("INV-2602-0001");
     });
 
     describe("create", () => {
@@ -74,7 +98,7 @@ describe("SalesInvoiceService", () => {
             const result = await SalesInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID);
 
             expect(result.id).toBe("inv-001");
-            expect(prismaMock.salesInvoice.count).toHaveBeenCalledOnce();
+            expect(generateDocumentNumberMock).toHaveBeenCalledOnce();
         });
 
         it("uses provided invoice number when given", async () => {
@@ -106,7 +130,7 @@ describe("SalesInvoiceService", () => {
             );
 
             expect(result.invoiceNumber).toBe("CUSTOM-001");
-            expect(prismaMock.salesInvoice.count).not.toHaveBeenCalled();
+            expect(generateDocumentNumberMock).not.toHaveBeenCalled();
         });
 
         it("throws when invoice number already exists", async () => {
