@@ -20,6 +20,10 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Fail path untuk setiap langkah orkestrasi (receive creation/completion, invoice creation/posting, payment creation/posting)
 
 ### Fixed
+- Memperbaiki renderer halaman docs agar markdown tidak tampil plain:
+  - mengaktifkan `remark-gfm` pada `ReactMarkdown` untuk mendukung tabel/list GFM,
+  - menambahkan styling render tabel agar terbaca baik (termasuk overflow horizontal),
+  - menghapus heading pertama yang duplikat jika sama dengan judul frontmatter.
 - Memperbaiki test suite yang gagal karena missing mock untuk `next/navigation`, `next-intl/server`, dan `next/headers` dengan menambahkan mock global di `vitest.setup.ts` dan mock `generateDocumentNumber` di test service yang membutuhkan.
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 

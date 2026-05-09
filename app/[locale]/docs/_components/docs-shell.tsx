@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { GuideDoc } from "@/lib/user-guide";
 
 type GuideMeta = Omit<GuideDoc, "content">;
@@ -55,7 +56,27 @@ export function DocsShell({
           <h1 className="mb-6 text-2xl font-bold">{current.title}</h1>
 
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown>{current.content}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                table: ({ children }) => (
+                  <div className="my-4 w-full overflow-x-auto">
+                    <table className="w-full min-w-[680px] border-collapse">{children}</table>
+                  </div>
+                ),
+                thead: ({ children }) => <thead className="bg-muted/40">{children}</thead>,
+                th: ({ children }) => (
+                  <th className="border px-3 py-2 text-left align-top text-xs font-semibold uppercase tracking-wide">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => <td className="border px-3 py-2 align-top">{children}</td>,
+                ul: ({ children }) => <ul className="list-disc space-y-1 pl-6">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal space-y-1 pl-6">{children}</ol>,
+              }}
+            >
+              {current.content}
+            </ReactMarkdown>
           </div>
 
           {current.related.length > 0 && (

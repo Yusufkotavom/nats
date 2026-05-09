@@ -75,7 +75,42 @@ function toDoc(meta: Record<string, string>, filePath: string, content: string):
     ? meta.related.split(",").map((x) => x.trim()).filter(Boolean)
     : [];
 
-  return { slug, title, module, order, updatedAt, summary, related, content };
+  return {
+    slug,
+    title,
+    module,
+    order,
+    updatedAt,
+    summary,
+    related,
+    content: stripLeadingDuplicateHeading(content, title),
+  };
+}
+
+function stripLeadingDuplicateHeading(content: string, title: string): string {
+  const normalizedTitle = title.trim().toLowerCase();
+  const lines = content.split("\n");
+  let firstContentLine = -1;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i].trim() !== "") {
+      firstContentLine = i;
+      break;
+    }
+  }
+
+  if (firstContentLine < 0) return content;
+
+  const line = lines[firstContentLine].trim();
+  const match = line.match(/^#\s+(.+)$/);
+  if (!match) return content;
+
+  const headingText = match[1].trim().toLowerCase();
+  if (headingText !== normalizedTitle) return content;
+
+  const nextStart = firstContentLine + 1;
+  const remainder = lines.slice(nextStart).join("\n");
+  return remainder.replace(/^\n+/, "");
 }
 
 export async function getGuideDocs(): Promise<GuideDoc[]> {
@@ -104,4 +139,3 @@ export async function getGuideDocBySlug(slug: string[]): Promise<GuideDoc | null
   const key = slug.join("/");
   return docs.find((doc) => doc.slug.join("/") === key) || null;
 }
-
