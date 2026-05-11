@@ -17,6 +17,7 @@ interface CompanyProfileData {
   currencyFormat: string;
   locale: string;
   timezone: string;
+  posProductVisibilityMode?: "POS_ONLY" | "ALL_ACTIVE";
 }
 
 /**
@@ -51,6 +52,9 @@ export const updateCompanyProfile = authorizedAction(
           currencyFormat: data.currencyFormat,
           locale: data.locale,
           timezone: data.timezone,
+          ...(data.posProductVisibilityMode
+            ? { posProductVisibilityMode: data.posProductVisibilityMode }
+            : {}),
         },
       });
     } else {
@@ -68,6 +72,7 @@ export const updateCompanyProfile = authorizedAction(
           currencyFormat: data.currencyFormat,
           locale: data.locale,
           timezone: data.timezone,
+          posProductVisibilityMode: data.posProductVisibilityMode || "POS_ONLY",
         },
       });
     }
@@ -92,6 +97,7 @@ export const getCompanyProfile = async () => {
       currencyFormat: true,
       locale: true,
       timezone: true,
+      posProductVisibilityMode: true,
     },
   });
 };

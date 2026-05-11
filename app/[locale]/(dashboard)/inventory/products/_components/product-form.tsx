@@ -52,6 +52,7 @@ export function ProductForm({
     cost: product?.cost?.toString() || "",
     minStock: product?.minStock || 0,
     isActive: product?.isActive ?? true,
+    showInPos: product?.showInPos ?? true,
     baseUnitId: product?.baseUnitId || "",
     purchaseUnitId: product?.purchaseUnitId || "",
     purchaseConversionFactor:
@@ -114,6 +115,7 @@ export function ProductForm({
       cost: costValue.toString(),
       minStock: Number(formData.minStock),
       isActive: formData.isActive,
+      showInPos: formData.showInPos,
       baseUnitId: formData.baseUnitId || null,
       purchaseUnitId: formData.purchaseUnitId || null,
       purchaseConversionFactor: purchaseFactor?.toString() || 1,

@@ -8,7 +8,7 @@ Dokumen ini digunakan sebagai sumber tunggal untuk audit kebutuhan dan status im
 ## Status Implementasi Saat Ini
 - Status umum: `IN_PROGRESS`
 - Fase 1 (`CASH_DAILY`, `MONTHLY_CREDIT`): `IMPLEMENTED`
-- Fase 2 (`PREORDER_DP`): `NOT_IMPLEMENTED`
+- Fase 2 (`PREORDER_DP`): `IMPLEMENTED` (partial payment ke invoice sudah jalan)
 - Fase 3 (UX simplification lanjutan): `PARTIAL`
 
 ### Yang Sudah Diimplementasikan (Fase 1)
@@ -23,10 +23,12 @@ Dokumen ini digunakan sebagai sumber tunggal untuk audit kebutuhan dan status im
 - Label i18n ditambahkan (`en`/`id`).
 
 ### Yang Belum / Lanjutan
-- `PREORDER_DP` end-to-end (fase DP -> invoicing final -> apply DP).
+- Hardening `PREORDER_DP` lanjutan:
+  - skenario DP sebelum barang datang (tanpa receive),
+  - flow apply DP lintas tahap jika dipisah dokumen.
 - Idempotency key anti double submit yang eksplisit.
 - Reason code waste/vendor-quality terstruktur + reason detail wajib.
-- Test coverage khusus quick purchase orchestration.
+- Penyempurnaan test end-to-end level action untuk skenario retry/idempotency.
 
 ## Latar Belakang (Kondisi Saat Ini)
 - Alur pembelian standar saat ini: `Purchase Order` (opsional) -> `Purchase Receive` -> `Purchase Invoice` -> `Purchase Payment`.
@@ -116,17 +118,15 @@ Quick Purchase harus menjadi orchestration layer yang memanggil service existing
 - No payment
 - Result: stok naik, AP outstanding.
 
-### PREORDER_DP
-Phase A (DP dibayar, barang belum datang):
-- Catat payment DP dengan referensi preorder.
-- Belum membuat receive.
-
-Phase B (barang datang):
+### PREORDER_DP (implementasi saat ini)
 - Create `Purchase Receive`
 - Create `Purchase Invoice`
-- Apply/allocate DP ke invoice.
+- Create + post `Purchase Payment` sebesar `downPaymentAmount`
+- Sisa tagihan tetap outstanding (`remainingPayableAmount`)
 
-Catatan: butuh verifikasi apakah mekanisme apply DP sudah tersedia atau perlu ekstensi terbatas di payment allocation.
+Catatan:
+- Mode ini sekarang mendukung DP parsial pada invoice yang sama.
+- Untuk model operasional dua tahap (DP dulu, barang datang belakangan) masih jadi backlog hardening.
 
 ## Dependency & Gap Check (Pra-Implementasi)
 1. Verifikasi endpoint/service create untuk receive/invoice/payment bisa dipanggil dalam 1 transaksi orkestrasi.

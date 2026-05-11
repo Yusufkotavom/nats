@@ -41,6 +41,7 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
     new Date().toISOString().slice(0, 10),
   );
   const [dueDate, setDueDate] = useState("");
+  const [downPaymentAmount, setDownPaymentAmount] = useState(0);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<ItemRow[]>([
     { id: crypto.randomUUID(), productId: "", quantity: 1, unitCost: 0 },
@@ -74,10 +75,15 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
         toast({ title: "Validation", description: "Vendor wajib dipilih", variant: "destructive" });
         return;
       }
-      if (mode === "CASH_DAILY" && !cashAccountId) {
+      if ((mode === "CASH_DAILY" || mode === "PREORDER_DP") && !cashAccountId) {
         toast({ title: "Validation", description: "Kas/Bank wajib dipilih", variant: "destructive" });
         return;
       }
+      if (mode === "PREORDER_DP" && downPaymentAmount <= 0) {
+        toast({ title: "Validation", description: "Nominal DP wajib lebih dari 0", variant: "destructive" });
+        return;
+      }
+
       const validItems = items.filter(
         (row) => row.productId && row.quantity > 0 && row.unitCost > 0,
       );
@@ -90,9 +96,10 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
       const result = await createQuickPurchase({
         mode,
         contactId,
-        cashAccountId: mode === "CASH_DAILY" ? cashAccountId : undefined,
+        cashAccountId: mode === "CASH_DAILY" || mode === "PREORDER_DP" ? cashAccountId : undefined,
         transactionDate: new Date(transactionDate),
         dueDate: mode === "MONTHLY_CREDIT" && dueDate ? new Date(dueDate) : undefined,
+        downPaymentAmount: mode === "PREORDER_DP" ? downPaymentAmount : undefined,
         notes: notes || undefined,
         items: validItems.map((row) => ({
           productId: row.productId,
@@ -106,9 +113,13 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
       }
 
       const parsed = SuperJSON.deserialize<QuickPurchaseResult>(result.data);
+      const remainingInfo =
+        parsed.remainingPayableAmount && parsed.remainingPayableAmount > 0
+          ? ` | Sisa hutang: ${parsed.remainingPayableAmount.toLocaleString("id-ID")}`
+          : "";
       toast({
         title: "Sukses",
-        description: `Quick purchase selesai. Invoice: ${parsed.invoiceId}`,
+        description: `Quick purchase selesai. Invoice: ${parsed.invoiceId}${remainingInfo}`,
       });
       router.push(`/purchase/invoices/${parsed.invoiceId}`);
     } catch (error) {
@@ -146,6 +157,7 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
           <CustomSelect label="Mode" value={mode} onValueChange={(v) => setMode(v as QuickPurchaseMode)}>
             <SelectItem value="CASH_DAILY">Cash Daily</SelectItem>
             <SelectItem value="MONTHLY_CREDIT">Monthly Credit</SelectItem>
+            <SelectItem value="PREORDER_DP">Preorder DP</SelectItem>
           </CustomSelect>
 
           <CustomSelect label="Vendor" value={contactId} onValueChange={setContactId} placeholder="Pilih vendor">
@@ -184,6 +196,13 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
               ))}
             </CustomSelect>
           )}
+          {mode === "PREORDER_DP" ? (
+            <CurrencyInput
+              label="Nominal DP"
+              value={downPaymentAmount}
+              onChange={(value) => setDownPaymentAmount(Number(value) || 0)}
+            />
+          ) : null}
         </CardContent>
       </Card>
 

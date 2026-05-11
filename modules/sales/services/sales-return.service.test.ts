@@ -24,6 +24,10 @@ vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
 }));
 
+vi.mock("@/lib/document-numbering", () => ({
+    generateDocumentNumber: vi.fn().mockResolvedValue("RET-TEST-0001"),
+}));
+
 const prismaMock = vi.hoisted(() => ({
     salesReturn: { count: vi.fn(), findUnique: vi.fn() },
     documentNumbering: {
@@ -95,7 +99,6 @@ describe("SalesReturnService", () => {
         });
 
         it("auto-generates return number when not provided", async () => {
-            prismaMock.salesReturn.count.mockResolvedValue(3);
             prismaMock.salesReturn.findUnique.mockResolvedValue(null);
 
             const createdReturn = {
@@ -120,7 +123,6 @@ describe("SalesReturnService", () => {
             );
 
             expect(result.returnNumber).toBe("RET-2602-0004");
-            expect(prismaMock.salesReturn.count).toHaveBeenCalledOnce();
         });
     });
 });

@@ -60,8 +60,8 @@ export const createQuickPurchase = authorizedAction(
     try {
       if (!data.contactId) throw new Error("Vendor is required");
       if (!data.items || data.items.length === 0) throw new Error("At least one item is required");
-      if (data.mode === "CASH_DAILY" && !data.cashAccountId) {
-        throw new Error("Cash account is required for cash daily");
+      if ((data.mode === "CASH_DAILY" || data.mode === "PREORDER_DP") && !data.cashAccountId) {
+        throw new Error("Cash account is required for cash daily and preorder DP");
       }
 
       const productIds = data.items.map((i) => i.productId);
@@ -142,15 +142,30 @@ export const createQuickPurchase = authorizedAction(
 
       let paymentId: string | undefined;
       let postedPayment = false;
+      let remainingPayableAmount: number | undefined;
 
-      if (data.mode === "CASH_DAILY") {
+      if (data.mode === "CASH_DAILY" || data.mode === "PREORDER_DP") {
+        const invoiceTotalAmount = Number(createdInvoice.totalAmount);
+        const requestedPaymentAmount =
+          data.mode === "PREORDER_DP"
+            ? Number(data.downPaymentAmount ?? 0)
+            : invoiceTotalAmount;
+        const paymentAmount = Math.max(0, Math.min(requestedPaymentAmount, invoiceTotalAmount));
+
+        if (data.mode === "PREORDER_DP" && paymentAmount <= 0) {
+          throw new Error("Down payment amount must be greater than 0");
+        }
+
         const paymentCreateResult = await createPurchasePayment({
           paymentNumber: "",
           contactId: data.contactId,
           purchaseInvoiceId: createdInvoice.id,
           paymentDate: data.transactionDate,
-          amount: Number(createdInvoice.totalAmount),
-          reference: "Quick Purchase Cash",
+          amount: paymentAmount,
+          reference:
+            data.mode === "PREORDER_DP"
+              ? "Quick Purchase Preorder DP"
+              : "Quick Purchase Cash",
           notes: data.notes,
           cashAccountId: data.cashAccountId!,
           departmentId: data.departmentId,
@@ -171,6 +186,7 @@ export const createQuickPurchase = authorizedAction(
           throw new Error(postPaymentResult.error || "Failed to post payment");
         }
         postedPayment = true;
+        remainingPayableAmount = Math.max(0, invoiceTotalAmount - paymentAmount);
       }
 
       const result: QuickPurchaseResult = {
@@ -178,7 +194,11 @@ export const createQuickPurchase = authorizedAction(
         invoiceId: createdInvoice.id,
         paymentId,
         postedInvoice: true,
-        postedPayment: data.mode === "CASH_DAILY" ? postedPayment : undefined,
+        postedPayment:
+          data.mode === "CASH_DAILY" || data.mode === "PREORDER_DP"
+            ? postedPayment
+            : undefined,
+        remainingPayableAmount,
       };
 
       revalidatePath("/purchase/receives");
@@ -196,4 +216,3 @@ export const createQuickPurchase = authorizedAction(
     }
   },
 );
-

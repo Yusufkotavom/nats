@@ -24,6 +24,10 @@ vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
 }));
 
+vi.mock("@/lib/document-numbering", () => ({
+    generateDocumentNumber: vi.fn().mockResolvedValue("SHP-TEST-0001"),
+}));
+
 const prismaMock = vi.hoisted(() => ({
     salesShipment: { count: vi.fn() },
     documentNumbering: {
@@ -91,8 +95,6 @@ describe("SalesShipmentService", () => {
         });
 
         it("auto-generates shipment number", async () => {
-            prismaMock.salesShipment.count.mockResolvedValue(5);
-
             const createdShipment = {
                 id: "shp-002",
                 shipmentNumber: "SHP-2602-0006",
@@ -110,7 +112,6 @@ describe("SalesShipmentService", () => {
             const result = await SalesShipmentService.create(MOCK_SHIPMENT_INPUT, MOCK_USER_ID);
 
             expect(result.shipmentNumber).toBe("SHP-2602-0006");
-            expect(prismaMock.salesShipment.count).toHaveBeenCalledOnce();
         });
     });
 });

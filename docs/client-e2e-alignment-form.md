@@ -1,133 +1,294 @@
-# Form Perencanaan End-to-End Implementasi
+# Form Isian Client - Perencanaan Implementasi End-to-End
 
-Dokumen ini dipakai saat kick-off dengan client agar penyelarasan software cepat, terstruktur, dan minim revisi ulang.
+Dokumen ini diisi langsung oleh pihak client.
 
-Cara isi cepat:
-- Pilih opsi pada setiap pertanyaan.
-- Isi kolom catatan hanya jika ada pengecualian.
-- Tandai prioritas `MVP` atau `Phase 2`.
+Panduan singkat:
+- Pilih salah satu opsi yang paling sesuai.
+- Jika perlu, tulis catatan singkat.
+- Isi dengan kondisi operasional nyata saat ini.
+
+---
 
 ## A. Profil Operasional
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Jenis bisnis utama | Restoran / Cafe / Retail / Jasa / Lainnya |  |  |
-| Jumlah outlet saat ini | 1 / 2-5 / >5 |  |  |
-| Metode operasional | Single gudang / Multi gudang / Per outlet stock |  |  |
-| Target Go-Live | <30 hari / 1-2 bulan / >2 bulan |  |  |
+1) Jenis bisnis utama  
+Pilihan: Restoran / Cafe / Retail / Jasa / Lainnya  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## B. Master Data dan Persediaan Barang Dagang
+2) Jumlah outlet aktif saat ini  
+Pilihan: 1 / 2-5 / >5  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Data barang yang dipakai harian | Hanya menu jadi / Hanya bahan baku / Keduanya |  |  |
-| Cara hitung satuan barang | Satuan sederhana (pcs, porsi) / Campuran (kg-gram, liter-ml) |  |  |
-| Jika stok habis saat jual | Harus ditolak / Boleh lanjut dengan peringatan |  |  |
-| Titik stok minimum | Tidak pakai batas minimum / Pakai batas minimum per barang |  |  |
-| Harga jual | Satu harga / Beda harga per channel (dine-in, takeaway, online) |  |  |
-| Barang yang sering kosong | Jarang / Kadang / Sering |  |  |
-| Frekuensi stock opname | Harian / Mingguan / Bulanan / Tidak terjadwal |  |  |
+3) Model operasional stok saat ini  
+Pilihan: Satu gudang pusat / Gudang per outlet / Campuran  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## C. Behavior POS (Penjualan)
+4) Target mulai pakai sistem (go-live)  
+Pilihan: <30 hari / 1-2 bulan / >2 bulan  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Jenis layanan utama | Dine-in / Takeaway / Delivery / Campuran |  |  |
-| Pemesanan berdasarkan | Tanpa meja / Meja restoran / Kamar-lokasi / Campuran |  |  |
-| Proses meja/lokasi | Tidak perlu buka-tutup / Perlu status buka-tutup meja |  |  |
-| Metode pembayaran yang dipakai | Cash / Transfer / QRIS / E-wallet / Kartu / Campuran |  |  |
-| Pembayaran gabungan (split bill) | Tidak perlu / Kadang perlu / Sering perlu |  |  |
-| Menahan pesanan sementara (hold) | Tidak perlu / Perlu |  |  |
-| Pembatalan item/transaksi | Bebas kasir / Harus supervisor / Harus manager |  |  |
-| Kecepatan update stok setelah transaksi | Langsung saat transaksi / Boleh di akhir shift |  |  |
+---
 
-## D. Pencatatan Dapur dan Produksi
+## B. Data Barang dan Stok
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Pengurangan bahan saat menu terjual | Otomatis / Manual / Campuran |  |  |
-| Kebutuhan resep standar per menu | Tidak perlu / Per menu utama / Semua menu |  |  |
-| Pencatatan bahan terbuang/rusak | Tidak dicatat / Dicatat per shift / Dicatat per item |  |  |
-| Persiapan batch (prep) harian | Tidak ada / Ada untuk item tertentu / Ada untuk banyak item |  |  |
-| Perubahan resep/harga pokok | Siapa saja / Head Chef / Owner |  |  |
-| Estimasi kebutuhan dapur | Manual / Ingin dibantu sistem |  |  |
+1) Data barang yang dipakai harian  
+Pilihan: Menu jadi / Bahan baku / Keduanya  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## E. Pembelian dan Penerimaan
+2) Cara satuan barang  
+Pilihan: Sederhana (pcs/porsi) / Campuran (kg-gram, liter-ml)  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Cara belanja paling sering | Belanja cepat harian / PO formal / Campuran |  |  |
-| Pola pembayaran supplier | Tunai langsung / Tempo bulanan / Campuran |  |  |
-| Barang datang tidak sesuai | Langsung ditolak / Tetap diterima sebagian / Tergantung supplier |  |  |
-| Retur ke supplier | Jarang / Kadang / Sering |  |  |
-| Approval pembelian | Tidak perlu / Perlu untuk nominal tertentu / Selalu perlu |  |  |
-| Bukti pembelian | Kertas / Digital / Campuran |  |  |
+3) Jika stok habis saat transaksi  
+Pilihan: Harus ditolak / Boleh lanjut dengan peringatan  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## F. Akuntansi dan Jurnal
+4) Batas stok minimum  
+Pilihan: Tidak pakai / Pakai per barang  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Pencatatan transaksi ke laporan keuangan | Otomatis langsung / Dicek dulu lalu disahkan / Rekap akhir hari |  |  |
-| Detail laporan biaya yang diinginkan | Ringkas / Menengah / Sangat detail (per menu/per shift) |  |  |
-| Pengaturan pajak | Tidak pakai pajak / Pajak standar / Pajak khusus |  |  |
-| Penutupan laporan | Harian / Mingguan / Bulanan |  |  |
-| Struktur akun | Pakai default sistem / Disesuaikan dengan bisnis |  |  |
-| Siapa yang review laporan | Owner / Admin keuangan / Manager outlet |  |  |
+5) Harga jual  
+Pilihan: Satu harga / Beda harga per channel  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## G. Kontrol, Approval, dan Akses
+6) Frekuensi stock opname  
+Pilihan: Harian / Mingguan / Bulanan / Tidak terjadwal  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Level persetujuan | Tidak perlu approval / 1 level / 2 level atau lebih |  |  |
-| Pengaturan hak akses user | Standar / Per jabatan detail / Per orang |  |  |
-| Batas diskon di kasir | Tidak dibatasi / Dibatasi per kasir / Dibatasi per jabatan |  |  |
-| Riwayat perubahan data | Dasar / Lengkap per perubahan |  |  |
-| Kebutuhan PIN supervisor di kasir | Tidak perlu / Per aksi tertentu / Wajib |  |  |
+---
 
-## H. Laporan dan KPI
+## C. Operasional POS
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Laporan paling penting | Penjualan / Laba kotor / Biaya bahan / Waste / Arus kas |  |  |
-| Kapan laporan dibutuhkan | Real-time / Akhir shift / Harian / Mingguan / Bulanan |  |  |
-| Format laporan yang disukai | Di layar saja / PDF / Excel / Keduanya |  |  |
-| Tingkat detail dashboard | Ringkas untuk owner / Detail untuk operasional |  |  |
-| Laporan per outlet | Tidak perlu / Perlu |  |  |
+1) Jenis layanan utama  
+Pilihan: Dine-in / Takeaway / Delivery / Campuran  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## I. Migrasi Data dan Integrasi
+2) Pemesanan berdasarkan  
+Pilihan: Tanpa meja / Meja restoran / Kamar-lokasi / Campuran  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-| Pertanyaan | Opsi Cepat | Pilihan | Catatan Client |
-|---|---|---|---|
-| Data lama berasal dari | Excel / Aplikasi POS lama / Sistem lain / Tidak ada |  |  |
-| Data yang mau dipindahkan di awal | Data master saja / Master + saldo awal / Full histori |  |  |
-| Integrasi yang dibutuhkan | Tidak ada / Payment / Marketplace / Delivery app / Lainnya |  |  |
-| Kebutuhan sinkron data ke sistem lain | Tidak perlu / Perlu lihat data / Perlu kirim dan terima data |  |  |
-| Siapa pemilik data final | Tetap di sistem lama / Pindah ke sistem baru / Campuran sementara |  |  |
+3) Status meja/lokasi  
+Pilihan: Tidak perlu buka-tutup / Perlu status buka-tutup  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## J. Prioritas Implementasi
+4) Metode pembayaran yang dipakai  
+Pilihan: Cash / Transfer / QRIS / E-wallet / Kartu / Campuran  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-| Area | Prioritas | Catatan Client |
-|---|---|---|
-| POS + Pembayaran | MVP / Phase 2 |  |
-| Inventory + Gudang | MVP / Phase 2 |  |
-| Dapur + BOM + Waste | MVP / Phase 2 |  |
-| Purchase + Supplier | MVP / Phase 2 |  |
-| Accounting + Laporan | MVP / Phase 2 |  |
-| HR/Payroll | MVP / Phase 2 |  |
+5) Split bill  
+Pilihan: Tidak perlu / Kadang perlu / Sering perlu  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## K. Catatan Khusus dan Risiko
+6) Hold order (tahan pesanan sementara)  
+Pilihan: Tidak perlu / Perlu  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-- Constraint operasional (jam sibuk, internet, perangkat):
-- Policy internal (approval, limit diskon, tutup kasir):
-- Risiko terbesar menurut client:
-- Keputusan yang harus final sebelum development:
+7) Siapa boleh batalkan item/transaksi  
+Pilihan: Kasir / Supervisor / Manager  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-## L. Ringkasan Keputusan (Diisi Tim Implementasi)
+8) Update stok setelah transaksi  
+Pilihan: Langsung saat transaksi / Boleh di akhir shift  
+Jawaban Client: ____________________  
+Catatan: ____________________
 
-- Behavior POS final:
-- Behavior persediaan final:
-- Behavior dapur/BOM final:
-- Alur pembelian final:
-- Alur posting jurnal final:
-- Scope MVP final:
-- Scope Phase 2 final:
+---
+
+## D. Operasional Dapur
+
+1) Pengurangan bahan saat menu terjual  
+Pilihan: Otomatis / Manual / Campuran  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+2) Kebutuhan resep standar per menu  
+Pilihan: Tidak perlu / Menu utama saja / Semua menu  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+3) Pencatatan bahan rusak/terbuang  
+Pilihan: Tidak dicatat / Per shift / Per item  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+4) Persiapan batch (prep)  
+Pilihan: Tidak ada / Ada untuk item tertentu / Ada untuk banyak item  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+5) Siapa boleh ubah resep/harga pokok  
+Pilihan: Staff dapur / Head Chef / Owner  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+---
+
+## E. Pembelian dan Supplier
+
+1) Cara belanja paling sering  
+Pilihan: Belanja cepat harian / PO formal / Campuran  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+2) Pola pembayaran supplier  
+Pilihan: Tunai langsung / Tempo bulanan / Campuran  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+3) Jika barang datang tidak sesuai  
+Pilihan: Ditolak / Diterima sebagian / Tergantung kondisi  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+4) Retur pembelian ke supplier  
+Pilihan: Jarang / Kadang / Sering  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+5) Persetujuan pembelian  
+Pilihan: Tidak perlu / Per nominal tertentu / Selalu perlu  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+---
+
+## F. Keuangan dan Laporan
+
+1) Pencatatan transaksi ke laporan keuangan  
+Pilihan: Otomatis langsung / Dicek dulu / Rekap akhir hari  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+2) Detail laporan biaya yang diinginkan  
+Pilihan: Ringkas / Menengah / Detail  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+3) Pajak transaksi  
+Pilihan: Tidak pakai / Pajak standar / Pajak khusus  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+4) Periode tutup laporan  
+Pilihan: Harian / Mingguan / Bulanan  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+5) Struktur akun  
+Pilihan: Pakai default sistem / Disesuaikan bisnis  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+---
+
+## G. Approval dan Hak Akses
+
+1) Level approval  
+Pilihan: Tidak perlu / 1 level / 2 level atau lebih  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+2) Pengaturan hak akses user  
+Pilihan: Standar / Per jabatan detail / Per orang  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+3) Batas diskon di kasir  
+Pilihan: Tidak dibatasi / Per kasir / Per jabatan  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+4) Riwayat perubahan data  
+Pilihan: Dasar / Lengkap  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+---
+
+## H. Migrasi Data dan Integrasi
+
+1) Data lama berasal dari  
+Pilihan: Excel / POS lama / Sistem lain / Tidak ada  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+2) Data yang mau dipindahkan di awal  
+Pilihan: Master saja / Master + saldo awal / Full histori  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+3) Integrasi yang dibutuhkan  
+Pilihan: Tidak ada / Payment / Marketplace / Delivery app / Lainnya  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+4) Kebutuhan pertukaran data antar sistem  
+Pilihan: Tidak perlu / Lihat data saja / Kirim dan terima data  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+---
+
+## I. Prioritas Implementasi
+
+Isi prioritas tiap area:
+
+1) POS + Pembayaran  
+Pilihan: MVP / Phase 2 / Phase 3  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+2) Inventory + Gudang  
+Pilihan: MVP / Phase 2 / Phase 3  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+3) Dapur + Resep + Waste  
+Pilihan: MVP / Phase 2 / Phase 3  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+4) Purchase + Supplier  
+Pilihan: MVP / Phase 2 / Phase 3  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+5) Accounting + Laporan  
+Pilihan: MVP / Phase 2 / Phase 3  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+6) HR/Payroll  
+Pilihan: MVP / Phase 2 / Phase 3  
+Jawaban Client: ____________________  
+Catatan: ____________________
+
+---
+
+## J. Catatan Tambahan Client
+
+1) Kendala operasional paling sering saat ini:  
+Jawaban Client: ________________________________________________
+
+2) Risiko terbesar saat implementasi menurut client:  
+Jawaban Client: ________________________________________________
+
+3) Hal yang wajib sudah jalan saat hari pertama go-live:  
+Jawaban Client: ________________________________________________

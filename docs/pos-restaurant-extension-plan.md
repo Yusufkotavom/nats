@@ -10,10 +10,10 @@ Mengembangkan POS agar sesuai operasional restoran secara end-to-end:
 
 ## Kondisi Saat Ini (Fakta Implementasi)
 - POS sudah punya `POSSession` dan `HeldOrder`.
-- Belum ada master meja/area/ruangan.
-- Belum ada status meja real-time.
+- Master `DiningArea` dan `DiningSpot` sudah tersedia.
+- Status meja dasar sudah berjalan (`AVAILABLE`, `ORDERING`, `BILLING`, `CLOSED`) dengan open/close lifecycle.
+- Held order sudah bisa terikat ke `diningSpotId`.
 - Belum ada kitchen ticket/station tracking.
-- Held order belum terikat ke meja/kamar.
 
 ## Prinsip Implementasi
 1. Reuse domain existing POS, sales, inventory, accounting.
@@ -144,6 +144,8 @@ Catatan: nama final menyesuaikan style schema existing.
 - Bind held order ke spot.
 - Status spot dasar: `AVAILABLE`, `ORDERING`, `BILLING`, `CLOSED`.
 - UI list spot + indikator warna.
+
+Status implementasi saat ini: `IMPLEMENTED` (termasuk halaman CRUD area/spot di dashboard POS).
 
 ### Phase 2 (Kitchen + Advanced Table Ops)
 - Kitchen ticket + station routing.

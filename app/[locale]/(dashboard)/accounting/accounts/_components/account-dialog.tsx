@@ -16,6 +16,8 @@ import { createAccount } from "../actions";
 import { Account } from "../../types";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { Loader2 } from "lucide-react";
+import { formatLocalizedAccountLabel } from "@/lib/accounting/account-name-i18n";
+import { useLocale } from "next-intl";
 
 export function AccountDialog({
   open,
@@ -28,6 +30,7 @@ export function AccountDialog({
   accounts: Account[];
   onSuccess: () => void;
 }) {
+  const locale = useLocale();
   const [addForm, setAddForm] = useState<{
     name: string;
     code: string;
@@ -138,7 +141,10 @@ export function AccountDialog({
               triggerClassName="w-full"
               options={sortedAccounts.map((a) => ({
                 value: a.id,
-                label: `${a.code} — ${a.name}`,
+                label: formatLocalizedAccountLabel(
+                  { code: a.code, name: a.name },
+                  locale,
+                ),
               }))}
             />
             <CustomInput

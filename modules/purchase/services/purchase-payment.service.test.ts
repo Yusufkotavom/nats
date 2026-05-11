@@ -24,6 +24,10 @@ vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
 }));
 
+vi.mock("@/lib/document-numbering", () => ({
+    generateDocumentNumber: vi.fn().mockResolvedValue("PAY-OUT-TEST-0001"),
+}));
+
 const prismaMock = vi.hoisted(() => ({
     purchaseInvoice: {
         findUnique: vi.fn(),

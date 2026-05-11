@@ -24,6 +24,7 @@ import Link from "next/link";
 import { SuperJSON } from "@/lib/superjson";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { useRouter } from "next/navigation";
+import { formatLocalizedAccountLabel } from "@/lib/accounting/account-name-i18n";
 
 type LedgerEntry = Prisma.JournalEntryLineGetPayload<{
   include: {
@@ -49,13 +50,14 @@ interface LedgerClientPageProps {
   };
 }
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export default function LedgerClientPage({
   initialAccount,
 }: LedgerClientPageProps) {
   const t = useTranslations("Accounting");
   const tCommon = useTranslations("Common");
+  const locale = useLocale();
   const router = useRouter();
   const [selectedAccount, setSelectedAccount] = useState(initialAccount);
 
@@ -286,7 +288,10 @@ export default function LedgerClientPage({
                 }
                 options={accounts.map((account) => ({
                   value: account.id,
-                  label: `${account.code} - ${account.name}`,
+                  label: formatLocalizedAccountLabel(
+                    { code: account.code, name: account.name },
+                    locale,
+                  ),
                 }))}
                 className="min-w-[250px]"
               />

@@ -58,7 +58,7 @@ export function GeneralSection({
         containerClassName="grid gap-2"
       />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <CustomSelect
           label="Category"
           name="categoryId"
@@ -83,6 +83,16 @@ export function GeneralSection({
             disabled={readonly}
           />
           <Label htmlFor="isActive">Active Status</Label>
+        </div>
+        <div className="flex items-center space-x-2 pt-8">
+          <Switch
+            id="showInPos"
+            name="showInPos"
+            checked={formData.showInPos}
+            onCheckedChange={(val) => handleInputChange("showInPos", val)}
+            disabled={readonly}
+          />
+          <Label htmlFor="showInPos">Show In POS</Label>
         </div>
       </div>
     </div>

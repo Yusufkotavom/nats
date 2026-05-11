@@ -8,11 +8,25 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased] - 2026-05-08
 
 ### Added
+- Menambahkan unit test `lib/accounting/account-name-i18n.test.ts` untuk validasi mapping nama akun bilingual, fallback akun custom, dan formatting label akun.
 - Menambahkan fondasi `POS restoran` fase 1:
   - model data baru `DiningArea`, `DiningSpot`, `DiningSpotSession` + enum status/tipe/service di schema POS,
   - service domain `DiningSpotService` untuk lifecycle buka/tutup spot,
   - action server POS untuk `getDiningSpots`, `openDiningSpot`, `closeDiningSpot`.
 - Menambahkan test baru untuk `DiningSpotService` (`modules/pos/services/dining-spot.service.test.ts`) untuk validasi alur open/close spot.
+- Menambahkan test coverage alur checkout POS restoran berbasis status meja aktif di `modules/pos/services/pos-transaction.service.test.ts`:
+  - checkout ditolak saat spot belum siap billing (`AVAILABLE`),
+  - checkout mengubah status spot ke `BILLING` saat spot aktif (`ORDERING`).
+- Menambahkan mode `PREORDER_DP` pada `Quick Purchase`:
+  - flow otomatis `Receive -> Invoice -> Payment (DP parsial)`,
+  - output menyertakan `remainingPayableAmount` untuk sisa hutang.
+- Menambahkan test quick purchase untuk mode `PREORDER_DP` di `app/[locale]/(dashboard)/purchase/quick/actions.test.ts`.
+- Menambahkan test `getPOSProducts` di `app/[locale]/pos/actions.test.ts` untuk memastikan filter produk POS memakai `isActive + showInPos`.
+- Menambahkan CRUD `DiningArea` dan `DiningSpot` di dashboard POS:
+  - halaman baru `/pos/dining-spots`,
+  - action create/update/delete berbasis `DiningSpotService`,
+  - proteksi hapus area yang masih punya spot dan hapus spot yang belum `AVAILABLE`.
+- Menambahkan test service untuk skenario CRUD `DiningArea`/`DiningSpot` di `modules/pos/services/dining-spot.service.test.ts`.
 - Menambahkan test coverage untuk action `Quick Purchase` (`app/[locale]/(dashboard)/purchase/quick/actions.test.ts`) dengan 12 test case mencakup:
   - Jalur sukses `CASH_DAILY` (receive + invoice + payment)
   - Jalur sukses `MONTHLY_CREDIT` (receive + invoice tanpa payment)
@@ -28,6 +42,8 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Menambahkan dukungan bilingual nama akun (`en`/`id`) berbasis helper modular `lib/accounting/account-name-i18n.ts` dengan fallback aman ke nama akun di database untuk akun custom.
+- Menyelaraskan seluruh surface accounting utama agar menampilkan label akun terlokalisasi sesuai locale aktif (`next-intl`): Chart of Accounts, dialog tambah akun, Default Accounts mapping, Ledger account selector, Journal Entry form, dan Journal Entry details.
 - Menyelaraskan flow POS agar order dapat dikaitkan ke spot meja/lokasi:
   - `holdOrder` dan held-order payload sekarang mendukung `diningSpotId`,
   - tampilan POS menambahkan selector spot + indikator status + aksi buka/tutup spot,
@@ -36,6 +52,12 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - checkout dengan `diningSpotId` hanya valid saat spot dalam status `ORDERING`/`BILLING`,
   - status spot di-update ke `BILLING` saat checkout diproses.
 - Menyelaraskan layout halaman `Purchase > Quick Purchase` dengan pola `/purchase/invoices/new`: menggunakan wrapper `flex-1 space-y-4 px-4`, header + action bar di atas, section form berbasis `Card`, dan field catatan memakai `CustomTextarea` untuk konsistensi UI purchase.
+- Menambahkan kontrol visibilitas produk POS melalui flag produk `showInPos` (default aktif), dan POS sekarang hanya menampilkan produk `isActive` + `showInPos`.
+- Menambahkan menu navigasi POS untuk akses cepat ke manajemen meja/lokasi (`/pos/dining-spots`).
+- Menambahkan pengaturan global visibilitas produk POS:
+  - `POS_ONLY` (default, ikut `showInPos`),
+  - `ALL_ACTIVE` (semua produk aktif tampil di POS).
+- Memisahkan pengaturan POS ke modul terpisah `Admin > Settings > POS` (`/admin/settings/pos`) agar mengikuti pola modular settings.
 - POS transaction flow sekarang melakukan konsumsi bahan berbasis BOM aktif bila tersedia, bukan hanya mengurangi stok produk jual.
 - Fallback tetap dipertahankan: jika BOM tidak tersedia, sistem tetap mengurangi stok produk jual (backward compatible).
 - Mengubah default formatter `formatCurrency()` dari `USD` ke `IDR` dan default locale ke `id-ID`, serta membuat opsi `locale` benar-benar dipakai agar tampilan nominal lintas modul konsisten mengikuti konteks Indonesia.
@@ -49,6 +71,8 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Menambahkan akses menu sidebar `Purchase > Quick Purchase` beserta label i18n (`en`/`id`) untuk mempercepat operasional belanja harian/bulanan.
 
 ### Fixed
+- Memperbaiki form `Purchase Receive` agar tombol `Update/Create` di header benar-benar men-submit form (sebelumnya berada di luar `<form>` tanpa binding) dan aksi `Mark as Completed` sekarang langsung submit dengan status `COMPLETED`.
+- Memastikan label akun standar tidak lagi hardcoded ke bahasa Inggris pada halaman accounting yang sebelumnya merender `account.name` secara langsung.
 - Menambahkan guard tegas untuk mencegah konsumsi BOM non-integer pada model stok yang masih integer agar tidak terjadi drift stok diam-diam.
 - Menampilkan kembali aksi `Edit` pada menu dropdown daftar BOM di halaman production BOM list.
 - Memperbaiki menu Budgeting agar tidak lagi mengarah ke route yang belum tersedia (`/budgeting/dashboard`, `/budgeting/plans`, `/budgeting/variance`) sehingga menghilangkan error 404 pada navigasi.

@@ -24,6 +24,10 @@ vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEvent: enqueueIntegrationEventMock,
 }));
 
+vi.mock("@/lib/document-numbering", () => ({
+    generateDocumentNumber: vi.fn().mockResolvedValue("RCV-TEST-0001"),
+}));
+
 const prismaMock = vi.hoisted(() => ({
     purchaseReceive: {
         count: vi.fn(),
@@ -61,8 +65,6 @@ describe("PurchaseReceiveService", () => {
 
     describe("create", () => {
         it("creates receive with DRAFT status and generated number", async () => {
-            prismaMock.purchaseReceive.count.mockResolvedValue(5);
-
             const createdReceive = {
                 id: "rcv-001",
                 receiveNumber: "RCV-2602-0006",
@@ -85,12 +87,9 @@ describe("PurchaseReceiveService", () => {
             const result = await PurchaseReceiveService.create(MOCK_RECEIVE_INPUT, MOCK_USER_ID);
 
             expect(result.id).toBe("rcv-001");
-            expect(prismaMock.purchaseReceive.count).toHaveBeenCalledOnce();
         });
 
         it("enqueues PURCHASE_RECEIVE_CREATED integration event", async () => {
-            prismaMock.purchaseReceive.count.mockResolvedValue(0);
-
             const createdReceive = {
                 id: "rcv-002",
                 receiveNumber: "RCV-2602-0001",

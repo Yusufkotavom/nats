@@ -14,8 +14,9 @@ import { Decimal } from "decimal.js";
 import { JournalEntryWithDetails } from "../../types";
 import { useState } from "react";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
+import { getLocalizedAccountName } from "@/lib/accounting/account-name-i18n";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export function JournalEntryDetails({
   entry,
@@ -24,6 +25,7 @@ export function JournalEntryDetails({
 }) {
   const t = useTranslations("Accounting");
   const tCommon = useTranslations("Common");
+  const locale = useLocale();
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
@@ -55,7 +57,12 @@ export function JournalEntryDetails({
     {
       header: t("account_name"),
       accessorKey: "account",
-      cell: (line) => line.account.name,
+      cell: (line) =>
+        getLocalizedAccountName({
+          code: line.account.code,
+          name: line.account.name,
+          locale,
+        }),
     },
     {
       header: t("description"),

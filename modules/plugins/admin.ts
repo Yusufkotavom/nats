@@ -35,6 +35,7 @@ export const adminPlugin: ModulePlugin = {
           icon: CogIcon,
           items: [
             { title: "System.ai-configuration", url: "/admin/settings/ai" },
+            { title: "System.pos-settings", url: "/admin/settings/pos" },
             { title: "System.events-dashboard", url: "/admin/dashboard" },
             { title: "System.integration-outbox", url: "/admin/integrations/outbox" },
           ],

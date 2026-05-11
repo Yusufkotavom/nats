@@ -333,5 +333,99 @@ describe("POSTransactionService", () => {
                 mockAmountPaid
             )).rejects.toThrow("Session is not open");
         });
+
+        it("should reject checkout when dining spot is not active for billing", async () => {
+            prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+            prismaMock.pOSSession.findUnique.mockResolvedValue({
+                id: mockSessionId,
+                status: "OPEN",
+                warehouseId: "wh-1",
+                cashierId: "user-1",
+            });
+            prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
+            prismaMock.diningSpot.findUnique.mockResolvedValue({
+                id: "spot-1",
+                status: "AVAILABLE",
+            });
+
+            await expect(
+                POSTransactionService.process(
+                    mockSessionId,
+                    mockItems,
+                    mockPaymentMethod,
+                    mockAmountPaid,
+                    0,
+                    undefined,
+                    "spot-1",
+                ),
+            ).rejects.toThrow("Dining spot is not ready for billing");
+
+            expect(prismaMock.salesOrder.create).not.toHaveBeenCalled();
+            expect(prismaMock.diningSpot.update).not.toHaveBeenCalled();
+        });
+
+        it("should set dining spot to BILLING when checkout uses an active ordering spot", async () => {
+            prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+            prismaMock.pOSSession.findUnique.mockResolvedValue({
+                id: mockSessionId,
+                status: "OPEN",
+                warehouseId: "wh-1",
+                cashierId: "user-1",
+            });
+            prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
+            prismaMock.diningSpot.findUnique.mockResolvedValue({
+                id: "spot-1",
+                status: "ORDERING",
+            });
+            prismaMock.salesOrder.create.mockResolvedValue({
+                id: "so-1",
+                orderNumber: "SO-POS-1",
+                items: [{ id: "so-item-1", productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.salesInvoice.create.mockResolvedValue({
+                id: "inv-1",
+                invoiceNumber: "INV-POS-1",
+                invoiceDate: new Date(),
+                totalAmount: new Decimal(200),
+                globalDiscount: new Decimal(0),
+            });
+            prismaMock.cashAccount.findFirst.mockResolvedValue({ id: "cash-acc-1" });
+            prismaMock.salesPayment.create.mockResolvedValue({
+                id: "pay-1",
+                paymentNumber: "PAY-POS-1",
+                paymentDate: new Date(),
+                amount: new Decimal(200),
+                reference: "INV-POS-1",
+                cashAccountId: "cash-acc-1",
+                contactId: "contact-walk-in",
+                salesInvoiceId: "inv-1",
+            });
+            prismaMock.salesShipment.create.mockResolvedValue({
+                id: "shp-1",
+                shipmentNumber: "SHP-POS-1",
+                items: [{ productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.billOfMaterial.findFirst.mockResolvedValue(null);
+            createInventoryMovementMock.mockResolvedValue({});
+            enqueueIntegrationEventOnceMock
+                .mockResolvedValueOnce({ id: "outbox-inv", alreadyQueued: false })
+                .mockResolvedValueOnce({ id: "outbox-pay", alreadyQueued: false });
+            maybeProcessIntegrationOutboxEventMock.mockResolvedValue({ processed: true });
+
+            await POSTransactionService.process(
+                mockSessionId,
+                mockItems,
+                mockPaymentMethod,
+                mockAmountPaid,
+                0,
+                undefined,
+                "spot-1",
+            );
+
+            expect(prismaMock.diningSpot.update).toHaveBeenCalledWith({
+                where: { id: "spot-1" },
+                data: { status: "BILLING" },
+            });
+        });
     });
 });

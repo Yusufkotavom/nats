@@ -178,6 +178,9 @@ export const updatePurchaseReceive = authorizedAction(
     },
   ) => {
     try {
+      const session = await getSession();
+      if (!session) throw new Error("Unauthorized");
+
       const currentReceive = await prisma.purchaseReceive.findUnique({
         where: { id },
         include: { items: true },
@@ -312,9 +315,6 @@ export const updatePurchaseReceive = authorizedAction(
 
           // Create Journal Entry
           if (totalValue > 0) {
-            const session = await getSession();
-            if (!session) throw new Error("Unauthorized");
-
             const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
             const grniAccount = await getRequiredDefaultAccount("GOODS_RECEIVED_NOT_INVOICED");
 
@@ -354,7 +354,13 @@ export const updatePurchaseReceive = authorizedAction(
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Receive:", error);
-      return { success: false, error: "Failed to update Purchase Receive" };
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to update Purchase Receive",
+      };
     }
   },
 );

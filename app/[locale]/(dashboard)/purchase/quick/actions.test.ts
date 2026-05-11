@@ -79,6 +79,16 @@ const MOCK_MONTHLY_CREDIT_INPUT: QuickPurchaseInput = {
   items: [{ productId: "prod-003", quantity: 20, unitCost: 15000 }],
 };
 
+const MOCK_PREORDER_DP_INPUT: QuickPurchaseInput = {
+  mode: "PREORDER_DP",
+  contactId: "vendor-003",
+  transactionDate: new Date("2026-05-08"),
+  cashAccountId: "cash-001",
+  downPaymentAmount: 50000,
+  notes: "Preorder with DP",
+  items: [{ productId: "prod-003", quantity: 20, unitCost: 15000 }],
+};
+
 describe("createQuickPurchase", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -234,6 +244,64 @@ describe("createQuickPurchase", () => {
           dueDate: expect.any(Date),
         })
       );
+    });
+  });
+
+  describe("PREORDER_DP mode", () => {
+    it("creates receive, invoice, and partial payment successfully", async () => {
+      createPurchaseReceiveMock.mockResolvedValue({
+        success: true,
+        data: { json: { id: "rcv-009" } },
+      });
+      updatePurchaseReceiveMock.mockResolvedValue({ success: true });
+      createPurchaseInvoiceMock.mockResolvedValue({
+        success: true,
+        data: { json: { id: "inv-009", totalAmount: 300000 } },
+      });
+      postPurchaseInvoiceMock.mockResolvedValue({ success: true });
+      createPurchasePaymentMock.mockResolvedValue({
+        success: true,
+        data: { json: { id: "pay-009" } },
+      });
+      postPurchasePaymentMock.mockResolvedValue({ success: true });
+
+      const result = await createQuickPurchase(MOCK_PREORDER_DP_INPUT);
+
+      expect(result.success).toBe(true);
+      const rawData = result.data as any;
+      const data = rawData?.json || rawData;
+      expect(data.invoiceId).toBe("inv-009");
+      expect(data.paymentId).toBe("pay-009");
+      expect(data.postedPayment).toBe(true);
+      expect(data.remainingPayableAmount).toBe(250000);
+
+      expect(createPurchasePaymentMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          purchaseInvoiceId: "inv-009",
+          amount: 50000,
+          reference: "Quick Purchase Preorder DP",
+        }),
+      );
+    });
+
+    it("fails when down payment amount is invalid", async () => {
+      const invalidInput = { ...MOCK_PREORDER_DP_INPUT, downPaymentAmount: 0 };
+      createPurchaseReceiveMock.mockResolvedValue({
+        success: true,
+        data: { json: { id: "rcv-010" } },
+      });
+      updatePurchaseReceiveMock.mockResolvedValue({ success: true });
+      createPurchaseInvoiceMock.mockResolvedValue({
+        success: true,
+        data: { json: { id: "inv-010", totalAmount: 300000 } },
+      });
+      postPurchaseInvoiceMock.mockResolvedValue({ success: true });
+
+      const result = await createQuickPurchase(invalidInput);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Down payment amount must be greater than 0");
+      expect(createPurchasePaymentMock).not.toHaveBeenCalled();
     });
   });
 

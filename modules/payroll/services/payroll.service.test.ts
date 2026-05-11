@@ -133,13 +133,6 @@ describe('PayrollService', () => {
                 include: {
                     items: {
                         include: { component: true }
-                    },
-                    createdBy: {
-                        select: {
-                            id: true,
-                            name: true,
-                            email: true
-                        }
                     }
                 }
             });

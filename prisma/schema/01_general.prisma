@@ -13,6 +13,7 @@ model CompanyProfile {
   currencyFormat String   @default("standard")
   locale         String   @default("en-US")
   timezone       String   @default("UTC")
+  posProductVisibilityMode String @default("POS_ONLY") // POS_ONLY | ALL_ACTIVE
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

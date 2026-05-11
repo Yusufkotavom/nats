@@ -174,6 +174,7 @@ export function PurchaseReceiveForm({
   const [status, setStatus] = useState<"DRAFT" | "COMPLETED" | "CANCELLED">(
     receive?.status || "DRAFT",
   );
+  const FORM_ID = "purchase-receive-form";
 
   // When Purchase Order is selected, populate items
   const handlePurchaseOrderChange = async (poId: string) => {
@@ -230,24 +231,25 @@ export function PurchaseReceiveForm({
     setFormData((prev) => ({ ...prev, items: newItems }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitReceive = async (
+    nextStatus?: "DRAFT" | "COMPLETED" | "CANCELLED",
+  ) => {
     if (!formData.contactId) {
       alert("Please select a vendor");
-      return;
+      return false;
     }
     if (formData.items.length === 0) {
       alert("Please add at least one item");
-      return;
+      return false;
     }
     for (const item of formData.items) {
       if (!item.productId) {
         alert("Please select a product for all items");
-        return;
+        return false;
       }
       if (item.quantity <= 0) {
         alert("Quantity must be greater than 0");
-        return;
+        return false;
       }
     }
 
@@ -256,7 +258,7 @@ export function PurchaseReceiveForm({
       let result;
       const dataToSubmit = {
         ...formData,
-        status,
+        status: nextStatus ?? status,
         items: formData.items.map(({ id, ...item }) => item),
         attachmentIds: attachments.map((a) => a.id),
       };
@@ -269,15 +271,28 @@ export function PurchaseReceiveForm({
 
       if (result.success) {
         router.push("/purchase/receives");
+        return true;
       } else {
         alert(result.error);
+        return false;
       }
     } catch (error) {
       console.error(error);
       alert("An error occurred");
+      return false;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitReceive();
+  };
+
+  const handleComplete = async () => {
+    setStatus("COMPLETED");
+    await submitReceive("COMPLETED");
   };
 
   // Filter purchase orders based on selected vendor
@@ -294,7 +309,12 @@ export function PurchaseReceiveForm({
         <div className="flex gap-2">
           {!readonly && (
             <>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                form={FORM_ID}
+                className="w-full"
+                disabled={isLoading}
+              >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? "Update" : "Create"}
               </Button>
@@ -303,7 +323,8 @@ export function PurchaseReceiveForm({
                   type="button"
                   variant="outline"
                   className="w-full mt-2"
-                  onClick={() => setStatus("COMPLETED")}
+                  onClick={handleComplete}
+                  disabled={isLoading}
                 >
                   Mark as Completed
                 </Button>
@@ -320,7 +341,7 @@ export function PurchaseReceiveForm({
           </Button>
         </div>
       </div>
-      <form onSubmit={handleSubmit}>
+      <form id={FORM_ID} onSubmit={handleSubmit}>
         <div className="grid gap-4">
           <div className="space-y-4">
             <Card>

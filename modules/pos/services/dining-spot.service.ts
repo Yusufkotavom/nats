@@ -1,6 +1,120 @@
 import { prisma } from "@/lib/prisma";
 
 export class DiningSpotService {
+  static async getAreasWithSpots() {
+    return prisma.diningArea.findMany({
+      include: {
+        spots: {
+          include: {
+            _count: { select: { heldOrders: true, sessions: true } },
+          },
+          orderBy: { spotCode: "asc" },
+        },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    });
+  }
+
+  static async createArea(data: {
+    name: string;
+    code: string;
+    sortOrder?: number;
+    isActive?: boolean;
+  }) {
+    return prisma.diningArea.create({
+      data: {
+        name: data.name,
+        code: data.code,
+        sortOrder: data.sortOrder ?? 0,
+        isActive: data.isActive ?? true,
+      },
+    });
+  }
+
+  static async updateArea(
+    id: string,
+    data: { name: string; code: string; sortOrder?: number; isActive?: boolean },
+  ) {
+    return prisma.diningArea.update({
+      where: { id },
+      data: {
+        name: data.name,
+        code: data.code,
+        sortOrder: data.sortOrder ?? 0,
+        isActive: data.isActive ?? true,
+      },
+    });
+  }
+
+  static async deleteArea(id: string) {
+    const area = await prisma.diningArea.findUnique({
+      where: { id },
+      include: { _count: { select: { spots: true } } },
+    });
+    if (!area) throw new Error("Dining area not found");
+    if (area._count.spots > 0) {
+      throw new Error("Cannot delete area with existing spots");
+    }
+    await prisma.diningArea.delete({ where: { id } });
+  }
+
+  static async createSpot(data: {
+    areaId: string;
+    spotCode: string;
+    spotName: string;
+    spotType: "TABLE" | "ROOM";
+    capacity?: number;
+    isActive?: boolean;
+  }) {
+    const area = await prisma.diningArea.findUnique({ where: { id: data.areaId } });
+    if (!area) throw new Error("Dining area not found");
+    return prisma.diningSpot.create({
+      data: {
+        areaId: data.areaId,
+        spotCode: data.spotCode,
+        spotName: data.spotName,
+        spotType: data.spotType,
+        capacity: data.capacity ?? 2,
+        isActive: data.isActive ?? true,
+      },
+    });
+  }
+
+  static async updateSpot(
+    id: string,
+    data: {
+      areaId: string;
+      spotCode: string;
+      spotName: string;
+      spotType: "TABLE" | "ROOM";
+      capacity?: number;
+      isActive?: boolean;
+    },
+  ) {
+    const area = await prisma.diningArea.findUnique({ where: { id: data.areaId } });
+    if (!area) throw new Error("Dining area not found");
+    return prisma.diningSpot.update({
+      where: { id },
+      data: {
+        areaId: data.areaId,
+        spotCode: data.spotCode,
+        spotName: data.spotName,
+        spotType: data.spotType,
+        capacity: data.capacity ?? 2,
+        isActive: data.isActive ?? true,
+      },
+    });
+  }
+
+  static async deleteSpot(id: string) {
+    const spot = await prisma.diningSpot.findUnique({ where: { id } });
+    if (!spot) throw new Error("Dining spot not found");
+    if (spot.status !== "AVAILABLE") {
+      throw new Error("Cannot delete active/non-available dining spot");
+    }
+    await prisma.diningSpot.delete({ where: { id } });
+  }
+
   static async ensureDefaultLayout() {
     const area = await prisma.diningArea.upsert({
       where: { code: "MAIN" },

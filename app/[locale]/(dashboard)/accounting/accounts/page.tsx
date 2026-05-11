@@ -37,12 +37,17 @@ import { Account } from "../types";
 import { useConfirm, useToast } from "@/hooks";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import {
+  formatLocalizedAccountLabel,
+  getLocalizedAccountName,
+} from "@/lib/accounting/account-name-i18n";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export default function AccountListPage() {
   const t = useTranslations("Accounting");
   const tCommon = useTranslations("Common");
+  const locale = useLocale();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -157,7 +162,7 @@ export default function AccountListPage() {
             {t("delete_account_desc")}
             <span className="font-medium text-foreground">
               {" "}
-              {a.code} — {a.name}
+              {formatLocalizedAccountLabel({ code: a.code, name: a.name }, locale)}
             </span>
             .
           </>
@@ -243,7 +248,9 @@ export default function AccountListPage() {
               </>
             ) : (
               <>
-                <span className="font-medium">{a.name}</span>
+                <span className="font-medium">
+                  {getLocalizedAccountName({ code: a.code, name: a.name, locale })}
+                </span>
                 <Protect permission="accounts.edit">
                   <Button
                     variant="ghost"

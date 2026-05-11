@@ -65,9 +65,17 @@ export async function getPOSProducts(
     });
   }
 
+  const companyProfile = await prisma.companyProfile.findFirst({
+    select: { posProductVisibilityMode: true },
+  });
+  const visibilityMode = companyProfile?.posProductVisibilityMode || "POS_ONLY";
+
   const where: any = {
     isActive: true,
   };
+  if (visibilityMode !== "ALL_ACTIVE") {
+    where.showInPos = true;
+  }
 
   if (query) {
     where.OR = [

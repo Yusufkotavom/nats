@@ -56,6 +56,7 @@ import {
   PageFormActions,
   PageFormContent,
 } from "@/components/layout/page/form-layout";
+import { formatLocalizedAccountLabel } from "@/lib/accounting/account-name-i18n";
 
 interface JournalEntryFormProps {
   initialData?: CreateJournalEntryData;
@@ -68,7 +69,7 @@ interface JournalEntryFormProps {
   onCancel: () => void;
 }
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 export function JournalEntryForm({
   initialData,
@@ -82,6 +83,7 @@ export function JournalEntryForm({
 }: JournalEntryFormProps) {
   const t = useTranslations("Accounting");
   const tCommon = useTranslations("Common");
+  const locale = useLocale();
   const formatCurrency = useFormatCurrency();
   const leafAccounts = accounts.filter((a) => a.isPosting);
   const [formData, setFormData] = useState<CreateJournalEntryData>(
@@ -429,7 +431,10 @@ export function JournalEntryForm({
                               className="w-full border-0"
                               options={leafAccounts.map((account) => ({
                                 value: account.id,
-                                label: `${account.code} - ${account.name}`,
+                                label: formatLocalizedAccountLabel(
+                                  { code: account.code, name: account.name },
+                                  locale,
+                                ),
                               }))}
                             />
                           </TableCell>

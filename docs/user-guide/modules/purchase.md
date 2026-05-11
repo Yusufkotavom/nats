@@ -15,7 +15,7 @@ related: modules/inventory,modules/cash-bank,modules/accounting
 - Invoice
 - Return
 - Payment
-- Quick Purchase (cash harian / credit bulanan)
+- Quick Purchase (cash harian / credit bulanan / preorder DP)
 
 ## Alur Umum
 PO -> Receive (stok naik) -> Invoice -> Payment.
@@ -24,6 +24,7 @@ PO -> Receive (stok naik) -> Invoice -> Payment.
 - Path: `/purchase/quick`.
 - Mode `Cash Daily`: otomatis membuat Receive -> Invoice -> Payment (posting otomatis).
 - Mode `Monthly Credit`: otomatis membuat Receive -> Invoice (posting otomatis, bayar nanti).
+- Mode `Preorder DP`: otomatis membuat Receive -> Invoice -> Payment DP parsial, sisa tagihan tetap outstanding.
 
 ## Validasi
 - Receive menghasilkan pergerakan stok masuk.

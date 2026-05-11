@@ -1,4 +1,4 @@
-export type QuickPurchaseMode = "CASH_DAILY" | "MONTHLY_CREDIT";
+export type QuickPurchaseMode = "CASH_DAILY" | "MONTHLY_CREDIT" | "PREORDER_DP";
 
 export type QuickPurchaseItemInput = {
   productId: string;
@@ -11,6 +11,7 @@ export type QuickPurchaseInput = {
   contactId: string;
   transactionDate: Date;
   dueDate?: Date;
+  downPaymentAmount?: number;
   notes?: string;
   cashAccountId?: string;
   departmentId?: string | null;
@@ -24,5 +25,5 @@ export type QuickPurchaseResult = {
   paymentId?: string;
   postedInvoice: boolean;
   postedPayment?: boolean;
+  remainingPayableAmount?: number;
 };
-

@@ -4,11 +4,18 @@ import { DiningSpotService } from "./dining-spot.service";
 const prismaMock = vi.hoisted(() => ({
   diningArea: {
     upsert: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    findUnique: vi.fn(),
+    delete: vi.fn(),
   },
   diningSpot: {
     upsert: vi.fn(),
     findUnique: vi.fn(),
+    create: vi.fn(),
     update: vi.fn(),
+    delete: vi.fn(),
   },
   diningSpotSession: {
     create: vi.fn(),
@@ -60,5 +67,51 @@ describe("DiningSpotService", () => {
       where: { id: "spot-1" },
       data: { status: "AVAILABLE" },
     });
+  });
+
+  it("creates dining area and spot", async () => {
+    prismaMock.diningArea.create.mockResolvedValue({ id: "area-1" });
+    prismaMock.diningArea.findUnique.mockResolvedValue({ id: "area-1" });
+    prismaMock.diningSpot.create.mockResolvedValue({ id: "spot-2" });
+
+    await DiningSpotService.createArea({
+      name: "VIP",
+      code: "VIP",
+      sortOrder: 2,
+      isActive: true,
+    });
+    await DiningSpotService.createSpot({
+      areaId: "area-1",
+      spotCode: "R01",
+      spotName: "Room 1",
+      spotType: "ROOM",
+      capacity: 4,
+      isActive: true,
+    });
+
+    expect(prismaMock.diningArea.create).toHaveBeenCalled();
+    expect(prismaMock.diningSpot.create).toHaveBeenCalled();
+  });
+
+  it("prevents deleting area with spots", async () => {
+    prismaMock.diningArea.findUnique.mockResolvedValue({
+      id: "area-1",
+      _count: { spots: 1 },
+    });
+
+    await expect(DiningSpotService.deleteArea("area-1")).rejects.toThrow(
+      "Cannot delete area with existing spots",
+    );
+  });
+
+  it("prevents deleting non-available spot", async () => {
+    prismaMock.diningSpot.findUnique.mockResolvedValue({
+      id: "spot-3",
+      status: "ORDERING",
+    });
+
+    await expect(DiningSpotService.deleteSpot("spot-3")).rejects.toThrow(
+      "Cannot delete active/non-available dining spot",
+    );
   });
 });

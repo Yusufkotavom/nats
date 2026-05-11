@@ -25,6 +25,7 @@ import {
   PageListLayout,
   PageListTitle,
 } from "@/components/layout/page/list-layout"
+import { formatLocalizedAccountLabel } from "@/lib/accounting/account-name-i18n"
 
 interface DefaultAccountsViewProps {
   defaultAccounts: DefaultAccountWithAccount[]
@@ -117,11 +118,12 @@ const PURPOSE_CATEGORIES: Record<string, DefaultAccountPurpose[]> = {
   "Production": ["WIP_INVENTORY", "PRODUCTION_OVERHEAD"],
 }
 
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccountsViewProps) {
   const t = useTranslations("Accounting")
   const tCommon = useTranslations("Common")
+  const locale = useLocale()
   const [isEditing, setIsEditing] = useState(false)
   const [changes, setChanges] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
@@ -191,7 +193,7 @@ export function DefaultAccountsView({ defaultAccounts, accounts }: DefaultAccoun
 
   const accountOptions = accounts.map(a => ({
     value: a.id,
-    label: `${a.code} - ${a.name} (${a.type})`
+    label: `${formatLocalizedAccountLabel({ code: a.code, name: a.name }, locale)} (${a.type})`
   }))
 
   const getDefaultAccountId = (purpose: DefaultAccountPurpose) => {

@@ -25,6 +25,15 @@ Menjalankan transaksi kasir restoran secara cepat, akurat, dan sinkron ke sales,
 - **Held Order**: order yang ditahan sementara.
 - **Dining Spot (Meja/Lokasi)**: konteks order restoran.
 
+## Kontrol Produk Tampil di POS
+- Produk harus `Active`.
+- Produk harus ditandai `Show In POS` pada form master produk.
+- Jika `Show In POS` nonaktif, produk tidak akan muncul di Product Grid POS.
+- Admin bisa override lewat pengaturan global:
+  - `Admin > Settings > POS Settings > POS Product Visibility Mode`
+  - `POS products only`: mengikuti `showInPos`.
+  - `All active products`: semua produk aktif tampil di POS.
+
 ## Alur Harian POS Restoran (Disarankan)
 1. Buka POS Session (pilih warehouse dan opening cash).
 2. Pilih meja/lokasi, lalu klik **Buka**.
@@ -39,6 +48,14 @@ Menjalankan transaksi kasir restoran secara cepat, akurat, dan sinkron ke sales,
 
 ### Tujuan
 Memastikan transaksi dine-in tidak tercampur, dan order bisa ditelusuri per meja atau kamar/lokasi.
+
+### Master Data Meja/Lokasi
+- Kelola area dan spot di menu dashboard: `/pos/dining-spots`.
+- CRUD tersedia untuk:
+  - `DiningArea` (nama, kode, urutan, aktif/nonaktif),
+  - `DiningSpot` (kode, nama, tipe meja/kamar, kapasitas, area, aktif/nonaktif).
+- Penghapusan area hanya bisa jika belum punya spot.
+- Penghapusan spot hanya bisa saat status spot `AVAILABLE`.
 
 ### Cara Pakai
 1. Pilih meja/lokasi di dropdown header POS.

@@ -14,6 +14,7 @@ export const posPlugin: ModulePlugin = {
           items: [
             { title: "POS.cashier", url: "/pos" },
             { title: "POS.sessions", url: "/pos/sessions" },
+            { title: "POS.dining_spots", url: "/pos/dining-spots" },
           ],
         },
       ],

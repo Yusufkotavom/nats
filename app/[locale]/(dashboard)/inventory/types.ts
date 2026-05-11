@@ -44,6 +44,7 @@ export type ProductInput = {
   cost: number | string;
   minStock: number;
   isActive: boolean;
+  showInPos?: boolean;
   baseUnitId?: string | null;
   purchaseUnitId?: string | null;
   purchaseConversionFactor?: number | string;
