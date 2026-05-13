@@ -7,6 +7,8 @@ import {
     maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 import { CalculationService } from "@/lib/utils/calculation-service";
+import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 
 const POS_ORDER_NUMBER_PREFIX = "SO-POS";
 const POS_INVOICE_NUMBER_PREFIX = "INV-POS";
@@ -126,6 +128,33 @@ export class POSTransactionService {
                 warehouseId: session.warehouseId || undefined,
             });
 
+            const totalCogs = await this.calculateInventoryOutCost(tx, movementItems);
+            if (totalCogs.gt(0)) {
+                const cogsAccount = await getRequiredDefaultAccount("COGS");
+                const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
+                const cogsJournal = await JournalService.createJournalEntry({
+                    entryNumber: `JE-${shipment.shipmentNumber}`,
+                    transactionDate: new Date(),
+                    description: `Cost of Goods Sold for POS Shipment #${shipment.shipmentNumber}`,
+                    lines: [
+                        {
+                            accountId: cogsAccount.accountId,
+                            debitAmount: totalCogs.toNumber(),
+                            creditAmount: 0,
+                            description: "Cost of Goods Sold",
+                        },
+                        {
+                            accountId: inventoryAccount.accountId,
+                            debitAmount: 0,
+                            creditAmount: totalCogs.toNumber(),
+                            description: "Inventory Asset",
+                        },
+                    ],
+                }, session.cashierId, tx);
+
+                await JournalService.postJournalEntry(cogsJournal.id, tx);
+            }
+
             const invoiceOutbox = await this.enqueueInvoiceEvent(tx, {
                 salesInvoice,
                 contactId,
@@ -210,6 +239,28 @@ export class POSTransactionService {
             productId,
             quantity,
         }));
+    }
+
+    private static async calculateInventoryOutCost(
+        tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+        movementItems: Array<{ productId: string; quantity: number }>,
+    ): Promise<Decimal> {
+        let total = new Decimal(0);
+
+        for (const item of movementItems) {
+            const product = await tx.product.findUnique({
+                where: { id: item.productId },
+                select: { averageCost: true, cost: true },
+            });
+            if (!product) {
+                throw new Error(`Product not found for inventory valuation: ${item.productId}`);
+            }
+
+            const unitCost = new Decimal(product.averageCost ?? product.cost ?? 0);
+            total = total.plus(unitCost.mul(item.quantity));
+        }
+
+        return total;
     }
 
     private static async validateSession(

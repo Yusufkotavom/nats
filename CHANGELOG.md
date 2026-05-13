@@ -44,6 +44,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Menyesuaikan UX daftar `Purchase Invoice`: kolom nomor invoice sekarang klikable dan langsung membuka halaman edit invoice (`/purchase/invoices/[id]/edit`) untuk mempercepat revisi dokumen draft.
 - Menyesuaikan UX daftar `Purchase Order`: kolom nomor PO sekarang klikable dan langsung membuka halaman edit PO (`/purchase/orders/[id]/edit`) untuk mempercepat workflow revisi.
 - Memperbaiki mapping default account seed (`default` dan `restaurant-minimal`) untuk `GOODS_RECEIVED_NOT_INVOICED` agar memakai akun dedicated `21110 - Goods Received Not Invoiced` (tidak lagi sama dengan `ACCOUNTS_PAYABLE`), sehingga jurnal purchase invoice tidak terlihat seperti jurnal payment.
 - Menyederhanakan akun aktif pada `seed-restaurant-minimal` agar fokus ke transaksi inti operasional restoran: akun posting non-esensial dinonaktifkan pada mode minimal, tetapi seluruh `DefaultAccountPurpose` tetap dipetakan agar halaman `Accounting > Configuration > Default Accounts` tetap lengkap.
@@ -83,6 +84,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Menambahkan akses menu sidebar `Purchase > Quick Purchase` beserta label i18n (`en`/`id`) untuk mempercepat operasional belanja harian/bulanan.
 
 ### Fixed
+- Memperbaiki alur POS agar saat checkout selesai sistem tidak hanya mengurangi stok, tetapi juga mem-posting jurnal COGS (`Dr COGS / Cr Inventory Asset`) berdasarkan biaya rata-rata item/komponen yang benar-benar keluar.
 - Memperbaiki aksi hapus pada daftar `Purchase Order` agar memeriksa hasil server action (`success/error`) sebelum menampilkan notifikasi; kegagalan hapus (mis. status non-`DRAFT`) kini menampilkan pesan error yang benar, bukan sukses palsu.
 - Memperbaiki auto-fill harga pada form `Purchase Order`: saat item memakai `purchase unit` dengan conversion factor (contoh `BOX -> PCS`), `unitCost` kini otomatis dikonversi ke harga per purchase unit (misalnya 2.200 × 50 = 110.000), bukan lagi memakai harga per base unit mentah.
 - Menambahkan test `lib/inventory/purchase-pricing.test.ts` untuk mengunci rumus konversi `cost x purchaseConversionFactor` agar kasus harga beli per box tidak regress.

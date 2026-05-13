@@ -6,6 +6,9 @@ import { Decimal } from "decimal.js";
 const enqueueIntegrationEventOnceMock = vi.hoisted(() => vi.fn());
 const maybeProcessIntegrationOutboxEventMock = vi.hoisted(() => vi.fn());
 const createInventoryMovementMock = vi.hoisted(() => vi.fn());
+const getRequiredDefaultAccountMock = vi.hoisted(() => vi.fn());
+const createJournalEntryMock = vi.hoisted(() => vi.fn());
+const postJournalEntryMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/modules/integration/outbox", () => ({
     enqueueIntegrationEventOnce: enqueueIntegrationEventOnceMock,
@@ -15,6 +18,17 @@ vi.mock("@/modules/integration/outbox", () => ({
 vi.mock("@/modules/inventory/services/inventory.service", () => ({
     InventoryService: {
         createInventoryMovement: createInventoryMovementMock,
+    },
+}));
+
+vi.mock("@/lib/accounting/default-account.service", () => ({
+    getRequiredDefaultAccount: getRequiredDefaultAccountMock,
+}));
+
+vi.mock("@/modules/accounting/services/journal.service", () => ({
+    JournalService: {
+        createJournalEntry: createJournalEntryMock,
+        postJournalEntry: postJournalEntryMock,
     },
 }));
 
@@ -44,6 +58,9 @@ const prismaMock = vi.hoisted(() => ({
     },
     billOfMaterial: {
         findFirst: vi.fn(),
+    },
+    product: {
+        findUnique: vi.fn(),
     },
     diningSpot: {
         findUnique: vi.fn(),
@@ -125,6 +142,15 @@ describe("POSTransactionService", () => {
             };
             prismaMock.salesShipment.create.mockResolvedValue(mockShipment);
             prismaMock.billOfMaterial.findFirst.mockResolvedValue(null);
+            prismaMock.product.findUnique.mockResolvedValue({
+                averageCost: new Decimal(60),
+                cost: new Decimal(50),
+            });
+            getRequiredDefaultAccountMock
+                .mockResolvedValueOnce({ accountId: "acc-cogs" })
+                .mockResolvedValueOnce({ accountId: "acc-inv" });
+            createJournalEntryMock.mockResolvedValue({ id: "je-cogs-1" });
+            postJournalEntryMock.mockResolvedValue(undefined);
 
             // Mock Inventory Movement (Resolved via mock above)
             createInventoryMovementMock.mockResolvedValue({});
@@ -196,7 +222,17 @@ describe("POSTransactionService", () => {
             // 7. Events Enqueued
             expect(enqueueIntegrationEventOnceMock).toHaveBeenCalledTimes(2); // Invoice + Payment
 
-            // 8. Outbox Processed
+            // 8. COGS Journal Posted
+            expect(createJournalEntryMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    description: expect.stringContaining("Cost of Goods Sold for POS Shipment"),
+                }),
+                "user-1",
+                prismaMock,
+            );
+            expect(postJournalEntryMock).toHaveBeenCalledWith("je-cogs-1", prismaMock);
+
+            // 9. Outbox Processed
             expect(maybeProcessIntegrationOutboxEventMock).toHaveBeenCalledTimes(2);
             expect(maybeProcessIntegrationOutboxEventMock).toHaveBeenCalledWith("outbox-inv");
             expect(maybeProcessIntegrationOutboxEventMock).toHaveBeenCalledWith("outbox-pay");
@@ -249,6 +285,14 @@ describe("POSTransactionService", () => {
                     { productId: "ing-2", quantity: new Decimal(1) },
                 ],
             });
+            prismaMock.product.findUnique
+                .mockResolvedValueOnce({ averageCost: new Decimal(10), cost: new Decimal(8) })
+                .mockResolvedValueOnce({ averageCost: new Decimal(5), cost: new Decimal(4) });
+            getRequiredDefaultAccountMock
+                .mockResolvedValueOnce({ accountId: "acc-cogs" })
+                .mockResolvedValueOnce({ accountId: "acc-inv" });
+            createJournalEntryMock.mockResolvedValue({ id: "je-cogs-2" });
+            postJournalEntryMock.mockResolvedValue(undefined);
             createInventoryMovementMock.mockResolvedValue({});
             enqueueIntegrationEventOnceMock
                 .mockResolvedValueOnce({ id: "outbox-inv", alreadyQueued: false })
@@ -406,6 +450,15 @@ describe("POSTransactionService", () => {
                 items: [{ productId: "prod-1", quantity: 2 }],
             });
             prismaMock.billOfMaterial.findFirst.mockResolvedValue(null);
+            prismaMock.product.findUnique.mockResolvedValue({
+                averageCost: new Decimal(50),
+                cost: new Decimal(40),
+            });
+            getRequiredDefaultAccountMock
+                .mockResolvedValueOnce({ accountId: "acc-cogs" })
+                .mockResolvedValueOnce({ accountId: "acc-inv" });
+            createJournalEntryMock.mockResolvedValue({ id: "je-cogs-3" });
+            postJournalEntryMock.mockResolvedValue(undefined);
             createInventoryMovementMock.mockResolvedValue({});
             enqueueIntegrationEventOnceMock
                 .mockResolvedValueOnce({ id: "outbox-inv", alreadyQueued: false })

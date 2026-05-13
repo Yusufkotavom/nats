@@ -99,8 +99,15 @@ export default function PurchaseInvoicesPage() {
   const columns: Column<PurchaseInvoiceWithDetails>[] = [
     {
       header: t("invoice_number"),
-      accessorKey: "invoiceNumber",
       className: "font-medium",
+      cell: (item) => (
+        <Link
+          href={`/purchase/invoices/${item.id}/edit`}
+          className="text-primary hover:underline"
+        >
+          {item.invoiceNumber}
+        </Link>
+      ),
     },
     {
       header: tCommon("vendor"),
