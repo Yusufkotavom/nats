@@ -6,6 +6,7 @@ import { ThemeColorProvider } from "@/components/layout/others/theme-color-provi
 import { Toaster } from "@/components/ui/toaster";
 import { DialogProvider } from "@/components/providers/dialog-provider";
 import { ReactQueryProvider } from "@/components/providers/query-provider";
+import { GlobalProgressProvider } from "@/components/providers/global-progress-provider";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 
@@ -51,6 +52,7 @@ export default async function RootLayout({
             <ThemeColorProvider>
               <ReactQueryProvider>
                 <DialogProvider>
+                  <GlobalProgressProvider />
                   {children}
                   <Toaster />
                 </DialogProvider>

@@ -9,6 +9,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 - Menambahkan laporan gabungan baru `Accounting > Reports > Full Report` (`/accounting/reports/full`) yang menggabungkan Profit & Loss, Balance Sheet, dan Cash Flow dalam satu halaman dengan filter periode, as-of date, serta mode komparatif.
+- Menambahkan progress bar global (top loading indicator) untuk UX universal: aktif saat navigasi/link klik, submit form, dan aksi klik tombol, lalu selesai otomatis saat proses selesai/route berubah.
 - Menambahkan halaman baru `Inventory > Adjustments` (`/inventory/adjustments`) dengan UI table inline edit untuk stock opname/penyesuaian: input `actual stock` per produk, catatan per baris, catatan header, preview selisih (`diff`) dan dampak nominal.
 - Menambahkan halaman admin baru `Settings > Data Reset` (`/admin/settings/data-reset`) untuk reset data transaksi secara cepat saat testing (purchase/sales/POS/movement/journal/outbox) tanpa menghapus user dan master data.
 - Menambahkan unit test `lib/accounting/account-name-i18n.test.ts` untuk validasi mapping nama akun bilingual, fallback akun custom, dan formatting label akun.
@@ -55,6 +56,8 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Menambahkan dukungan `product bundle/paket` berbasis BOM aktif pada alur `Sales Shipment` saat status diubah ke `COMPLETED`: stok dan COGS kini otomatis dikonsumsi dari komponen BOM jika tersedia, dengan fallback ke produk jual langsung jika BOM tidak ada.
+- Menambahkan shortcut menu sidebar `HR > Salary Structures` yang mengarah langsung ke `/hr/payroll/salary-structures` untuk mempercepat setup struktur gaji.
 - Menyelaraskan UI `Purchase > Quick Purchase` dengan pola form `Purchase Invoice` dengan menambahkan dimensi konteks transaksi yang sama (`Department` dan `Project`) serta sumber data select-nya pada loader form quick purchase.
 - Mengubah konfigurasi biaya POS dari model tunggal menjadi **multi fee lines** di `Admin > Settings > POS`:
   - biaya dapat ditambah satu per satu (add/remove),

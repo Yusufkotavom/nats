@@ -884,6 +884,7 @@
         "active": "Aktif",
         "inactive": "Tidak Aktif",
         "payroll": "Penggajian",
+        "salary_structures": "Struktur Gaji",
         "manage_components": "Kelola Komponen",
         "start_date": "Tanggal Mulai",
         "end_date": "Tanggal Akhir",
