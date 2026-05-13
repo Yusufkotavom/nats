@@ -9,6 +9,8 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 - Menambahkan unit test `lib/accounting/account-name-i18n.test.ts` untuk validasi mapping nama akun bilingual, fallback akun custom, dan formatting label akun.
+- Menambahkan test `prisma/seed/restaurant-minimal-accounting.test.ts` untuk memastikan mode akun minimal restoran tetap memetakan semua `DefaultAccountPurpose` dan semua kode akun mapping termasuk dalam daftar akun aktif minimal.
+- Menambahkan baseline contact pada `seed-restaurant-minimal` untuk operasional hari pertama: `Walk-in Customer` (customer default POS) dan `General Vendor` (vendor default purchasing).
 - Menambahkan fondasi `POS restoran` fase 1:
   - model data baru `DiningArea`, `DiningSpot`, `DiningSpotSession` + enum status/tipe/service di schema POS,
   - service domain `DiningSpotService` untuk lifecycle buka/tutup spot,
@@ -42,6 +44,16 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Menyesuaikan UX daftar `Purchase Order`: kolom nomor PO sekarang klikable dan langsung membuka halaman edit PO (`/purchase/orders/[id]/edit`) untuk mempercepat workflow revisi.
+- Memperbaiki mapping default account seed (`default` dan `restaurant-minimal`) untuk `GOODS_RECEIVED_NOT_INVOICED` agar memakai akun dedicated `21110 - Goods Received Not Invoiced` (tidak lagi sama dengan `ACCOUNTS_PAYABLE`), sehingga jurnal purchase invoice tidak terlihat seperti jurnal payment.
+- Menyederhanakan akun aktif pada `seed-restaurant-minimal` agar fokus ke transaksi inti operasional restoran: akun posting non-esensial dinonaktifkan pada mode minimal, tetapi seluruh `DefaultAccountPurpose` tetap dipetakan agar halaman `Accounting > Configuration > Default Accounts` tetap lengkap.
+- Meningkatkan renderer halaman docs (`/[locale]/docs/[...slug]`) agar tampil seperti dokumentasi resmi: layout 3-kolom (navigasi + konten + TOC), tipografi markdown yang lebih kuat, anchor heading otomatis, style code/table/blockquote/link yang lebih rapi, serta metadata header dokumentasi.
+- Hardening seeder default account di `prisma/seed/accounting.ts`: setiap `DefaultAccountPurpose` kini dipastikan hanya punya satu mapping aktif, dan mapping existing akan diaktifkan kembali (`isActive=true`) saat seed dijalankan.
+- Menambahkan helper verifikasi terpusat `prisma/seed/default-accounts.ts` dan mengadopsinya di `prisma/seed.ts` untuk validasi default account transaksi harian yang konsisten.
+- Menambahkan verifikasi wajib di `prisma/seed-restaurant-minimal.ts` agar seluruh enum `DefaultAccountPurpose` tersedia dan aktif; seed akan fail-fast jika ada yang hilang atau duplikat aktif.
+- Mengubah seed aktif default (`npm run prisma db seed`) dari dataset demo menjadi baseline minimal (company + accounting + users) agar setup awal fokus ke akun akuntansi inti untuk transaksi harian.
+- Menambahkan verifikasi wajib pada seed aktif untuk memastikan mapping default account inti tersedia (`CASH_ON_HAND`, `BANK`, `ACCOUNTS_RECEIVABLE`, `ACCOUNTS_PAYABLE`, `SALES_REVENUE`, `COGS`, `INVENTORY_ASSET`, `OPENING_BALANCE_EQUITY`); seed akan gagal jika ada yang belum termapping.
+- Memisahkan dataset demo ke entrypoint baru `prisma/seed-demo.ts` dengan script `npm run prisma:seed:demo` agar tetap tersedia untuk kebutuhan testing end-to-end.
 - Menambahkan dukungan bilingual nama akun (`en`/`id`) berbasis helper modular `lib/accounting/account-name-i18n.ts` dengan fallback aman ke nama akun di database untuk akun custom.
 - Menyelaraskan seluruh surface accounting utama agar menampilkan label akun terlokalisasi sesuai locale aktif (`next-intl`): Chart of Accounts, dialog tambah akun, Default Accounts mapping, Ledger account selector, Journal Entry form, dan Journal Entry details.
 - Menyelaraskan flow POS agar order dapat dikaitkan ke spot meja/lokasi:
@@ -71,6 +83,10 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Menambahkan akses menu sidebar `Purchase > Quick Purchase` beserta label i18n (`en`/`id`) untuk mempercepat operasional belanja harian/bulanan.
 
 ### Fixed
+- Memperbaiki aksi hapus pada daftar `Purchase Order` agar memeriksa hasil server action (`success/error`) sebelum menampilkan notifikasi; kegagalan hapus (mis. status non-`DRAFT`) kini menampilkan pesan error yang benar, bukan sukses palsu.
+- Memperbaiki auto-fill harga pada form `Purchase Order`: saat item memakai `purchase unit` dengan conversion factor (contoh `BOX -> PCS`), `unitCost` kini otomatis dikonversi ke harga per purchase unit (misalnya 2.200 × 50 = 110.000), bukan lagi memakai harga per base unit mentah.
+- Menambahkan test `lib/inventory/purchase-pricing.test.ts` untuk mengunci rumus konversi `cost x purchaseConversionFactor` agar kasus harga beli per box tidak regress.
+- Menambahkan guard test `prisma/seed/restaurant-minimal-accounting.test.ts` untuk memastikan akun default `ACCOUNTS_PAYABLE` dan `GOODS_RECEIVED_NOT_INVOICED` selalu berbeda agar mismatch mapping tidak terulang.
 - Memperbaiki form `Purchase Receive` agar tombol `Update/Create` di header benar-benar men-submit form (sebelumnya berada di luar `<form>` tanpa binding) dan aksi `Mark as Completed` sekarang langsung submit dengan status `COMPLETED`.
 - Memastikan label akun standar tidak lagi hardcoded ke bahasa Inggris pada halaman accounting yang sebelumnya merender `account.name` secara langsung.
 - Menambahkan guard tegas untuk mencegah konsumsi BOM non-integer pada model stok yang masih integer agar tidak terjadi drift stok diam-diam.
@@ -86,6 +102,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki tombol `Create` pada form `New Purchase Invoice` dengan mengaitkan tombol submit ke elemen form (`form=\"purchase-invoice-form\"`) karena tombol berada di header di luar tag `<form>`.
 
 ### Docs
+- Memperbarui `docs/user-guide/01-setup-awal.md` untuk menjelaskan validasi default account pada seed minimal umum dan seed minimal restoran, termasuk perilaku fail-fast saat mapping tidak lengkap.
 - Memperbarui `docs/client-e2e-alignment-form.md` agar pertanyaan lebih detail namun non-teknis (lebih mudah diisi user/client operasional), lalu regenerate versi kirim `docs/client-e2e-alignment-form.docx`.
 - Memperluas dokumentasi user-facing POS di `docs/user-guide/modules/pos.md` dengan panduan operasional restoran yang lebih detail: dining spot (meja/lokasi), hold-resume, status spot, validasi checkout, dan troubleshooting cepat.
 - Menambahkan dokumen user-facing `docs/user-guide/modules/client-kickoff-questionnaire.md` untuk daftar pertanyaan wajib saat meeting kickoff client (E2E alignment).

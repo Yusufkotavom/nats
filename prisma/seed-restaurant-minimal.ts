@@ -2,7 +2,12 @@ import { Decimal } from "decimal.js";
 import { ContactType, EmploymentStatus } from "./generated/prisma/client";
 import { seedAccounting } from "./seed/accounting";
 import { seedCompany } from "./seed/company";
+import {
+  ALL_REQUIRED_DEFAULT_ACCOUNT_PURPOSES,
+  verifyDefaultAccounts,
+} from "./seed/default-accounts";
 import { seedUsers } from "./seed/users";
+import { seedRestaurantMinimalAccounting } from "./seed/restaurant-minimal-accounting";
 import { prisma } from "./seed/utils";
 
 const m = (value: number) => new Decimal(value);
@@ -16,6 +21,11 @@ async function main() {
     await seedCompany();
     await seedAccounting();
     await seedUsers();
+    await seedRestaurantMinimalAccounting();
+    await verifyDefaultAccounts(
+      ALL_REQUIRED_DEFAULT_ACCOUNT_PURPOSES,
+      "restaurant minimal operations",
+    );
 
     const units = [
       { name: "Porsi", symbol: "PRS" },
@@ -459,6 +469,58 @@ async function main() {
       { productId: bahanTeh.id, quantity: 1, unitCost: bahanTeh.cost },
       { productId: bahanGula.id, quantity: 10, unitCost: bahanGula.cost },
     ]);
+
+    // Baseline contacts for day-1 operations.
+    const baselineContacts = [
+      {
+        type: ContactType.CUSTOMER,
+        name: "Walk-in Customer",
+        email: "walkin.customer@resto.local",
+        phone: "080000000000",
+        address: "General",
+      },
+      {
+        type: ContactType.VENDOR,
+        name: "General Vendor",
+        email: "general.vendor@resto.local",
+        phone: "080000000001",
+        address: "General",
+      },
+    ] as const;
+
+    for (const entry of baselineContacts) {
+      const existing = await prisma.contact.findFirst({
+        where: {
+          type: entry.type,
+          OR: [{ email: entry.email }, { name: entry.name }],
+        },
+      });
+
+      if (existing) {
+        await prisma.contact.update({
+          where: { id: existing.id },
+          data: {
+            type: entry.type,
+            name: entry.name,
+            email: entry.email,
+            phone: entry.phone,
+            address: entry.address,
+            isActive: true,
+          },
+        });
+      } else {
+        await prisma.contact.create({
+          data: {
+            type: entry.type,
+            name: entry.name,
+            email: entry.email,
+            phone: entry.phone,
+            address: entry.address,
+            isActive: true,
+          },
+        });
+      }
+    }
 
     // Minimal employee data for restaurant operations setup (no payroll transactions).
     const employees = [

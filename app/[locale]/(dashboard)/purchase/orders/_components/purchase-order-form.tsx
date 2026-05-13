@@ -86,6 +86,7 @@ import { checkBudgetAvailability } from "@/app/[locale]/(dashboard)/budgeting/ac
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { calculatePurchaseUnitCost } from "@/lib/inventory/purchase-pricing";
 
 interface PurchaseOrderFormProps {
   order?: SuperJSONResult;
@@ -209,7 +210,10 @@ export function PurchaseOrderForm({
     if (field === "productId") {
       const product = products?.find((p: { id: string }) => p.id === value);
       if (product) {
-        newItems[index].unitCost = Number(product.cost);
+        newItems[index].unitCost = calculatePurchaseUnitCost({
+          cost: product.cost,
+          purchaseConversionFactor: product.purchaseConversionFactor,
+        });
       }
     }
 

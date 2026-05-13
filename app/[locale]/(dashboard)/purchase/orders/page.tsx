@@ -98,16 +98,22 @@ export default function PurchaseOrdersPage() {
     ) {
       startTransition(async () => {
         try {
-          await deletePurchaseOrder(id);
+          const result = await deletePurchaseOrder(id);
+          if (!result.success) {
+            throw new Error(result.error || t("delete_error"));
+          }
+
           queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
           toast({
             title: tCommon("success"),
             description: t("delete_success"),
           });
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : t("delete_error");
           toast({
             title: tCommon("error"),
-            description: t("delete_error"),
+            description: message,
             variant: "destructive",
           });
         }
@@ -135,8 +141,15 @@ export default function PurchaseOrdersPage() {
   const columns: Column<PurchaseOrderWithDetails>[] = [
     {
       header: t("order_number"),
-      accessorKey: "orderNumber",
       className: "font-medium",
+      cell: (item) => (
+        <Link
+          href={`/purchase/orders/${item.id}/edit`}
+          className="text-primary hover:underline"
+        >
+          {item.orderNumber}
+        </Link>
+      ),
     },
     {
       header: tCommon("date"),

@@ -160,6 +160,15 @@ export async function seedAccounting() {
             parentCode: "21000",
         },
         {
+            code: "21110",
+            name: "Goods Received Not Invoiced",
+            type: AccountType.liability,
+            normalBalance: NormalBalance.credit,
+            isPosting: true,
+            level: 2,
+            parentCode: "21000",
+        },
+        {
             code: "21200",
             name: "Sales Tax Payable",
             type: AccountType.liability,
@@ -465,7 +474,7 @@ export async function seedAccounting() {
     const defaultAccounts = [
         { purpose: DefaultAccountPurpose.ACCOUNTS_RECEIVABLE, code: "11200" },
         { purpose: DefaultAccountPurpose.ACCOUNTS_PAYABLE, code: "21100" },
-        { purpose: DefaultAccountPurpose.GOODS_RECEIVED_NOT_INVOICED, code: "21100" },
+        { purpose: DefaultAccountPurpose.GOODS_RECEIVED_NOT_INVOICED, code: "21110" },
         { purpose: DefaultAccountPurpose.INVENTORY_ASSET, code: "11300" },
         { purpose: DefaultAccountPurpose.COGS, code: "52000" },
         { purpose: DefaultAccountPurpose.SALES_REVENUE, code: "41200" },
@@ -488,26 +497,39 @@ export async function seedAccounting() {
 
     for (const fa of defaultAccounts) {
         const acc = await prisma.account.findUnique({ where: { code: fa.code } });
-        if (acc) {
-            // Find existing default account for this purpose
-            const existing = await prisma.defaultAccount.findFirst({
-                where: { purpose: fa.purpose },
-            });
+        if (!acc) {
+            throw new Error(
+                `Missing chart of account code ${fa.code} for default account purpose ${fa.purpose}`,
+            );
+        }
 
-            if (existing) {
-                await prisma.defaultAccount.update({
-                    where: { id: existing.id },
-                    data: { accountId: acc.id },
-                });
-            } else {
-                await prisma.defaultAccount.create({
-                    data: {
-                        purpose: fa.purpose,
-                        accountId: acc.id,
-                        isActive: true,
-                    },
-                });
-            }
+        // Keep one active mapping per purpose to avoid ambiguous runtime resolution.
+        const primaryExisting = await prisma.defaultAccount.findFirst({
+            where: { purpose: fa.purpose },
+            orderBy: { createdAt: "asc" },
+        });
+
+        await prisma.defaultAccount.updateMany({
+            where: { purpose: fa.purpose },
+            data: { isActive: false },
+        });
+
+        if (primaryExisting) {
+            await prisma.defaultAccount.update({
+                where: { id: primaryExisting.id },
+                data: {
+                    accountId: acc.id,
+                    isActive: true,
+                },
+            });
+        } else {
+            await prisma.defaultAccount.create({
+                data: {
+                    purpose: fa.purpose,
+                    accountId: acc.id,
+                    isActive: true,
+                },
+            });
         }
     }
 

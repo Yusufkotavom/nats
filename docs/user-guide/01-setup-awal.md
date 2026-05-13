@@ -2,7 +2,7 @@
 title: Setup Awal
 module: general
 order: 10
-updatedAt: 2026-05-08
+updatedAt: 2026-05-13
 summary: Setup akun, environment, database, seed, dan login pertama.
 related: 00-start-here,02-master-data,modules/admin,modules/inventory
 ---
@@ -75,6 +75,11 @@ Ikuti urutan ini dari atas ke bawah. Jangan lompat.
 2. Jalankan seeder sesuai kebutuhan:
    - minimal umum
    - minimal restoran (tanpa transaksi, termasuk master bahan dapur lanjutan seperti bumbu/minyak/LPG serta konfigurasi unit base/purchase/sales + conversion factor)
+3. Verifikasi default account:
+   - seed minimal umum memvalidasi akun default inti transaksi harian.
+   - seed minimal restoran memvalidasi seluruh `DefaultAccountPurpose` aktif (AR/AP, persediaan, pajak, payroll, produksi, dll).
+   - seed minimal restoran juga merampingkan daftar akun aktif ke akun inti operasional agar konfigurasi awal lebih sederhana.
+   - jika ada mapping default account hilang/duplikat aktif, proses seed akan gagal agar setup tidak lanjut dengan konfigurasi parsial.
 
 ## 4. Verifikasi Akun Default
 

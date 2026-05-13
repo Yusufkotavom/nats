@@ -83,21 +83,28 @@ npx prisma migrate dev --name init
 
 Populate the database with initial data (roles, default users, etc.). Choose one of the following options:
 
-**Option A: Complete Seeding (Recommended for Testing)**
-Includes sample products, transactions, and bulk data:
+**Option A: Default Minimal (Recommended for Daily Setup)**
+Menjalankan seed aktif default yang berisi baseline akun akuntansi + user minimum untuk transaksi harian:
 
 ```bash
 npm run prisma db seed
 ```
 
-**Option B: Minimal Seeding (Clean Start)**
-Includes only essential data: Company Profile, Chart of Accounts, and Default Roles/Users:
+**Option B: Minimal Seeding (Manual Alias, same baseline)**
+Setara dengan Option A, untuk eksekusi eksplisit seed minimal:
 
 ```bash
 npm run prisma:seed:minimal
 ```
 
-**Option C: Restaurant Minimal (No Transactions)**
+**Option C: Demo Lengkap (untuk testing skenario end-to-end)**
+Includes sample products dan transaksi demo:
+
+```bash
+npm run prisma:seed:demo
+```
+
+**Option D: Restaurant Minimal (No Transactions)**
 Extends minimal seed with restaurant master data only (menu, expanded raw materials incl. spices/oil/LPG, BOM), without sales/purchase transactions. Includes realistic base/purchase/sales units with conversion factors. All initial inventory quantities are set to `0`:
 
 ```bash
@@ -141,10 +148,13 @@ After the containers are running, initialize the database:
 
 ```bash
 docker-compose exec app npx prisma migrate deploy
-# Run complete seed
+# Run default minimal seed
 docker-compose exec app npm run prisma db seed
 
-# OR run minimal seed
+# OR run demo lengkap
+docker-compose exec app npm run prisma:seed:demo
+
+# OR run minimal seed alias
 docker-compose exec app npm run prisma:seed:minimal
 ```
 

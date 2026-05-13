@@ -1,15 +1,27 @@
 import { prisma } from "./seed/utils";
-import { seedDemoIndonesia } from "./seed/demo-indonesia";
+import { seedAccounting } from "./seed/accounting";
+import { seedCompany } from "./seed/company";
+import { seedUsers } from "./seed/users";
+import {
+  DAILY_REQUIRED_DEFAULT_ACCOUNT_PURPOSES,
+  verifyDefaultAccounts,
+} from "./seed/default-accounts";
 
 async function main() {
-  console.log("🚀 Start seeding demo dataset...");
+  console.log("🚀 Start default minimal seeding...");
   const start = Date.now();
 
   try {
-    await seedDemoIndonesia();
+    await seedCompany();
+    await seedAccounting();
+    await seedUsers();
+    await verifyDefaultAccounts(
+      DAILY_REQUIRED_DEFAULT_ACCOUNT_PURPOSES,
+      "daily operations",
+    );
 
     const end = Date.now();
-    console.log(`✅ Demo seeding completed in ${(end - start) / 1000}s`);
+    console.log(`✅ Default minimal seeding completed in ${(end - start) / 1000}s`);
   } catch (e) {
     console.error("❌ Seeding failed:", e);
     process.exit(1);
