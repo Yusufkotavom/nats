@@ -18,6 +18,7 @@ export const inventoryPlugin: ModulePlugin = {
             { title: "Inventory.categories", url: "/inventory/categories" },
             { title: "Inventory.warehouses", url: "/inventory/warehouses" },
             { title: "Inventory.movements", url: "/inventory/movements" },
+            { title: "Inventory.adjustments", url: "/inventory/adjustments" },
             { title: "Inventory.uom", url: "/inventory/uom" }, // Kept this item as it was not explicitly replaced by a new key
           ],
         },
@@ -98,4 +99,3 @@ export const inventoryPlugin: ModulePlugin = {
     },
   ],
 };
-

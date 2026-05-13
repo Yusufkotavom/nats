@@ -281,6 +281,61 @@ export class InventoryService {
             } else {
                 throw new Error(`Inventory record not found for product ${product.name}`);
             }
+        } else if (type === "ADJUSTMENT") {
+            if (quantity === 0) return;
+
+            if (quantity > 0) {
+                const incomingUnitCost = unitCost ?? productAvgCost ?? new Decimal(product.averageCost ?? product.cost ?? 0);
+                const incomingValue = incomingUnitCost.mul(quantity);
+                const newTotalValue = currentTotalValue.plus(incomingValue);
+                const newTotalStock = currentTotalQty + quantity;
+
+                if (newTotalStock > 0) {
+                    productAvgCost = newTotalValue.div(newTotalStock);
+                }
+
+                await tx.product.update({
+                    where: { id: productId },
+                    data: { averageCost: productAvgCost },
+                });
+
+                if (inventory) {
+                    await tx.inventory.update({
+                        where: { id: inventory.id },
+                        data: {
+                            quantity: { increment: quantity },
+                            unitCost: incomingUnitCost,
+                        },
+                    });
+                } else {
+                    await tx.inventory.create({
+                        data: {
+                            productId,
+                            warehouseId,
+                            quantity,
+                            unitCost: incomingUnitCost,
+                            batchNumber,
+                        },
+                    });
+                }
+                return;
+            }
+
+            const adjustmentOutQty = Math.abs(quantity);
+            if (currentQty < adjustmentOutQty) {
+                throw new Error(`Insufficient stock for product ${product.name} (SKU: ${product.sku}). Available: ${currentQty}, Requested adjustment: ${adjustmentOutQty}`);
+            }
+
+            if (inventory) {
+                await tx.inventory.update({
+                    where: { id: inventory.id },
+                    data: {
+                        quantity: { decrement: adjustmentOutQty },
+                    },
+                });
+            } else {
+                throw new Error(`Inventory record not found for product ${product.name}`);
+            }
         }
     }
 }

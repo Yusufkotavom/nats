@@ -8,6 +8,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased] - 2026-05-08
 
 ### Added
+- Menambahkan halaman baru `Inventory > Adjustments` (`/inventory/adjustments`) dengan UI table inline edit untuk stock opname/penyesuaian: input `actual stock` per produk, catatan per baris, catatan header, preview selisih (`diff`) dan dampak nominal.
 - Menambahkan halaman admin baru `Settings > Data Reset` (`/admin/settings/data-reset`) untuk reset data transaksi secara cepat saat testing (purchase/sales/POS/movement/journal/outbox) tanpa menghapus user dan master data.
 - Menambahkan unit test `lib/accounting/account-name-i18n.test.ts` untuk validasi mapping nama akun bilingual, fallback akun custom, dan formatting label akun.
 - Menambahkan test `prisma/seed/restaurant-minimal-accounting.test.ts` untuk memastikan mode akun minimal restoran tetap memetakan semua `DefaultAccountPurpose` dan semua kode akun mapping termasuk dalam daftar akun aktif minimal.
@@ -37,6 +38,10 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Fail path untuk setiap langkah orkestrasi (receive creation/completion, invoice creation/posting, payment creation/posting)
 
 ### Fixed
+- Memperbaiki alur `MovementType.ADJUSTMENT` agar benar-benar memperbarui kuantitas stok (sebelumnya belum mengubah stok), termasuk skenario penyesuaian naik/turun.
+- Menambahkan posting jurnal otomatis saat `Stock Adjustment` diposting:
+  - selisih negatif: `Dr Uncategorized Expense / Cr Inventory Asset`,
+  - selisih positif: `Dr Inventory Asset / Cr Uncategorized Income`.
 - Memperbaiki ketidakseimbangan jurnal POS saat fee multi-line aktif (`debit must equal credits`) dengan menyelaraskan payload event `SALES_INVOICE_ISSUED` dari POS: komponen `shippingCost` (fee non-tax) dan `tax` kini dikirim eksplisit sehingga sisi kredit jurnal sama dengan total invoice.
 - Memperbaiki alur `Quick Purchase` agar pembuatan `Purchase Invoice` tidak lagi mengirim field item yang sudah tidak ada di schema (`productId`/`purchaseOrderItemId`), sehingga error Prisma `Unknown argument 'productId'` saat proses quick order teratasi.
 - Memperbaiki renderer halaman docs agar markdown tidak tampil plain:
