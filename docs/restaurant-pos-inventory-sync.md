@@ -33,6 +33,20 @@ Menjamin sinkronisasi penjualan POS ke persediaan secara terukur untuk operasion
 - POS sale tanpa BOM -> stok produk jual berkurang (backward compatible).
 - BOM menghasilkan kuantitas pecahan -> transaksi gagal sampai unit-konversi dibenahi.
 
+## Ekstensi Flow Restoran (Bayar Belakangan)
+
+Implementasi lanjut (fase service restoran):
+1. `Open Table` -> spot status `ORDERING`.
+2. `Send to Kitchen` -> buat `RestaurantOrder` + `KitchenTicket` + `KitchenTicketItem` per station.
+3. `Generate Bill` (saat pelanggan minta bill) -> create invoice `ISSUED` via `POSTransactionService.issueInvoiceOnly`.
+4. `Settle Bill` -> create payment + update invoice via `POSTransactionService.settleIssuedInvoice`.
+5. `Close Table` hanya jika order restoran `PAID`.
+
+Catatan akuntansi:
+- Saat send-to-kitchen: belum ada jurnal kas.
+- Saat generate bill: jurnal revenue/AR + shipment/COGS diproses melalui flow invoice/shipment.
+- Saat settle bill: jurnal kas/bank diproses melalui flow payment.
+
 ## Batasan Saat Ini
 - Reason code waste/spoilage belum jadi field terstruktur; masih bisa ditulis di notes movement.
 - Dukungan pecahan unit belum ada karena model stok integer.

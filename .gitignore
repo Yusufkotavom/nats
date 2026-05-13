@@ -45,7 +45,6 @@ next-env.d.ts
 .trae
 
 prisma/generated
-prisma/migrations
 
 .agents
 .agent

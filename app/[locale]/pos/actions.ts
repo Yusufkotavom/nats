@@ -10,6 +10,7 @@ import { POSTransactionService } from "@/modules/pos/services/pos-transaction.se
 import { POSSessionService } from "@/modules/pos/services/pos-session.service";
 import { HeldOrderService } from "@/modules/pos/services/held-order.service";
 import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
+import { RestaurantOrderService } from "@/modules/pos/services/restaurant-order.service";
 import { POSCartItem } from "./types";
 
 export type POSCheckoutSettings = {
@@ -280,6 +281,142 @@ export async function closeDiningSpot(diningSpotId: string, notes?: string) {
 
   await DiningSpotService.closeSpot(diningSpotId, session.userId, notes);
   revalidatePath("/pos");
+}
+
+export async function getRestaurantFloorOverview(sessionId: string) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+  const data = await RestaurantOrderService.getFloorOverview(sessionId);
+  return SuperJSON.serialize(data);
+}
+
+export async function sendOrderToKitchen(
+  sessionId: string,
+  diningSpotId: string,
+  items: {
+    productId: string;
+    quantity: number;
+    price: number;
+    discount?: number;
+    note?: string;
+    station?: string;
+  }[],
+  note?: string,
+  customerId?: string,
+  globalDiscount: number = 0,
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const result = await RestaurantOrderService.sendToKitchen({
+    sessionId,
+    userId: session.userId,
+    diningSpotId,
+    items,
+    note,
+    customerId,
+    globalDiscount,
+  });
+
+  revalidatePath("/pos");
+  revalidatePath("/pos/restaurant");
+  revalidatePath("/pos/restaurant/kitchen");
+  revalidatePath("/pos/restaurant/billing");
+  return SuperJSON.serialize(result);
+}
+
+export async function getKitchenTickets(sessionId: string, station?: string) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+  const data = await RestaurantOrderService.getKitchenTickets(sessionId, station);
+  return SuperJSON.serialize(data);
+}
+
+export async function updateKitchenItemStatus(
+  kitchenItemId: string,
+  status: "NEW" | "COOKING" | "READY" | "SERVED" | "CANCELLED",
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  await RestaurantOrderService.updateKitchenItemStatus(kitchenItemId, status);
+  revalidatePath("/pos/restaurant");
+  revalidatePath("/pos/restaurant/kitchen");
+  revalidatePath("/pos/restaurant/billing");
+}
+
+export async function getRestaurantBillingQueue(sessionId: string) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+  const data = await RestaurantOrderService.getBillingQueue(sessionId);
+  return SuperJSON.serialize(data);
+}
+
+export async function generateRestaurantBill(
+  sessionId: string,
+  orderId: string,
+  feeBreakdown: {
+    lines: {
+      name: string;
+      category: "TAX" | "FEE";
+      valueType: "PERCENTAGE" | "FIXED";
+      value: number;
+      amount: number;
+    }[];
+  },
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const result = await RestaurantOrderService.generateBill(sessionId, orderId, feeBreakdown);
+  revalidatePath("/pos/restaurant");
+  revalidatePath("/pos/restaurant/billing");
+  return SuperJSON.serialize(result);
+}
+
+export async function settleRestaurantBill(
+  sessionId: string,
+  orderId: string,
+  paymentMethod: "CASH" | "CARD" | "QRIS",
+  amount?: number,
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const result = await RestaurantOrderService.settleBill(
+    sessionId,
+    orderId,
+    paymentMethod,
+    amount,
+  );
+  revalidatePath("/pos/restaurant");
+  revalidatePath("/pos/restaurant/billing");
+  return SuperJSON.serialize(result);
+}
+
+export async function closeRestaurantOrder(orderId: string) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  await RestaurantOrderService.closePaidOrder(orderId, session.userId);
+  revalidatePath("/pos/restaurant");
+  revalidatePath("/pos/restaurant/billing");
 }
 
 export async function openPOSSession(openingCash: number, warehouseId: string) {

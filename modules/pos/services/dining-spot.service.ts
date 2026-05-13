@@ -172,6 +172,17 @@ export class DiningSpotService {
       if (!spot) throw new Error("Dining spot not found");
       if (spot.status === "AVAILABLE") throw new Error("Dining spot is already available");
 
+      const hasOpenRestaurantOrder = await tx.restaurantOrder.findFirst({
+        where: {
+          diningSpotId,
+          status: { in: ["OPEN", "SENT_TO_KITCHEN", "BILLING"] },
+        },
+        select: { id: true },
+      });
+      if (hasOpenRestaurantOrder) {
+        throw new Error("Cannot close dining spot with open restaurant order");
+      }
+
       const openSession = await tx.diningSpotSession.findFirst({
         where: { diningSpotId, closedAt: null },
         orderBy: { openedAt: "desc" },

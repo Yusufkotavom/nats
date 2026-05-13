@@ -46,6 +46,8 @@ const prismaMock = vi.hoisted(() => ({
     },
     salesInvoice: {
         create: vi.fn(),
+        findUnique: vi.fn(),
+        update: vi.fn(),
     },
     cashAccount: {
         findFirst: vi.fn(),
@@ -588,6 +590,109 @@ describe("POSTransactionService", () => {
                 where: { id: "spot-1" },
                 data: { status: "BILLING" },
             });
+        });
+
+        it("should issue invoice without payment for deferred dine-in bill", async () => {
+            prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+            prismaMock.pOSSession.findUnique.mockResolvedValue({
+                id: mockSessionId,
+                status: "OPEN",
+                warehouseId: "wh-1",
+                cashierId: "user-1",
+            });
+            prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
+            prismaMock.salesOrder.create.mockResolvedValue({
+                id: "so-1",
+                orderNumber: "SO-POS-1",
+                items: [{ id: "so-item-1", productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.salesInvoice.create.mockResolvedValue({
+                id: "inv-1",
+                invoiceNumber: "INV-POS-1",
+                invoiceDate: new Date(),
+                totalAmount: new Decimal(200),
+                globalDiscount: new Decimal(0),
+            });
+            prismaMock.salesShipment.create.mockResolvedValue({
+                id: "shp-1",
+                shipmentNumber: "SHP-POS-1",
+                items: [{ productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.billOfMaterial.findFirst.mockResolvedValue(null);
+            prismaMock.product.findUnique.mockResolvedValue({
+                averageCost: new Decimal(60),
+                cost: new Decimal(50),
+            });
+            getRequiredDefaultAccountMock
+                .mockResolvedValueOnce({ accountId: "acc-cogs" })
+                .mockResolvedValueOnce({ accountId: "acc-inv" });
+            createJournalEntryMock.mockResolvedValue({ id: "je-cogs-4" });
+            postJournalEntryMock.mockResolvedValue(undefined);
+            createInventoryMovementMock.mockResolvedValue({});
+            enqueueIntegrationEventOnceMock.mockResolvedValueOnce({ id: "outbox-inv", alreadyQueued: false });
+            maybeProcessIntegrationOutboxEventMock.mockResolvedValue({ processed: true });
+
+            const result = await POSTransactionService.issueInvoiceOnly(
+                mockSessionId,
+                mockItems,
+                0,
+                zeroFeeBreakdown,
+            );
+
+            expect(prismaMock.salesPayment.create).not.toHaveBeenCalled();
+            expect(prismaMock.salesInvoice.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        status: "ISSUED",
+                    }),
+                }),
+            );
+            expect(result.invoiceId).toBe("inv-1");
+        });
+
+        it("settles issued invoice and updates remaining balance", async () => {
+            prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+            prismaMock.pOSSession.findUnique.mockResolvedValue({
+                id: mockSessionId,
+                status: "OPEN",
+                warehouseId: "wh-1",
+                cashierId: "user-1",
+            });
+            prismaMock.salesInvoice.findUnique.mockResolvedValue({
+                id: "inv-1",
+                contactId: "contact-walk-in",
+                invoiceNumber: "INV-POS-1",
+                totalAmount: new Decimal(200),
+                status: "ISSUED",
+                payments: [],
+            });
+            prismaMock.cashAccount.findFirst.mockResolvedValue({ id: "cash-acc-1" });
+            prismaMock.salesPayment.create.mockResolvedValue({
+                id: "pay-1",
+                paymentNumber: "PAY-POS-1",
+                paymentDate: new Date(),
+                amount: new Decimal(200),
+                reference: "INV-POS-1",
+                cashAccountId: "cash-acc-1",
+                contactId: "contact-walk-in",
+                salesInvoiceId: "inv-1",
+            });
+            prismaMock.salesInvoice.update.mockResolvedValue({});
+            enqueueIntegrationEventOnceMock.mockResolvedValueOnce({ id: "outbox-pay", alreadyQueued: false });
+            maybeProcessIntegrationOutboxEventMock.mockResolvedValue({ processed: true });
+
+            const result = await POSTransactionService.settleIssuedInvoice(
+                mockSessionId,
+                "inv-1",
+                "CASH",
+            );
+
+            expect(prismaMock.salesInvoice.update).toHaveBeenCalledWith({
+                where: { id: "inv-1" },
+                data: { status: "PAID", balanceDue: new Decimal(0) },
+            });
+            expect(result.remainingBalance).toBe(0);
+            expect(result.paymentId).toBe("pay-1");
         });
     });
 });

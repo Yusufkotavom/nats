@@ -22,6 +22,9 @@ const prismaMock = vi.hoisted(() => ({
     findFirst: vi.fn(),
     update: vi.fn(),
   },
+  restaurantOrder: {
+    findFirst: vi.fn(),
+  },
   $transaction: vi.fn(),
 }));
 
@@ -31,6 +34,7 @@ describe("DiningSpotService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock));
+    prismaMock.restaurantOrder.findFirst.mockResolvedValue(null);
   });
 
   it("opens available spot", async () => {

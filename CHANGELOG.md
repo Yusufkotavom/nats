@@ -8,6 +8,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased] - 2026-05-08
 
 ### Added
+- **2026-05-13 | Scope: POS Restaurant Service** - Menambahkan domain model restoran baru (`RestaurantOrder`, `RestaurantOrderItem`, `KitchenTicket`, `KitchenTicketItem`) termasuk enum status order/kitchen untuk mendukung alur meja -> dapur -> billing secara persist. **Impact:** operasional dine-in bayar belakangan kini punya jejak data per meja dan per station.
 - Menambahkan laporan gabungan baru `Accounting > Reports > Full Report` (`/accounting/reports/full`) yang menggabungkan Profit & Loss, Balance Sheet, dan Cash Flow dalam satu halaman dengan filter periode, as-of date, serta mode komparatif.
 - Menambahkan progress bar global (top loading indicator) untuk UX universal: aktif saat navigasi/link klik, submit form, dan aksi klik tombol, lalu selesai otomatis saat proses selesai/route berubah.
 - Menambahkan halaman baru `Inventory > Adjustments` (`/inventory/adjustments`) dengan UI table inline edit untuk stock opname/penyesuaian: input `actual stock` per produk, catatan per baris, catatan header, preview selisih (`diff`) dan dampak nominal.
@@ -40,6 +41,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Fail path untuk setiap langkah orkestrasi (receive creation/completion, invoice creation/posting, payment creation/posting)
 
 ### Fixed
+- **2026-05-13 | Scope: POS Dining Guard** - Menambahkan guard penutupan meja di `DiningSpotService.closeSpot` agar meja tidak bisa ditutup jika masih ada order restoran berstatus open/billing. **Impact:** mencegah kehilangan jejak transaksi meja sebelum settlement selesai.
 - Memperbaiki alur integrasi `Cash Bank` saat create transaksi agar relasi jurnal tidak lagi gagal FK: handler `CASH_TRANSACTION_CREATE_REQUESTED` kini mengaitkan `CashTransaction.journalEntryId` berdasarkan `entryNumber` jurnal yang benar-benar terbentuk (bukan placeholder id), serta menormalkan `contactId/departmentId/projectId` kosong menjadi `null` agar tidak memicu FK error.
 - Memperbaiki header `Inventory Movement` untuk tipe `ADJUSTMENT` agar warehouse yang dipilih tersimpan konsisten pada `fromWarehouseId` dan `toWarehouseId` (tidak hilang di histori movement).
 - Memperbaiki alur `MovementType.ADJUSTMENT` agar benar-benar memperbarui kuantitas stok (sebelumnya belum mengubah stok), termasuk skenario penyesuaian naik/turun.
@@ -56,6 +58,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- **2026-05-13 | Scope: POS Flow Dine-In** - Menambah flow deferred payment di POS: `send-to-kitchen` membuat order+tiket dapur, `generate bill` membuat invoice `ISSUED`, dan `settle bill` memproses payment terpisah; juga menambah halaman baru `/pos/restaurant`, `/pos/restaurant/kitchen`, `/pos/restaurant/billing`. **Impact:** alur restoran pesan dulu bayar belakangan berjalan tanpa jurnal kas prematur.
 - Merombak pengalaman `/docs` menjadi shell dokumentasi resmi ala Nextra: topbar docs khusus, sidebar navigasi sectioned (desktop + mobile drawer), breadcrumb, pager prev/next berbasis kartu, TOC sticky dengan active heading sync, dan search docs lokal (client-side) dari judul/slug/ringkasan.
 - Menambahkan dukungan `product bundle/paket` berbasis BOM aktif pada alur `Sales Shipment` saat status diubah ke `COMPLETED`: stok dan COGS kini otomatis dikonsumsi dari komponen BOM jika tersedia, dengan fallback ke produk jual langsung jika BOM tidak ada.
 - Menambahkan shortcut menu sidebar `HR > Salary Structures` yang mengarah langsung ke `/hr/payroll/salary-structures` untuk mempercepat setup struktur gaji.
@@ -136,6 +139,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki tombol `Create` pada form `New Purchase Invoice` dengan mengaitkan tombol submit ke elemen form (`form=\"purchase-invoice-form\"`) karena tombol berada di header di luar tag `<form>`.
 
 ### Docs
+- **2026-05-13 | Scope: Docs POS Restoran** - Memperbarui `docs/architecture.md`, `docs/restaurant-pos-inventory-sync.md`, `docs/user-guide/modules/pos.md`, dan `docs/docs-index.json` untuk mendokumentasikan alur baru table-kitchen-billing. **Impact:** SOP user dan kontrak arsitektur sinkron dengan implementasi terbaru.
 - Memperbarui `docs/user-guide/modules/pos.md` dengan bagian baru pengaturan biaya POS terpusat (`Admin > Settings > POS`) dan dampaknya ke perhitungan total POS.
 - Memperbarui `docs/user-guide/01-setup-awal.md` untuk menjelaskan validasi default account pada seed minimal umum dan seed minimal restoran, termasuk perilaku fail-fast saat mapping tidak lengkap.
 - Memperbarui `docs/client-e2e-alignment-form.md` agar pertanyaan lebih detail namun non-teknis (lebih mudah diisi user/client operasional), lalu regenerate versi kirim `docs/client-e2e-alignment-form.docx`.

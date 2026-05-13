@@ -45,13 +45,18 @@ Menjalankan transaksi kasir restoran secara cepat, akurat, dan sinkron ke sales,
 
 ## Alur Harian POS Restoran (Disarankan)
 1. Buka POS Session (pilih warehouse dan opening cash).
-2. Pilih meja/lokasi, lalu klik **Buka**.
-3. Input item order ke cart.
-4. Jika pelanggan belum bayar, gunakan **Hold Order**.
-5. Saat lanjut transaksi, gunakan **Resume** dari Held Orders.
-6. Proses pembayaran (cash/card/QRIS).
-7. Jika selesai, tutup meja/lokasi (status kembali available).
+2. Buka menu `POS > Restaurant Floor`, pilih meja/lokasi, lalu klik **Open**.
+3. Input item order di halaman POS (`/pos`) lalu klik **Kitchen** untuk kirim ke dapur.
+4. Dapur memproses ticket di `POS > Restaurant Kitchen` (status item: `NEW -> COOKING -> READY -> SERVED`).
+5. Saat pelanggan minta bill, kasir buka `POS > Restaurant Billing` lalu klik **Generate Bill**.
+6. Terima pembayaran (cash/card/QRIS) di halaman Billing.
+7. Setelah lunas, klik **Close Table**.
 8. Akhir shift, tutup POS session dan verifikasi selisih kas.
+
+## Menu Baru: Restaurant Service
+- `POS > Restaurant Floor` (`/pos/restaurant`): indikator meja aktif, open/close, quick link ke POS.
+- `POS > Restaurant Kitchen` (`/pos/restaurant/kitchen`): antrian kitchen per station.
+- `POS > Restaurant Billing` (`/pos/restaurant/billing`): generate invoice, settle payment, close table.
 
 ## Dining Spot (Meja/Lokasi)
 

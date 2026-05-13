@@ -25,7 +25,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CartView } from "./cart-view";
 import { ProductGrid } from "./product-grid";
 import {
@@ -94,6 +94,7 @@ export function POSView({
   const { toast } = useToast();
   const confirm = useConfirm();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const sessionData = useSession();
   const isCashier = sessionData?.role === "Cashier";
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -121,6 +122,12 @@ export function POSView({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [categories]);
+
+  useEffect(() => {
+    const spotFromQuery = searchParams.get("spot");
+    if (!spotFromQuery) return;
+    setSelectedDiningSpotId(spotFromQuery);
+  }, [searchParams]);
 
   const {
     data: productData,
@@ -470,6 +477,12 @@ export function POSView({
           >
             <History className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">{t("history")}</span>
+          </Button>
+
+          <Button variant="outline" size="sm" asChild className="mr-2 hidden md:inline-flex">
+            <Link href="/pos/restaurant">
+              {t("restaurant_floor")}
+            </Link>
           </Button>
 
           <div className="hidden md:block text-sm text-muted-foreground">

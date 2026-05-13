@@ -68,6 +68,8 @@ model Product {
   salesShipmentItems SalesShipmentItem[]
   salesInvoiceItems  SalesInvoiceItem[]
   salesReturnItems   SalesReturnItem[]
+  restaurantOrderItems RestaurantOrderItem[]
+  kitchenTicketItems KitchenTicketItem[]
 
   // Production Module
   boms                   BillOfMaterial[]        @relation("ProductBOMs")

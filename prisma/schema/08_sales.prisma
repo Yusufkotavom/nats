@@ -188,6 +188,7 @@ model SalesInvoice {
   // POS Relation
   posSessionId String?
   posSession   POSSession? @relation(fields: [posSessionId], references: [id])
+  restaurantOrder RestaurantOrder?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

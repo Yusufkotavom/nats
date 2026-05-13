@@ -39,6 +39,28 @@ interface POSTransactionOutboxResult {
     };
 }
 
+interface POSInvoiceIssueResult {
+    invoiceId: string;
+    salesOrderId: string;
+    totalAmount: number;
+    outbox: {
+        outboxIds: string[];
+        alreadyQueuedIds: string[];
+        processed: boolean;
+    };
+}
+
+interface POSInvoiceSettlementResult {
+    paymentId: string;
+    invoiceId: string;
+    remainingBalance: number;
+    outbox: {
+        outboxIds: string[];
+        alreadyQueuedIds: string[];
+        processed: boolean;
+    };
+}
+
 interface POSFeeBreakdown {
     lines: Array<{
         name: string;
@@ -125,6 +147,8 @@ export class POSTransactionService {
                 additionalChargeAmount: additionalFeeAmount,
                 feeLines,
                 totalAmount: finalTotalAmount,
+                status: "PAID",
+                balanceDue: new Decimal(0),
             });
 
             const payment = await this.createPayment(tx, {
@@ -133,7 +157,7 @@ export class POSTransactionService {
                 salesInvoiceId: salesInvoice.id,
                 sessionId,
                 paymentMethod,
-                totalAmount: finalTotalAmount,
+                paymentAmount: finalTotalAmount,
             });
 
             const shipment = await this.createShipment(tx, {
@@ -217,6 +241,252 @@ export class POSTransactionService {
 
         return {
             invoiceId: result.invoiceId,
+            outbox: {
+                outboxIds: result.outboxIds,
+                alreadyQueuedIds: result.alreadyQueuedIds,
+                processed: processingResults.every((r) => r.processed),
+            },
+        };
+    }
+
+    static async issueInvoiceOnly(
+        sessionId: string,
+        items: POSTransactionItem[],
+        globalDiscount: number = 0,
+        feeBreakdown: POSFeeBreakdown,
+        customerId?: string,
+        diningSpotId?: string,
+    ): Promise<POSInvoiceIssueResult> {
+        const result = await prisma.$transaction(async (tx) => {
+            const session = await this.validateSession(tx, sessionId);
+            const contactId = await this.resolveCustomer(tx, customerId);
+            await this.validateDiningSpotForCheckout(tx, diningSpotId);
+
+            const itemsWithCalculations = items.map((item) => {
+                const subtotal = new Decimal(item.price).mul(item.quantity);
+                const discountPercent = subtotal.gt(0) && item.discount > 0
+                    ? new Decimal(item.discount).div(subtotal).mul(100)
+                    : new Decimal(0);
+
+                const calculated = CalculationService.calculateLineItem({
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    discount: discountPercent,
+                    tax: 0,
+                });
+                return { item, calculated, discountPercent };
+            });
+
+            const totals = CalculationService.calculateInvoiceTotals(
+                itemsWithCalculations.map(i => i.calculated),
+                globalDiscount
+            );
+            const feeLines = (feeBreakdown.lines || []).map((line) => ({
+                ...line,
+                amount: Math.max(0, Number(line.amount || 0)),
+            }));
+            const taxAmount = feeLines
+                .filter((line) => line.category === "TAX")
+                .reduce((sum, line) => sum.plus(line.amount), new Decimal(0));
+            const additionalFeeAmount = feeLines
+                .filter((line) => line.category === "FEE")
+                .reduce((sum, line) => sum.plus(line.amount), new Decimal(0));
+            const totalFeeAmount = feeLines.reduce((sum, line) => sum.plus(line.amount), new Decimal(0));
+            const finalTotalAmount = totals.totalAmount.plus(totalFeeAmount);
+            const totalItemDiscount = itemsWithCalculations.reduce(
+                (sum, i) => sum.plus(i.calculated.discountAmount),
+                new Decimal(0),
+            );
+
+            const salesOrder = await this.createSalesOrder(tx, {
+                contactId,
+                sessionId,
+                cashierId: session.cashierId,
+                itemsWithCalculations,
+                subtotal: totals.itemsTotal.plus(totalItemDiscount),
+                totalDiscount: totalItemDiscount.plus(globalDiscount),
+                totalTaxAmount: taxAmount,
+                totalAmount: finalTotalAmount,
+            });
+
+            const salesInvoice = await this.createInvoice(tx, {
+                contactId,
+                salesOrderId: salesOrder.id,
+                sessionId,
+                cashierId: session.cashierId,
+                itemsWithCalculations,
+                subtotal: totals.itemsTotal.plus(totalItemDiscount),
+                globalDiscount,
+                totalTaxAmount: taxAmount,
+                additionalChargeAmount: additionalFeeAmount,
+                feeLines,
+                totalAmount: finalTotalAmount,
+                status: "ISSUED",
+                balanceDue: finalTotalAmount,
+            });
+
+            const shipment = await this.createShipment(tx, {
+                contactId,
+                salesOrderId: salesOrder.id,
+                orderItems: salesOrder.items,
+            });
+
+            const ingredientItems = await resolveBomConsumptionItems(tx, shipment.items);
+            const movementItems = ingredientItems.length > 0
+                ? ingredientItems
+                : shipment.items.map((item) => ({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                }));
+
+            await InventoryService.createInventoryMovement(tx, {
+                type: MovementType.OUT,
+                reference: shipment.shipmentNumber,
+                items: movementItems,
+                notes: ingredientItems.length > 0
+                    ? `POS Sale ${salesOrder.orderNumber} (BOM consumption)`
+                    : `POS Sale ${salesOrder.orderNumber}`,
+                transactionDate: new Date(),
+                warehouseId: session.warehouseId || undefined,
+            });
+
+            const totalCogs = await this.calculateInventoryOutCost(tx, movementItems);
+            if (totalCogs.gt(0)) {
+                const cogsAccount = await getRequiredDefaultAccount("COGS");
+                const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
+                const cogsJournal = await JournalService.createJournalEntry({
+                    entryNumber: `JE-${shipment.shipmentNumber}`,
+                    transactionDate: new Date(),
+                    description: `Cost of Goods Sold for POS Shipment #${shipment.shipmentNumber}`,
+                    lines: [
+                        {
+                            accountId: cogsAccount.accountId,
+                            debitAmount: totalCogs.toNumber(),
+                            creditAmount: 0,
+                            description: "Cost of Goods Sold",
+                        },
+                        {
+                            accountId: inventoryAccount.accountId,
+                            debitAmount: 0,
+                            creditAmount: totalCogs.toNumber(),
+                            description: "Inventory Asset",
+                        },
+                    ],
+                }, session.cashierId, tx);
+
+                await JournalService.postJournalEntry(cogsJournal.id, tx);
+            }
+
+            const invoiceOutbox = await this.enqueueInvoiceEvent(tx, {
+                salesInvoice,
+                contactId,
+                cashierId: session.cashierId,
+                itemsWithCalculations,
+            });
+
+            return {
+                invoiceId: salesInvoice.id,
+                salesOrderId: salesOrder.id,
+                totalAmount: finalTotalAmount.toNumber(),
+                outboxIds: [invoiceOutbox.id],
+                alreadyQueuedIds: invoiceOutbox.alreadyQueued ? [invoiceOutbox.id] : [],
+            };
+        });
+
+        const processingResults = await Promise.all(
+            result.outboxIds.map((outboxId) =>
+                maybeProcessIntegrationOutboxEvent(outboxId),
+            ),
+        );
+
+        return {
+            invoiceId: result.invoiceId,
+            salesOrderId: result.salesOrderId,
+            totalAmount: result.totalAmount,
+            outbox: {
+                outboxIds: result.outboxIds,
+                alreadyQueuedIds: result.alreadyQueuedIds,
+                processed: processingResults.every((r) => r.processed),
+            },
+        };
+    }
+
+    static async settleIssuedInvoice(
+        sessionId: string,
+        salesInvoiceId: string,
+        paymentMethod: "CASH" | "CARD" | "QRIS",
+        amount?: number,
+    ): Promise<POSInvoiceSettlementResult> {
+        const result = await prisma.$transaction(async (tx) => {
+            const session = await this.validateSession(tx, sessionId);
+            const invoice = await tx.salesInvoice.findUnique({
+                where: { id: salesInvoiceId },
+                include: { payments: true },
+            });
+            if (!invoice) throw new Error("Invoice not found");
+            if (invoice.status === "PAID") throw new Error("Invoice already paid");
+
+            const totalPaid = invoice.payments.reduce(
+                (sum, payment) => sum.plus(payment.amount),
+                new Decimal(0),
+            );
+            const remaining = new Decimal(invoice.totalAmount).minus(totalPaid);
+            if (remaining.lte(0)) throw new Error("Invoice has no remaining balance");
+
+            const paymentAmount = amount !== undefined
+                ? new Decimal(amount)
+                : remaining;
+
+            if (paymentAmount.lte(0)) {
+                throw new Error("Payment amount must be greater than zero");
+            }
+            if (paymentAmount.gt(remaining)) {
+                throw new Error("Payment amount exceeds remaining balance");
+            }
+
+            const payment = await this.createPayment(tx, {
+                contactId: invoice.contactId,
+                invoiceNumber: invoice.invoiceNumber,
+                salesInvoiceId: invoice.id,
+                sessionId,
+                paymentMethod,
+                paymentAmount,
+            });
+
+            const newRemaining = remaining.minus(paymentAmount);
+            const newStatus = newRemaining.lte(0) ? "PAID" : "PARTIALLY_PAID";
+            await tx.salesInvoice.update({
+                where: { id: invoice.id },
+                data: {
+                    status: newStatus,
+                    balanceDue: newRemaining.lte(0) ? new Decimal(0) : newRemaining,
+                },
+            });
+
+            const paymentOutbox = await this.enqueuePaymentEvent(tx, {
+                payment,
+                cashierId: session.cashierId,
+            });
+
+            return {
+                paymentId: payment.id,
+                invoiceId: invoice.id,
+                remainingBalance: newRemaining.lte(0) ? 0 : newRemaining.toNumber(),
+                outboxIds: [paymentOutbox.id],
+                alreadyQueuedIds: paymentOutbox.alreadyQueued ? [paymentOutbox.id] : [],
+            };
+        });
+
+        const processingResults = await Promise.all(
+            result.outboxIds.map((outboxId) =>
+                maybeProcessIntegrationOutboxEvent(outboxId),
+            ),
+        );
+
+        return {
+            paymentId: result.paymentId,
+            invoiceId: result.invoiceId,
+            remainingBalance: result.remainingBalance,
             outbox: {
                 outboxIds: result.outboxIds,
                 alreadyQueuedIds: result.alreadyQueuedIds,
@@ -375,6 +645,8 @@ export class POSTransactionService {
                 amount: number;
             }>;
             totalAmount: Decimal;
+            status: "PAID" | "ISSUED";
+            balanceDue: Decimal;
         },
     ) {
         const invoiceNumber = `${POS_INVOICE_NUMBER_PREFIX}-${Date.now()}`;
@@ -386,13 +658,13 @@ export class POSTransactionService {
                 salesOrderId: params.salesOrderId,
                 invoiceDate,
                 dueDate: invoiceDate,
-                status: "PAID",
+                status: params.status,
                 subtotal: params.subtotal,
                 globalDiscount: new Decimal(params.globalDiscount),
                 totalTax: params.totalTaxAmount,
                 shippingCost: params.additionalChargeAmount,
                 totalAmount: params.totalAmount,
-                balanceDue: new Decimal(0),
+                balanceDue: params.balanceDue,
                 notes: params.feeLines.length > 0
                     ? `POS_FEE_LINES:${JSON.stringify(params.feeLines)}`
                     : undefined,
@@ -420,7 +692,7 @@ export class POSTransactionService {
             salesInvoiceId: string;
             sessionId: string;
             paymentMethod: "CASH" | "CARD" | "QRIS";
-            totalAmount: Decimal;
+            paymentAmount: Decimal;
         },
     ) {
         const paymentNumber = `${POS_PAYMENT_NUMBER_PREFIX}-${Date.now()}`;
@@ -434,7 +706,7 @@ export class POSTransactionService {
             data: {
                 paymentNumber,
                 contactId: params.contactId,
-                amount: params.totalAmount,
+                amount: params.paymentAmount,
                 paymentDate: new Date(),
                 method: params.paymentMethod,
                 reference: params.invoiceNumber,

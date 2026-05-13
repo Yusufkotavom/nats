@@ -24,6 +24,7 @@ model POSSession {
   salesInvoices SalesInvoice[]
   salesPayments SalesPayment[]
   heldOrders    HeldOrder[]
+  restaurantOrders RestaurantOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -90,6 +91,8 @@ model DiningSpot {
 
   sessions   DiningSpotSession[]
   heldOrders HeldOrder[]
+  restaurantOrders RestaurantOrder[]
+  kitchenTickets KitchenTicket[]
 }
 
 model DiningSpotSession {
@@ -125,6 +128,31 @@ enum DiningSpotStatus {
   CLOSED
 }
 
+enum RestaurantOrderStatus {
+  OPEN
+  SENT_TO_KITCHEN
+  BILLING
+  PAID
+  CLOSED
+  CANCELLED
+}
+
+enum KitchenTicketStatus {
+  NEW
+  IN_PROGRESS
+  READY
+  SERVED
+  CANCELLED
+}
+
+enum KitchenItemStatus {
+  NEW
+  COOKING
+  READY
+  SERVED
+  CANCELLED
+}
+
 enum POSFeeCategory {
   TAX
   FEE
@@ -145,4 +173,115 @@ model POSFeeSetting {
   isActive  Boolean         @default(true)
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+}
+
+model RestaurantOrder {
+  id          String              @id @default(cuid())
+  orderNumber String              @unique
+  status      RestaurantOrderStatus @default(OPEN)
+
+  diningSpotId String
+  diningSpot   DiningSpot @relation(fields: [diningSpotId], references: [id], onDelete: Cascade)
+
+  posSessionId String
+  posSession   POSSession @relation(fields: [posSessionId], references: [id], onDelete: Cascade)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  salesInvoiceId String?      @unique
+  salesInvoice   SalesInvoice? @relation(fields: [salesInvoiceId], references: [id])
+
+  notes String?
+
+  subtotal       Decimal @default(0)
+  itemDiscount   Decimal @default(0)
+  globalDiscount Decimal @default(0)
+  totalTax       Decimal @default(0)
+  totalFees      Decimal @default(0)
+  totalAmount    Decimal @default(0)
+
+  sentToKitchenAt DateTime?
+  billedAt        DateTime?
+  paidAt          DateTime?
+  closedAt        DateTime?
+
+  createdById String
+
+  items         RestaurantOrderItem[]
+  kitchenTickets KitchenTicket[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([diningSpotId, status])
+  @@index([posSessionId, status])
+}
+
+model RestaurantOrderItem {
+  id                String          @id @default(cuid())
+  restaurantOrderId String
+  restaurantOrder   RestaurantOrder @relation(fields: [restaurantOrderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  orderedQuantity Int
+  servedQuantity  Int @default(0)
+  unitPrice       Decimal
+  discountAmount  Decimal @default(0)
+  note            String?
+
+  kitchenItems KitchenTicketItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([restaurantOrderId])
+}
+
+model KitchenTicket {
+  id                String             @id @default(cuid())
+  ticketNumber      String             @unique
+  restaurantOrderId String
+  restaurantOrder   RestaurantOrder    @relation(fields: [restaurantOrderId], references: [id], onDelete: Cascade)
+  diningSpotId      String
+  diningSpot        DiningSpot         @relation(fields: [diningSpotId], references: [id], onDelete: Cascade)
+  status            KitchenTicketStatus @default(NEW)
+  notes             String?
+  sentAt            DateTime           @default(now())
+  completedAt       DateTime?
+
+  items KitchenTicketItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([diningSpotId, status])
+  @@index([restaurantOrderId, status])
+}
+
+model KitchenTicketItem {
+  id                    String            @id @default(cuid())
+  kitchenTicketId       String
+  kitchenTicket         KitchenTicket     @relation(fields: [kitchenTicketId], references: [id], onDelete: Cascade)
+  restaurantOrderItemId String?
+  restaurantOrderItem   RestaurantOrderItem? @relation(fields: [restaurantOrderItemId], references: [id], onDelete: SetNull)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity Int
+  station  String
+  status   KitchenItemStatus @default(NEW)
+  note     String?
+  startedAt DateTime?
+  readyAt   DateTime?
+  servedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kitchenTicketId, station])
+  @@index([status, station])
 }

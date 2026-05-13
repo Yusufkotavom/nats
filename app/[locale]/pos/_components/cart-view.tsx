@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { processPOSTransaction, holdOrder } from "../actions";
+import { processPOSTransaction, holdOrder, sendOrderToKitchen } from "../actions";
 import { POSCartItem } from "../types";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,7 +12,7 @@ import {
   ShoppingCart,
   PauseCircle,
   Tag,
-  PrinterIcon,
+  ChefHat,
   CreditCard,
 } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
@@ -75,6 +75,7 @@ export function CartView({
   const [holdOpen, setHoldOpen] = useState(false);
   const [discountOpen, setDiscountOpen] = useState(false);
   const [holding, setHolding] = useState(false);
+  const [sendingToKitchen, setSendingToKitchen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   const formatCurrency = useFormatCurrency();
@@ -248,6 +249,44 @@ export function CartView({
       toast({ variant: "destructive", title: t("failed_hold_order") });
     } finally {
       setHolding(false);
+    }
+  };
+
+  const handleSendToKitchen = async () => {
+    if (!selectedDiningSpotId) {
+      toast({
+        variant: "destructive",
+        title: "Pilih meja/lokasi terlebih dahulu",
+      });
+      return;
+    }
+
+    setSendingToKitchen(true);
+    try {
+      await sendOrderToKitchen(
+        session.id,
+        selectedDiningSpotId,
+        cart.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discount,
+        })),
+        undefined,
+        undefined,
+        globalDiscount,
+      );
+
+      toast({ title: "Order terkirim ke kitchen" });
+      onClear();
+      router.refresh();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Gagal mengirim order ke kitchen",
+      });
+    } finally {
+      setSendingToKitchen(false);
     }
   };
 
@@ -494,6 +533,22 @@ export function CartView({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{t("hold_order_shortcut")}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className="flex-1 h-12"
+                  variant="outline"
+                  size="lg"
+                  disabled={cart.length === 0 || !selectedDiningSpotId || sendingToKitchen}
+                  onClick={handleSendToKitchen}
+                >
+                  <ChefHat className="mr-2 h-4 w-4" />
+                  Kitchen
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Kirim order ke kitchen</TooltipContent>
             </Tooltip>
 
             <Tooltip>

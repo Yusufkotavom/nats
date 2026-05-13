@@ -35,6 +35,7 @@ model Contact {
   salesReturns   SalesReturn[]
   salesPayments  SalesPayment[]
   heldOrders     HeldOrder[]
+  restaurantOrders RestaurantOrder[]
 
   // Employee relations
   salaryStructures SalaryStructure[]
