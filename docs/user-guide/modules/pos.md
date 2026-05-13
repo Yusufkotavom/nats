@@ -57,7 +57,12 @@ Meja yang sedang aktif ditandai dengan chip di header shell POS (bukan dropdown)
 3. **Tab Kasir**: tambahkan item ke cart, klik **Kitchen** untuk kirim order ke dapur. Dialog **Cetak Tiket Dapur** otomatis muncul — klik **Print** untuk fisik, atau **Tutup** untuk lanjut tanpa cetak. Cart dikosongkan setelah dialog ditutup.
 4. **Tab Dapur**: staf dapur memproses ticket (`COOKING -> READY -> SERVED`). Saat semua item SERVED, order otomatis pindah ke status `BILLING` dan status meja ikut berubah.
 5. **Tab Billing**: klik **Generate Bill** untuk issue invoice, lalu **Bayar Cash / QRIS** untuk settlement. Setelah lunas, **Tutup Meja**.
-6. **Akhir shift**: tutup POS session dan verifikasi selisih kas.
+6. **Akhir shift**: tutup POS session, cek **Cash in Server** (hasil hitung sistem) sebagai pembanding, lalu input **Actual Cash** untuk hitung variance.
+
+### Posting Variance Kas Otomatis
+- Jika `Actual Cash` **lebih kecil** dari `Cash in Server`: sistem posting jurnal selisih (`Dr Uncategorized Expense / Cr Cash on Hand`).
+- Jika `Actual Cash` **lebih besar** dari `Cash in Server`: sistem posting jurnal selisih (`Dr Cash on Hand / Cr Uncategorized Income`).
+- Jika sama: tidak ada jurnal penyesuaian tambahan.
 
 > Untuk transaksi retail (tanpa meja), lewati Tab Meja dan gunakan Tab Kasir langsung — tombol **Checkout (F9)** memproses pembayaran instan tanpa siklus dapur/billing.
 

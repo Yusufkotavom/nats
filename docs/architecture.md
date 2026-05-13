@@ -57,6 +57,7 @@ Halaman `/pos` (`app/[locale]/pos`) adalah satu shell tabbed yang menampung selu
 - `Kasir` tab: `ProductGrid` + `CartView` (`_components/cart-view.tsx`) → `POSTransactionService.process` untuk retail instan; `RestaurantOrderService.sendToKitchen` untuk dine-in.
 - `Dapur` tab: `KitchenTab` (`_components/kitchen-tab.tsx`) → `RestaurantOrderService.getKitchenTickets` + `updateKitchenItemStatus`; reprint via `getKitchenTicketForPrint`.
 - `Billing` tab: `BillingTab` (`_components/billing-tab.tsx`) → `generateBill` / `settleBill` / `closePaidOrder`.
+- `Tutup Sesi` (menu profil): `POSSessionService.close` menghitung `system cash` (`openingCash + cash payment`) dan jika ada variance otomatis posting jurnal penyesuaian kas memakai default account existing (`CASH_ON_HAND` vs `UNCATEGORIZED_EXPENSE/UNCATEGORIZED_INCOME`).
 
 Aturan layer tetap berlaku:
 

@@ -52,6 +52,7 @@ vi.mocked(NextNav.usePathname).mockReturnValue("/pos");
 // --- Mocks: server actions
 const actionMocks = {
   closePOSSession: vi.fn(),
+  getPOSSessionCloseSummary: vi.fn(),
   getHeldOrders: vi.fn(),
   holdOrder: vi.fn(),
   getPOSProducts: vi.fn(),
@@ -62,6 +63,8 @@ const actionMocks = {
 };
 vi.mock("../actions", () => ({
   closePOSSession: (...args: unknown[]) => actionMocks.closePOSSession(...args),
+  getPOSSessionCloseSummary: (...args: unknown[]) =>
+    actionMocks.getPOSSessionCloseSummary(...args),
   getHeldOrders: (...args: unknown[]) => actionMocks.getHeldOrders(...args),
   holdOrder: (...args: unknown[]) => actionMocks.holdOrder(...args),
   getPOSProducts: (...args: unknown[]) => actionMocks.getPOSProducts(...args),
@@ -167,6 +170,13 @@ describe("POSView tab shell", () => {
   beforeEach(() => {
     Object.values(actionMocks).forEach((m) => m.mockReset());
     actionMocks.getHeldOrders.mockResolvedValue(makeSerialized([]));
+    actionMocks.getPOSSessionCloseSummary.mockResolvedValue(
+      makeSerialized({
+        openingCash: 100000,
+        cashSales: 50000,
+        systemCash: 150000,
+      }),
+    );
     actionMocks.getDiningSpots.mockResolvedValue(
       makeSerialized([
         {
@@ -252,5 +262,21 @@ describe("POSView tab shell", () => {
     expect(screen.getByText(/T-01/)).toBeInTheDocument();
     expect(screen.getByText(/Indoor/)).toBeInTheDocument();
     expect(screen.getByText(/ORDERING/)).toBeInTheDocument();
+  });
+
+  it("shows server cash field above actual cash in close-session dialog", () => {
+    const { container } = renderView();
+
+    const accountMenuTrigger = container.querySelector(
+      'button[aria-haspopup="menu"]',
+    ) as HTMLButtonElement | null;
+    expect(accountMenuTrigger).toBeTruthy();
+    fireEvent.pointerDown(accountMenuTrigger as HTMLButtonElement);
+    fireEvent.click(screen.getByText("close_session"));
+
+    const labels = screen.getAllByText(/\(Rp\)/i);
+    expect(labels[0]).toHaveTextContent(/cash_in_server/i);
+    expect(labels[1]).toHaveTextContent(/actual cash/i);
+    expect(actionMocks.getPOSSessionCloseSummary).toHaveBeenCalledWith("sess-1");
   });
 });

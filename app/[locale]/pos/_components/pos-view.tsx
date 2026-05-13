@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   closePOSSession,
+  getPOSSessionCloseSummary,
   getHeldOrders,
   holdOrder,
   getPOSProducts,
@@ -91,6 +92,14 @@ interface POSViewProps {
   session: SuperJSONResult;
   diningSpots: SuperJSONResult;
   checkoutSettings: POSCheckoutSettings;
+}
+
+function formatCurrencyIdr(value: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 export function POSView({
@@ -310,6 +319,23 @@ export function POSView({
   const [actualCashInput, setActualCashInput] = useState("");
   const [closeNoteInput, setCloseNoteInput] = useState("");
   const [isClosingSession, setIsClosingSession] = useState(false);
+
+  const {
+    data: closeSessionSummary,
+    isFetching: isFetchingCloseSessionSummary,
+  } = useQuery({
+    queryKey: ["pos-session-close-summary", session.id],
+    queryFn: async () => {
+      const res = await getPOSSessionCloseSummary(session.id);
+      return SuperJSON.deserialize<{
+        openingCash: number;
+        cashSales: number;
+        systemCash: number;
+      }>(res);
+    },
+    enabled: closeSessionOpen,
+    staleTime: 30_000,
+  });
 
   const handleOpenCloseSession = () => {
     setActualCashInput("");
@@ -792,6 +818,23 @@ export function POSView({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground">
+                {t("cash_in_server")} (Rp)
+              </label>
+              <Input
+                value={
+                  isFetchingCloseSessionSummary && !closeSessionSummary
+                    ? t("loading")
+                    : formatCurrencyIdr(
+                        Number(closeSessionSummary?.systemCash ?? 0),
+                      )
+                }
+                readOnly
+                disabled
+                className="bg-muted/40 font-medium"
+              />
+            </div>
             <div>
               <label className="text-xs text-muted-foreground">
                 Actual Cash (Rp)

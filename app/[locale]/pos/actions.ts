@@ -454,9 +454,23 @@ export async function closePOSSession(
     throw new Error("Unauthorized");
   }
 
-  await POSSessionService.close(sessionId, actualCash, notes);
+  await POSSessionService.close(sessionId, actualCash, notes, sessionUser.userId);
 
   revalidatePath("/pos");
+}
+
+export async function getPOSSessionCloseSummary(sessionId: string) {
+  const sessionUser = await getSession();
+  if (!sessionUser || !hasPermission(sessionUser.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const summary = await POSSessionService.getCashSummary(sessionId);
+  return SuperJSON.serialize({
+    openingCash: Number(summary.openingCash),
+    cashSales: Number(summary.cashSales),
+    systemCash: Number(summary.systemCash),
+  });
 }
 
 export async function getPOSSessionTransactions(sessionId: string) {

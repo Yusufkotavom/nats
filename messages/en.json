@@ -1320,6 +1320,7 @@
         "dining_spots": "Dining Spots",
         "dining_spot_management": "Dining Spot Management",
         "close_session": "Close Session",
+        "cash_in_server": "Cash in Server",
         "logout": "Logout",
         "all_items": "All Items",
         "confirm_close_session": "Are you sure you want to close this POS session?",

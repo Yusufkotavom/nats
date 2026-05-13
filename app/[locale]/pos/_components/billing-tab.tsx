@@ -13,8 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreditCard } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { useToast } from "@/hooks/use-toast";
+import { CheckoutDialog } from "./checkout-dialog";
 
 interface BillingTabProps {
   sessionId: string;
@@ -26,6 +28,12 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
   const queryClient = useQueryClient();
   const formatCurrency = useFormatCurrency();
   const [workingOrderId, setWorkingOrderId] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutOrder, setCheckoutOrder] = useState<{
+    orderId: string;
+    balance: number;
+    orderNumber: string;
+  } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["pos-billing-queue", sessionId],
@@ -91,14 +99,35 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
     }
   };
 
-  const handleSettle = async (
-    orderId: string,
+  const openCheckoutForOrder = (order: any) => {
+    const balance = Number(order.salesInvoice?.balanceDue || 0);
+    if (balance <= 0) return;
+    setCheckoutOrder({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      balance,
+    });
+    setCheckoutOpen(true);
+  };
+
+  const handleConfirmCheckout = async (
     method: "CASH" | "CARD" | "QRIS",
+    amountPaid: number,
   ) => {
-    setWorkingOrderId(orderId);
+    if (!checkoutOrder) return;
+    setWorkingOrderId(checkoutOrder.orderId);
     try {
-      await settleRestaurantBill(sessionId, orderId, method);
-      toast({ title: "Pembayaran berhasil" });
+      await settleRestaurantBill(
+        sessionId,
+        checkoutOrder.orderId,
+        method,
+        amountPaid,
+      );
+      toast({
+        title: "Pembayaran berhasil",
+        description: `${checkoutOrder.orderNumber} · ${method} · ${formatCurrency(amountPaid)}`,
+      });
+      setCheckoutOrder(null);
       await invalidateAll();
     } catch (error) {
       toast({
@@ -106,6 +135,7 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
         title:
           error instanceof Error ? error.message : "Gagal settlement payment",
       });
+      throw error;
     } finally {
       setWorkingOrderId(null);
     }
@@ -161,6 +191,7 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
             (sum: number, p: any) => sum + Number(p.amount || 0),
             0,
           ) || 0;
+        const balance = Number(invoice?.balanceDue || 0);
 
         return (
           <Card key={order.id}>
@@ -203,7 +234,7 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
               {invoice ? (
                 <div className="text-xs text-muted-foreground">
                   Paid: {formatCurrency(paidAmount)} | Balance:{" "}
-                  {formatCurrency(Number(invoice.balanceDue || 0))}
+                  {formatCurrency(balance)}
                 </div>
               ) : null}
               <div className="flex flex-wrap gap-2">
@@ -219,36 +250,13 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
                   size="sm"
                   disabled={
                     !invoice ||
-                    Number(invoice.balanceDue || 0) <= 0 ||
+                    balance <= 0 ||
                     workingOrderId === order.id
                   }
-                  onClick={() => handleSettle(order.id, "CASH")}
+                  onClick={() => openCheckoutForOrder(order)}
                 >
-                  Bayar Cash
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={
-                    !invoice ||
-                    Number(invoice.balanceDue || 0) <= 0 ||
-                    workingOrderId === order.id
-                  }
-                  onClick={() => handleSettle(order.id, "CARD")}
-                >
-                  Bayar Card
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={
-                    !invoice ||
-                    Number(invoice.balanceDue || 0) <= 0 ||
-                    workingOrderId === order.id
-                  }
-                  onClick={() => handleSettle(order.id, "QRIS")}
-                >
-                  Bayar QRIS
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Bayar
                 </Button>
                 <Button
                   size="sm"
@@ -265,6 +273,16 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
           </Card>
         );
       })}
+
+      <CheckoutDialog
+        open={checkoutOpen}
+        onOpenChange={(open) => {
+          setCheckoutOpen(open);
+          if (!open) setCheckoutOrder(null);
+        }}
+        totalAmount={checkoutOrder?.balance ?? 0}
+        onConfirm={handleConfirmCheckout}
+      />
     </div>
   );
 }
