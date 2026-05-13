@@ -85,6 +85,12 @@ describe("POSTransactionService", () => {
         const zeroFeeBreakdown = {
             lines: [],
         };
+        const feeBreakdownWithTaxAndFee = {
+            lines: [
+                { name: "Service", category: "FEE" as const, valueType: "PERCENTAGE" as const, value: 5, amount: 10 },
+                { name: "Tax", category: "TAX" as const, valueType: "PERCENTAGE" as const, value: 10, amount: 20 },
+            ],
+        };
 
         it("should process a POS transaction successfully", async () => {
             // Mock $transaction to execute callback immediately
@@ -244,6 +250,86 @@ describe("POSTransactionService", () => {
 
             expect(result.invoiceId).toBe("inv-1");
             expect(result.outbox.processed).toBe(true);
+        });
+
+        it("should include fee and tax payload in invoice outbox event", async () => {
+            prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+            prismaMock.pOSSession.findUnique.mockResolvedValue({
+                id: mockSessionId,
+                status: "OPEN",
+                warehouseId: "wh-1",
+                cashierId: "user-1",
+            });
+            prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
+            prismaMock.salesOrder.create.mockResolvedValue({
+                id: "so-1",
+                orderNumber: "SO-POS-1",
+                items: [{ id: "so-item-1", productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.salesInvoice.create.mockResolvedValue({
+                id: "inv-1",
+                invoiceNumber: "INV-POS-1",
+                invoiceDate: new Date(),
+                totalAmount: new Decimal(230),
+                globalDiscount: new Decimal(0),
+                totalTax: new Decimal(20),
+                shippingCost: new Decimal(10),
+            });
+            prismaMock.cashAccount.findFirst.mockResolvedValue({ id: "cash-acc-1" });
+            prismaMock.salesPayment.create.mockResolvedValue({
+                id: "pay-1",
+                paymentNumber: "PAY-POS-1",
+                paymentDate: new Date(),
+                amount: new Decimal(230),
+                reference: "INV-POS-1",
+                cashAccountId: "cash-acc-1",
+                contactId: "contact-walk-in",
+                salesInvoiceId: "inv-1",
+            });
+            prismaMock.salesShipment.create.mockResolvedValue({
+                id: "shp-1",
+                shipmentNumber: "SHP-POS-1",
+                items: [{ productId: "prod-1", quantity: 2 }],
+            });
+            prismaMock.billOfMaterial.findFirst.mockResolvedValue(null);
+            prismaMock.product.findUnique.mockResolvedValue({
+                averageCost: new Decimal(60),
+                cost: new Decimal(50),
+            });
+            getRequiredDefaultAccountMock
+                .mockResolvedValueOnce({ accountId: "acc-cogs" })
+                .mockResolvedValueOnce({ accountId: "acc-inv" });
+            createJournalEntryMock.mockResolvedValue({ id: "je-cogs-1" });
+            postJournalEntryMock.mockResolvedValue(undefined);
+            createInventoryMovementMock.mockResolvedValue({});
+            enqueueIntegrationEventOnceMock
+                .mockResolvedValueOnce({ id: "outbox-inv", alreadyQueued: false })
+                .mockResolvedValueOnce({ id: "outbox-pay", alreadyQueued: false });
+            maybeProcessIntegrationOutboxEventMock.mockResolvedValue({ processed: true });
+
+            await POSTransactionService.process(
+                mockSessionId,
+                mockItems,
+                mockPaymentMethod,
+                230,
+                0,
+                feeBreakdownWithTaxAndFee,
+            );
+
+            expect(enqueueIntegrationEventOnceMock).toHaveBeenNthCalledWith(
+                1,
+                prismaMock,
+                expect.objectContaining({
+                    type: "SALES_INVOICE_ISSUED",
+                    payload: expect.objectContaining({
+                        totalAmount: "230",
+                        shippingCost: "10",
+                        items: expect.arrayContaining([
+                            expect.objectContaining({ tax: "20" }),
+                        ]),
+                    }),
+                }),
+            );
         });
 
         it("should consume ingredient stock from active BOM when available", async () => {

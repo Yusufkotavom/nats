@@ -55,7 +55,6 @@ export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
       select: { id: true, name: true },
     }),
     prisma.project.findMany({
-      where: { isActive: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

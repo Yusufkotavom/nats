@@ -37,6 +37,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Fail path untuk setiap langkah orkestrasi (receive creation/completion, invoice creation/posting, payment creation/posting)
 
 ### Fixed
+- Memperbaiki ketidakseimbangan jurnal POS saat fee multi-line aktif (`debit must equal credits`) dengan menyelaraskan payload event `SALES_INVOICE_ISSUED` dari POS: komponen `shippingCost` (fee non-tax) dan `tax` kini dikirim eksplisit sehingga sisi kredit jurnal sama dengan total invoice.
 - Memperbaiki alur `Quick Purchase` agar pembuatan `Purchase Invoice` tidak lagi mengirim field item yang sudah tidak ada di schema (`productId`/`purchaseOrderItemId`), sehingga error Prisma `Unknown argument 'productId'` saat proses quick order teratasi.
 - Memperbaiki renderer halaman docs agar markdown tidak tampil plain:
   - mengaktifkan `remark-gfm` pada `ReactMarkdown` untuk mendukung tabel/list GFM,

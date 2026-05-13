@@ -524,12 +524,23 @@ export class POSTransactionService {
     private static async enqueueInvoiceEvent(
         tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
         params: {
-            salesInvoice: { id: string; invoiceNumber: string; invoiceDate: Date; totalAmount: Decimal; globalDiscount: Decimal | null };
+            salesInvoice: {
+                id: string;
+                invoiceNumber: string;
+                invoiceDate: Date;
+                totalAmount: Decimal;
+                globalDiscount: Decimal | null;
+                totalTax?: Decimal | null;
+                shippingCost?: Decimal | null;
+            };
             contactId: string;
             cashierId: string;
             itemsWithCalculations: { item: POSTransactionItem; calculated: any; discountPercent: Decimal }[];
         },
     ) {
+        const totalTaxAmount = new Decimal(params.salesInvoice.totalTax ?? 0);
+        const shippingCostAmount = new Decimal(params.salesInvoice.shippingCost ?? 0);
+
         return await enqueueIntegrationEventOnce(tx, {
             topic: "sales",
             type: "SALES_INVOICE_ISSUED",
@@ -543,14 +554,16 @@ export class POSTransactionService {
                 userId: params.cashierId,
                 totalAmount: params.salesInvoice.totalAmount.toString(),
                 globalDiscount: params.salesInvoice.globalDiscount?.toString(),
-                shippingCost: undefined,
-                items: params.itemsWithCalculations.map(({ item, calculated, discountPercent }) => {
+                shippingCost: shippingCostAmount.gt(0) ? shippingCostAmount.toString() : undefined,
+                items: params.itemsWithCalculations.map(({ item, discountPercent }, index) => {
                     return {
                         description: `POS Item - ${item.productId}`,
                         quantity: item.quantity,
                         unitPrice: new Decimal(item.price).toString(),
                         discount: discountPercent.toString(),
-                        tax: undefined,
+                        tax: index === 0 && totalTaxAmount.gt(0)
+                            ? totalTaxAmount.toString()
+                            : undefined,
                         accountId: undefined,
                     };
                 }),
