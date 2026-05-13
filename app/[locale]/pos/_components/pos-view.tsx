@@ -34,8 +34,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useConfirm } from "@/hooks/use-confirm";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { CartView } from "./cart-view";
 import { ProductGrid } from "./product-grid";
@@ -113,7 +120,6 @@ export function POSView({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedDiningSpotId, setSelectedDiningSpotId] = useState<string>("");
   const { toast } = useToast();
-  const confirm = useConfirm();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -132,6 +138,33 @@ export function POSView({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip when typing in inputs/textareas
+      const target = e.target as HTMLElement | null;
+      const isEditing =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+
+      // Alt+M/K/D/B to switch tabs (allowed from any tab)
+      if (e.altKey && !isEditing) {
+        const keyMap: Record<string, POSTabValue | undefined> = {
+          m: "floor",
+          M: "floor",
+          k: "cashier",
+          K: "cashier",
+          d: "kitchen",
+          D: "kitchen",
+          b: "billing",
+          B: "billing",
+        };
+        const nextTab = keyMap[e.key];
+        if (nextTab) {
+          e.preventDefault();
+          setActiveTab(nextTab);
+          return;
+        }
+      }
+
       if (activeTab !== "cashier") return;
 
       // F4 or Ctrl+S to focus search
@@ -154,7 +187,7 @@ export function POSView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [categories, activeTab]);
+  }, [categories, activeTab, setActiveTab]);
 
   useEffect(() => {
     const spotFromQuery = searchParams.get("spot");
@@ -273,22 +306,45 @@ export function POSView({
     setGlobalDiscount(0);
   };
 
-  const handleCloseSession = async () => {
-    const ok = await confirm({
-      title: t("close_session"),
-      description: t("confirm_close_session"),
-      variant: "destructive",
-    });
+  const [closeSessionOpen, setCloseSessionOpen] = useState(false);
+  const [actualCashInput, setActualCashInput] = useState("");
+  const [closeNoteInput, setCloseNoteInput] = useState("");
+  const [isClosingSession, setIsClosingSession] = useState(false);
 
-    if (ok) {
-      try {
-        await closePOSSession(session.id, 0); // TODO: Dialog to enter actual cash
-        toast({ title: t("session_closed") });
-        router.refresh();
-      } catch (e) {
-        toast({ variant: "destructive", title: t("error_closing") });
-      }
+  const handleOpenCloseSession = () => {
+    setActualCashInput("");
+    setCloseNoteInput("");
+    setCloseSessionOpen(true);
+  };
+
+  const handleConfirmCloseSession = async () => {
+    const actualCash = Number(actualCashInput || 0);
+    if (Number.isNaN(actualCash) || actualCash < 0) {
+      toast({
+        variant: "destructive",
+        title: "Actual cash tidak valid",
+      });
+      return;
     }
+    setIsClosingSession(true);
+    try {
+      await closePOSSession(
+        session.id,
+        actualCash,
+        closeNoteInput.trim() || undefined,
+      );
+      toast({ title: t("session_closed") });
+      setCloseSessionOpen(false);
+      router.refresh();
+    } catch (e) {
+      toast({ variant: "destructive", title: t("error_closing") });
+    } finally {
+      setIsClosingSession(false);
+    }
+  };
+
+  const handleCloseSession = async () => {
+    handleOpenCloseSession();
   };
 
   const handleLogout = async () => {
@@ -720,6 +776,67 @@ export function POSView({
         sessionId={session.id}
         onRowClick={handleViewHistoryItem}
       />
+
+      <Dialog
+        open={closeSessionOpen}
+        onOpenChange={(open) => {
+          if (!isClosingSession) setCloseSessionOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("close_session")}</DialogTitle>
+            <DialogDescription>
+              Masukkan jumlah kas fisik yang dihitung saat tutup sesi. Selisih
+              terhadap kas sistem akan tercatat sebagai variance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground">
+                Actual Cash (Rp)
+              </label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={actualCashInput}
+                onChange={(e) => setActualCashInput(e.target.value)}
+                placeholder="0"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">
+                Catatan (opsional)
+              </label>
+              <textarea
+                value={closeNoteInput}
+                onChange={(e) => setCloseNoteInput(e.target.value)}
+                rows={2}
+                placeholder="Contoh: kurang Rp5.000 karena kembalian"
+                className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              disabled={isClosingSession}
+              onClick={() => setCloseSessionOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isClosingSession}
+              onClick={handleConfirmCloseSession}
+            >
+              {isClosingSession ? "Menutup..." : "Tutup Sesi"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

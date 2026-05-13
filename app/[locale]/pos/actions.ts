@@ -338,6 +338,15 @@ export async function getKitchenTickets(sessionId: string, station?: string) {
   return SuperJSON.serialize(data);
 }
 
+export async function getKitchenTicketForPrint(ticketId: string) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+  const data = await RestaurantOrderService.getKitchenTicketForPrint(ticketId);
+  return SuperJSON.serialize(data);
+}
+
 export async function updateKitchenItemStatus(
   kitchenItemId: string,
   status: "NEW" | "COOKING" | "READY" | "SERVED" | "CANCELLED",

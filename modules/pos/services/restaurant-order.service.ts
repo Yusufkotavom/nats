@@ -285,9 +285,72 @@ export class RestaurantOrderService {
 
       return {
         orderId: updatedOrder.id,
+        orderNumber: updatedOrder.orderNumber,
         kitchenTicketId: ticket.id,
+        ticketNumber: ticket.ticketNumber,
       };
     });
+  }
+
+  static async getKitchenTicketForPrint(ticketId: string) {
+    const ticket = await prisma.kitchenTicket.findUnique({
+      where: { id: ticketId },
+      include: {
+        diningSpot: { include: { area: true } },
+        restaurantOrder: {
+          select: {
+            id: true,
+            orderNumber: true,
+            notes: true,
+            createdById: true,
+            posSessionId: true,
+          },
+        },
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, sku: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (!ticket) return null;
+
+    const [session, cashier] = await Promise.all([
+      prisma.pOSSession.findUnique({
+        where: { id: ticket.restaurantOrder.posSessionId },
+        select: { sessionNumber: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: ticket.restaurantOrder.createdById },
+        select: { name: true },
+      }),
+    ]);
+
+    return {
+      ticketId: ticket.id,
+      ticketNumber: ticket.ticketNumber,
+      orderId: ticket.restaurantOrder.id,
+      orderNumber: ticket.restaurantOrder.orderNumber,
+      sessionNumber: session?.sessionNumber ?? null,
+      cashierName: cashier?.name ?? null,
+      sentAt: ticket.sentAt,
+      spotCode: ticket.diningSpot?.spotCode ?? null,
+      spotName: ticket.diningSpot?.spotName ?? null,
+      areaName: ticket.diningSpot?.area?.name ?? null,
+      note: ticket.notes,
+      items: ticket.items.map((item) => ({
+        productId: item.productId,
+        productName: item.product?.name ?? item.productId,
+        sku: item.product?.sku ?? undefined,
+        quantity: item.quantity,
+        station: item.station,
+        note: item.note ?? undefined,
+      })),
+    };
   }
 
   static async updateKitchenItemStatus(itemId: string, status: "NEW" | "COOKING" | "READY" | "SERVED" | "CANCELLED") {

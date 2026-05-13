@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
@@ -122,8 +122,19 @@ export function StockAdjustmentView({
   const [warehouseId, setWarehouseId] = useState<string>(warehouses[0]?.id || "");
   const [search, setSearch] = useState("");
   const [headerNote, setHeaderNote] = useState("");
-  const [rows, setRows] = useState<Record<string, AdjustmentRow>>({});
+  const [overrides, setOverrides] = useState<
+    Record<string, Partial<AdjustmentRow>>
+  >({});
+  const [prevWarehouseId, setPrevWarehouseId] = useState(warehouseId);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Reset per-row user edits when the warehouse changes. Using the
+  // "adjusting state during render" pattern to avoid setState-in-effect;
+  // see https://react.dev/learn/you-might-not-need-an-effect
+  if (prevWarehouseId !== warehouseId) {
+    setPrevWarehouseId(warehouseId);
+    setOverrides({});
+  }
 
   const { data: stockSnapshotRaw } = useQuery({
     queryKey: ["warehouse-stock-snapshot", warehouseId],
@@ -139,19 +150,22 @@ export function StockAdjustmentView({
     return new Map(parsed.map((row) => [row.productId, { currentStock: row.currentStock, unitCost: row.unitCost }]));
   }, [stockSnapshotRaw]);
 
-  useEffect(() => {
-    if (!products.length) return;
-    const nextRows: Record<string, AdjustmentRow> = {};
+  // Derived rows: default `actualStock` = current stock snapshot, with user
+  // edits layered on top. This preserves typed values across background
+  // snapshot refreshes and avoids a setState-in-useEffect reset.
+  const rows = useMemo(() => {
+    const result: Record<string, AdjustmentRow> = {};
     for (const product of products) {
       const currentStock = stockSnapshot.get(product.id)?.currentStock || 0;
-      nextRows[product.id] = {
+      const override = overrides[product.id] || {};
+      result[product.id] = {
         productId: product.id,
-        actualStock: currentStock,
-        note: "",
+        actualStock: override.actualStock ?? currentStock,
+        note: override.note ?? "",
       };
     }
-    setRows(nextRows);
-  }, [products, stockSnapshot]);
+    return result;
+  }, [products, stockSnapshot, overrides]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -227,7 +241,7 @@ export function StockAdjustmentView({
   };
 
   const updateRow = (productId: string, patch: Partial<AdjustmentRow>) => {
-    setRows((prev) => ({
+    setOverrides((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],

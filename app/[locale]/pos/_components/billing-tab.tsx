@@ -234,6 +234,18 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
                     Number(invoice.balanceDue || 0) <= 0 ||
                     workingOrderId === order.id
                   }
+                  onClick={() => handleSettle(order.id, "CARD")}
+                >
+                  Bayar Card
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={
+                    !invoice ||
+                    Number(invoice.balanceDue || 0) <= 0 ||
+                    workingOrderId === order.id
+                  }
                   onClick={() => handleSettle(order.id, "QRIS")}
                 >
                   Bayar QRIS

@@ -32,7 +32,7 @@
 
 Implementasi saat ini:
 1. Service meja/restoran diproses di `modules/pos/services/restaurant-order.service.ts`.
-2. `Send to Kitchen` membentuk `RestaurantOrder` + `KitchenTicket` (status item per station).
+2. `Send to Kitchen` membentuk `RestaurantOrder` + `KitchenTicket` (status item per station) dan mengembalikan `{orderId, orderNumber, kitchenTicketId, ticketNumber}` untuk dipakai UI print.
 3. `Generate Bill` memanggil `POSTransactionService.issueInvoiceOnly(...)`:
 - membuat Sales Order + Sales Invoice status `ISSUED`,
 - membuat Shipment + movement stok (`OUT`) + posting COGS.
@@ -48,3 +48,19 @@ Implementasi saat ini:
 - transaksi ditolak karena kuantitas stok saat ini masih integer.
 
 Rujukan detail: `docs/restaurant-pos-inventory-sync.md`.
+
+## Unified POS Shell (2026-05-13)
+
+Halaman `/pos` (`app/[locale]/pos`) adalah satu shell tabbed yang menampung seluruh alur restoran — tidak ada lagi halaman terpisah untuk floor / kitchen / billing:
+
+- `Meja` tab: `FloorTab` (`_components/floor-tab.tsx`) → `RestaurantOrderService.getFloorOverview`, `DiningSpotService.openSpot` / `closeSpot`.
+- `Kasir` tab: `ProductGrid` + `CartView` (`_components/cart-view.tsx`) → `POSTransactionService.process` untuk retail instan; `RestaurantOrderService.sendToKitchen` untuk dine-in.
+- `Dapur` tab: `KitchenTab` (`_components/kitchen-tab.tsx`) → `RestaurantOrderService.getKitchenTickets` + `updateKitchenItemStatus`; reprint via `getKitchenTicketForPrint`.
+- `Billing` tab: `BillingTab` (`_components/billing-tab.tsx`) → `generateBill` / `settleBill` / `closePaidOrder`.
+
+Aturan layer tetap berlaku:
+
+- Seluruh panggilan data dari tab dilakukan lewat server action di `app/[locale]/pos/actions.ts`, yang thin-forward ke service di `modules/pos/services`.
+- Tidak ada logic domain di tab component — hanya orkestrasi UI + `useQuery` cache invalidation lintas tab (keys: `pos-floor-overview`, `pos-kitchen-tickets`, `pos-billing-queue`, `diningSpots`).
+- Rute lama `/pos/restaurant`, `/pos/restaurant/kitchen`, `/pos/restaurant/billing` dipertahankan sebagai Next.js server component yang `redirect()` ke `/pos?tab=...` untuk backward-compat.
+- `prisma.config.ts` mengeksplisitkan `migrations.path = "prisma/migrations"` (wajib pada Prisma 7 saat `schema` berupa folder), sehingga sidecar `migrate` di `docker-compose.yml` dapat menjalankan `prisma migrate deploy` tanpa fallback.

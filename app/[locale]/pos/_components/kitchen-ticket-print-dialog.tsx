@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -33,7 +34,7 @@ export type KitchenTicketPrintPayload = {
   items: KitchenTicketPrintItem[];
 };
 
-interface KitchenTicketPrintDialogProps {
+export interface KitchenTicketPrintDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payload: KitchenTicketPrintPayload | null;
@@ -112,6 +113,10 @@ export function KitchenTicketPrintDialog({
       <DialogContent className="max-w-md sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Cetak Tiket Dapur</DialogTitle>
+          <DialogDescription>
+            Tinjau tiket sebelum mencetak. Tombol Print membuka dialog print
+            browser dan hanya mencetak area tiket (layout 80mm).
+          </DialogDescription>
         </DialogHeader>
 
         <div

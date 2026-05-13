@@ -87,6 +87,7 @@ export function CartView({
   const [kitchenPrintOpen, setKitchenPrintOpen] = useState(false);
   const [kitchenPrintPayload, setKitchenPrintPayload] =
     useState<KitchenTicketPrintPayload | null>(null);
+  const [kitchenNote, setKitchenNote] = useState("");
 
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
@@ -292,18 +293,26 @@ export function CartView({
           price: item.price,
           discount: item.discount,
         })),
-        undefined,
+        kitchenNote.trim() || undefined,
         undefined,
         globalDiscount,
       );
 
-      // sendOrderToKitchen returns SuperJSON with { orderId, kitchenTicketId }
-      let ticketRefs: { orderId?: string; kitchenTicketId?: string } = {};
+      // sendOrderToKitchen returns SuperJSON with { orderId, orderNumber, kitchenTicketId, ticketNumber }
+      let ticketRefs: {
+        orderId?: string;
+        orderNumber?: string;
+        kitchenTicketId?: string;
+        ticketNumber?: string;
+      } = {};
       try {
         const { SuperJSON } = await import("@/lib/superjson");
-        ticketRefs = SuperJSON.deserialize<{ orderId: string; kitchenTicketId: string }>(
-          serialized as any,
-        );
+        ticketRefs = SuperJSON.deserialize<{
+          orderId: string;
+          orderNumber: string;
+          kitchenTicketId: string;
+          ticketNumber: string;
+        }>(serialized as any);
       } catch {
         // Ignore deserialize errors; refs are optional for print.
       }
@@ -312,13 +321,16 @@ export function CartView({
 
       setKitchenPrintPayload({
         ticketId: ticketRefs.kitchenTicketId,
+        ticketNumber: ticketRefs.ticketNumber,
         orderId: ticketRefs.orderId,
+        orderNumber: ticketRefs.orderNumber,
         sessionNumber: session.sessionNumber,
         sentAt: new Date(),
         spotCode: selectedDiningSpot?.spotCode,
         spotName: selectedDiningSpot?.spotName,
         areaName: selectedDiningSpot?.area?.name,
         cashierName: sessionData?.userName,
+        note: kitchenNote.trim() || undefined,
         items: snapshot.map((item) => ({
           productId: item.productId,
           productName: item.productName,
@@ -327,6 +339,7 @@ export function CartView({
         })),
       });
       setKitchenPrintOpen(true);
+      setKitchenNote("");
 
       queryClient.invalidateQueries({ queryKey: ["pos-floor-overview"] });
       queryClient.invalidateQueries({ queryKey: ["pos-kitchen-tickets"] });
@@ -566,6 +579,21 @@ export function CartView({
             <span>{formatCurrency(total)}</span>
           </div>
         </div>
+
+        {selectedDiningSpotId ? (
+          <div className="mt-3">
+            <label className="text-xs text-muted-foreground">
+              Catatan ke Dapur (opsional)
+            </label>
+            <textarea
+              value={kitchenNote}
+              onChange={(event) => setKitchenNote(event.target.value)}
+              placeholder="Contoh: tanpa MSG, medium well, pedas sedang"
+              rows={2}
+              className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+        ) : null}
 
         <div className="flex gap-2 mt-4">
           <TooltipProvider>
