@@ -1,79 +1,110 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SuperJSON } from "@/lib/superjson";
-import { SuperJSONResult } from "superjson";
+import {
+  closeRestaurantOrder,
+  generateRestaurantBill,
+  getRestaurantBillingQueue,
+  settleRestaurantBill,
+  type POSCheckoutSettings,
+} from "../actions";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useMemo, useState } from "react";
-import { closeRestaurantOrder, generateRestaurantBill, settleRestaurantBill } from "../../actions";
-import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
+import { useToast } from "@/hooks/use-toast";
 
-interface BillingBoardProps {
+interface BillingTabProps {
   sessionId: string;
-  initialData: SuperJSONResult;
-  checkoutSettings: {
-    feeLines: {
-      id: string;
-      name: string;
-      category: "TAX" | "FEE";
-      valueType: "PERCENTAGE" | "FIXED";
-      value: number;
-      sortOrder: number;
-      isActive: boolean;
-    }[];
-  };
+  checkoutSettings: POSCheckoutSettings;
 }
 
-export function BillingBoard({ sessionId, initialData, checkoutSettings }: BillingBoardProps) {
-  const router = useRouter();
+export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const formatCurrency = useFormatCurrency();
   const [workingOrderId, setWorkingOrderId] = useState<string | null>(null);
-  const orders = useMemo(() => SuperJSON.deserialize<any[]>(initialData), [initialData]);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["pos-billing-queue", sessionId],
+    queryFn: async () => {
+      const serialized = await getRestaurantBillingQueue(sessionId);
+      return SuperJSON.deserialize<any[]>(serialized);
+    },
+    refetchInterval: 30_000,
+    staleTime: 5_000,
+  });
+
+  const orders = useMemo(() => data ?? [], [data]);
+
+  const invalidateAll = async () => {
+    await Promise.all([
+      refetch(),
+      queryClient.invalidateQueries({ queryKey: ["pos-floor-overview"] }),
+      queryClient.invalidateQueries({ queryKey: ["pos-kitchen-tickets"] }),
+      queryClient.invalidateQueries({ queryKey: ["diningSpots"] }),
+    ]);
+  };
 
   const handleGenerateBill = async (order: any) => {
     setWorkingOrderId(order.id);
     try {
       const subtotal = order.items.reduce(
         (sum: number, item: any) =>
-          sum + Number(item.unitPrice || 0) * (item.servedQuantity > 0 ? item.servedQuantity : item.orderedQuantity),
+          sum +
+          Number(item.unitPrice || 0) *
+            (item.servedQuantity > 0
+              ? item.servedQuantity
+              : item.orderedQuantity),
         0,
       );
-      const taxableBase = Math.max(0, subtotal - Number(order.itemDiscount || 0) - Number(order.globalDiscount || 0));
+      const taxableBase = Math.max(
+        0,
+        subtotal -
+          Number(order.itemDiscount || 0) -
+          Number(order.globalDiscount || 0),
+      );
       const feeLines = (checkoutSettings.feeLines || []).map((line) => ({
         name: line.name,
         category: line.category,
         valueType: line.valueType,
         value: line.value,
-        amount: line.valueType === "PERCENTAGE" ? taxableBase * (line.value / 100) : line.value,
+        amount:
+          line.valueType === "PERCENTAGE"
+            ? taxableBase * (line.value / 100)
+            : line.value,
       }));
 
       await generateRestaurantBill(sessionId, order.id, { lines: feeLines });
       toast({ title: "Invoice berhasil dibuat" });
-      router.refresh();
+      await invalidateAll();
     } catch (error) {
       toast({
         variant: "destructive",
-        title: error instanceof Error ? error.message : "Gagal generate bill",
+        title:
+          error instanceof Error ? error.message : "Gagal generate bill",
       });
     } finally {
       setWorkingOrderId(null);
     }
   };
 
-  const handleSettle = async (orderId: string, method: "CASH" | "CARD" | "QRIS") => {
+  const handleSettle = async (
+    orderId: string,
+    method: "CASH" | "CARD" | "QRIS",
+  ) => {
     setWorkingOrderId(orderId);
     try {
       await settleRestaurantBill(sessionId, orderId, method);
-      toast({ title: "Payment berhasil" });
-      router.refresh();
+      toast({ title: "Pembayaran berhasil" });
+      await invalidateAll();
     } catch (error) {
       toast({
         variant: "destructive",
-        title: error instanceof Error ? error.message : "Gagal settlement payment",
+        title:
+          error instanceof Error ? error.message : "Gagal settlement payment",
       });
     } finally {
       setWorkingOrderId(null);
@@ -85,35 +116,51 @@ export function BillingBoard({ sessionId, initialData, checkoutSettings }: Billi
     try {
       await closeRestaurantOrder(orderId);
       toast({ title: "Order dan meja ditutup" });
-      router.refresh();
+      await invalidateAll();
     } catch (error) {
       toast({
         variant: "destructive",
-        title: error instanceof Error ? error.message : "Gagal menutup order",
+        title:
+          error instanceof Error ? error.message : "Gagal menutup order",
       });
     } finally {
       setWorkingOrderId(null);
     }
   };
 
+  if (isLoading) {
+    return <div className="p-4 text-sm text-muted-foreground">Memuat antrian billing...</div>;
+  }
+
   return (
-    <div className="grid gap-4">
+    <div className="p-4 space-y-4">
       {orders.length === 0 ? (
-        <div className="text-sm text-muted-foreground">Tidak ada order untuk billing.</div>
+        <div className="text-sm text-muted-foreground">
+          Tidak ada order untuk billing.
+        </div>
       ) : null}
 
       {orders.map((order) => {
         const subtotal = order.items.reduce(
-          (sum: number, item: any) => sum + Number(item.unitPrice || 0) * item.orderedQuantity,
+          (sum: number, item: any) =>
+            sum + Number(item.unitPrice || 0) * item.orderedQuantity,
           0,
         );
         const servedSubtotal = order.items.reduce(
           (sum: number, item: any) =>
-            sum + Number(item.unitPrice || 0) * (item.servedQuantity > 0 ? item.servedQuantity : item.orderedQuantity),
+            sum +
+            Number(item.unitPrice || 0) *
+              (item.servedQuantity > 0
+                ? item.servedQuantity
+                : item.orderedQuantity),
           0,
         );
         const invoice = order.salesInvoice;
-        const paidAmount = invoice?.payments?.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0) || 0;
+        const paidAmount =
+          invoice?.payments?.reduce(
+            (sum: number, p: any) => sum + Number(p.amount || 0),
+            0,
+          ) || 0;
 
         return (
           <Card key={order.id}>
@@ -121,7 +168,9 @@ export function BillingBoard({ sessionId, initialData, checkoutSettings }: Billi
               <CardTitle className="text-base flex items-center justify-between">
                 <span>{order.orderNumber}</span>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">{order.diningSpot?.spotCode}</Badge>
+                  <Badge variant="outline">
+                    {order.diningSpot?.spotCode}
+                  </Badge>
                   <Badge>{order.status}</Badge>
                 </div>
               </CardTitle>
@@ -136,10 +185,16 @@ export function BillingBoard({ sessionId, initialData, checkoutSettings }: Billi
                 <div className="font-medium mb-1">Items</div>
                 <div className="space-y-1 text-xs">
                   {order.items.map((item: any) => (
-                    <div key={item.id} className="flex items-center justify-between gap-2">
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-2"
+                    >
                       <span>{item.product?.name || item.productId}</span>
                       <span>
-                        {item.servedQuantity > 0 ? item.servedQuantity : item.orderedQuantity} x {formatCurrency(Number(item.unitPrice || 0))}
+                        {item.servedQuantity > 0
+                          ? item.servedQuantity
+                          : item.orderedQuantity}{" "}
+                        x {formatCurrency(Number(item.unitPrice || 0))}
                       </span>
                     </div>
                   ))}
@@ -147,7 +202,8 @@ export function BillingBoard({ sessionId, initialData, checkoutSettings }: Billi
               </div>
               {invoice ? (
                 <div className="text-xs text-muted-foreground">
-                  Paid: {formatCurrency(paidAmount)} | Balance: {formatCurrency(Number(invoice.balanceDue || 0))}
+                  Paid: {formatCurrency(paidAmount)} | Balance:{" "}
+                  {formatCurrency(Number(invoice.balanceDue || 0))}
                 </div>
               ) : null}
               <div className="flex flex-wrap gap-2">
@@ -161,26 +217,36 @@ export function BillingBoard({ sessionId, initialData, checkoutSettings }: Billi
                 </Button>
                 <Button
                   size="sm"
-                  disabled={!invoice || Number(invoice.balanceDue || 0) <= 0 || workingOrderId === order.id}
+                  disabled={
+                    !invoice ||
+                    Number(invoice.balanceDue || 0) <= 0 ||
+                    workingOrderId === order.id
+                  }
                   onClick={() => handleSettle(order.id, "CASH")}
                 >
-                  Pay Cash
+                  Bayar Cash
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={!invoice || Number(invoice.balanceDue || 0) <= 0 || workingOrderId === order.id}
+                  disabled={
+                    !invoice ||
+                    Number(invoice.balanceDue || 0) <= 0 ||
+                    workingOrderId === order.id
+                  }
                   onClick={() => handleSettle(order.id, "QRIS")}
                 >
-                  Pay QRIS
+                  Bayar QRIS
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={order.status !== "PAID" || workingOrderId === order.id}
+                  disabled={
+                    order.status !== "PAID" || workingOrderId === order.id
+                  }
                   onClick={() => handleCloseOrder(order.id)}
                 >
-                  Close Table
+                  Tutup Meja
                 </Button>
               </div>
             </CardContent>

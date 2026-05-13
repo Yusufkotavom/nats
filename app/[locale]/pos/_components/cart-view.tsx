@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { processPOSTransaction, holdOrder, sendOrderToKitchen } from "../actions";
-import { POSCartItem } from "../types";
+import { POSCartItem, POSDiningSpot } from "../types";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -19,6 +19,10 @@ import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { CheckoutDialog } from "./checkout-dialog";
 import { HoldOrderDialog } from "./hold-order-dialog";
 import { DiscountDialog } from "./discount-dialog";
+import {
+  KitchenTicketPrintDialog,
+  type KitchenTicketPrintPayload,
+} from "./kitchen-ticket-print-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,6 +32,7 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useSession } from "@/components/providers/session-provider";
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +50,7 @@ interface CartViewProps {
   onClear: () => void;
   session: any;
   selectedDiningSpotId?: string;
+  selectedDiningSpot?: POSDiningSpot;
   checkoutSettings: {
     feeLines: {
       id: string;
@@ -68,6 +74,7 @@ export function CartView({
   onClear,
   session,
   selectedDiningSpotId,
+  selectedDiningSpot,
   checkoutSettings,
 }: CartViewProps) {
   const t = useTranslations("POS");
@@ -77,11 +84,15 @@ export function CartView({
   const [holding, setHolding] = useState(false);
   const [sendingToKitchen, setSendingToKitchen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [kitchenPrintOpen, setKitchenPrintOpen] = useState(false);
+  const [kitchenPrintPayload, setKitchenPrintPayload] =
+    useState<KitchenTicketPrintPayload | null>(null);
 
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
   const confirm = useConfirm();
   const queryClient = useQueryClient();
+  const sessionData = useSession();
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -263,11 +274,20 @@ export function CartView({
 
     setSendingToKitchen(true);
     try {
-      await sendOrderToKitchen(
+      const snapshot = cart.map((item) => ({
+        productId: item.id,
+        productName: item.name,
+        sku: item.sku,
+        quantity: item.quantity,
+        price: item.price,
+        discount: item.discount,
+      }));
+
+      const serialized = await sendOrderToKitchen(
         session.id,
         selectedDiningSpotId,
-        cart.map((item) => ({
-          productId: item.id,
+        snapshot.map((item) => ({
+          productId: item.productId,
           quantity: item.quantity,
           price: item.price,
           discount: item.discount,
@@ -277,8 +297,41 @@ export function CartView({
         globalDiscount,
       );
 
+      // sendOrderToKitchen returns SuperJSON with { orderId, kitchenTicketId }
+      let ticketRefs: { orderId?: string; kitchenTicketId?: string } = {};
+      try {
+        const { SuperJSON } = await import("@/lib/superjson");
+        ticketRefs = SuperJSON.deserialize<{ orderId: string; kitchenTicketId: string }>(
+          serialized as any,
+        );
+      } catch {
+        // Ignore deserialize errors; refs are optional for print.
+      }
+
       toast({ title: "Order terkirim ke kitchen" });
-      onClear();
+
+      setKitchenPrintPayload({
+        ticketId: ticketRefs.kitchenTicketId,
+        orderId: ticketRefs.orderId,
+        sessionNumber: session.sessionNumber,
+        sentAt: new Date(),
+        spotCode: selectedDiningSpot?.spotCode,
+        spotName: selectedDiningSpot?.spotName,
+        areaName: selectedDiningSpot?.area?.name,
+        cashierName: sessionData?.userName,
+        items: snapshot.map((item) => ({
+          productId: item.productId,
+          productName: item.productName,
+          sku: item.sku,
+          quantity: item.quantity,
+        })),
+      });
+      setKitchenPrintOpen(true);
+
+      queryClient.invalidateQueries({ queryKey: ["pos-floor-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-kitchen-tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-billing-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["diningSpots"] });
       router.refresh();
     } catch (error) {
       toast({
@@ -612,6 +665,21 @@ export function CartView({
         code="POS_RECEIPT"
         input={{ invoiceId: lastInvoiceId }}
         title={t("pos_receipt")}
+      />
+      <KitchenTicketPrintDialog
+        open={kitchenPrintOpen}
+        onOpenChange={(open) => {
+          setKitchenPrintOpen(open);
+          if (!open) {
+            setKitchenPrintPayload(null);
+            onClear();
+          }
+        }}
+        payload={kitchenPrintPayload}
+        onDone={() => {
+          setKitchenPrintPayload(null);
+          onClear();
+        }}
       />
     </div>
   );
