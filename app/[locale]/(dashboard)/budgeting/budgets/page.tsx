@@ -18,19 +18,21 @@ import {
 import { SuperJSON } from "@/lib/superjson";
 
 export default async function BudgetsListPage() {
-  const response = await getBudgets();
-  const budgets = response.success ? SuperJSON.deserialize<any[]>(response.data) : [];
+  const response = await getBudgets("BUDGET");
+  const budgets = response.success && response.data
+    ? SuperJSON.deserialize<any[]>(response.data)
+    : [];
 
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">All Budgets</h2>
-        <Link href="/budgeting/budgets/new">
-          <Button>
+        <Button asChild>
+          <Link href="/budgeting/budgets/new">
             <Plus className="mr-2 h-4 w-4" /> Create Budget
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       <Card>
@@ -77,17 +79,17 @@ export default async function BudgetsListPage() {
                     <TableCell className="text-right">
                       <div className="inline-flex items-center gap-2">
                         {(budget.status === "DRAFT" || budget.status === "REJECTED") && (
-                          <Link href={`/budgeting/budgets/${budget.id}/edit`}>
-                            <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/budgeting/budgets/${budget.id}/edit`}>
                               Edit
-                            </Button>
-                          </Link>
-                        )}
-                        <Link href={`/budgeting/budgets/${budget.id}`}>
-                          <Button variant="ghost" size="sm">
-                            View
+                            </Link>
                           </Button>
-                        </Link>
+                        )}
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/budgeting/budgets/${budget.id}`}>
+                            View
+                          </Link>
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

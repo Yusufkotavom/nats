@@ -21,14 +21,26 @@ export const budgetItemSchema = z.object({
 
 export const budgetSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  kind: z.enum(["BUDGET", "SAVING_TARGET"]).default("BUDGET"),
   fiscalYear: z.number().int().min(2000).max(2100),
+  periodStart: z.coerce.date().optional().nullable(),
+  periodEnd: z.coerce.date().optional().nullable(),
   description: z.string().optional(),
   departmentId: z.string().optional().nullable(),
   projectId: z.string().optional().nullable(),
   isDefault: z.boolean().default(false),
   totalAmount: z.number().min(0).default(0),
   items: z.array(budgetItemSchema).default([]),
-});
+}).refine(
+  (data) => {
+    if (!data.periodStart || !data.periodEnd) return true;
+    return data.periodEnd >= data.periodStart;
+  },
+  {
+    path: ["periodEnd"],
+    message: "Period end must be after period start",
+  },
+);
 
 export const budgetRevisionSchema = z.object({
   budgetId: z.string().min(1),

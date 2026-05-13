@@ -27,6 +27,11 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
   if (!budgetResponse.success || !budgetResponse.data) return notFound();
 
   const budget = SuperJSON.deserialize<any>(budgetResponse.data);
+  if (budget.kind !== "BUDGET") return notFound();
+  const periodLabel =
+    budget.periodStart && budget.periodEnd
+      ? `${formatDate(budget.periodStart, { dateFormat: "dd/MM/yyyy" })} - ${formatDate(budget.periodEnd, { dateFormat: "dd/MM/yyyy" })}`
+      : `Fiscal Year: ${budget.fiscalYear}`;
 
   const [varianceResponse, session, companyProfile] = await Promise.all([
     getBudgetVariance(budget.id),
@@ -60,7 +65,7 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
         <div className="flex flex-col gap-1">
           <PageListTitle title={budget.name} />
           <p className="text-sm text-muted-foreground">
-            Fiscal Year: {budget.fiscalYear} • {budget.department?.name || budget.project?.name || "Global"}
+            {periodLabel} • {budget.department?.name || budget.project?.name || "Global"}
           </p>
         </div>
         <PageListActions>
@@ -73,9 +78,9 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
               {budget.status}
             </Badge>
             {(budget.status === "DRAFT" || budget.status === "REJECTED") && (
-              <Link href={`/budgeting/budgets/${budget.id}/edit`}>
-                <Button variant="outline" size="sm">Edit</Button>
-              </Link>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/budgeting/budgets/${budget.id}/edit`}>Edit</Link>
+              </Button>
             )}
             {session?.userId && (
               <BudgetActions budget={budgetResponse.data} currentUserId={session.userId} />

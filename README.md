@@ -141,21 +141,25 @@ The application can be accessed at [http://localhost:3000](http://localhost:3000
 If you want to run the application using Docker Compose:
 
 ```bash
-docker-compose up -d
+docker compose up -d --build
 ```
+
+Docker stack now includes MinIO for object storage:
+- MinIO API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9001`
 
 After the containers are running, initialize the database:
 
 ```bash
-docker-compose exec app npx prisma migrate deploy
+docker compose exec app npx prisma migrate deploy
 # Run default minimal seed
-docker-compose exec app npm run prisma db seed
+docker compose exec app npm run prisma db seed
 
 # OR run demo lengkap
-docker-compose exec app npm run prisma:seed:demo
+docker compose exec app npm run prisma:seed:demo
 
 # OR run minimal seed alias
-docker-compose exec app npm run prisma:seed:minimal
+docker compose exec app npm run prisma:seed:minimal
 ```
 
 ---

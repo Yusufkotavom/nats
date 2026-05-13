@@ -28,8 +28,10 @@ import {
 
 export default async function BudgetingPage() {
   const session = await getSession();
-  const response = await getBudgets();
-  const budgets = response.success ? SuperJSON.deserialize<any[]>(response.data) : [];
+  const response = await getBudgets("BUDGET");
+  const budgets = response.success && response.data
+    ? SuperJSON.deserialize<any[]>(response.data)
+    : [];
 
 
   return (
@@ -38,14 +40,14 @@ export default async function BudgetingPage() {
         <PageListTitle title="Budgeting" />
         <PageListActions>
           <div className="flex items-center space-x-2">
-            <Link href="/budgeting/configuration">
-              <Button variant="outline">Configuration</Button>
-            </Link>
-            <Link href="/budgeting/budgets/new">
-              <Button>
+            <Button variant="outline" asChild>
+              <Link href="/budgeting/saving-targets">Saving Targets</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/budgeting/budgets/new">
                 <Plus className="mr-2 h-4 w-4" /> Create Budget
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </PageListActions>
       </PageListHeader>
@@ -116,17 +118,17 @@ export default async function BudgetingPage() {
                     <TableCell className="text-right">
                       <div className="inline-flex items-center gap-2">
                         {(budget.status === "DRAFT" || budget.status === "REJECTED") && (
-                          <Link href={`/budgeting/budgets/${budget.id}/edit`}>
-                            <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/budgeting/budgets/${budget.id}/edit`}>
                               Edit
-                            </Button>
-                          </Link>
-                        )}
-                        <Link href={`/budgeting/budgets/${budget.id}`}>
-                          <Button variant="ghost" size="sm">
-                            View
+                            </Link>
                           </Button>
-                        </Link>
+                        )}
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/budgeting/budgets/${budget.id}`}>
+                            View
+                          </Link>
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

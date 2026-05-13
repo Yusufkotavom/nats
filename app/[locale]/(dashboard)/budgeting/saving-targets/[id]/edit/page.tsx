@@ -6,28 +6,29 @@ import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/
 import { BudgetForm } from "@/app/[locale]/(dashboard)/budgeting/_components/budget-form";
 import { SuperJSON } from "@/lib/superjson";
 
-export default async function EditBudgetPage({
+export default async function EditSavingTargetPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [budgetResponse, departments, projectsResult, accountsResult] = await Promise.all([
+
+  const [targetResponse, departments, projectsResult, accountsResult] = await Promise.all([
     getBudgetById(id),
     getDepartments(),
     getProjects(),
     getAccounts(),
   ]);
 
-  if (!budgetResponse.success || !budgetResponse.data) {
+  if (!targetResponse.success || !targetResponse.data) {
     return notFound();
   }
 
-  const budget = SuperJSON.deserialize<any>(budgetResponse.data);
-  if (budget.kind !== "BUDGET") {
+  const target = SuperJSON.deserialize<any>(targetResponse.data);
+  if (target.kind !== "SAVING_TARGET") {
     return notFound();
   }
-  if (budget.status !== "DRAFT" && budget.status !== "REJECTED") {
+  if (target.status !== "DRAFT" && target.status !== "REJECTED") {
     return notFound();
   }
 
@@ -46,9 +47,9 @@ export default async function EditBudgetPage({
       departments={SuperJSON.serialize(departments)}
       projects={SuperJSON.serialize(projectList)}
       accounts={SuperJSON.serialize(accounts)}
-      initialData={budget}
+      initialData={target}
       isEdit
-      kind="BUDGET"
+      kind="SAVING_TARGET"
     />
   );
 }

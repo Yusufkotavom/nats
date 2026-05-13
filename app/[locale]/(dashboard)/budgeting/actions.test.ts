@@ -107,5 +107,33 @@ describe("checkBudgetAvailability", () => {
       expect(result.data.warning).toBeUndefined();
     }
   });
-});
 
+  it("should use custom periodStart/periodEnd when budget period is provided", async () => {
+    const periodStart = new Date("2026-02-01T00:00:00.000Z");
+    const periodEnd = new Date("2026-07-31T23:59:59.999Z");
+
+    (prisma.budget.findFirst as any).mockResolvedValue({
+      id: "b2",
+      totalAmount: { toNumber: () => 1000 },
+      items: [],
+      periodStart,
+      periodEnd,
+      fiscalYear: 2026,
+    });
+
+    (prisma.journalEntryLine.aggregate as any).mockResolvedValue({
+      _sum: { debitAmount: { toNumber: () => 100 }, creditAmount: { toNumber: () => 0 } },
+    });
+
+    const result = await checkBudgetAvailability(null, null, date, 100);
+
+    expect(result.success).toBe(true);
+    expect(prisma.journalEntryLine.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          transactionDate: { gte: periodStart, lte: periodEnd },
+        }),
+      }),
+    );
+  });
+});

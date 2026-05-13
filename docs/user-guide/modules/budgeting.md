@@ -2,8 +2,8 @@
 title: Modul Budgeting
 module: budgeting
 order: 180
-updatedAt: 2026-05-08
-summary: Penyusunan dan monitoring budget terhadap realisasi.
+updatedAt: 2026-05-13
+summary: Penyusunan budget operasional dan target dana internal (celengan) terhadap realisasi.
 related: modules/accounting,modules/admin
 ---
 
@@ -21,11 +21,27 @@ related: modules/accounting,modules/admin
 - Budget plan
 - Budget tracking
 - Variance analysis
+- Saving target (target dana internal/celengan)
+
+## Saving Target Dana Internal
+- Saving target dibuat dari menu `Budgeting > Saving Targets`.
+- Secara teknis target ini tetap memakai engine budgeting existing (bukan modul akuntansi baru) dengan tipe `SAVING_TARGET`.
+- Item utama target wajib memilih akun existing yang ingin dipantau akumulasinya.
+- Nilai progres dihitung:
+1. `Target` = planned amount item utama.
+2. `Actual` = total jurnal akun pada periode target.
+3. `Remaining` = `Target - Actual`.
+4. `Progress %` = `Actual / Target`.
 
 ## Aturan Edit Budget
 - Budget dapat diedit hanya saat status `DRAFT` atau `REJECTED`.
 - Setelah `PENDING_APPROVAL` atau `APPROVED`, edit langsung tidak diizinkan.
 - Jika perlu perubahan setelah approved, lakukan proses revisi sesuai kebijakan internal.
+
+## Periode Fleksibel
+- Budget/target bisa memakai periode custom per dokumen (`periodStart`/`periodEnd`) untuk deadline spesifik.
+- Jika periode custom diisi, kalkulasi variance dan budget availability memakai periode custom ini.
+- Jika periode custom kosong, sistem fallback ke rentang fiscal year seperti behavior sebelumnya.
 
 ## Validasi
 - Budget aktif sesuai periode.

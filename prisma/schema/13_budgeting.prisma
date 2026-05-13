@@ -63,6 +63,9 @@ model Budget {
   id          String       @id @default(cuid())
   name        String
   fiscalYear  Int
+  kind        BudgetKind   @default(BUDGET)
+  periodStart DateTime?
+  periodEnd   DateTime?
   description String?
   status      BudgetStatus @default(DRAFT)
 
@@ -83,6 +86,11 @@ model Budget {
   items     BudgetItem[]
   revisions BudgetRevision[]
   approvals BudgetApproval[]
+}
+
+enum BudgetKind {
+  BUDGET
+  SAVING_TARGET
 }
 
 enum BudgetStatus {

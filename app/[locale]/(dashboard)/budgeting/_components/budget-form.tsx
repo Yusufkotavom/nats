@@ -53,7 +53,10 @@ interface BudgetItemData {
 interface BudgetFormData {
   id?: string;
   name: string;
+  kind: "BUDGET" | "SAVING_TARGET";
   fiscalYear: number;
+  periodStart?: string;
+  periodEnd?: string;
   description?: string;
   departmentId?: string | null;
   projectId?: string | null;
@@ -74,9 +77,24 @@ interface BudgetFormProps {
   accounts: SuperJSONResult;
   initialData?: any;
   isEdit?: boolean;
+  kind?: "BUDGET" | "SAVING_TARGET";
 }
 
-export function BudgetForm({ departments: departmentsData, projects: projectsData, accounts: accountsData, initialData, isEdit }: BudgetFormProps) {
+function toDateInputValue(value?: string | Date | null) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+export function BudgetForm({
+  departments: departmentsData,
+  projects: projectsData,
+  accounts: accountsData,
+  initialData,
+  isEdit,
+  kind = "BUDGET",
+}: BudgetFormProps) {
   const departments = useMemo(() => {
     const data = SuperJSON.deserialize<unknown>(departmentsData);
     return Array.isArray(data) ? (data as Department[]) : [];
@@ -97,6 +115,9 @@ export function BudgetForm({ departments: departmentsData, projects: projectsDat
     if (initialData) {
       return {
         ...initialData,
+        kind: (initialData.kind as "BUDGET" | "SAVING_TARGET") || kind,
+        periodStart: toDateInputValue(initialData.periodStart),
+        periodEnd: toDateInputValue(initialData.periodEnd),
         departmentId: initialData.departmentId || null,
         projectId: initialData.projectId || null,
         isDefault: initialData.isDefault || false,
@@ -121,7 +142,10 @@ export function BudgetForm({ departments: departmentsData, projects: projectsDat
     }
     return {
       name: "",
+      kind,
       fiscalYear: new Date().getFullYear() + 1,
+      periodStart: "",
+      periodEnd: "",
       description: "",
       departmentId: null,
       projectId: null,
@@ -143,6 +167,8 @@ export function BudgetForm({ departments: departmentsData, projects: projectsDat
 
     const dataToSubmit = {
       ...formData,
+      periodStart: formData.periodStart ? new Date(formData.periodStart) : null,
+      periodEnd: formData.periodEnd ? new Date(formData.periodEnd) : null,
       departmentId: formData.isDefault ? null : (formData.departmentId || null),
       projectId: formData.isDefault ? null : (formData.projectId || null),
       isDefault: formData.isDefault,
@@ -163,7 +189,11 @@ export function BudgetForm({ departments: departmentsData, projects: projectsDat
         }
         toast({ title: "Budget created", description: "Your budget has been created successfully." });
       }
-      router.push("/budgeting");
+      router.push(
+        formData.kind === "SAVING_TARGET"
+          ? "/budgeting/saving-targets"
+          : "/budgeting",
+      );
       router.refresh();
     } catch (error: any) {
       console.error(error);
@@ -234,7 +264,13 @@ export function BudgetForm({ departments: departmentsData, projects: projectsDat
     <PageFormLayout>
       <PageFormHeader>
         <PageFormTitle>
-          {isEdit ? "Edit Budget" : "Create New Budget"}
+          {isEdit
+            ? formData.kind === "SAVING_TARGET"
+              ? "Edit Saving Target"
+              : "Edit Budget"
+            : formData.kind === "SAVING_TARGET"
+              ? "Create Saving Target"
+              : "Create New Budget"}
         </PageFormTitle>
         <PageFormActions>
           <Button
@@ -275,6 +311,24 @@ export function BudgetForm({ departments: departmentsData, projects: projectsDat
               value={formData.fiscalYear}
               onChange={(e) => setFormData({ ...formData, fiscalYear: parseInt(e.target.value) || 0 })}
               required
+            />
+            <CustomInput
+              label="Period Start"
+              id="periodStart"
+              type="date"
+              value={formData.periodStart || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, periodStart: e.target.value })
+              }
+            />
+            <CustomInput
+              label="Period End"
+              id="periodEnd"
+              type="date"
+              value={formData.periodEnd || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, periodEnd: e.target.value })
+              }
             />
 
             <div className="col-span-1 md:col-span-2 flex items-center space-x-2 border p-4 rounded-md bg-muted/20">

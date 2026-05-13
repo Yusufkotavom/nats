@@ -2,32 +2,88 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import {
-  budgetSchema,
-} from "./schemas";
+import { budgetSchema } from "./schemas";
 import { z } from "zod";
 import { getSession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
-import { ActionResponse } from "@/types/actions"; // Assuming shared type exists, or I will define it if needed.
-// Checking payroll actions: import { ActionResponse } from '@/modules/payroll/types/payroll.types';
-// I should probably define a local ActionResponse or import from a shared location if available. 
-// Given the lack of a clear shared validation, I'll define it locally similar to payroll if I can't find a shared one.
-// Let's look at `actions.ts` in `payroll` again. It imports from `@/modules/payroll/types/payroll.types`.
-// I will assume there is no global ActionResponse yet and define it or use `any` for now? No, better to define it.
-// Actually, I'll check if I can import it from `types/actions` or similar.
-// Wait, I see `import { ActionResponse } from '@/types/actions';` in my thought process but I haven't verified it exists.
-// Let me first check if '@/types/actions' exists or if I should define it in this file or a types file.
-// I'll define a generic type here for now or use the one from a common place if I find it.
-// The user said "look at the same implementation to other module". Payroll has it in `modules/payroll/types`.
-// I'll stick to defining it in a new types file for budgeting or just inline if simple.
-// Let's use `SuperJSON.serialize` as requested.
+import { ActionResponse } from "@/types/actions";
+import { BudgetKind } from "@/prisma/generated/prisma/client";
 
-// Define ActionResponse locally for now if not found, but I should probably check for a shared one.
-// ref: `app/(dashboard)/hr/payroll/actions.ts` imported it.
+type BudgetInput = z.infer<typeof budgetSchema>;
 
-// I'll start by replacing the content.
+function resolveBudgetPeriod(budget: {
+  fiscalYear: number;
+  periodStart: Date | null;
+  periodEnd: Date | null;
+}) {
+  if (budget.periodStart && budget.periodEnd) {
+    return {
+      startDate: budget.periodStart,
+      endDate: budget.periodEnd,
+    };
+  }
 
-// --- Accounts ---
+  return {
+    startDate: new Date(budget.fiscalYear, 0, 1),
+    endDate: new Date(budget.fiscalYear, 11, 31),
+  };
+}
+
+function normalizeBudgetPayload(parsed: BudgetInput) {
+  const periodStart = parsed.periodStart ?? null;
+  const periodEnd = parsed.periodEnd ?? null;
+
+  const fiscalYear = periodEnd
+    ? periodEnd.getFullYear()
+    : periodStart
+      ? periodStart.getFullYear()
+      : parsed.fiscalYear;
+
+  return {
+    name: parsed.name,
+    kind: parsed.kind,
+    fiscalYear,
+    periodStart,
+    periodEnd,
+    description: parsed.description,
+    departmentId: parsed.departmentId,
+    projectId: parsed.projectId,
+    isDefault: parsed.isDefault,
+    totalAmount: parsed.totalAmount,
+    items: parsed.items,
+  };
+}
+
+function buildBudgetItemsCreate(items: BudgetInput["items"]) {
+  return items.map((item) => ({
+    accountId: item.accountId,
+    totalAmount: item.totalAmount,
+    january: item.january,
+    february: item.february,
+    march: item.march,
+    april: item.april,
+    may: item.may,
+    june: item.june,
+    july: item.july,
+    august: item.august,
+    september: item.september,
+    october: item.october,
+    november: item.november,
+    december: item.december,
+  }));
+}
+
+function getActualByAccountType(
+  accountType: string,
+  debit: number,
+  credit: number,
+): number {
+  const type = accountType.toLowerCase();
+  if (["expense", "asset", "cost_of_goods_sold"].includes(type)) {
+    return debit - credit;
+  }
+  return credit - debit;
+}
 
 export async function getAccounts(): Promise<ActionResponse> {
   try {
@@ -41,11 +97,10 @@ export async function getAccounts(): Promise<ActionResponse> {
   }
 }
 
-// --- Budgets ---
-
-export async function getBudgets(): Promise<ActionResponse> {
+export async function getBudgets(kind: BudgetKind = "BUDGET"): Promise<ActionResponse> {
   try {
     const budgets = await prisma.budget.findMany({
+      where: { kind },
       orderBy: { createdAt: "desc" },
       include: {
         department: true,
@@ -53,13 +108,17 @@ export async function getBudgets(): Promise<ActionResponse> {
         items: true,
       },
     });
-    const userIds = Array.from(new Set(budgets.map((budget) => budget.createdBy).filter(Boolean)));
+
+    const userIds = Array.from(
+      new Set(budgets.map((budget) => budget.createdBy).filter(Boolean)),
+    );
     const users = userIds.length
       ? await prisma.user.findMany({
           where: { id: { in: userIds } },
           select: { id: true, name: true, email: true },
         })
       : [];
+
     const usersById = new Map(users.map((user) => [user.id, user]));
 
     const budgetsWithCreator = budgets.map((budget) => ({
@@ -71,6 +130,10 @@ export async function getBudgets(): Promise<ActionResponse> {
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
+}
+
+export async function getSavingTargets(): Promise<ActionResponse> {
+  return getBudgets("SAVING_TARGET");
 }
 
 export async function getBudgetById(id: string): Promise<ActionResponse> {
@@ -97,46 +160,28 @@ export async function getBudgetById(id: string): Promise<ActionResponse> {
   }
 }
 
-export async function createBudget(data: z.infer<typeof budgetSchema>): Promise<ActionResponse> {
+export async function createBudget(data: BudgetInput): Promise<ActionResponse> {
   try {
     const session = await getSession();
-    if (!session || !session.userId) throw new Error("Unauthorized");
+    if (!session?.userId) throw new Error("Unauthorized");
 
     const parsed = budgetSchema.parse(data);
+    const normalized = normalizeBudgetPayload(parsed);
 
     const budget = await prisma.budget.create({
       data: {
-        name: parsed.name,
-        fiscalYear: parsed.fiscalYear,
-        description: parsed.description,
-        departmentId: parsed.departmentId,
-        projectId: parsed.projectId,
-        isDefault: parsed.isDefault,
-        totalAmount: parsed.totalAmount,
+        ...normalized,
         createdBy: session.userId,
         status: "DRAFT",
         items: {
-          create: parsed.items?.map(item => ({
-            accountId: item.accountId,
-            totalAmount: item.totalAmount,
-            january: item.january,
-            february: item.february,
-            march: item.march,
-            april: item.april,
-            may: item.may,
-            june: item.june,
-            july: item.july,
-            august: item.august,
-            september: item.september,
-            october: item.october,
-            november: item.november,
-            december: item.december,
-          })),
+          create: buildBudgetItemsCreate(normalized.items),
         },
       },
     });
 
     revalidatePath("/budgeting");
+    revalidatePath("/budgeting/budgets");
+    revalidatePath("/budgeting/saving-targets");
     return { success: true, data: SuperJSON.serialize(budget) };
   } catch (error) {
     console.error(error);
@@ -144,12 +189,16 @@ export async function createBudget(data: z.infer<typeof budgetSchema>): Promise<
   }
 }
 
-export async function updateBudget(id: string, data: z.infer<typeof budgetSchema>): Promise<ActionResponse> {
+export async function updateBudget(
+  id: string,
+  data: BudgetInput,
+): Promise<ActionResponse> {
   try {
     const session = await getSession();
-    if (!session || !session.userId) throw new Error("Unauthorized");
+    if (!session?.userId) throw new Error("Unauthorized");
 
     const parsed = budgetSchema.parse(data);
+    const normalized = normalizeBudgetPayload(parsed);
 
     const existing = await prisma.budget.findUnique({ where: { id } });
     if (!existing) throw new Error("Budget not found");
@@ -160,41 +209,24 @@ export async function updateBudget(id: string, data: z.infer<typeof budgetSchema
     await prisma.budget.update({
       where: { id },
       data: {
-        name: parsed.name,
-        fiscalYear: parsed.fiscalYear,
-        description: parsed.description,
-        departmentId: parsed.departmentId,
-        projectId: parsed.projectId,
-        isDefault: parsed.isDefault,
-        totalAmount: parsed.totalAmount,
+        ...normalized,
       },
     });
 
-    if (parsed.items) {
-      await prisma.budgetItem.deleteMany({ where: { budgetId: id } });
+    await prisma.budgetItem.deleteMany({ where: { budgetId: id } });
+    if (normalized.items.length > 0) {
       await prisma.budgetItem.createMany({
-        data: parsed.items.map(item => ({
+        data: normalized.items.map((item) => ({
           budgetId: id,
-          accountId: item.accountId,
-          totalAmount: item.totalAmount,
-          january: item.january,
-          february: item.february,
-          march: item.march,
-          april: item.april,
-          may: item.may,
-          june: item.june,
-          july: item.july,
-          august: item.august,
-          september: item.september,
-          october: item.october,
-          november: item.november,
-          december: item.december,
+          ...item,
         })),
       });
     }
 
     revalidatePath(`/budgeting/budgets/${id}`);
     revalidatePath("/budgeting");
+    revalidatePath("/budgeting/budgets");
+    revalidatePath("/budgeting/saving-targets");
     return { success: true, data: null };
   } catch (error) {
     return { success: false, error: (error as Error).message };
@@ -204,7 +236,7 @@ export async function updateBudget(id: string, data: z.infer<typeof budgetSchema
 export async function submitBudgetForApproval(id: string): Promise<ActionResponse> {
   try {
     const session = await getSession();
-    if (!session || !session.userId) throw new Error("Unauthorized");
+    if (!session?.userId) throw new Error("Unauthorized");
 
     const budget = await prisma.budget.findUnique({ where: { id } });
     if (!budget) throw new Error("Budget not found");
@@ -217,7 +249,7 @@ export async function submitBudgetForApproval(id: string): Promise<ActionRespons
     await prisma.budgetApproval.create({
       data: {
         budgetId: id,
-        stage: 1, // Dept Head
+        stage: 1,
         role: "DEPT_HEAD",
         status: "PENDING",
       },
@@ -230,10 +262,15 @@ export async function submitBudgetForApproval(id: string): Promise<ActionRespons
   }
 }
 
-export async function approveBudgetAction(id: string, approvalId: string, status: "APPROVED" | "REJECTED", comments?: string): Promise<ActionResponse> {
+export async function approveBudgetAction(
+  id: string,
+  approvalId: string,
+  status: "APPROVED" | "REJECTED",
+  comments?: string,
+): Promise<ActionResponse> {
   try {
     const session = await getSession();
-    if (!session || !session.userId) throw new Error("Unauthorized");
+    if (!session?.userId) throw new Error("Unauthorized");
 
     const approval = await prisma.budgetApproval.findUnique({ where: { id: approvalId } });
     if (!approval) throw new Error("Approval record not found");
@@ -252,31 +289,29 @@ export async function approveBudgetAction(id: string, approvalId: string, status
         where: { id },
         data: { status: "REJECTED" },
       });
-    } else {
-      if (approval.stage === 1) {
-        await prisma.budgetApproval.create({
-          data: {
-            budgetId: id,
-            stage: 2,
-            role: "FINANCE",
-            status: "PENDING",
-          },
-        });
-      } else if (approval.stage === 2) {
-        await prisma.budgetApproval.create({
-          data: {
-            budgetId: id,
-            stage: 3,
-            role: "CFO",
-            status: "PENDING",
-          },
-        });
-      } else if (approval.stage === 3) {
-        await prisma.budget.update({
-          where: { id },
-          data: { status: "APPROVED" },
-        });
-      }
+    } else if (approval.stage === 1) {
+      await prisma.budgetApproval.create({
+        data: {
+          budgetId: id,
+          stage: 2,
+          role: "FINANCE",
+          status: "PENDING",
+        },
+      });
+    } else if (approval.stage === 2) {
+      await prisma.budgetApproval.create({
+        data: {
+          budgetId: id,
+          stage: 3,
+          role: "CFO",
+          status: "PENDING",
+        },
+      });
+    } else if (approval.stage === 3) {
+      await prisma.budget.update({
+        where: { id },
+        data: { status: "APPROVED" },
+      });
     }
 
     revalidatePath(`/budgeting/budgets/${id}`);
@@ -295,8 +330,7 @@ export async function getBudgetVariance(budgetId: string): Promise<ActionRespons
 
     if (!budget) throw new Error("Budget not found");
 
-    const startDate = new Date(budget.fiscalYear, 0, 1);
-    const endDate = new Date(budget.fiscalYear, 11, 31);
+    const { startDate, endDate } = resolveBudgetPeriod(budget);
 
     const whereClause: any = {
       journalEntry: {
@@ -315,52 +349,117 @@ export async function getBudgetVariance(budgetId: string): Promise<ActionRespons
       whereClause.projectId = budget.projectId;
     }
 
-    // If no dimensions are set, treat as Default Budget (Unassigned Transactions)
     if (!budget.departmentId && !budget.projectId) {
       whereClause.departmentId = null;
       whereClause.projectId = null;
     }
 
-    const varianceData = await Promise.all(budget.items.map(async (item) => {
-      const aggregates = await prisma.journalEntryLine.aggregate({
-        where: {
+    const varianceData = await Promise.all(
+      budget.items.map(async (item) => {
+        const aggregates = await prisma.journalEntryLine.aggregate({
+          where: {
+            accountId: item.accountId,
+            ...whereClause,
+          },
+          _sum: {
+            debitAmount: true,
+            creditAmount: true,
+          },
+        });
+
+        const debit = aggregates._sum.debitAmount?.toNumber() || 0;
+        const credit = aggregates._sum.creditAmount?.toNumber() || 0;
+        const actual = getActualByAccountType(item.account.type, debit, credit);
+
+        const budgeted = item.totalAmount.toNumber();
+        const variance = budgeted - actual;
+        const percentage = budgeted !== 0 ? (actual / budgeted) * 100 : 0;
+
+        return {
           accountId: item.accountId,
-          ...whereClause,
-        },
-        _sum: {
-          debitAmount: true,
-          creditAmount: true,
-        },
-      });
-
-      const debit = aggregates._sum.debitAmount?.toNumber() || 0;
-      const credit = aggregates._sum.creditAmount?.toNumber() || 0;
-
-      let actual = 0;
-      const type = item.account.type.toString().toLowerCase();
-
-      if (["expense", "asset", "cost_of_goods_sold"].includes(type)) {
-        actual = debit - credit;
-      } else {
-        actual = credit - debit;
-      }
-
-      const budgeted = item.totalAmount.toNumber();
-      const variance = budgeted - actual;
-      const percentage = budgeted !== 0 ? (actual / budgeted) * 100 : 0;
-
-      return {
-        accountId: item.accountId,
-        accountName: item.account.name,
-        accountCode: item.account.code,
-        budgeted,
-        actual,
-        variance,
-        percentage,
-      };
-    }));
+          accountName: item.account.name,
+          accountCode: item.account.code,
+          budgeted,
+          actual,
+          variance,
+          percentage,
+        };
+      }),
+    );
 
     return { success: true, data: SuperJSON.serialize(varianceData) };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+export async function getSavingTargetProgress(): Promise<ActionResponse> {
+  try {
+    const targets = await prisma.budget.findMany({
+      where: { kind: "SAVING_TARGET" },
+      orderBy: { createdAt: "desc" },
+      include: {
+        items: {
+          include: { account: true },
+          orderBy: { createdAt: "asc" },
+        },
+        department: true,
+        project: true,
+      },
+    });
+
+    const enriched = await Promise.all(
+      targets.map(async (target) => {
+        const primaryItem = target.items[0] || null;
+        const { startDate, endDate } = resolveBudgetPeriod(target);
+
+        let actual = 0;
+        if (primaryItem) {
+          const whereClause: any = {
+            accountId: primaryItem.accountId,
+            journalEntry: {
+              transactionDate: { gte: startDate, lte: endDate },
+              status: "posted",
+            },
+          };
+
+          if (target.departmentId) whereClause.departmentId = target.departmentId;
+          if (target.projectId) whereClause.projectId = target.projectId;
+
+          const sum = await prisma.journalEntryLine.aggregate({
+            where: whereClause,
+            _sum: {
+              debitAmount: true,
+              creditAmount: true,
+            },
+          });
+
+          const debit = sum._sum.debitAmount?.toNumber() || 0;
+          const credit = sum._sum.creditAmount?.toNumber() || 0;
+          actual = getActualByAccountType(primaryItem.account.type, debit, credit);
+        }
+
+        const targetAmount =
+          target.totalAmount.toNumber() > 0
+            ? target.totalAmount.toNumber()
+            : target.items.reduce((sum, item) => sum + item.totalAmount.toNumber(), 0);
+
+        const progressPct = targetAmount > 0 ? (actual / targetAmount) * 100 : 0;
+
+        return {
+          ...target,
+          startDate,
+          endDate,
+          primaryAccount: primaryItem?.account || null,
+          targetAmount,
+          actual,
+          remaining: targetAmount - actual,
+          progressPct,
+        };
+      }),
+    );
+
+    return { success: true, data: SuperJSON.serialize(enriched) };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
@@ -370,13 +469,13 @@ export async function checkBudgetAvailability(
   departmentId: string | null | undefined,
   projectId: string | null | undefined,
   date: Date,
-  amount: number
+  amount: number,
 ): Promise<ActionResponse> {
   try {
     const fiscalYear = date.getFullYear();
 
-    // Find Budget
     const where: any = {
+      kind: "BUDGET",
       fiscalYear,
       status: "APPROVED",
     };
@@ -392,15 +491,17 @@ export async function checkBudgetAvailability(
 
     const budget = await prisma.budget.findFirst({
       where,
-      include: { items: true }
+      include: { items: true },
     });
 
     if (!budget) {
-      return { success: true, data: { available: true, warning: "No budget defined for this period." } };
+      return {
+        success: true,
+        data: { available: true, warning: "No budget defined for this period." },
+      };
     }
 
-    const startDate = new Date(fiscalYear, 0, 1);
-    const endDate = new Date(fiscalYear, 11, 31);
+    const { startDate, endDate } = resolveBudgetPeriod(budget);
 
     const jeWhere: any = {
       transactionDate: { gte: startDate, lte: endDate },
@@ -416,17 +517,20 @@ export async function checkBudgetAvailability(
 
     const aggregates = await prisma.journalEntryLine.aggregate({
       where: jeWhere,
-      _sum: { debitAmount: true, creditAmount: true }
+      _sum: { debitAmount: true, creditAmount: true },
     });
 
-    // Assuming expense nature (Debit positive)
-    const totalActual = (aggregates._sum.debitAmount?.toNumber() || 0) - (aggregates._sum.creditAmount?.toNumber() || 0);
+    const totalActual =
+      (aggregates._sum.debitAmount?.toNumber() || 0) -
+      (aggregates._sum.creditAmount?.toNumber() || 0);
 
     const totalBudget = budget.totalAmount.toNumber();
-    const itemsTotal = budget.items.reduce((sum, item) => sum + item.totalAmount.toNumber(), 0);
+    const itemsTotal = budget.items.reduce(
+      (sum, item) => sum + item.totalAmount.toNumber(),
+      0,
+    );
 
     const limit = totalBudget > 0 ? totalBudget : itemsTotal;
-
     const remaining = limit - totalActual;
 
     if (amount > remaining) {
@@ -434,8 +538,8 @@ export async function checkBudgetAvailability(
         success: true,
         data: {
           available: false,
-          warning: `Exceeds budget! Limit: ${limit.toFixed(2)}, Used: ${totalActual.toFixed(2)}, Remaining: ${remaining.toFixed(2)}`
-        }
+          warning: `Exceeds budget! Limit: ${limit.toFixed(2)}, Used: ${totalActual.toFixed(2)}, Remaining: ${remaining.toFixed(2)}`,
+        },
       };
     }
 
@@ -444,8 +548,8 @@ export async function checkBudgetAvailability(
         success: true,
         data: {
           available: true,
-          warning: `Warning: approaching budget limit. Remaining after this: ${(remaining - amount).toFixed(2)}`
-        }
+          warning: `Warning: approaching budget limit. Remaining after this: ${(remaining - amount).toFixed(2)}`,
+        },
       };
     }
 

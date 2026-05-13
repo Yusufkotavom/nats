@@ -65,3 +65,12 @@ Aturan layer tetap berlaku:
 - Tidak ada logic domain di tab component — hanya orkestrasi UI + `useQuery` cache invalidation lintas tab (keys: `pos-floor-overview`, `pos-kitchen-tickets`, `pos-billing-queue`, `diningSpots`).
 - Rute lama `/pos/restaurant`, `/pos/restaurant/kitchen`, `/pos/restaurant/billing` dipertahankan sebagai Next.js server component yang `redirect()` ke `/pos?tab=...` untuk backward-compat.
 - `prisma.config.ts` mengeksplisitkan `migrations.path = "prisma/migrations"` (wajib pada Prisma 7 saat `schema` berupa folder), sehingga sidecar `migrate` di `docker-compose.yml` dapat menjalankan `prisma migrate deploy` tanpa fallback.
+
+## Budgeting: Budget Operasional + Saving Target (2026-05-13)
+
+- Modul budgeting tetap reuse service/action existing di `app/[locale]/(dashboard)/budgeting/actions.ts`.
+- Ditambahkan klasifikasi dokumen budget: `Budget.kind` (`BUDGET` dan `SAVING_TARGET`) untuk pemisahan view tanpa membuat modul domain baru.
+- Periode kalkulasi kini mendukung:
+1. Periode custom per dokumen (`periodStart`/`periodEnd`).
+2. Fallback ke periode fiscal year jika periode custom kosong.
+- Progres saving target dihitung dari agregasi jurnal akun item utama pada rentang periode target (target vs actual vs remaining).
