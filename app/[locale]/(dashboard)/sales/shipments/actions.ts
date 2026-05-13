@@ -152,6 +152,7 @@ import { SalesShipmentService } from "@/modules/sales/services/sales-shipment.se
 
 import { InventoryService } from "@/modules/inventory/services/inventory.service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
+import { resolveBomConsumptionItems } from "@/modules/inventory/services/bom-consumption.service";
 
 export const createSalesShipment = authorizedAction(
   "sales.create",
@@ -278,18 +279,25 @@ export const updateSalesShipment = authorizedAction(
             }
           }
 
-          // Create InventoryMovement (OUT)
+          // Create InventoryMovement (OUT), with bundle/BOM explosion when available.
+          const soldItems = data.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          }));
+          const bomItems = await resolveBomConsumptionItems(tx, soldItems);
+          const movementItemsBase = bomItems.length > 0 ? bomItems : soldItems;
+
           const movementItems = [];
           let totalCogs = 0;
 
-          for (const item of data.items) {
+          for (const item of movementItemsBase) {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
             const unitCost = product ? Number(product.averageCost) : 0;
 
             movementItems.push({
               productId: item.productId,
               quantity: item.quantity,
-              notes: "Sales Shipment",
+              notes: bomItems.length > 0 ? "Sales Shipment (BOM consumption)" : "Sales Shipment",
               unitCost
             });
 

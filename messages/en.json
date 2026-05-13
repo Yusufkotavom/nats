@@ -884,6 +884,7 @@
         "active": "Active",
         "inactive": "Inactive",
         "payroll": "Payroll",
+        "salary_structures": "Salary Structures",
         "manage_components": "Manage Components",
         "start_date": "Start Date",
         "end_date": "End Date",

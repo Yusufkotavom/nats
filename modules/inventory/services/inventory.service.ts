@@ -49,6 +49,10 @@ export class InventoryService {
             warehouseId = defaultWarehouse.id;
         }
 
+        const isInbound = type === "IN" || type === "PRODUCTION_IN";
+        const isOutbound = type === "OUT" || type === "PRODUCTION_OUT";
+        const isAdjustment = type === "ADJUSTMENT";
+
         // 2. Create Movement Header
         const movement = await tx.inventoryMovement.create({
             data: {
@@ -57,11 +61,9 @@ export class InventoryService {
                 notes,
                 status,
                 transactionDate,
-                // Depending on type, set from/to warehouse
-                // IN / PRODUCTION_IN: External -> To Warehouse
-                // OUT / PRODUCTION_OUT: From Warehouse -> External
-                toWarehouseId: (type === "IN" || type === "PRODUCTION_IN") ? warehouseId : undefined,
-                fromWarehouseId: (type === "OUT" || type === "PRODUCTION_OUT") ? warehouseId : undefined,
+                // Keep warehouse trace on header for all stock movements, including adjustments.
+                toWarehouseId: isInbound || isAdjustment ? warehouseId : undefined,
+                fromWarehouseId: isOutbound || isAdjustment ? warehouseId : undefined,
             },
         });
 

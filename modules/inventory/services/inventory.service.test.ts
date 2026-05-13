@@ -213,5 +213,45 @@ describe("InventoryService", () => {
             // But if updateInventory throws, the whole transaction would fail in real usage.
             // Since we are mocking the transaction client, we just verify the throw.
         });
+
+        it("should persist warehouse on ADJUSTMENT movement header", async () => {
+            const input: CreateInventoryMovementData = {
+                type: MovementType.ADJUSTMENT,
+                items: [{ productId: "prod-1", quantity: -1 }],
+                warehouseId: "wh-1",
+                transactionDate: mockDate,
+            };
+
+            (prismaMock.inventoryMovement.create as any).mockResolvedValue({
+                id: "mov-adj-1",
+                type: MovementType.ADJUSTMENT,
+                transactionDate: mockDate,
+                fromWarehouseId: "wh-1",
+                toWarehouseId: "wh-1",
+            });
+            (prismaMock.product.findUniqueOrThrow as any).mockResolvedValue({
+                id: "prod-1",
+                name: "Product 1",
+                sku: "SKU-1",
+            });
+            (prismaMock.inventory.findFirst as any).mockResolvedValue({
+                id: "inv-1",
+                quantity: 10,
+                unitCost: new Decimal(100),
+            });
+            (prismaMock.inventory.findMany as any).mockResolvedValue([
+                { quantity: 10, unitCost: new Decimal(100) },
+            ]);
+
+            await InventoryService.createInventoryMovement(prismaMock, input);
+
+            expect(prismaMock.inventoryMovement.create).toHaveBeenCalledWith({
+                data: expect.objectContaining({
+                    type: MovementType.ADJUSTMENT,
+                    fromWarehouseId: "wh-1",
+                    toWarehouseId: "wh-1",
+                }),
+            });
+        });
     });
 });

@@ -152,9 +152,20 @@ export const cashTransactionAllocationSchema = z.object({
 
 export const cashTransactionSchema = z.object({
   cashAccountId: requiredIdSchema,
-  contactId: z.string().optional(),
-  departmentId: z.string().optional().nullable(),
-  projectId: z.string().optional().nullable(),
+  contactId: z
+    .string()
+    .optional()
+    .transform((val) => (val && val.trim().length > 0 ? val : undefined)),
+  departmentId: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.trim().length > 0 ? val : undefined)),
+  projectId: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.trim().length > 0 ? val : undefined)),
   type: z.nativeEnum(CashTransactionType),
   date: dateSchema,
   reference: z.string().optional(),
