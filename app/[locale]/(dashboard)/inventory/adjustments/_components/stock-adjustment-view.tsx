@@ -21,6 +21,16 @@ import {
   PageListTitle,
 } from "@/components/layout/page/list-layout";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Warehouse = { id: string; name: string };
 type Product = {
@@ -38,6 +48,68 @@ type AdjustmentRow = {
   note: string;
 };
 
+type AdjustmentChange = {
+  productId: string;
+  productName: string;
+  sku: string;
+  unitSymbol: string;
+  currentStock: number;
+  actualStock: number;
+  diff: number;
+  unitCost: number;
+  lineImpact: number;
+  note: string;
+};
+
+type AdjustmentSummary = {
+  changes: AdjustmentChange[];
+  increaseCount: number;
+  decreaseCount: number;
+  totalAbsoluteImpact: number;
+};
+
+export function buildAdjustmentSummary(
+  products: Product[],
+  rows: Record<string, AdjustmentRow>,
+  stockSnapshot: Map<string, { currentStock: number; unitCost: number }>,
+): AdjustmentSummary {
+  const changes: AdjustmentChange[] = [];
+  let increaseCount = 0;
+  let decreaseCount = 0;
+  let totalAbsoluteImpact = 0;
+
+  for (const product of products) {
+    const snapshot = stockSnapshot.get(product.id);
+    const currentStock = snapshot?.currentStock || 0;
+    const row = rows[product.id];
+    const actualStock = Number(row?.actualStock ?? currentStock);
+    const diff = actualStock - currentStock;
+    if (diff === 0) continue;
+
+    const unitCost = snapshot?.unitCost || product.averageCost || product.cost || 0;
+    const lineImpact = Math.abs(diff) * unitCost;
+
+    if (diff > 0) increaseCount += 1;
+    else decreaseCount += 1;
+    totalAbsoluteImpact += lineImpact;
+
+    changes.push({
+      productId: product.id,
+      productName: product.name,
+      sku: product.sku,
+      unitSymbol: product.baseUnit?.symbol || "",
+      currentStock,
+      actualStock,
+      diff,
+      unitCost,
+      lineImpact,
+      note: row?.note || "",
+    });
+  }
+
+  return { changes, increaseCount, decreaseCount, totalAbsoluteImpact };
+}
+
 export function StockAdjustmentView({
   warehouses,
   products,
@@ -51,6 +123,7 @@ export function StockAdjustmentView({
   const [search, setSearch] = useState("");
   const [headerNote, setHeaderNote] = useState("");
   const [rows, setRows] = useState<Record<string, AdjustmentRow>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const { data: stockSnapshotRaw } = useQuery({
     queryKey: ["warehouse-stock-snapshot", warehouseId],
@@ -88,28 +161,23 @@ export function StockAdjustmentView({
     );
   }, [products, search]);
 
+  const adjustmentSummary = useMemo(
+    () => buildAdjustmentSummary(products, rows, stockSnapshot),
+    [products, rows, stockSnapshot],
+  );
+
+  const selectedWarehouseName = useMemo(
+    () => warehouses.find((w) => w.id === warehouseId)?.name || "-",
+    [warehouses, warehouseId],
+  );
+
   const mutation = useMutation({
     mutationFn: async () => {
-      const payloadLines = Object.values(rows)
-        .map((row) => {
-          const currentStock = stockSnapshot.get(row.productId)?.currentStock || 0;
-          return {
-            productId: row.productId,
-            actualStock: Number(row.actualStock || 0),
-            note: row.note || undefined,
-            diff: Number(row.actualStock || 0) - currentStock,
-          };
-        })
-        .filter((row) => row.diff !== 0)
-        .map(({ productId, actualStock, note }) => ({ productId, actualStock, note }));
-
-      if (!warehouseId) {
-        throw new Error("Warehouse wajib dipilih");
-      }
-
-      if (payloadLines.length === 0) {
-        throw new Error("Tidak ada selisih stok untuk diposting");
-      }
+      const payloadLines = adjustmentSummary.changes.map((change) => ({
+        productId: change.productId,
+        actualStock: change.actualStock,
+        note: change.note || undefined,
+      }));
 
       const result = await postStockAdjustment({
         warehouseId,
@@ -124,12 +192,14 @@ export function StockAdjustmentView({
       return result.data;
     },
     onSuccess: (data) => {
+      setConfirmOpen(false);
       toast({
         title: t("adjustments"),
         description: `Movement ${data?.movementId} | Journal ${data?.journalEntryId || "-"}`,
       });
     },
     onError: (error) => {
+      setConfirmOpen(false);
       toast({
         title: "Failed to post adjustment",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -137,6 +207,24 @@ export function StockAdjustmentView({
       });
     },
   });
+
+  const handlePostClick = () => {
+    if (!warehouseId) {
+      toast({
+        title: "Warehouse wajib dipilih",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (adjustmentSummary.changes.length === 0) {
+      toast({
+        title: "Tidak ada selisih stok untuk diposting",
+        variant: "destructive",
+      });
+      return;
+    }
+    setConfirmOpen(true);
+  };
 
   const updateRow = (productId: string, patch: Partial<AdjustmentRow>) => {
     setRows((prev) => ({
@@ -153,7 +241,10 @@ export function StockAdjustmentView({
       <PageListHeader>
         <PageListTitle title={t("adjustments")} />
         <PageListActions>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !warehouseId}>
+          <Button
+            onClick={handlePostClick}
+            disabled={mutation.isPending || !warehouseId}
+          >
             {mutation.isPending ? "Posting..." : "Post Adjustment"}
           </Button>
         </PageListActions>
@@ -244,6 +335,129 @@ export function StockAdjustmentView({
           </div>
         </div>
       </PageListContent>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!mutation.isPending) setConfirmOpen(open);
+        }}
+      >
+        <AlertDialogContent
+          className="max-w-lg sm:max-w-lg"
+          data-testid="confirm-post-dialog"
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Post Adjustment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Periksa ringkasan perubahan stok di bawah sebelum memposting.
+              Setelah diposting, inventory movement dan jurnal akuntansi akan
+              dibuat.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Warehouse</span>
+                <span className="font-medium" data-testid="confirm-warehouse">
+                  {selectedWarehouseName}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Baris berubah</span>
+                <span className="font-medium" data-testid="confirm-changed-lines">
+                  {adjustmentSummary.changes.length}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Kenaikan / Penurunan</span>
+                <span className="font-medium">
+                  <span className="text-green-600" data-testid="confirm-increase-count">
+                    +{adjustmentSummary.increaseCount}
+                  </span>
+                  {" / "}
+                  <span className="text-red-600" data-testid="confirm-decrease-count">
+                    -{adjustmentSummary.decreaseCount}
+                  </span>
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total dampak nilai</span>
+                <span className="font-semibold" data-testid="confirm-total-impact">
+                  {adjustmentSummary.totalAbsoluteImpact.toLocaleString("id-ID")}
+                </span>
+              </div>
+              {headerNote && (
+                <div className="pt-1 text-xs text-muted-foreground">
+                  Catatan: <span className="text-foreground">{headerNote}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="max-h-64 overflow-y-auto rounded-md border">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/50 sticky top-0">
+                  <tr>
+                    <th className="p-2 text-left">Produk</th>
+                    <th className="p-2 text-right">Current</th>
+                    <th className="p-2 text-right">Actual</th>
+                    <th className="p-2 text-right">Diff</th>
+                    <th className="p-2 text-right">Dampak</th>
+                  </tr>
+                </thead>
+                <tbody data-testid="confirm-changes-list">
+                  {adjustmentSummary.changes.map((change) => (
+                    <tr key={change.productId} className="border-t">
+                      <td className="p-2">
+                        <div className="font-medium">{change.productName}</div>
+                        <div className="text-[10px] text-muted-foreground">{change.sku}</div>
+                      </td>
+                      <td className="p-2 text-right">
+                        {change.currentStock} {change.unitSymbol}
+                      </td>
+                      <td className="p-2 text-right">
+                        {change.actualStock} {change.unitSymbol}
+                      </td>
+                      <td
+                        className={`p-2 text-right font-medium ${
+                          change.diff < 0
+                            ? "text-red-600"
+                            : change.diff > 0
+                              ? "text-green-600"
+                              : "text-muted-foreground"
+                        }`}
+                      >
+                        {change.diff > 0 ? `+${change.diff}` : change.diff}
+                      </td>
+                      <td className="p-2 text-right">
+                        {change.lineImpact.toLocaleString("id-ID")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={mutation.isPending}
+              onClick={() => setConfirmOpen(false)}
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={mutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                mutation.mutate();
+              }}
+            >
+              {mutation.isPending ? "Posting..." : "Post Sekarang"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageListLayout>
   );
 }
