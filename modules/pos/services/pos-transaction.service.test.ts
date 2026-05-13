@@ -83,10 +83,7 @@ describe("POSTransactionService", () => {
         const mockPaymentMethod = "CASH";
         const mockAmountPaid = 200;
         const zeroFeeBreakdown = {
-            serviceChargeAmount: 0,
-            taxAmount: 0,
-            additionalFeeAmount: 0,
-            additionalFeeLabel: "",
+            lines: [],
         };
 
         it("should process a POS transaction successfully", async () => {

@@ -44,6 +44,19 @@ export function POSInvoiceDetail({
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const feeLines = (() => {
+    if (!invoice?.notes || typeof invoice.notes !== "string") return [] as Array<{ name: string; amount: number }>;
+    if (!invoice.notes.startsWith("POS_FEE_LINES:")) return [] as Array<{ name: string; amount: number }>;
+    try {
+      const parsed = JSON.parse(invoice.notes.replace("POS_FEE_LINES:", ""));
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((line: any) => line && typeof line.name === "string")
+        .map((line: any) => ({ name: line.name, amount: Number(line.amount || 0) }));
+    } catch {
+      return [];
+    }
+  })();
 
   return (
     <div className="flex h-screen flex-col bg-muted/20">
@@ -203,12 +216,12 @@ export function POSInvoiceDetail({
                   <span className="text-muted-foreground">{t("tax")}</span>
                   <span>{formatCurrency(invoice.totalTax || 0)}</span>
                 </div>
-                {Number(invoice.shippingCost || 0) > 0 && (
-                  <div className="flex w-[250px] justify-between text-sm">
-                    <span className="text-muted-foreground">{t("additional_fee")}</span>
-                    <span>{formatCurrency(invoice.shippingCost || 0)}</span>
+                {feeLines.map((fee, idx) => (
+                  <div key={`${fee.name}-${idx}`} className="flex w-[250px] justify-between text-sm">
+                    <span className="text-muted-foreground">{fee.name}</span>
+                    <span>{formatCurrency(fee.amount || 0)}</span>
                   </div>
-                )}
+                ))}
                 <Separator className="my-2 w-[250px]" />
                 <div className="flex w-[250px] justify-between text-lg font-bold">
                   <span>{t("total")}</span>

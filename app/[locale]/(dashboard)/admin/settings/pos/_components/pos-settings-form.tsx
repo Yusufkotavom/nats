@@ -6,17 +6,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 import { updatePOSSettings, type POSProductVisibilityMode } from "../actions";
+import { Plus, Trash2 } from "lucide-react";
 
 type POSSettings = {
   id: string | null;
   posProductVisibilityMode: POSProductVisibilityMode;
-  serviceChargePercent: number;
-  taxPercent: number;
-  additionalFeeAmount: number;
-  additionalFeeLabel: string;
+  feeSettings: {
+    id?: string;
+    name: string;
+    category: "TAX" | "FEE";
+    valueType: "PERCENTAGE" | "FIXED";
+    value: number;
+    sortOrder: number;
+    isActive: boolean;
+  }[];
 };
 
 export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
@@ -27,25 +34,13 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
   const [mode, setMode] = useState<POSProductVisibilityMode>(
     initialData.posProductVisibilityMode || "POS_ONLY",
   );
-  const [serviceChargePercent, setServiceChargePercent] = useState<number>(
-    initialData.serviceChargePercent || 0,
-  );
-  const [taxPercent, setTaxPercent] = useState<number>(initialData.taxPercent || 0);
-  const [additionalFeeAmount, setAdditionalFeeAmount] = useState<number>(
-    initialData.additionalFeeAmount || 0,
-  );
-  const [additionalFeeLabel, setAdditionalFeeLabel] = useState<string>(
-    initialData.additionalFeeLabel || "",
-  );
+  const [feeSettings, setFeeSettings] = useState(initialData.feeSettings || []);
 
   const handleSave = () => {
     startTransition(async () => {
       const result = await updatePOSSettings({
         posProductVisibilityMode: mode,
-        serviceChargePercent,
-        taxPercent,
-        additionalFeeAmount,
-        additionalFeeLabel,
+        feeSettings: feeSettings.map((item, index) => ({ ...item, sortOrder: index })),
       });
       if (result.success) {
         toast({ title: tCommon("success"), description: t("settings_saved") });
@@ -57,6 +52,28 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
         });
       }
     });
+  };
+
+  const addFee = () => {
+    setFeeSettings((prev) => [
+      ...prev,
+      {
+        name: "",
+        category: "FEE",
+        valueType: "FIXED",
+        value: 0,
+        sortOrder: prev.length,
+        isActive: true,
+      },
+    ]);
+  };
+
+  const updateFee = (index: number, patch: Partial<(typeof feeSettings)[number]>) => {
+    setFeeSettings((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  };
+
+  const removeFee = (index: number) => {
+    setFeeSettings((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -79,50 +96,86 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="serviceChargePercent">{t("pos_service_charge_percent")}</Label>
-          <Input
-            id="serviceChargePercent"
-            type="number"
-            min={0}
-            step="0.01"
-            value={serviceChargePercent}
-            onChange={(e) => setServiceChargePercent(Number(e.target.value || 0))}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="taxPercent">{t("pos_tax_percent")}</Label>
-          <Input
-            id="taxPercent"
-            type="number"
-            min={0}
-            step="0.01"
-            value={taxPercent}
-            onChange={(e) => setTaxPercent(Number(e.target.value || 0))}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="additionalFeeLabel">{t("pos_additional_fee_label")}</Label>
-          <Input
-            id="additionalFeeLabel"
-            value={additionalFeeLabel}
-            onChange={(e) => setAdditionalFeeLabel(e.target.value)}
-            placeholder={t("pos_additional_fee_label_placeholder")}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="additionalFeeAmount">{t("pos_additional_fee_amount")}</Label>
-          <Input
-            id="additionalFeeAmount"
-            type="number"
-            min={0}
-            step="0.01"
-            value={additionalFeeAmount}
-            onChange={(e) => setAdditionalFeeAmount(Number(e.target.value || 0))}
-          />
+        <div className="space-y-3 rounded-md border p-3">
+          <div className="flex items-center justify-between">
+            <Label>{t("pos_fee_lines")}</Label>
+            <Button type="button" variant="outline" size="sm" onClick={addFee}>
+              <Plus className="mr-1 h-4 w-4" />
+              {t("add_fee_line")}
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {feeSettings.map((fee, index) => (
+              <div key={`${fee.id || "new"}-${index}`} className="grid grid-cols-1 gap-2 rounded-md border p-3 md:grid-cols-12">
+                <div className="md:col-span-3">
+                  <Label>{t("fee_name")}</Label>
+                  <Input
+                    value={fee.name}
+                    onChange={(e) => updateFee(index, { name: e.target.value })}
+                    placeholder={t("pos_additional_fee_label_placeholder")}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>{t("fee_category")}</Label>
+                  <Select value={fee.category} onValueChange={(v) => updateFee(index, { category: v as "TAX" | "FEE" })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FEE">{t("fee_category_fee")}</SelectItem>
+                      <SelectItem value="TAX">{t("fee_category_tax")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>{t("fee_value_type")}</Label>
+                  <Select
+                    value={fee.valueType}
+                    onValueChange={(v) => updateFee(index, { valueType: v as "PERCENTAGE" | "FIXED" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FIXED">{t("fee_value_type_fixed")}</SelectItem>
+                      <SelectItem value="PERCENTAGE">{t("fee_value_type_percentage")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>{t("fee_value")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={fee.value}
+                    onChange={(e) => updateFee(index, { value: Number(e.target.value || 0) })}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>{t("active")}</Label>
+                  <div className="flex h-10 items-center">
+                    <Switch
+                      checked={fee.isActive}
+                      onCheckedChange={(checked) => updateFee(index, { isActive: checked })}
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-1">
+                  <Label>&nbsp;</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 text-destructive"
+                    onClick={() => removeFee(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </CardContent>
       <CardFooter>

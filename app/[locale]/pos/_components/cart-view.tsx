@@ -46,10 +46,15 @@ interface CartViewProps {
   session: any;
   selectedDiningSpotId?: string;
   checkoutSettings: {
-    serviceChargePercent: number;
-    taxPercent: number;
-    additionalFeeAmount: number;
-    additionalFeeLabel: string;
+    feeLines: {
+      id: string;
+      name: string;
+      category: "TAX" | "FEE";
+      valueType: "PERCENTAGE" | "FIXED";
+      value: number;
+      sortOrder: number;
+      isActive: boolean;
+    }[];
   };
 }
 
@@ -127,12 +132,17 @@ export function CartView({
     0,
   );
   const taxableBase = Math.max(0, subtotal - totalItemDiscounts - globalDiscount);
-  const serviceChargeAmount = taxableBase * ((checkoutSettings.serviceChargePercent || 0) / 100);
-  const tax = (taxableBase + serviceChargeAmount) * ((checkoutSettings.taxPercent || 0) / 100);
-  const additionalFeeAmount = checkoutSettings.additionalFeeAmount || 0;
+  const feeLines = (checkoutSettings.feeLines || []).map((line) => {
+    const amount =
+      line.valueType === "PERCENTAGE"
+        ? taxableBase * ((line.value || 0) / 100)
+        : line.value || 0;
+    return { ...line, amount: Math.max(0, amount) };
+  });
+  const totalFees = feeLines.reduce((sum, line) => sum + line.amount, 0);
   const total = Math.max(
     0,
-    taxableBase + serviceChargeAmount + tax + additionalFeeAmount,
+    taxableBase + totalFees,
   );
 
   const handleCheckout = async (
@@ -158,10 +168,13 @@ export function CartView({
         amount,
         globalDiscount,
         {
-          serviceChargeAmount,
-          taxAmount: tax,
-          additionalFeeAmount,
-          additionalFeeLabel: checkoutSettings.additionalFeeLabel,
+          lines: feeLines.map((line) => ({
+            name: line.name,
+            category: line.category,
+            valueType: line.valueType,
+            value: line.value,
+            amount: line.amount,
+          })),
         },
         customerId,
         selectedDiningSpotId,
@@ -449,22 +462,12 @@ export function CartView({
               </span>
             )}
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{t("service_charge")}</span>
-            <span>{formatCurrency(serviceChargeAmount)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{t("tax")}</span>
-            <span>{formatCurrency(tax)}</span>
-          </div>
-          {additionalFeeAmount > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                {checkoutSettings.additionalFeeLabel || t("additional_fee")}
-              </span>
-              <span>{formatCurrency(additionalFeeAmount)}</span>
+          {feeLines.map((line) => (
+            <div key={`${line.id}-${line.name}`} className="flex justify-between text-sm">
+              <span className="text-muted-foreground">{line.name}</span>
+              <span>{formatCurrency(line.amount)}</span>
             </div>
-          )}
+          ))}
           <Separator className="my-2" />
           <div className="flex justify-between text-lg font-bold">
             <span>{t("total")}</span>

@@ -40,6 +40,19 @@ export function POSReceiptHtmlPreview({
   const locale = company.locale || "id-ID";
   const currency = company.currency || "IDR";
   const t = (key: string) => translations[key] || key;
+  const feeLines = (() => {
+    if (!invoice?.notes || typeof invoice.notes !== "string") return [] as Array<{ name: string; amount: number }>;
+    if (!invoice.notes.startsWith("POS_FEE_LINES:")) return [] as Array<{ name: string; amount: number }>;
+    try {
+      const parsed = JSON.parse(invoice.notes.replace("POS_FEE_LINES:", ""));
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((line: any) => line && typeof line.name === "string")
+        .map((line: any) => ({ name: line.name, amount: Number(line.amount || 0) }));
+    } catch {
+      return [];
+    }
+  })();
 
   const handlePrint = () => {
     window.print();
@@ -119,12 +132,12 @@ export function POSReceiptHtmlPreview({
               <span>{formatMoney(invoice.totalTax, locale, currency)}</span>
             </div>
           ) : null}
-          {toNumber(invoice.shippingCost) > 0 ? (
-            <div className="flex justify-between gap-3">
-              <span>{t("additional_fee")}</span>
-              <span>{formatMoney(invoice.shippingCost, locale, currency)}</span>
+          {feeLines.map((fee, idx) => (
+            <div key={`${fee.name}-${idx}`} className="flex justify-between gap-3">
+              <span>{fee.name}</span>
+              <span>{formatMoney(fee.amount, locale, currency)}</span>
             </div>
-          ) : null}
+          ))}
           <div className="flex justify-between gap-3 text-sm font-bold uppercase">
             <span>{t("total")}</span>
             <span>{formatMoney(invoice.totalAmount, locale, currency)}</span>

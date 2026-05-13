@@ -124,3 +124,25 @@ enum DiningSpotStatus {
   BILLING
   CLOSED
 }
+
+enum POSFeeCategory {
+  TAX
+  FEE
+}
+
+enum POSFeeValueType {
+  PERCENTAGE
+  FIXED
+}
+
+model POSFeeSetting {
+  id        String          @id @default(cuid())
+  name      String
+  category  POSFeeCategory  @default(FEE)
+  valueType POSFeeValueType @default(FIXED)
+  value     Decimal         @default(0)
+  sortOrder Int             @default(0)
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}

@@ -45,6 +45,14 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Mengubah konfigurasi biaya POS dari model tunggal menjadi **multi fee lines** di `Admin > Settings > POS`:
+  - biaya dapat ditambah satu per satu (add/remove),
+  - tiap baris biaya bisa ditentukan kategori (`Tax`/`Fee`) dan tipe nilai (`Percentage`/`Fixed`),
+  - perhitungan checkout POS sekarang menjumlahkan seluruh fee aktif per baris.
+- Menyelaraskan output nota/receipt POS agar menampilkan rincian baris biaya POS (bukan satu baris agregat saja), termasuk pada:
+  - detail invoice POS,
+  - receipt HTML preview,
+  - receipt PDF.
 - Memusatkan konfigurasi POS di modul `Admin > Settings > POS`:
   - pengaturan visibilitas produk POS tetap tersedia,
   - menambahkan pengaturan biaya checkout POS (`Service Charge %`, `Tax %`, `Additional Fee Label`, `Additional Fee Amount`) dalam satu halaman terpusat.

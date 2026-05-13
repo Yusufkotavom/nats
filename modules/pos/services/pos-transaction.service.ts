@@ -39,10 +39,13 @@ interface POSTransactionOutboxResult {
 }
 
 interface POSFeeBreakdown {
-    serviceChargeAmount: number;
-    taxAmount: number;
-    additionalFeeAmount: number;
-    additionalFeeLabel?: string;
+    lines: Array<{
+        name: string;
+        category: "TAX" | "FEE";
+        valueType: "PERCENTAGE" | "FIXED";
+        value: number;
+        amount: number;
+    }>;
 }
 
 export class POSTransactionService {
@@ -80,13 +83,19 @@ export class POSTransactionService {
                 itemsWithCalculations.map(i => i.calculated),
                 globalDiscount
             );
-            const serviceChargeAmount = new Decimal(feeBreakdown.serviceChargeAmount || 0);
-            const taxAmount = new Decimal(feeBreakdown.taxAmount || 0);
-            const additionalFeeAmount = new Decimal(feeBreakdown.additionalFeeAmount || 0);
+            const feeLines = (feeBreakdown.lines || []).map((line) => ({
+                ...line,
+                amount: Math.max(0, Number(line.amount || 0)),
+            }));
+            const taxAmount = feeLines
+                .filter((line) => line.category === "TAX")
+                .reduce((sum, line) => sum.plus(line.amount), new Decimal(0));
+            const additionalFeeAmount = feeLines
+                .filter((line) => line.category === "FEE")
+                .reduce((sum, line) => sum.plus(line.amount), new Decimal(0));
+            const totalFeeAmount = feeLines.reduce((sum, line) => sum.plus(line.amount), new Decimal(0));
             const finalTotalAmount = totals.totalAmount
-                .plus(serviceChargeAmount)
-                .plus(taxAmount)
-                .plus(additionalFeeAmount);
+                .plus(totalFeeAmount);
             const totalItemDiscount = itemsWithCalculations.reduce(
                 (sum, i) => sum.plus(i.calculated.discountAmount),
                 new Decimal(0),
@@ -112,8 +121,8 @@ export class POSTransactionService {
                 subtotal: totals.itemsTotal.plus(totalItemDiscount),
                 globalDiscount,
                 totalTaxAmount: taxAmount,
-                additionalChargeAmount: serviceChargeAmount.plus(additionalFeeAmount),
-                additionalChargeLabel: feeBreakdown.additionalFeeLabel,
+                additionalChargeAmount: additionalFeeAmount,
+                feeLines,
                 totalAmount: finalTotalAmount,
             });
 
@@ -406,7 +415,13 @@ export class POSTransactionService {
             globalDiscount: number;
             totalTaxAmount: Decimal;
             additionalChargeAmount: Decimal;
-            additionalChargeLabel?: string;
+            feeLines: Array<{
+                name: string;
+                category: "TAX" | "FEE";
+                valueType: "PERCENTAGE" | "FIXED";
+                value: number;
+                amount: number;
+            }>;
             totalAmount: Decimal;
         },
     ) {
@@ -426,8 +441,8 @@ export class POSTransactionService {
                 shippingCost: params.additionalChargeAmount,
                 totalAmount: params.totalAmount,
                 balanceDue: new Decimal(0),
-                notes: params.additionalChargeLabel
-                    ? `POS additional fee: ${params.additionalChargeLabel}`
+                notes: params.feeLines.length > 0
+                    ? `POS_FEE_LINES:${JSON.stringify(params.feeLines)}`
                     : undefined,
                 posSessionId: params.sessionId,
                 items: {

@@ -72,6 +72,19 @@ export const POSReceiptPdf = ({
 }: ReportContext<POSReceiptData>) => {
   const { invoice, payment, cashierName } = data;
   const t = (key: string) => translations[key] || key;
+  const feeLines = (() => {
+    if (!invoice?.notes || typeof invoice.notes !== "string") return [] as Array<{ name: string; amount: number }>;
+    if (!invoice.notes.startsWith("POS_FEE_LINES:")) return [] as Array<{ name: string; amount: number }>;
+    try {
+      const parsed = JSON.parse(invoice.notes.replace("POS_FEE_LINES:", ""));
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((line: any) => line && typeof line.name === "string")
+        .map((line: any) => ({ name: line.name, amount: Number(line.amount || 0) }));
+    } catch {
+      return [];
+    }
+  })();
 
   const currencyOptions = {
     currency: company.currency,
@@ -207,12 +220,12 @@ export const POSReceiptPdf = ({
               <Text>{formatCurrency(invoice.totalTax, currencyOptions)}</Text>
             </View>
           )}
-          {Number(invoice.shippingCost) > 0 && (
-            <View style={styles.row}>
-              <Text>{t("additional_fee")}</Text>
-              <Text>{formatCurrency(invoice.shippingCost, currencyOptions)}</Text>
+          {feeLines.map((fee, idx) => (
+            <View key={`${fee.name}-${idx}`} style={styles.row}>
+              <Text>{fee.name}</Text>
+              <Text>{formatCurrency(fee.amount, currencyOptions)}</Text>
             </View>
-          )}
+          ))}
           <View style={[styles.totalRow, { marginTop: 3, fontSize: 11 }]}>
             <Text>{t("total").toUpperCase()}</Text>
             <Text>{formatCurrency(invoice.totalAmount, currencyOptions)}</Text>

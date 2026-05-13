@@ -5,33 +5,42 @@ import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 
 export type POSProductVisibilityMode = "POS_ONLY" | "ALL_ACTIVE";
-export type POSCheckoutFeeConfig = {
-  serviceChargePercent: number;
-  taxPercent: number;
-  additionalFeeAmount: number;
-  additionalFeeLabel: string;
+export type POSFeeLineSetting = {
+  id?: string;
+  name: string;
+  category: "TAX" | "FEE";
+  valueType: "PERCENTAGE" | "FIXED";
+  value: number;
+  sortOrder: number;
+  isActive: boolean;
 };
 
 export async function getPOSSettings() {
-  const profile = await prisma.companyProfile.findFirst({
-    select: {
-      id: true,
-      posProductVisibilityMode: true,
-      posServiceChargePercent: true,
-      posTaxPercent: true,
-      posAdditionalFeeAmount: true,
-      posAdditionalFeeLabel: true,
-    },
-  });
+  const [profile, feeSettings] = await Promise.all([
+    prisma.companyProfile.findFirst({
+      select: {
+        id: true,
+        posProductVisibilityMode: true,
+      },
+    }),
+    prisma.pOSFeeSetting.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    }),
+  ]);
 
   if (!profile) {
     return {
       id: null,
       posProductVisibilityMode: "POS_ONLY" as POSProductVisibilityMode,
-      serviceChargePercent: 0,
-      taxPercent: 0,
-      additionalFeeAmount: 0,
-      additionalFeeLabel: "",
+      feeSettings: feeSettings.map((item) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category as "TAX" | "FEE",
+        valueType: item.valueType as "PERCENTAGE" | "FIXED",
+        value: Number(item.value || 0),
+        sortOrder: item.sortOrder,
+        isActive: item.isActive,
+      })),
     };
   }
 
@@ -39,10 +48,15 @@ export async function getPOSSettings() {
     id: profile.id,
     posProductVisibilityMode:
       (profile.posProductVisibilityMode as POSProductVisibilityMode) || "POS_ONLY",
-    serviceChargePercent: Number(profile.posServiceChargePercent || 0),
-    taxPercent: Number(profile.posTaxPercent || 0),
-    additionalFeeAmount: Number(profile.posAdditionalFeeAmount || 0),
-    additionalFeeLabel: profile.posAdditionalFeeLabel || "",
+    feeSettings: feeSettings.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category as "TAX" | "FEE",
+      valueType: item.valueType as "PERCENTAGE" | "FIXED",
+      value: Number(item.value || 0),
+      sortOrder: item.sortOrder,
+      isActive: item.isActive,
+    })),
   };
 }
 
@@ -50,16 +64,25 @@ export const updatePOSSettings = authorizedAction(
   "company.settings",
   async (data: {
     posProductVisibilityMode: POSProductVisibilityMode;
-    serviceChargePercent: number;
-    taxPercent: number;
-    additionalFeeAmount: number;
-    additionalFeeLabel?: string;
+    feeSettings: POSFeeLineSetting[];
   }) => {
     if (!data.posProductVisibilityMode) {
       return { success: false, error: "POS visibility mode is required" };
     }
-    if (data.serviceChargePercent < 0 || data.taxPercent < 0 || data.additionalFeeAmount < 0) {
-      return { success: false, error: "POS fee values must be greater than or equal to zero" };
+
+    const normalizedFees = (data.feeSettings || [])
+      .map((fee, index) => ({
+        ...fee,
+        name: fee.name.trim(),
+        value: Number(fee.value || 0),
+        sortOrder: Number.isFinite(fee.sortOrder) ? fee.sortOrder : index,
+      }))
+      .filter((fee) => fee.name.length > 0);
+
+    for (const fee of normalizedFees) {
+      if (fee.value < 0) {
+        return { success: false, error: "POS fee value must be greater than or equal to zero" };
+      }
     }
 
     const existing = await prisma.companyProfile.findFirst();
@@ -69,10 +92,6 @@ export const updatePOSSettings = authorizedAction(
         where: { id: existing.id },
         data: {
           posProductVisibilityMode: data.posProductVisibilityMode,
-          posServiceChargePercent: data.serviceChargePercent,
-          posTaxPercent: data.taxPercent,
-          posAdditionalFeeAmount: data.additionalFeeAmount,
-          posAdditionalFeeLabel: data.additionalFeeLabel?.trim() || null,
         },
       });
     } else {
@@ -86,13 +105,25 @@ export const updatePOSSettings = authorizedAction(
           locale: "id-ID",
           timezone: "Asia/Jakarta",
           posProductVisibilityMode: data.posProductVisibilityMode,
-          posServiceChargePercent: data.serviceChargePercent,
-          posTaxPercent: data.taxPercent,
-          posAdditionalFeeAmount: data.additionalFeeAmount,
-          posAdditionalFeeLabel: data.additionalFeeLabel?.trim() || null,
         },
       });
     }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.pOSFeeSetting.deleteMany({});
+      if (normalizedFees.length > 0) {
+        await tx.pOSFeeSetting.createMany({
+          data: normalizedFees.map((fee, index) => ({
+            name: fee.name,
+            category: fee.category,
+            valueType: fee.valueType,
+            value: fee.value,
+            sortOrder: index,
+            isActive: fee.isActive,
+          })),
+        });
+      }
+    });
 
     revalidatePath("/admin/settings/pos");
     revalidatePath("/pos");

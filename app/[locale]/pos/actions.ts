@@ -13,10 +13,15 @@ import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
 import { POSCartItem } from "./types";
 
 export type POSCheckoutSettings = {
-  serviceChargePercent: number;
-  taxPercent: number;
-  additionalFeeAmount: number;
-  additionalFeeLabel: string;
+  feeLines: {
+    id: string;
+    name: string;
+    category: "TAX" | "FEE";
+    valueType: "PERCENTAGE" | "FIXED";
+    value: number;
+    sortOrder: number;
+    isActive: boolean;
+  }[];
 };
 
 export async function getPOSSessions() {
@@ -149,20 +154,21 @@ export async function getPOSProducts(
 }
 
 export async function getPOSCheckoutSettings(): Promise<POSCheckoutSettings> {
-  const companyProfile = await prisma.companyProfile.findFirst({
-    select: {
-      posServiceChargePercent: true,
-      posTaxPercent: true,
-      posAdditionalFeeAmount: true,
-      posAdditionalFeeLabel: true,
-    },
+  const feeLines = await prisma.pOSFeeSetting.findMany({
+    where: { isActive: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
   return {
-    serviceChargePercent: Number(companyProfile?.posServiceChargePercent || 0),
-    taxPercent: Number(companyProfile?.posTaxPercent || 0),
-    additionalFeeAmount: Number(companyProfile?.posAdditionalFeeAmount || 0),
-    additionalFeeLabel: companyProfile?.posAdditionalFeeLabel || "",
+    feeLines: feeLines.map((line) => ({
+      id: line.id,
+      name: line.name,
+      category: line.category as "TAX" | "FEE",
+      valueType: line.valueType as "PERCENTAGE" | "FIXED",
+      value: Number(line.value || 0),
+      sortOrder: line.sortOrder,
+      isActive: line.isActive,
+    })),
   };
 }
 
@@ -357,10 +363,13 @@ export async function processPOSTransaction(
   amountPaid: number,
   globalDiscount: number = 0,
   feeBreakdown: {
-    serviceChargeAmount: number;
-    taxAmount: number;
-    additionalFeeAmount: number;
-    additionalFeeLabel?: string;
+    lines: {
+      name: string;
+      category: "TAX" | "FEE";
+      valueType: "PERCENTAGE" | "FIXED";
+      value: number;
+      amount: number;
+    }[];
   },
   customerId?: string,
   diningSpotId?: string,
