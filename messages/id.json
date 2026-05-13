@@ -695,6 +695,8 @@
         "no_transactions_found": "Transaksi tidak ditemukan.",
         "select_account_to_view": "Pilih akun untuk melihat transaksi.",
         "financial_reports": "Laporan Keuangan",
+        "full_report": "Laporan Gabungan",
+        "full_report_desc": "Ringkasan gabungan Laba Rugi, Neraca, dan Arus Kas dalam satu halaman.",
         "profit_loss_desc": "Analisis pendapatan, pengeluaran, dan laba bersih Anda selama periode tertentu.",
         "balance_sheet_desc": "Lihat aset, kewajiban, dan ekuitas Anda pada titik waktu tertentu.",
         "cash_flow": "Arus Kas",

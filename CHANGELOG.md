@@ -8,6 +8,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased] - 2026-05-08
 
 ### Added
+- Menambahkan laporan gabungan baru `Accounting > Reports > Full Report` (`/accounting/reports/full`) yang menggabungkan Profit & Loss, Balance Sheet, dan Cash Flow dalam satu halaman dengan filter periode, as-of date, serta mode komparatif.
 - Menambahkan halaman baru `Inventory > Adjustments` (`/inventory/adjustments`) dengan UI table inline edit untuk stock opname/penyesuaian: input `actual stock` per produk, catatan per baris, catatan header, preview selisih (`diff`) dan dampak nominal.
 - Menambahkan halaman admin baru `Settings > Data Reset` (`/admin/settings/data-reset`) untuk reset data transaksi secara cepat saat testing (purchase/sales/POS/movement/journal/outbox) tanpa menghapus user dan master data.
 - Menambahkan unit test `lib/accounting/account-name-i18n.test.ts` untuk validasi mapping nama akun bilingual, fallback akun custom, dan formatting label akun.

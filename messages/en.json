@@ -695,6 +695,8 @@
         "no_transactions_found": "No transactions found.",
         "select_account_to_view": "Select an account to view transactions.",
         "financial_reports": "Financial Reports",
+        "full_report": "Full Report",
+        "full_report_desc": "Combined Profit & Loss, Balance Sheet, and Cash Flow summary in one page.",
         "profit_loss_desc": "Analyze your revenue, expenses, and net income over a specific period.",
         "balance_sheet_desc": "View your assets, liabilities, and equity at a specific point in time.",
         "cash_flow": "Cash Flow",

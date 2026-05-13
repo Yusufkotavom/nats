@@ -15,6 +15,7 @@ import {
   ArrowLeftRight,
   TrendingUp,
   Percent,
+  FileText,
 } from "lucide-react";
 
 import { useTranslations } from "next-intl";
@@ -23,6 +24,12 @@ export default function ReportsPage() {
   const t = useTranslations("Accounting");
   const tCommon = useTranslations("Common");
   const reports = [
+    {
+      title: t("full_report"),
+      description: t("full_report_desc"),
+      href: "/accounting/reports/full",
+      icon: FileText,
+    },
     {
       title: t("profit_loss"),
       description: t("profit_loss_desc"),
