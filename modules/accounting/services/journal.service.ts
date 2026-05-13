@@ -342,13 +342,14 @@ export class JournalService {
                 );
             }
 
-            // 2. Lock Accounts (Pessimistic Locking)
+            // 2. Acquire per-account transaction advisory locks in stable order.
+            // This avoids FK lock-upgrade deadlocks caused by SELECT ... FOR UPDATE on Account rows.
             const uniqueAccountIds = Array.from(
                 new Set(existingEntry.lines.map((line) => line.accountId))
             ).sort();
 
             for (const accountId of uniqueAccountIds) {
-                await db.$executeRaw`SELECT 1 FROM "Account" WHERE id = ${accountId} FOR UPDATE`;
+                await db.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${accountId}))`;
             }
 
             // 3. Update Status

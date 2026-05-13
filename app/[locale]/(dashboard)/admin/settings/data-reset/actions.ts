@@ -9,6 +9,12 @@ type ResetTransactionsResult = {
 };
 
 const CONFIRMATION_TEXT = "RESET TRANSACTIONS";
+const DEADLOCK_RETRY_LIMIT = 3;
+const DEADLOCK_WAIT_MS = 250;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export const resetTransactionalData = authorizedAction<
   ResetTransactionsResult,
@@ -21,51 +27,75 @@ export const resetTransactionalData = authorizedAction<
     };
   }
 
-  const deleted = await prisma.$transaction(async (tx) => {
-    const result: Record<string, number> = {};
+  let deleted: Record<string, number> | null = null;
+  let lastError: unknown = null;
 
-    result.integrationInbox = (await tx.integrationInbox.deleteMany({})).count;
-    result.integrationOutbox = (await tx.integrationOutbox.deleteMany({})).count;
+  for (let attempt = 1; attempt <= DEADLOCK_RETRY_LIMIT; attempt++) {
+    try {
+      deleted = await prisma.$transaction(async (tx) => {
+        const result: Record<string, number> = {};
 
-    result.purchasePayments = (await tx.purchasePayment.deleteMany({})).count;
-    result.purchaseInvoiceItems = (await tx.purchaseInvoiceItem.deleteMany({})).count;
-    result.purchaseInvoices = (await tx.purchaseInvoice.deleteMany({})).count;
-    result.purchaseReceiveItems = (await tx.purchaseReceiveItem.deleteMany({})).count;
-    result.purchaseReceives = (await tx.purchaseReceive.deleteMany({})).count;
-    result.purchaseReturnItems = (await tx.purchaseReturnItem.deleteMany({})).count;
-    result.purchaseReturns = (await tx.purchaseReturn.deleteMany({})).count;
-    result.purchaseOrderItems = (await tx.purchaseOrderItem.deleteMany({})).count;
-    result.purchaseOrders = (await tx.purchaseOrder.deleteMany({})).count;
+        result.integrationInbox = (await tx.integrationInbox.deleteMany({})).count;
+        result.integrationOutbox = (await tx.integrationOutbox.deleteMany({})).count;
 
-    result.salesPayments = (await tx.salesPayment.deleteMany({})).count;
-    result.salesReturnItems = (await tx.salesReturnItem.deleteMany({})).count;
-    result.salesReturns = (await tx.salesReturn.deleteMany({})).count;
-    result.salesShipmentItems = (await tx.salesShipmentItem.deleteMany({})).count;
-    result.salesShipments = (await tx.salesShipment.deleteMany({})).count;
-    result.salesInvoiceItems = (await tx.salesInvoiceItem.deleteMany({})).count;
-    result.salesInvoices = (await tx.salesInvoice.deleteMany({})).count;
-    result.salesOrderItems = (await tx.salesOrderItem.deleteMany({})).count;
-    result.salesOrders = (await tx.salesOrder.deleteMany({})).count;
+        result.purchasePayments = (await tx.purchasePayment.deleteMany({})).count;
+        result.purchaseInvoiceItems = (await tx.purchaseInvoiceItem.deleteMany({})).count;
+        result.purchaseInvoices = (await tx.purchaseInvoice.deleteMany({})).count;
+        result.purchaseReceiveItems = (await tx.purchaseReceiveItem.deleteMany({})).count;
+        result.purchaseReceives = (await tx.purchaseReceive.deleteMany({})).count;
+        result.purchaseReturnItems = (await tx.purchaseReturnItem.deleteMany({})).count;
+        result.purchaseReturns = (await tx.purchaseReturn.deleteMany({})).count;
+        result.purchaseOrderItems = (await tx.purchaseOrderItem.deleteMany({})).count;
+        result.purchaseOrders = (await tx.purchaseOrder.deleteMany({})).count;
 
-    result.cashTransactionAllocations = (await tx.cashTransactionAllocation.deleteMany({})).count;
-    result.cashTransactions = (await tx.cashTransaction.deleteMany({})).count;
-    result.cashTransfers = (await tx.cashTransfer.deleteMany({})).count;
+        result.salesPayments = (await tx.salesPayment.deleteMany({})).count;
+        result.salesReturnItems = (await tx.salesReturnItem.deleteMany({})).count;
+        result.salesReturns = (await tx.salesReturn.deleteMany({})).count;
+        result.salesShipmentItems = (await tx.salesShipmentItem.deleteMany({})).count;
+        result.salesShipments = (await tx.salesShipment.deleteMany({})).count;
+        result.salesInvoiceItems = (await tx.salesInvoiceItem.deleteMany({})).count;
+        result.salesInvoices = (await tx.salesInvoice.deleteMany({})).count;
+        result.salesOrderItems = (await tx.salesOrderItem.deleteMany({})).count;
+        result.salesOrders = (await tx.salesOrder.deleteMany({})).count;
 
-    result.posSessions = (await tx.pOSSession.deleteMany({})).count;
-    result.heldOrders = (await tx.heldOrder.deleteMany({})).count;
-    result.diningSpotSessions = (await tx.diningSpotSession.deleteMany({})).count;
+        result.cashTransactionAllocations = (await tx.cashTransactionAllocation.deleteMany({})).count;
+        result.cashTransactions = (await tx.cashTransaction.deleteMany({})).count;
+        result.cashTransfers = (await tx.cashTransfer.deleteMany({})).count;
 
-    result.inventoryMovementDetails = (await tx.inventoryMovementDetail.deleteMany({})).count;
-    result.inventoryMovements = (await tx.inventoryMovement.deleteMany({})).count;
-    result.inventories = (await tx.inventory.deleteMany({})).count;
+        result.posSessions = (await tx.pOSSession.deleteMany({})).count;
+        result.heldOrders = (await tx.heldOrder.deleteMany({})).count;
+        result.diningSpotSessions = (await tx.diningSpotSession.deleteMany({})).count;
 
-    result.journalEntryLines = (await tx.journalEntryLine.deleteMany({})).count;
-    result.journalEntries = (await tx.journalEntry.deleteMany({})).count;
+        result.inventoryMovementDetails = (await tx.inventoryMovementDetail.deleteMany({})).count;
+        result.inventoryMovements = (await tx.inventoryMovement.deleteMany({})).count;
+        result.inventories = (await tx.inventory.deleteMany({})).count;
 
-    result.reportLogs = (await tx.reportLog.deleteMany({})).count;
+        result.journalEntryLines = (await tx.journalEntryLine.deleteMany({})).count;
+        result.journalEntries = (await tx.journalEntry.deleteMany({})).count;
 
-    return result;
-  });
+        result.reportLogs = (await tx.reportLog.deleteMany({})).count;
+
+        return result;
+      });
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message.toLowerCase() : "";
+      const isDeadlock = message.includes("deadlock");
+      if (!isDeadlock || attempt === DEADLOCK_RETRY_LIMIT) {
+        break;
+      }
+      await sleep(DEADLOCK_WAIT_MS * attempt);
+    }
+  }
+
+  if (!deleted) {
+    if (lastError instanceof Error) {
+      return { success: false, error: `Failed to reset transactions: ${lastError.message}` };
+    }
+    return { success: false, error: "Failed to reset transactions" };
+  }
 
   revalidatePath("/purchase");
   revalidatePath("/sales");
@@ -104,4 +134,3 @@ export async function getResetPreviewCounts() {
     journalEntries,
   };
 }
-
