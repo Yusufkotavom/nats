@@ -12,6 +12,7 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SelectItem } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SuperJSON } from "@/lib/superjson";
 import { createQuickPurchase } from "../actions";
 import { QuickPurchaseMode, QuickPurchaseResult } from "../types";
@@ -20,6 +21,8 @@ type FormDataSource = {
   vendors: { id: string; name: string }[];
   products: { id: string; name: string; sku: string; cost: number }[];
   cashAccounts: { id: string; name: string }[];
+  departments: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
 };
 
 type ItemRow = {
@@ -37,6 +40,8 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
   const [mode, setMode] = useState<QuickPurchaseMode>("CASH_DAILY");
   const [contactId, setContactId] = useState("");
   const [cashAccountId, setCashAccountId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [transactionDate, setTransactionDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -100,6 +105,8 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
         transactionDate: new Date(transactionDate),
         dueDate: mode === "MONTHLY_CREDIT" && dueDate ? new Date(dueDate) : undefined,
         downPaymentAmount: mode === "PREORDER_DP" ? downPaymentAmount : undefined,
+        departmentId: departmentId || undefined,
+        projectId: projectId || undefined,
         notes: notes || undefined,
         items: validItems.map((row) => ({
           productId: row.productId,
@@ -167,6 +174,32 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
               </SelectItem>
             ))}
           </CustomSelect>
+
+          <div className="space-y-2">
+            <Label>Department</Label>
+            <SearchableSelect
+              value={departmentId}
+              onValueChange={(value) => setDepartmentId(value)}
+              options={data.departments.map((department) => ({
+                value: department.id,
+                label: department.name,
+              }))}
+              placeholder="Select Department"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Project</Label>
+            <SearchableSelect
+              value={projectId}
+              onValueChange={(value) => setProjectId(value)}
+              options={data.projects.map((project) => ({
+                value: project.id,
+                label: project.name,
+              }))}
+              placeholder="Select Project"
+            />
+          </div>
 
           <CustomInput
             label="Tanggal Transaksi"

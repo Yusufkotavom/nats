@@ -16,6 +16,8 @@ export default async function QuickPurchasePage() {
     vendors: { id: string; name: string }[];
     products: { id: string; name: string; sku: string; cost: number }[];
     cashAccounts: { id: string; name: string }[];
+    departments: { id: string; name: string }[];
+    projects: { id: string; name: string }[];
   }>(serialized);
 
   return <QuickPurchaseForm data={data} />;

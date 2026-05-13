@@ -149,6 +149,13 @@ describe("createQuickPurchase", () => {
         status: "COMPLETED",
       }));
       expect(createPurchaseInvoiceMock).toHaveBeenCalledOnce();
+      expect(createPurchaseInvoiceMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.not.objectContaining({ productId: expect.any(String) }),
+          ]),
+        }),
+      );
       expect(postPurchaseInvoiceMock).toHaveBeenCalledWith("inv-001");
       expect(createPurchasePaymentMock).toHaveBeenCalledWith(
         expect.objectContaining({

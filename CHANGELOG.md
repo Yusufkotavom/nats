@@ -37,6 +37,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Fail path untuk setiap langkah orkestrasi (receive creation/completion, invoice creation/posting, payment creation/posting)
 
 ### Fixed
+- Memperbaiki alur `Quick Purchase` agar pembuatan `Purchase Invoice` tidak lagi mengirim field item yang sudah tidak ada di schema (`productId`/`purchaseOrderItemId`), sehingga error Prisma `Unknown argument 'productId'` saat proses quick order teratasi.
 - Memperbaiki renderer halaman docs agar markdown tidak tampil plain:
   - mengaktifkan `remark-gfm` pada `ReactMarkdown` untuk mendukung tabel/list GFM,
   - menambahkan styling render tabel agar terbaca baik (termasuk overflow horizontal),
@@ -45,6 +46,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Menyelaraskan UI `Purchase > Quick Purchase` dengan pola form `Purchase Invoice` dengan menambahkan dimensi konteks transaksi yang sama (`Department` dan `Project`) serta sumber data select-nya pada loader form quick purchase.
 - Mengubah konfigurasi biaya POS dari model tunggal menjadi **multi fee lines** di `Admin > Settings > POS`:
   - biaya dapat ditambah satu per satu (add/remove),
   - tiap baris biaya bisa ditentukan kategori (`Tax`/`Fee`) dan tipe nilai (`Percentage`/`Fixed`),

@@ -193,9 +193,7 @@ export class PurchaseInvoiceService {
                     tax: calculated.taxAmount.toNumber(),
                     taxRateId: item.taxRateId,
                     taxRateSnapshot,
-                    productId: (item as PurchaseInvoiceInput["items"][number] & { productId?: string }).productId,
                     accountId: item.accountId,
-                    purchaseOrderItemId: (item as PurchaseInvoiceInput["items"][number] & { purchaseOrderItemId?: string }).purchaseOrderItemId,
                 },
                 calculated,
             };

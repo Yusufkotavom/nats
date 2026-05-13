@@ -243,9 +243,7 @@ export const updatePurchaseInvoice = authorizedAction(
           tax: calculated.taxAmount.toNumber(),
           taxRateId: item.taxRateId,
           taxRateSnapshot: taxRateSnapshot,
-          productId: item.productId,
           accountId: item.accountId,
-          purchaseOrderItemId: item.purchaseOrderItemId,
           _calculated: calculated
         };
       });

@@ -17,6 +17,8 @@ type QuickPurchaseFormData = {
   vendors: { id: string; name: string }[];
   products: { id: string; name: string; sku: string; cost: number }[];
   cashAccounts: { id: string; name: string }[];
+  departments: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
 };
 
 export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
@@ -26,10 +28,12 @@ export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
       vendors: [],
       products: [],
       cashAccounts: [],
+      departments: [],
+      projects: [],
     });
   }
 
-  const [vendors, products, cashAccounts] = await Promise.all([
+  const [vendors, products, cashAccounts, departments, projects] = await Promise.all([
     prisma.contact.findMany({
       where: { type: "VENDOR", isActive: true },
       orderBy: { name: "asc" },
@@ -45,12 +49,24 @@ export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    prisma.department.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.project.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
 
   return SuperJSON.serialize<QuickPurchaseFormData>({
     vendors,
     products: products.map((p) => ({ ...p, cost: Number(p.cost) })),
     cashAccounts,
+    departments,
+    projects,
   });
 }
 
@@ -122,7 +138,6 @@ export const createQuickPurchase = authorizedAction(
           unitPrice: item.unitCost,
           discount: 0,
           tax: 0,
-          productId: item.productId,
         })),
       };
 
