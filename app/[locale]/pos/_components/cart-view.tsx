@@ -45,6 +45,12 @@ interface CartViewProps {
   onClear: () => void;
   session: any;
   selectedDiningSpotId?: string;
+  checkoutSettings: {
+    serviceChargePercent: number;
+    taxPercent: number;
+    additionalFeeAmount: number;
+    additionalFeeLabel: string;
+  };
 }
 
 export function CartView({
@@ -57,6 +63,7 @@ export function CartView({
   onClear,
   session,
   selectedDiningSpotId,
+  checkoutSettings,
 }: CartViewProps) {
   const t = useTranslations("POS");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -119,10 +126,13 @@ export function CartView({
     (acc, item) => acc + (item.discount || 0),
     0,
   );
-  const tax = 0; // TODO: Implement tax logic
+  const taxableBase = Math.max(0, subtotal - totalItemDiscounts - globalDiscount);
+  const serviceChargeAmount = taxableBase * ((checkoutSettings.serviceChargePercent || 0) / 100);
+  const tax = (taxableBase + serviceChargeAmount) * ((checkoutSettings.taxPercent || 0) / 100);
+  const additionalFeeAmount = checkoutSettings.additionalFeeAmount || 0;
   const total = Math.max(
     0,
-    subtotal - totalItemDiscounts - globalDiscount + tax,
+    taxableBase + serviceChargeAmount + tax + additionalFeeAmount,
   );
 
   const handleCheckout = async (
@@ -147,6 +157,12 @@ export function CartView({
         method,
         amount,
         globalDiscount,
+        {
+          serviceChargeAmount,
+          taxAmount: tax,
+          additionalFeeAmount,
+          additionalFeeLabel: checkoutSettings.additionalFeeLabel,
+        },
         customerId,
         selectedDiningSpotId,
       );
@@ -434,9 +450,21 @@ export function CartView({
             )}
           </div>
           <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">{t("service_charge")}</span>
+            <span>{formatCurrency(serviceChargeAmount)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t("tax")}</span>
             <span>{formatCurrency(tax)}</span>
           </div>
+          {additionalFeeAmount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                {checkoutSettings.additionalFeeLabel || t("additional_fee")}
+              </span>
+              <span>{formatCurrency(additionalFeeAmount)}</span>
+            </div>
+          )}
           <Separator className="my-2" />
           <div className="flex justify-between text-lg font-bold">
             <span>{t("total")}</span>

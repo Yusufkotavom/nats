@@ -113,6 +113,18 @@ export function POSReceiptHtmlPreview({
               <span>-{formatMoney(invoice.globalDiscount, locale, currency)}</span>
             </div>
           ) : null}
+          {toNumber(invoice.totalTax) > 0 ? (
+            <div className="flex justify-between gap-3">
+              <span>{t("tax")}</span>
+              <span>{formatMoney(invoice.totalTax, locale, currency)}</span>
+            </div>
+          ) : null}
+          {toNumber(invoice.shippingCost) > 0 ? (
+            <div className="flex justify-between gap-3">
+              <span>{t("additional_fee")}</span>
+              <span>{formatMoney(invoice.shippingCost, locale, currency)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between gap-3 text-sm font-bold uppercase">
             <span>{t("total")}</span>
             <span>{formatMoney(invoice.totalAmount, locale, currency)}</span>

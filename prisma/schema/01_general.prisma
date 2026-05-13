@@ -1,21 +1,25 @@
 // GENERAL TABLE
 model CompanyProfile {
-  id             String   @id @default(cuid())
-  name           String
-  address        String?
-  phone          String?
-  email          String?
-  website        String?
-  taxId          String?
-  currency       String   @default("USD")
-  currencySymbol String   @default("$")
-  dateFormat     String   @default("MM/dd/yyyy")
-  currencyFormat String   @default("standard")
-  locale         String   @default("en-US")
-  timezone       String   @default("UTC")
-  posProductVisibilityMode String @default("POS_ONLY") // POS_ONLY | ALL_ACTIVE
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                       String   @id @default(cuid())
+  name                     String
+  address                  String?
+  phone                    String?
+  email                    String?
+  website                  String?
+  taxId                    String?
+  currency                 String   @default("USD")
+  currencySymbol           String   @default("$")
+  dateFormat               String   @default("MM/dd/yyyy")
+  currencyFormat           String   @default("standard")
+  locale                   String   @default("en-US")
+  timezone                 String   @default("UTC")
+  posProductVisibilityMode String   @default("POS_ONLY") // POS_ONLY | ALL_ACTIVE
+  posServiceChargePercent  Decimal  @default(0)
+  posTaxPercent            Decimal  @default(0)
+  posAdditionalFeeAmount   Decimal  @default(0)
+  posAdditionalFeeLabel    String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 }
 
 model AuditLog {

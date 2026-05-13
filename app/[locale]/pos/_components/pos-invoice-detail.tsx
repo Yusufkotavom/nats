@@ -203,6 +203,12 @@ export function POSInvoiceDetail({
                   <span className="text-muted-foreground">{t("tax")}</span>
                   <span>{formatCurrency(invoice.totalTax || 0)}</span>
                 </div>
+                {Number(invoice.shippingCost || 0) > 0 && (
+                  <div className="flex w-[250px] justify-between text-sm">
+                    <span className="text-muted-foreground">{t("additional_fee")}</span>
+                    <span>{formatCurrency(invoice.shippingCost || 0)}</span>
+                  </div>
+                )}
                 <Separator className="my-2 w-[250px]" />
                 <div className="flex w-[250px] justify-between text-lg font-bold">
                   <span>{t("total")}</span>

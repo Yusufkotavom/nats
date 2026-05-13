@@ -82,6 +82,12 @@ describe("POSTransactionService", () => {
         ];
         const mockPaymentMethod = "CASH";
         const mockAmountPaid = 200;
+        const zeroFeeBreakdown = {
+            serviceChargeAmount: 0,
+            taxAmount: 0,
+            additionalFeeAmount: 0,
+            additionalFeeLabel: "",
+        };
 
         it("should process a POS transaction successfully", async () => {
             // Mock $transaction to execute callback immediately
@@ -168,7 +174,9 @@ describe("POSTransactionService", () => {
                 mockSessionId,
                 mockItems,
                 mockPaymentMethod,
-                mockAmountPaid
+                mockAmountPaid,
+                0,
+                zeroFeeBreakdown,
             );
 
             // Verifications
@@ -299,7 +307,14 @@ describe("POSTransactionService", () => {
                 .mockResolvedValueOnce({ id: "outbox-pay", alreadyQueued: false });
             maybeProcessIntegrationOutboxEventMock.mockResolvedValue({ processed: true });
 
-            await POSTransactionService.process(mockSessionId, mockItems, mockPaymentMethod, mockAmountPaid);
+            await POSTransactionService.process(
+                mockSessionId,
+                mockItems,
+                mockPaymentMethod,
+                mockAmountPaid,
+                0,
+                zeroFeeBreakdown,
+            );
 
             expect(createInventoryMovementMock).toHaveBeenCalledWith(
                 prismaMock,
@@ -356,7 +371,14 @@ describe("POSTransactionService", () => {
             });
 
             await expect(
-                POSTransactionService.process(mockSessionId, mockItems, mockPaymentMethod, mockAmountPaid),
+                POSTransactionService.process(
+                    mockSessionId,
+                    mockItems,
+                    mockPaymentMethod,
+                    mockAmountPaid,
+                    0,
+                    zeroFeeBreakdown,
+                ),
             ).rejects.toThrow("Current inventory quantity only supports integer values");
         });
 
@@ -374,7 +396,9 @@ describe("POSTransactionService", () => {
                 mockSessionId,
                 mockItems,
                 mockPaymentMethod,
-                mockAmountPaid
+                mockAmountPaid,
+                0,
+                zeroFeeBreakdown,
             )).rejects.toThrow("Session is not open");
         });
 
@@ -399,6 +423,7 @@ describe("POSTransactionService", () => {
                     mockPaymentMethod,
                     mockAmountPaid,
                     0,
+                    zeroFeeBreakdown,
                     undefined,
                     "spot-1",
                 ),
@@ -471,6 +496,7 @@ describe("POSTransactionService", () => {
                 mockPaymentMethod,
                 mockAmountPaid,
                 0,
+                zeroFeeBreakdown,
                 undefined,
                 "spot-1",
             );

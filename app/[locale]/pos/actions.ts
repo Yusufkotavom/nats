@@ -12,6 +12,13 @@ import { HeldOrderService } from "@/modules/pos/services/held-order.service";
 import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
 import { POSCartItem } from "./types";
 
+export type POSCheckoutSettings = {
+  serviceChargePercent: number;
+  taxPercent: number;
+  additionalFeeAmount: number;
+  additionalFeeLabel: string;
+};
+
 export async function getPOSSessions() {
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "pos.access")) {
@@ -139,6 +146,24 @@ export async function getPOSProducts(
     total,
     hasMore: page * pageSize < total,
   });
+}
+
+export async function getPOSCheckoutSettings(): Promise<POSCheckoutSettings> {
+  const companyProfile = await prisma.companyProfile.findFirst({
+    select: {
+      posServiceChargePercent: true,
+      posTaxPercent: true,
+      posAdditionalFeeAmount: true,
+      posAdditionalFeeLabel: true,
+    },
+  });
+
+  return {
+    serviceChargePercent: Number(companyProfile?.posServiceChargePercent || 0),
+    taxPercent: Number(companyProfile?.posTaxPercent || 0),
+    additionalFeeAmount: Number(companyProfile?.posAdditionalFeeAmount || 0),
+    additionalFeeLabel: companyProfile?.posAdditionalFeeLabel || "",
+  };
 }
 
 export async function getPOSCategories() {
@@ -331,6 +356,12 @@ export async function processPOSTransaction(
   paymentMethod: "CASH" | "CARD" | "QRIS",
   amountPaid: number,
   globalDiscount: number = 0,
+  feeBreakdown: {
+    serviceChargeAmount: number;
+    taxAmount: number;
+    additionalFeeAmount: number;
+    additionalFeeLabel?: string;
+  },
   customerId?: string,
   diningSpotId?: string,
 ): Promise<
@@ -350,6 +381,7 @@ export async function processPOSTransaction(
       paymentMethod,
       amountPaid,
       globalDiscount,
+      feeBreakdown,
       customerId,
       diningSpotId,
     );

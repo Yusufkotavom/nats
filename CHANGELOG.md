@@ -8,6 +8,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased] - 2026-05-08
 
 ### Added
+- Menambahkan halaman admin baru `Settings > Data Reset` (`/admin/settings/data-reset`) untuk reset data transaksi secara cepat saat testing (purchase/sales/POS/movement/journal/outbox) tanpa menghapus user dan master data.
 - Menambahkan unit test `lib/accounting/account-name-i18n.test.ts` untuk validasi mapping nama akun bilingual, fallback akun custom, dan formatting label akun.
 - Menambahkan test `prisma/seed/restaurant-minimal-accounting.test.ts` untuk memastikan mode akun minimal restoran tetap memetakan semua `DefaultAccountPurpose` dan semua kode akun mapping termasuk dalam daftar akun aktif minimal.
 - Menambahkan baseline contact pada `seed-restaurant-minimal` untuk operasional hari pertama: `Walk-in Customer` (customer default POS) dan `General Vendor` (vendor default purchasing).
@@ -44,6 +45,14 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Memusatkan konfigurasi POS di modul `Admin > Settings > POS`:
+  - pengaturan visibilitas produk POS tetap tersedia,
+  - menambahkan pengaturan biaya checkout POS (`Service Charge %`, `Tax %`, `Additional Fee Label`, `Additional Fee Amount`) dalam satu halaman terpusat.
+- Menyelaraskan flow checkout POS agar biaya dari setting POS ikut dihitung di cart dan diposting konsisten ke transaksi:
+  - `SalesOrder.totalAmount` dan `SalesInvoice.totalAmount` sekarang mencerminkan biaya service/tax/biaya tambahan,
+  - `SalesOrder.taxAmount` dan `SalesInvoice.totalTax` menyimpan nominal pajak POS,
+  - `SalesInvoice.shippingCost` dipakai sebagai penampung total biaya tambahan non-item pada POS.
+- Menyelaraskan tampilan detail invoice/struk POS agar menampilkan komponen `Tax` dan `Additional Fee` saat nilainya ada.
 - Menyesuaikan UX daftar `Purchase Invoice`: kolom nomor invoice sekarang klikable dan langsung membuka halaman edit invoice (`/purchase/invoices/[id]/edit`) untuk mempercepat revisi dokumen draft.
 - Menyesuaikan UX daftar `Purchase Order`: kolom nomor PO sekarang klikable dan langsung membuka halaman edit PO (`/purchase/orders/[id]/edit`) untuk mempercepat workflow revisi.
 - Memperbaiki mapping default account seed (`default` dan `restaurant-minimal`) untuk `GOODS_RECEIVED_NOT_INVOICED` agar memakai akun dedicated `21110 - Goods Received Not Invoiced` (tidak lagi sama dengan `ACCOUNTS_PAYABLE`), sehingga jurnal purchase invoice tidak terlihat seperti jurnal payment.
@@ -104,6 +113,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki tombol `Create` pada form `New Purchase Invoice` dengan mengaitkan tombol submit ke elemen form (`form=\"purchase-invoice-form\"`) karena tombol berada di header di luar tag `<form>`.
 
 ### Docs
+- Memperbarui `docs/user-guide/modules/pos.md` dengan bagian baru pengaturan biaya POS terpusat (`Admin > Settings > POS`) dan dampaknya ke perhitungan total POS.
 - Memperbarui `docs/user-guide/01-setup-awal.md` untuk menjelaskan validasi default account pada seed minimal umum dan seed minimal restoran, termasuk perilaku fail-fast saat mapping tidak lengkap.
 - Memperbarui `docs/client-e2e-alignment-form.md` agar pertanyaan lebih detail namun non-teknis (lebih mudah diisi user/client operasional), lalu regenerate versi kirim `docs/client-e2e-alignment-form.docx`.
 - Memperluas dokumentasi user-facing POS di `docs/user-guide/modules/pos.md` dengan panduan operasional restoran yang lebih detail: dining spot (meja/lokasi), hold-resume, status spot, validasi checkout, dan troubleshooting cepat.

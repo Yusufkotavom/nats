@@ -36,6 +36,7 @@ export const adminPlugin: ModulePlugin = {
           items: [
             { title: "System.ai-configuration", url: "/admin/settings/ai" },
             { title: "System.pos-settings", url: "/admin/settings/pos" },
+            { title: "System.data-reset", url: "/admin/settings/data-reset" },
             { title: "System.events-dashboard", url: "/admin/dashboard" },
             { title: "System.integration-outbox", url: "/admin/integrations/outbox" },
           ],

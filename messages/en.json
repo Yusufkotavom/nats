@@ -76,7 +76,8 @@
         "add_files": "Add Files",
         "no_attachments": "No attachments",
         "placeholder_select_product": "Select product...",
-        "unit": "Unit"
+        "unit": "Unit",
+        "failed_to_update": "Failed To Update"
     },
     "Navigation": {
         "operations": "Operations",
@@ -250,7 +251,9 @@
         "reset_password_button": "Reset Password",
         "resetting_password": "Resetting...",
         "password_reset_success": "Password reset successfully. You can now login with your new password.",
-        "invalid_token": "This link is invalid or has expired."
+        "invalid_token": "This link is invalid or has expired.",
+        "success": "Success",
+        "error": "Error"
     },
     "Theme": {
         "customize": "Customize",
@@ -374,7 +377,8 @@
         "placeholder_select_method": "Select Method...",
         "placeholder_select_account": "Select Account...",
         "placeholder_reference": "e.g. Check #123",
-        "order_date": "Order Date"
+        "order_date": "Order Date",
+        "sales_invoice_optional": "Sales Invoice Optional"
     },
     "Purchase": {
         "orders": "Orders",
@@ -649,7 +653,8 @@
         "account_created_success": "Account Created Success",
         "reference": "Reference",
         "from": "From",
-        "to": "To"
+        "to": "To",
+        "account_type": "Account Type"
     },
     "Accounting": {
         "journal": "Journal Entries",
@@ -829,7 +834,8 @@
             "purchases_payables": "Purchases & Payables",
             "cash_bank": "Cash & Bank",
             "equity_others": "Equity & Others",
-            "payroll": "Payroll"
+            "payroll": "Payroll",
+            "production": "Production"
         },
         "validation_error": "Validation Error",
         "debit_credit_equal": "Total Debit and Credit must be equal.",
@@ -1027,7 +1033,6 @@
         "role_description_placeholder": "Describe the role...",
         "manage_permissions": "Manage Permissions",
         "deactivate": "Deactivate",
-        "activate": "Activate",
         "permissions_count": "Permissions ({count})",
         "more": "more",
         "permissions_registry": "Permissions Registry",
@@ -1055,6 +1060,11 @@
         "select_pos_product_visibility_mode": "Select POS product visibility mode",
         "pos_product_visibility_pos_only": "POS products only (showInPos enabled)",
         "pos_product_visibility_all_active": "All active products",
+        "pos_service_charge_percent": "Service Charge (%)",
+        "pos_tax_percent": "Tax (%)",
+        "pos_additional_fee_label": "Additional Fee Label",
+        "pos_additional_fee_label_placeholder": "Example: Service Packaging",
+        "pos_additional_fee_amount": "Additional Fee Amount",
         "manage_pos_details": "Manage global POS behavior.",
         "company_profile_updated": "Company profile updated successfully",
         "failed_update_company": "Failed to update company profile",
@@ -1139,6 +1149,13 @@
         "max_tokens": "Max Tokens",
         "settings_saved": "Settings saved",
         "ai_settings_failed": "Failed to save AI configuration",
+        "transaction_data_reset": "Transaction Data Reset",
+        "transaction_data_reset_desc": "Reset transaction records for fresh testing while keeping users and master data.",
+        "transaction_data_reset_warning": "This will permanently delete transactional records (purchase, sales, POS sessions, inventory movements, journals, and integration events). This action cannot be undone.",
+        "type_to_confirm": "Type to confirm",
+        "reset_transaction_data": "Reset Transaction Data",
+        "transaction_reset_success": "Transaction data has been reset",
+        "transaction_reset_failed": "Failed to reset transaction data",
         "model_required": "Model is required",
         "save_configuration": "Save Configuration",
         "events": "Events"
@@ -1147,6 +1164,7 @@
         "files": "Files",
         "ai-configuration": "AI Configuration",
         "pos-settings": "POS Settings",
+        "data-reset": "Data Reset",
         "events-dashboard": "Events Dashboard",
         "integration-outbox": "Integration Outbox",
         "document-numbering": "Document Numbering"
@@ -1238,7 +1256,8 @@
         "name": "Name",
         "status": "Status",
         "add_item": "Add Item",
-        "save": "Save"
+        "save": "Save",
+        "cancel": "Cancel"
     },
     "Dashboard": {
         "title": "Dashboard",
@@ -1303,6 +1322,8 @@
         "item_discounts": "Item Discounts",
         "global_discount": "Global Discount",
         "add_global_discount": "Add Global Discount",
+        "service_charge": "Service Charge",
+        "additional_fee": "Additional Fee",
         "tax": "Tax",
         "total": "Total",
         "hold": "Hold",
@@ -1418,6 +1439,7 @@
         "no_sessions_found": "No sessions found.",
         "status": "Status",
         "thank_you": "Thank you for your purchase!",
-        "come_again": "Please come again."
+        "come_again": "Please come again.",
+        "clear_cart": "Clear Cart"
     }
 }

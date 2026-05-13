@@ -51,6 +51,7 @@ import { useTranslations } from "next-intl";
 import { useDebounce } from "use-debounce";
 import { POSCartItem, POSProduct } from "../types";
 import { POSDiningSpot } from "../types";
+import { POSCheckoutSettings } from "../actions";
 import {
   Tooltip,
   TooltipContent,
@@ -63,6 +64,7 @@ interface POSViewProps {
   categories: SuperJSONResult;
   session: SuperJSONResult;
   diningSpots: SuperJSONResult;
+  checkoutSettings: POSCheckoutSettings;
 }
 
 export function POSView({
@@ -70,6 +72,7 @@ export function POSView({
   categories: serializedCategories,
   session: serializedSession,
   diningSpots: serializedDiningSpots,
+  checkoutSettings,
 }: POSViewProps) {
   const t = useTranslations("POS");
   const initialData = SuperJSON.deserialize<{
@@ -601,6 +604,7 @@ export function POSView({
             onClear={clearCart}
             session={session}
             selectedDiningSpotId={selectedDiningSpotId || undefined}
+            checkoutSettings={checkoutSettings}
           />
         </div>
 
@@ -633,6 +637,7 @@ export function POSView({
                   onClear={clearCart}
                   session={session}
                   selectedDiningSpotId={selectedDiningSpotId || undefined}
+                  checkoutSettings={checkoutSettings}
                 />
               </div>
             </SheetContent>

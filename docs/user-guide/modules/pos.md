@@ -2,7 +2,7 @@
 title: Modul POS
 module: pos
 order: 110
-updatedAt: 2026-05-09
+updatedAt: 2026-05-13
 summary: Operasional kasir restoran dari buka sesi, order meja/lokasi, hold-resume, sampai tutup sesi.
 related: 03-operasional-harian,modules/inventory,modules/production,modules/sales,modules/purchase,modules/accounting
 ---
@@ -33,6 +33,15 @@ Menjalankan transaksi kasir restoran secara cepat, akurat, dan sinkron ke sales,
   - `Admin > Settings > POS Settings > POS Product Visibility Mode`
   - `POS products only`: mengikuti `showInPos`.
   - `All active products`: semua produk aktif tampil di POS.
+
+## Pengaturan Biaya POS Terpusat
+- Semua setting POS dipusatkan di `Admin > Settings > POS`.
+- Pengaturan biaya yang bisa diatur:
+  - `Service Charge (%)`
+  - `Tax (%)`
+  - `Additional Fee Label` (opsional)
+  - `Additional Fee Amount`
+- Nilai biaya akan dipakai otomatis di cart POS dan ikut ke total invoice POS.
 
 ## Alur Harian POS Restoran (Disarankan)
 1. Buka POS Session (pilih warehouse dan opening cash).

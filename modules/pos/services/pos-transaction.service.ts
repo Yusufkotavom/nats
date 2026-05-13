@@ -38,6 +38,13 @@ interface POSTransactionOutboxResult {
     };
 }
 
+interface POSFeeBreakdown {
+    serviceChargeAmount: number;
+    taxAmount: number;
+    additionalFeeAmount: number;
+    additionalFeeLabel?: string;
+}
+
 export class POSTransactionService {
     static async process(
         sessionId: string,
@@ -45,6 +52,7 @@ export class POSTransactionService {
         paymentMethod: "CASH" | "CARD" | "QRIS",
         amountPaid: number,
         globalDiscount: number = 0,
+        feeBreakdown: POSFeeBreakdown,
         customerId?: string,
         diningSpotId?: string,
     ): Promise<POSTransactionOutboxResult> {
@@ -72,15 +80,27 @@ export class POSTransactionService {
                 itemsWithCalculations.map(i => i.calculated),
                 globalDiscount
             );
+            const serviceChargeAmount = new Decimal(feeBreakdown.serviceChargeAmount || 0);
+            const taxAmount = new Decimal(feeBreakdown.taxAmount || 0);
+            const additionalFeeAmount = new Decimal(feeBreakdown.additionalFeeAmount || 0);
+            const finalTotalAmount = totals.totalAmount
+                .plus(serviceChargeAmount)
+                .plus(taxAmount)
+                .plus(additionalFeeAmount);
+            const totalItemDiscount = itemsWithCalculations.reduce(
+                (sum, i) => sum.plus(i.calculated.discountAmount),
+                new Decimal(0),
+            );
 
             const salesOrder = await this.createSalesOrder(tx, {
                 contactId,
                 sessionId,
                 cashierId: session.cashierId,
                 itemsWithCalculations,
-                subtotal: totals.itemsTotal.plus(itemsWithCalculations.reduce((sum, i) => sum.plus(i.calculated.discountAmount), new Decimal(0))),
-                totalDiscount: itemsWithCalculations.reduce((sum, i) => sum.plus(i.calculated.discountAmount), new Decimal(0)).plus(globalDiscount),
-                totalAmount: totals.totalAmount,
+                subtotal: totals.itemsTotal.plus(totalItemDiscount),
+                totalDiscount: totalItemDiscount.plus(globalDiscount),
+                totalTaxAmount: taxAmount,
+                totalAmount: finalTotalAmount,
             });
 
             const salesInvoice = await this.createInvoice(tx, {
@@ -89,9 +109,12 @@ export class POSTransactionService {
                 sessionId,
                 cashierId: session.cashierId,
                 itemsWithCalculations,
-                subtotal: totals.itemsTotal.plus(itemsWithCalculations.reduce((sum, i) => sum.plus(i.calculated.discountAmount), new Decimal(0))),
+                subtotal: totals.itemsTotal.plus(totalItemDiscount),
                 globalDiscount,
-                totalAmount: totals.totalAmount,
+                totalTaxAmount: taxAmount,
+                additionalChargeAmount: serviceChargeAmount.plus(additionalFeeAmount),
+                additionalChargeLabel: feeBreakdown.additionalFeeLabel,
+                totalAmount: finalTotalAmount,
             });
 
             const payment = await this.createPayment(tx, {
@@ -100,7 +123,7 @@ export class POSTransactionService {
                 salesInvoiceId: salesInvoice.id,
                 sessionId,
                 paymentMethod,
-                totalAmount: totals.totalAmount,
+                totalAmount: finalTotalAmount,
             });
 
             const shipment = await this.createShipment(tx, {
@@ -337,6 +360,7 @@ export class POSTransactionService {
             itemsWithCalculations: { item: POSTransactionItem; calculated: any; discountPercent: Decimal }[];
             subtotal: Decimal;
             totalDiscount: Decimal;
+            totalTaxAmount: Decimal;
             totalAmount: Decimal;
         },
     ) {
@@ -352,6 +376,7 @@ export class POSTransactionService {
                 closedAt: new Date(),
                 closedById: params.cashierId,
                 subtotal: params.subtotal,
+                taxAmount: params.totalTaxAmount,
                 discountAmount: params.totalDiscount,
                 totalAmount: params.totalAmount,
                 posSessionId: params.sessionId,
@@ -379,6 +404,9 @@ export class POSTransactionService {
             itemsWithCalculations: { item: POSTransactionItem; calculated: any; discountPercent: Decimal }[];
             subtotal: Decimal;
             globalDiscount: number;
+            totalTaxAmount: Decimal;
+            additionalChargeAmount: Decimal;
+            additionalChargeLabel?: string;
             totalAmount: Decimal;
         },
     ) {
@@ -394,8 +422,13 @@ export class POSTransactionService {
                 status: "PAID",
                 subtotal: params.subtotal,
                 globalDiscount: new Decimal(params.globalDiscount),
+                totalTax: params.totalTaxAmount,
+                shippingCost: params.additionalChargeAmount,
                 totalAmount: params.totalAmount,
                 balanceDue: new Decimal(0),
+                notes: params.additionalChargeLabel
+                    ? `POS additional fee: ${params.additionalChargeLabel}`
+                    : undefined,
                 posSessionId: params.sessionId,
                 items: {
                     create: params.itemsWithCalculations.map(({ item, calculated, discountPercent }) => ({

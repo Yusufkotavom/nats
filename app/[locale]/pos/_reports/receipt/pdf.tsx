@@ -201,6 +201,18 @@ export const POSReceiptPdf = ({
               </Text>
             </View>
           )}
+          {Number(invoice.totalTax) > 0 && (
+            <View style={styles.row}>
+              <Text>{t("tax")}</Text>
+              <Text>{formatCurrency(invoice.totalTax, currencyOptions)}</Text>
+            </View>
+          )}
+          {Number(invoice.shippingCost) > 0 && (
+            <View style={styles.row}>
+              <Text>{t("additional_fee")}</Text>
+              <Text>{formatCurrency(invoice.shippingCost, currencyOptions)}</Text>
+            </View>
+          )}
           <View style={[styles.totalRow, { marginTop: 3, fontSize: 11 }]}>
             <Text>{t("total").toUpperCase()}</Text>
             <Text>{formatCurrency(invoice.totalAmount, currencyOptions)}</Text>

@@ -49,7 +49,7 @@ model HeldOrder {
   items       Json
   totalAmount Decimal
 
-  note String?
+  note        String?
   serviceType POSServiceType @default(DINE_IN)
 
   diningSpotId String?
@@ -72,21 +72,21 @@ model DiningArea {
 }
 
 model DiningSpot {
-  id          String           @id @default(cuid())
-  areaId      String
-  area        DiningArea       @relation(fields: [areaId], references: [id], onDelete: Cascade)
-  spotCode    String           @unique
-  spotName    String
-  spotType    DiningSpotType   @default(TABLE)
-  capacity    Int              @default(2)
-  status      DiningSpotStatus @default(AVAILABLE)
-  layoutX     Int?
-  layoutY     Int?
-  layoutW     Int?
-  layoutH     Int?
-  isActive    Boolean          @default(true)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String           @id @default(cuid())
+  areaId    String
+  area      DiningArea       @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  spotCode  String           @unique
+  spotName  String
+  spotType  DiningSpotType   @default(TABLE)
+  capacity  Int              @default(2)
+  status    DiningSpotStatus @default(AVAILABLE)
+  layoutX   Int?
+  layoutY   Int?
+  layoutW   Int?
+  layoutH   Int?
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   sessions   DiningSpotSession[]
   heldOrders HeldOrder[]
