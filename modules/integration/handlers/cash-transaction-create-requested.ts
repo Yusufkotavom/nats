@@ -12,8 +12,8 @@ export async function handleCashTransactionCreateRequestedAccounting(
 ) {
   const payload = cashTransactionCreateRequestedPayloadSchema.parse(payloadInput);
 
-  const existing = await tx.journalEntry.findUnique({
-    where: { id: payload.journalEntryId },
+  const existing = await tx.journalEntry.findFirst({
+    where: { entryNumber: payload.entryNumber },
     select: { id: true },
   });
 
@@ -83,19 +83,30 @@ export async function handleCashTransactionCreateRequestedCashBank(
     return;
   }
 
+  const journalEntry = await tx.journalEntry.findFirst({
+    where: { entryNumber: payload.entryNumber },
+    select: { id: true },
+  });
+
+  if (!journalEntry) {
+    throw new Error(
+      `Journal entry not found for cash transaction ${payload.transactionId} (entryNumber: ${payload.entryNumber})`
+    );
+  }
+
   await tx.cashTransaction.create({
     data: {
       id: payload.transactionId,
       cashAccountId: payload.cashAccountId,
-      contactId: payload.contactId,
-      departmentId: payload.departmentId,
-      projectId: payload.projectId,
+      contactId: payload.contactId || null,
+      departmentId: payload.departmentId || null,
+      projectId: payload.projectId || null,
       type: payload.type as CashTransactionType,
       date: new Date(payload.date),
       reference: payload.reference,
       description: payload.description,
       note: payload.notes,
-      journalEntryId: payload.journalEntryId,
+      journalEntryId: journalEntry.id,
       status: CashTransactionStatus.PENDING,
       allocations: {
         create: payload.allocations.map((a) => ({

@@ -39,6 +39,8 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Fail path untuk setiap langkah orkestrasi (receive creation/completion, invoice creation/posting, payment creation/posting)
 
 ### Fixed
+- Memperbaiki alur integrasi `Cash Bank` saat create transaksi agar relasi jurnal tidak lagi gagal FK: handler `CASH_TRANSACTION_CREATE_REQUESTED` kini mengaitkan `CashTransaction.journalEntryId` berdasarkan `entryNumber` jurnal yang benar-benar terbentuk (bukan placeholder id), serta menormalkan `contactId/departmentId/projectId` kosong menjadi `null` agar tidak memicu FK error.
+- Memperbaiki header `Inventory Movement` untuk tipe `ADJUSTMENT` agar warehouse yang dipilih tersimpan konsisten pada `fromWarehouseId` dan `toWarehouseId` (tidak hilang di histori movement).
 - Memperbaiki alur `MovementType.ADJUSTMENT` agar benar-benar memperbarui kuantitas stok (sebelumnya belum mengubah stok), termasuk skenario penyesuaian naik/turun.
 - Menambahkan posting jurnal otomatis saat `Stock Adjustment` diposting:
   - selisih negatif: `Dr Uncategorized Expense / Cr Inventory Asset`,
