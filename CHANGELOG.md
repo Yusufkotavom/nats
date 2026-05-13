@@ -56,6 +56,7 @@ dan proyek ini mematuhi [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Memperbaiki test purchase/sales service yang gagal karena import chain `lib/auth/auth.ts` -> `next-intl/server` dengan menambahkan mock lengkap di setiap test file.
 
 ### Changed
+- Merombak pengalaman `/docs` menjadi shell dokumentasi resmi ala Nextra: topbar docs khusus, sidebar navigasi sectioned (desktop + mobile drawer), breadcrumb, pager prev/next berbasis kartu, TOC sticky dengan active heading sync, dan search docs lokal (client-side) dari judul/slug/ringkasan.
 - Menambahkan dukungan `product bundle/paket` berbasis BOM aktif pada alur `Sales Shipment` saat status diubah ke `COMPLETED`: stok dan COGS kini otomatis dikonsumsi dari komponen BOM jika tersedia, dengan fallback ke produk jual langsung jika BOM tidak ada.
 - Menambahkan shortcut menu sidebar `HR > Salary Structures` yang mengarah langsung ke `/hr/payroll/salary-structures` untuk mempercepat setup struktur gaji.
 - Menyelaraskan UI `Purchase > Quick Purchase` dengan pola form `Purchase Invoice` dengan menambahkan dimensi konteks transaksi yang sama (`Department` dan `Project`) serta sumber data select-nya pada loader form quick purchase.

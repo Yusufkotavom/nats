@@ -1438,6 +1438,18 @@
         "save": "Simpan",
         "cancel": "Cancel"
     },
+    "Docs": {
+        "documentation": "Dokumentasi",
+        "official_docs": "Dokumen Resmi",
+        "search_placeholder": "Cari dokumen...",
+        "no_results": "Dokumen tidak ditemukan.",
+        "last_updated": "Terakhir diperbarui",
+        "related_docs": "Dokumen Terkait",
+        "previous": "Sebelumnya",
+        "next": "Berikutnya",
+        "on_this_page": "Di halaman ini",
+        "no_sections": "Tidak ada heading section."
+    },
     "Dashboard": {
         "title": "Dasbor",
         "total_revenue": "Total Pendapatan",

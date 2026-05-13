@@ -1272,6 +1272,18 @@
         "save": "Save",
         "cancel": "Cancel"
     },
+    "Docs": {
+        "documentation": "Documentation",
+        "official_docs": "Official Docs",
+        "search_placeholder": "Search docs...",
+        "no_results": "No matching docs found.",
+        "last_updated": "Last updated",
+        "related_docs": "Related Docs",
+        "previous": "Previous",
+        "next": "Next",
+        "on_this_page": "On this page",
+        "no_sections": "No section headings."
+    },
     "Dashboard": {
         "title": "Dashboard",
         "total_revenue": "Total Revenue",
