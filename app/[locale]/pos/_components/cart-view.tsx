@@ -45,6 +45,8 @@ interface CartViewProps {
   onClear: () => void;
   session: any;
   selectedDiningSpotId?: string;
+  selectedDiningSpotName?: string;
+  selectedDiningSpotStatus?: "AVAILABLE" | "ORDERING" | "BILLING" | "CLOSED";
 }
 
 export function CartView({
@@ -57,6 +59,8 @@ export function CartView({
   onClear,
   session,
   selectedDiningSpotId,
+  selectedDiningSpotName,
+  selectedDiningSpotStatus,
 }: CartViewProps) {
   const t = useTranslations("POS");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -74,6 +78,12 @@ export function CartView({
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const router = useRouter();
 
+  const canTransactWithSpot =
+    !!selectedDiningSpotId &&
+    !!selectedDiningSpotStatus &&
+    selectedDiningSpotStatus !== "AVAILABLE" &&
+    selectedDiningSpotStatus !== "CLOSED";
+
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (
@@ -85,7 +95,16 @@ export function CartView({
  
       if (e.key === "F9") {
         e.preventDefault();
-        if (cart.length > 0) setCheckoutOpen(true);
+        if (cart.length > 0) {
+          if (!canTransactWithSpot) {
+            toast({
+              variant: "destructive",
+              title: "Pilih meja/kamar aktif sebelum checkout",
+            });
+            return;
+          }
+          setCheckoutOpen(true);
+        }
       } else if (e.key === "F8") {
         e.preventDefault();
         if (cart.length > 0) setHoldOpen(true);
@@ -103,13 +122,14 @@ export function CartView({
         }
       } else if (e.key === "F6") {
         e.preventDefault();
-        openGlobalDiscount();
+        setSelectedItemId(null);
+        setDiscountOpen(true);
       }
     };
  
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart, onClear, confirm, t]);
+  }, [cart, onClear, confirm, t, canTransactWithSpot, toast]);
 
   const subtotal = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
@@ -399,6 +419,20 @@ export function CartView({
 
       <div className="border-t bg-muted/10 p-4">
         <div className="space-y-2">
+          <div className="rounded-md border bg-background p-2 text-xs">
+            {selectedDiningSpotId ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Meja/kamar terpilih</span>
+                <span className="font-medium">
+                  {selectedDiningSpotName || selectedDiningSpotId}
+                </span>
+              </div>
+            ) : (
+              <div className="text-destructive">
+                Wajib pilih meja/kamar sebelum transaksi.
+              </div>
+            )}
+          </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">{t("subtotal")}</span>
             <span>{formatCurrency(subtotal)}</span>
@@ -470,7 +504,7 @@ export function CartView({
                 <Button
                   className="flex-[2] h-12 text-lg font-bold"
                   size="lg"
-                  disabled={cart.length === 0 || isProcessing}
+                  disabled={cart.length === 0 || isProcessing || !canTransactWithSpot}
                   onClick={() => setCheckoutOpen(true)}
                 >
                   <CreditCard className="mr-2 h-5 w-5" />

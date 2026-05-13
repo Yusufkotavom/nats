@@ -12,7 +12,7 @@ import {
 } from "../actions";
 import { logout } from "@/app/[locale]/auth/actions";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Search, RotateCcw, Keyboard, PowerOff, PowerOffIcon } from "lucide-react";
+import { LogOut, History, Search, RotateCcw, Keyboard, PowerOffIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -57,6 +57,32 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+const DINING_STATUS_META: Record<
+  POSDiningSpot["status"],
+  { label: string; badgeVariant: "default" | "secondary" | "outline"; dotClass: string }
+> = {
+  AVAILABLE: {
+    label: "Kosong",
+    badgeVariant: "outline",
+    dotClass: "bg-emerald-500",
+  },
+  ORDERING: {
+    label: "Sedang Pesan",
+    badgeVariant: "default",
+    dotClass: "bg-sky-500",
+  },
+  BILLING: {
+    label: "Pembayaran",
+    badgeVariant: "default",
+    dotClass: "bg-amber-500",
+  },
+  CLOSED: {
+    label: "Ditutup",
+    badgeVariant: "secondary",
+    dotClass: "bg-zinc-500",
+  },
+};
 
 interface POSViewProps {
   initialProducts: SuperJSONResult;
@@ -237,7 +263,7 @@ export function POSView({
         await closePOSSession(session.id, 0); // TODO: Dialog to enter actual cash
         toast({ title: t("session_closed") });
         router.refresh();
-      } catch (e) {
+      } catch {
         toast({ variant: "destructive", title: t("error_closing") });
       }
     }
@@ -252,6 +278,19 @@ export function POSView({
     () => diningSpots.find((spot) => spot.id === selectedDiningSpotId),
     [diningSpots, selectedDiningSpotId],
   );
+  const diningSpotSummary = useMemo(() => {
+    const totals = {
+      total: diningSpots.length,
+      AVAILABLE: 0,
+      ORDERING: 0,
+      BILLING: 0,
+      CLOSED: 0,
+    };
+    for (const spot of diningSpots) {
+      totals[spot.status] += 1;
+    }
+    return totals;
+  }, [diningSpots]);
 
   const handleOpenSpot = async () => {
     if (!selectedDiningSpotId) {
@@ -352,41 +391,6 @@ export function POSView({
       <header className="flex h-16 items-center justify-between border-b bg-background px-2 sm:px-4">
         <div className="flex items-center gap-4 flex-1">
           <h1 className="hidden text-xl font-bold lg:block">{t("pos")}</h1>
-          <div className="hidden md:flex items-center gap-2">
-            <select
-              className="h-9 rounded-md border bg-background px-2 text-sm"
-              value={selectedDiningSpotId}
-              onChange={(e) => setSelectedDiningSpotId(e.target.value)}
-            >
-              <option value="">Pilih meja/lokasi</option>
-              {diningSpots.map((spot) => (
-                <option key={spot.id} value={spot.id}>
-                  [{spot.area.name}] {spot.spotCode} - {spot.spotName}
-                </option>
-              ))}
-            </select>
-            {selectedSpot ? (
-              <Badge variant={selectedSpot.status === "AVAILABLE" ? "outline" : "default"}>
-                {selectedSpot.status}
-              </Badge>
-            ) : null}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleOpenSpot}
-              disabled={!selectedSpot || selectedSpot.status !== "AVAILABLE"}
-            >
-              Buka
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCloseSpot}
-              disabled={!selectedSpot || selectedSpot.status === "AVAILABLE"}
-            >
-              Tutup
-            </Button>
-          </div>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
@@ -535,6 +539,68 @@ export function POSView({
         </div>
       </header>
 
+      <div className="border-b bg-muted/20 px-2 py-2 sm:px-4">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <Badge variant="outline">Total spot: {diningSpotSummary.total}</Badge>
+          <Badge variant="outline">Kosong: {diningSpotSummary.AVAILABLE}</Badge>
+          <Badge variant="default">Sedang pesan: {diningSpotSummary.ORDERING}</Badge>
+          <Badge variant="default">Pembayaran: {diningSpotSummary.BILLING}</Badge>
+          <Badge variant="secondary">Ditutup: {diningSpotSummary.CLOSED}</Badge>
+          {selectedSpot ? (
+            <Badge variant={DINING_STATUS_META[selectedSpot.status].badgeVariant}>
+              Terpilih: {selectedSpot.spotCode} ({DINING_STATUS_META[selectedSpot.status].label})
+            </Badge>
+          ) : (
+            <Badge variant="secondary">Belum pilih meja/kamar</Badge>
+          )}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {diningSpots.map((spot) => {
+            const statusMeta = DINING_STATUS_META[spot.status];
+            const isSelected = selectedDiningSpotId === spot.id;
+            return (
+              <button
+                key={spot.id}
+                type="button"
+                onClick={() => setSelectedDiningSpotId(spot.id)}
+                className={`min-w-[180px] rounded-md border bg-background p-2 text-left transition ${isSelected ? "border-primary ring-1 ring-primary" : "hover:border-primary/40"
+                  }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">{spot.area.name}</span>
+                  <span className={`h-2.5 w-2.5 rounded-full ${statusMeta.dotClass}`} />
+                </div>
+                <p className="mt-1 text-sm font-semibold">
+                  {spot.spotCode} - {spot.spotName}
+                </p>
+                <div className="mt-1 flex items-center justify-between">
+                  <Badge variant={statusMeta.badgeVariant}>{statusMeta.label}</Badge>
+                  <span className="text-xs text-muted-foreground">{spot.spotType}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleOpenSpot}
+            disabled={!selectedSpot || selectedSpot.status !== "AVAILABLE"}
+          >
+            Buka meja/kamar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleCloseSpot}
+            disabled={!selectedSpot || selectedSpot.status === "AVAILABLE"}
+          >
+            Tutup meja/kamar
+          </Button>
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden relative">
         {/* Left: Product Grid */}
@@ -601,6 +667,8 @@ export function POSView({
             onClear={clearCart}
             session={session}
             selectedDiningSpotId={selectedDiningSpotId || undefined}
+            selectedDiningSpotName={selectedSpot ? `${selectedSpot.spotCode} - ${selectedSpot.spotName}` : undefined}
+            selectedDiningSpotStatus={selectedSpot?.status}
           />
         </div>
 
@@ -633,6 +701,8 @@ export function POSView({
                   onClear={clearCart}
                   session={session}
                   selectedDiningSpotId={selectedDiningSpotId || undefined}
+                  selectedDiningSpotName={selectedSpot ? `${selectedSpot.spotCode} - ${selectedSpot.spotName}` : undefined}
+                  selectedDiningSpotStatus={selectedSpot?.status}
                 />
               </div>
             </SheetContent>
