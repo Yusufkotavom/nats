@@ -32,6 +32,7 @@ Menjamin sinkronisasi penjualan POS ke persediaan secara terukur untuk operasion
 - POS sale dengan BOM aktif -> stok bahan berkurang.
 - POS sale tanpa BOM -> stok produk jual berkurang (backward compatible).
 - BOM menghasilkan kuantitas pecahan -> transaksi gagal sampai unit-konversi dibenahi.
+- Setup awal warehouse otomatis menyiapkan kategori POS baseline (`Menu Makanan`, `Menu Minuman`, `Menu Snack`, `Menu Dessert`) agar segmentasi katalog menu lebih siap pakai.
 
 ## Ekstensi Flow Restoran (Bayar Belakangan)
 

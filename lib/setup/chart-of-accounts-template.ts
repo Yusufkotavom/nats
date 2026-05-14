@@ -113,11 +113,19 @@ export const DEFAULT_UNITS = [
     { name: "Pieces", symbol: "PCS" },
     { name: "Box", symbol: "BOX" },
     { name: "Kilogram", symbol: "KG" },
+    { name: "Porsi", symbol: "PRS" },
+    { name: "Botol", symbol: "BTL" },
+    { name: "Gelas", symbol: "GLS" },
 ];
 
 /** Default product categories to seed during initial setup */
 export const DEFAULT_CATEGORIES = [
     { name: "General", description: "General products and services" },
+    { name: "Menu Makanan", description: "Produk makanan siap jual untuk POS" },
+    { name: "Menu Minuman", description: "Produk minuman siap jual untuk POS" },
+    { name: "Menu Snack", description: "Menu camilan dan side dish siap jual" },
+    { name: "Menu Dessert", description: "Menu pencuci mulut siap jual" },
+    { name: "Bahan Baku", description: "Bahan baku operasional dapur/bar" },
 ];
 
 export const SERVICE_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS.map(a => {

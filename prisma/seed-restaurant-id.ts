@@ -20,7 +20,7 @@ const d = (value: number | string) => new Decimal(value);
 const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 const daysFrom = (date: Date, days: number) => new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 
-type RestaurantProduct = {
+export type RestaurantProduct = {
   sku: string;
   name: string;
   description: string;
@@ -32,6 +32,78 @@ type RestaurantProduct = {
   outletStock: number;
   gudangStock: number;
 };
+
+export type RestaurantPackageBomSeed = {
+  bomNumber: string;
+  productSku: string;
+  name: string;
+  quantity: number;
+  components: Array<{
+    sku: string;
+    quantity: number;
+  }>;
+};
+
+export const RESTAURANT_ID_PRODUCTS: RestaurantProduct[] = [
+  { sku: "ID-MENU-NASI-TIMBEL", name: "Nasi Timbel Komplit", description: "Nasi timbel, ayam goreng, tahu-tempe, sambal, lalapan", category: "Menu Makanan Indonesia", unit: "Porsi", price: 32000, cost: 14500, minStock: 20, outletStock: 85, gudangStock: 0 },
+  { sku: "ID-MENU-GURAME-BAKAR", name: "Gurame Bakar Sunda", description: "Gurame bakar bumbu kecap, sambal terasi, lalapan", category: "Menu Makanan Indonesia", unit: "Porsi", price: 68000, cost: 34000, minStock: 12, outletStock: 45, gudangStock: 0 },
+  { sku: "ID-MENU-CUMI-GORENG", name: "Cumi Goreng Tepung", description: "Cumi segar goreng tepung dengan sambal matah", category: "Menu Makanan Indonesia", unit: "Porsi", price: 52000, cost: 26500, minStock: 12, outletStock: 40, gudangStock: 0 },
+  { sku: "ID-MENU-KANGKUNG-CAH", name: "Kangkung Cah Bawang", description: "Tumis kangkung bawang putih khas warung Sunda", category: "Menu Makanan Indonesia", unit: "Porsi", price: 18000, cost: 7000, minStock: 15, outletStock: 60, gudangStock: 0 },
+  { sku: "ID-MENU-ES-TEH", name: "Es Teh Manis", description: "Teh melati, gula cair, es batu", category: "Menu Minuman", unit: "Porsi", price: 8000, cost: 2500, minStock: 60, outletStock: 180, gudangStock: 0 },
+  { sku: "ID-MENU-ES-JERUK", name: "Es Jeruk Peras", description: "Jeruk peras segar dan gula cair", category: "Menu Minuman", unit: "Porsi", price: 15000, cost: 6000, minStock: 40, outletStock: 110, gudangStock: 0 },
+  { sku: "ID-MENU-AIR-MINERAL", name: "Air Mineral 600ml", description: "Air mineral botol 600ml", category: "Menu Minuman", unit: "Botol", price: 7000, cost: 3500, minStock: 48, outletStock: 120, gudangStock: 0 },
+  { sku: "ID-PKG-HEMAT-TIMBEL", name: "Paket Hemat Timbel + Es Teh", description: "1 Nasi Timbel Komplit + 1 Es Teh Manis", category: "Menu Makanan Indonesia", unit: "Porsi", price: 38000, cost: 17000, minStock: 25, outletStock: 70, gudangStock: 0 },
+  { sku: "ID-PKG-SEAFOOD-BERDUA", name: "Paket Seafood Berdua", description: "1 Gurame Bakar + 1 Cumi Goreng + 2 Es Teh", category: "Menu Makanan Indonesia", unit: "Porsi", price: 125000, cost: 69000, minStock: 10, outletStock: 25, gudangStock: 0 },
+  { sku: "ID-PKG-SUNDA-KELUARGA", name: "Paket Sunda Keluarga", description: "2 Nasi Timbel + 1 Gurame Bakar + 1 Kangkung Cah + 3 Es Teh", category: "Menu Makanan Indonesia", unit: "Porsi", price: 155000, cost: 84000, minStock: 8, outletStock: 20, gudangStock: 0 },
+  { sku: "ID-BB-BERAS-PANDAN", name: "Beras Pandan Wangi", description: "Beras premium untuk nasi timbel", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 14500, minStock: 80, outletStock: 70, gudangStock: 350 },
+  { sku: "ID-BB-GURAME-SEGAR", name: "Ikan Gurame Segar", description: "Bahan baku utama gurame bakar", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 42000, minStock: 35, outletStock: 30, gudangStock: 90 },
+  { sku: "ID-BB-CUMI-SEGAR", name: "Cumi Segar", description: "Bahan baku utama cumi goreng", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 78000, minStock: 25, outletStock: 20, gudangStock: 70 },
+  { sku: "ID-BB-KANGKUNG", name: "Kangkung Ikat", description: "Sayur kangkung untuk menu cah kangkung", category: "Bahan Baku Dapur", unit: "Ikat", price: 0, cost: 9000, minStock: 30, outletStock: 25, gudangStock: 80 },
+  { sku: "ID-BB-TEH-MELATI", name: "Teh Melati Curah", description: "Bahan baku minuman teh restoran", category: "Bumbu & Rempah", unit: "Pack", price: 0, cost: 48000, minStock: 20, outletStock: 18, gudangStock: 60 },
+  { sku: "ID-BB-JERUK-PERAS", name: "Jeruk Peras", description: "Bahan baku es jeruk", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 18000, minStock: 25, outletStock: 22, gudangStock: 75 },
+  { sku: "ID-BB-GULA-PASIR", name: "Gula Pasir", description: "Bahan baku pemanis minuman", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 17000, minStock: 40, outletStock: 35, gudangStock: 120 },
+  { sku: "ID-BB-CABE-RAWIT", name: "Cabe Rawit Merah", description: "Cabe rawit untuk sambal dan bumbu", category: "Bumbu & Rempah", unit: "Kilogram", price: 0, cost: 65000, minStock: 15, outletStock: 18, gudangStock: 55 },
+  { sku: "ID-BB-BAWANG-MERAH", name: "Bawang Merah Brebes", description: "Bawang merah untuk bumbu dasar", category: "Bumbu & Rempah", unit: "Kilogram", price: 0, cost: 42000, minStock: 20, outletStock: 20, gudangStock: 80 },
+  { sku: "ID-BB-MINYAK-GORENG", name: "Minyak Goreng 18L", description: "Minyak goreng jeriken untuk produksi harian", category: "Bahan Baku Dapur", unit: "Liter", price: 0, cost: 17000, minStock: 90, outletStock: 120, gudangStock: 260 },
+  { sku: "ID-PACK-BOX-NASI", name: "Box Nasi Takeaway", description: "Kemasan nasi paper box food grade", category: "Kemasan Takeaway", unit: "Pack", price: 0, cost: 55000, minStock: 20, outletStock: 24, gudangStock: 80 },
+  { sku: "ID-PACK-CUP-16OZ", name: "Cup Minuman 16oz + Lid", description: "Cup plastik untuk es teh dan es jeruk", category: "Kemasan Takeaway", unit: "Pack", price: 0, cost: 38000, minStock: 15, outletStock: 30, gudangStock: 70 },
+];
+
+export const RESTAURANT_ID_PACKAGE_BOMS: RestaurantPackageBomSeed[] = [
+  {
+    bomNumber: "ID-BOM-PKG-HEMAT-TIMBEL",
+    productSku: "ID-PKG-HEMAT-TIMBEL",
+    name: "BOM Paket Hemat Timbel + Es Teh",
+    quantity: 1,
+    components: [
+      { sku: "ID-MENU-NASI-TIMBEL", quantity: 1 },
+      { sku: "ID-MENU-ES-TEH", quantity: 1 },
+    ],
+  },
+  {
+    bomNumber: "ID-BOM-PKG-SEAFOOD-BERDUA",
+    productSku: "ID-PKG-SEAFOOD-BERDUA",
+    name: "BOM Paket Seafood Berdua",
+    quantity: 1,
+    components: [
+      { sku: "ID-MENU-GURAME-BAKAR", quantity: 1 },
+      { sku: "ID-MENU-CUMI-GORENG", quantity: 1 },
+      { sku: "ID-MENU-ES-TEH", quantity: 2 },
+    ],
+  },
+  {
+    bomNumber: "ID-BOM-PKG-SUNDA-KELUARGA",
+    productSku: "ID-PKG-SUNDA-KELUARGA",
+    name: "BOM Paket Sunda Keluarga",
+    quantity: 1,
+    components: [
+      { sku: "ID-MENU-NASI-TIMBEL", quantity: 2 },
+      { sku: "ID-MENU-GURAME-BAKAR", quantity: 1 },
+      { sku: "ID-MENU-KANGKUNG-CAH", quantity: 1 },
+      { sku: "ID-MENU-ES-TEH", quantity: 3 },
+    ],
+  },
+];
 
 async function upsertContact(data: {
   name: string;
@@ -269,21 +341,7 @@ async function seedInventoryIndonesia() {
   const categoryByName: Record<string, Awaited<ReturnType<typeof upsertCategory>>> = {};
   for (const [name, description] of categories) categoryByName[name] = await upsertCategory(name, description);
 
-  const products: RestaurantProduct[] = [
-    { sku: "ID-MENU-AYAM-GEPREK", name: "Paket Ayam Geprek Sambal Bawang", description: "Nasi, ayam geprek, lalapan, sambal bawang", category: "Menu Makanan Indonesia", unit: "Porsi", price: 28000, cost: 14500, minStock: 20, outletStock: 80, gudangStock: 0 },
-    { sku: "ID-MENU-NASI-GORENG", name: "Nasi Goreng Kampung", description: "Nasi goreng kecap, telur, ayam suwir, acar", category: "Menu Makanan Indonesia", unit: "Porsi", price: 32000, cost: 15000, minStock: 20, outletStock: 70, gudangStock: 0 },
-    { sku: "ID-MENU-SOTO-AYAM", name: "Soto Ayam Lamongan", description: "Soto ayam kuah kuning, koya, telur", category: "Menu Makanan Indonesia", unit: "Porsi", price: 30000, cost: 13500, minStock: 15, outletStock: 55, gudangStock: 0 },
-    { sku: "ID-MENU-ES-TEH", name: "Es Teh Manis", description: "Teh melati, gula cair, es batu", category: "Menu Minuman", unit: "Porsi", price: 8000, cost: 2000, minStock: 50, outletStock: 160, gudangStock: 0 },
-    { sku: "ID-MENU-ES-JERUK", name: "Es Jeruk Peras", description: "Jeruk peras segar dan gula cair", category: "Menu Minuman", unit: "Porsi", price: 15000, cost: 6000, minStock: 30, outletStock: 90, gudangStock: 0 },
-    { sku: "ID-BB-BERAS-PANDAN", name: "Beras Pandan Wangi", description: "Beras premium untuk nasi putih dan nasi goreng", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 14500, minStock: 80, outletStock: 70, gudangStock: 350 },
-    { sku: "ID-BB-AYAM-FILLET", name: "Ayam Fillet Segar", description: "Ayam fillet untuk geprek dan nasi goreng", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 38000, minStock: 45, outletStock: 35, gudangStock: 120 },
-    { sku: "ID-BB-TELUR", name: "Telur Ayam Negeri", description: "Telur untuk topping dan produksi dapur", category: "Bahan Baku Dapur", unit: "Butir", price: 0, cost: 2300, minStock: 200, outletStock: 180, gudangStock: 600 },
-    { sku: "ID-BB-CABE-RAWIT", name: "Cabe Rawit Merah", description: "Cabe rawit untuk sambal bawang dan bumbu", category: "Bumbu & Rempah", unit: "Kilogram", price: 0, cost: 65000, minStock: 15, outletStock: 18, gudangStock: 55 },
-    { sku: "ID-BB-BAWANG-MERAH", name: "Bawang Merah Brebes", description: "Bawang merah untuk bumbu dasar", category: "Bumbu & Rempah", unit: "Kilogram", price: 0, cost: 42000, minStock: 20, outletStock: 20, gudangStock: 80 },
-    { sku: "ID-BB-MINYAK-GORENG", name: "Minyak Goreng 18L", description: "Minyak goreng jeriken untuk produksi harian", category: "Bahan Baku Dapur", unit: "Liter", price: 0, cost: 17000, minStock: 90, outletStock: 120, gudangStock: 260 },
-    { sku: "ID-PACK-BOX-NASI", name: "Box Nasi Takeaway", description: "Kemasan nasi paper box food grade", category: "Kemasan Takeaway", unit: "Pack", price: 0, cost: 55000, minStock: 20, outletStock: 24, gudangStock: 80 },
-    { sku: "ID-PACK-CUP-16OZ", name: "Cup Minuman 16oz + Lid", description: "Cup plastik untuk es teh dan es jeruk", category: "Kemasan Takeaway", unit: "Pack", price: 0, cost: 38000, minStock: 15, outletStock: 30, gudangStock: 70 },
-  ];
+  const products = RESTAURANT_ID_PRODUCTS;
 
   const productBySku: Record<string, Awaited<ReturnType<typeof prisma.product.upsert>>> = {};
   for (const p of products) {
@@ -327,6 +385,85 @@ async function seedInventoryIndonesia() {
   return { productBySku, gudang, outletKemang };
 }
 
+async function seedPackageBomsIndonesia(
+  context: Awaited<ReturnType<typeof seedInventoryIndonesia>>,
+) {
+  console.log("📦 Seeding minimal BOM for package products...");
+
+  for (const bom of RESTAURANT_ID_PACKAGE_BOMS) {
+    const targetProduct = context.productBySku[bom.productSku];
+    if (!targetProduct) {
+      throw new Error(`Missing package product SKU: ${bom.productSku}`);
+    }
+
+    const existing = await prisma.billOfMaterial.findUnique({
+      where: { bomNumber: bom.bomNumber },
+      include: { items: true },
+    });
+
+    if (existing) {
+      await prisma.billOfMaterial.update({
+        where: { id: existing.id },
+        data: {
+          productId: targetProduct.id,
+          name: bom.name,
+          quantity: bom.quantity,
+          isActive: true,
+        },
+      });
+
+      await prisma.billOfMaterialItem.deleteMany({
+        where: { billOfMaterialId: existing.id },
+      });
+
+      await prisma.billOfMaterialItem.createMany({
+        data: bom.components.map((component) => {
+          const product = context.productBySku[component.sku];
+          if (!product) {
+            throw new Error(
+              `Missing BOM component SKU: ${component.sku} for ${bom.bomNumber}`,
+            );
+          }
+          return {
+            billOfMaterialId: existing.id,
+            productId: product.id,
+            quantity: d(component.quantity),
+            unitCost: product.cost,
+          };
+        }),
+      });
+      continue;
+    }
+
+    const created = await prisma.billOfMaterial.create({
+      data: {
+        bomNumber: bom.bomNumber,
+        productId: targetProduct.id,
+        name: bom.name,
+        quantity: bom.quantity,
+        isActive: true,
+      },
+    });
+
+    await prisma.billOfMaterialItem.createMany({
+      data: bom.components.map((component) => {
+        const product = context.productBySku[component.sku];
+        if (!product) {
+          throw new Error(
+            `Missing BOM component SKU: ${component.sku} for ${bom.bomNumber}`,
+          );
+        }
+        return {
+          billOfMaterialId: created.id,
+          productId: product.id,
+          quantity: d(component.quantity),
+          unitCost: product.cost,
+        };
+      }),
+    });
+  }
+}
+
 async function seedRestaurantTransactionsIndonesia(context: Awaited<ReturnType<typeof seedInventoryIndonesia>>, contacts: Awaited<ReturnType<typeof seedContactsIndonesia>>) {
   console.log("🧾 Seeding Indonesian restaurant purchases, POS sales, payments, and stock movements...");
 
@@ -364,25 +501,35 @@ async function seedRestaurantTransactionsIndonesia(context: Awaited<ReturnType<t
       number: "ID-REST-PO-BERAS-001",
       vendor: contacts["CV Beras Makmur Sentosa"],
       date: daysAgo(8),
-      items: [{ sku: "ID-BB-BERAS-PANDAN", qty: 250, cost: 14500 }],
+      items: [{ sku: "ID-BB-BERAS-PANDAN", qty: 250, cost: 14500 }, { sku: "ID-BB-GULA-PASIR", qty: 70, cost: 17000 }],
     },
     {
-      number: "ID-REST-PO-AYAM-001",
-      vendor: contacts["UD Ayam Segar Barokah"],
+      number: "ID-REST-PO-SEAFOOD-001",
+      vendor: contacts["Pasar Induk Kramat Jati - Supplier Sayur"],
       date: daysAgo(5),
-      items: [{ sku: "ID-BB-AYAM-FILLET", qty: 90, cost: 38000 }, { sku: "ID-BB-TELUR", qty: 300, cost: 2300 }],
+      items: [{ sku: "ID-BB-GURAME-SEGAR", qty: 120, cost: 42000 }, { sku: "ID-BB-CUMI-SEGAR", qty: 80, cost: 78000 }],
     },
     {
       number: "ID-REST-PO-BUMBU-001",
       vendor: contacts["PT Bumbu Nusantara Indonesia"],
       date: daysAgo(3),
-      items: [{ sku: "ID-BB-CABE-RAWIT", qty: 25, cost: 65000 }, { sku: "ID-BB-BAWANG-MERAH", qty: 40, cost: 42000 }],
+      items: [{ sku: "ID-BB-CABE-RAWIT", qty: 25, cost: 65000 }, { sku: "ID-BB-BAWANG-MERAH", qty: 40, cost: 42000 }, { sku: "ID-BB-MINYAK-GORENG", qty: 60, cost: 17000 }],
     },
     {
       number: "ID-REST-PO-PACK-001",
       vendor: contacts["Toko Plastik & Kemasan Sumber Jaya"],
       date: daysAgo(2),
       items: [{ sku: "ID-PACK-BOX-NASI", qty: 30, cost: 55000 }, { sku: "ID-PACK-CUP-16OZ", qty: 25, cost: 38000 }],
+    },
+    {
+      number: "ID-REST-PO-SAYUR-MINUM-001",
+      vendor: contacts["Pasar Induk Kramat Jati - Supplier Sayur"],
+      date: daysAgo(1),
+      items: [
+        { sku: "ID-BB-KANGKUNG", qty: 55, cost: 9000 },
+        { sku: "ID-BB-JERUK-PERAS", qty: 60, cost: 18000 },
+        { sku: "ID-BB-TEH-MELATI", qty: 35, cost: 48000 },
+      ],
     },
   ];
 
@@ -506,9 +653,10 @@ async function seedRestaurantTransactionsIndonesia(context: Awaited<ReturnType<t
       cashAccountId: cashAccount.id,
       date: daysAgo(1),
       items: [
-        { sku: "ID-MENU-AYAM-GEPREK", qty: 14 },
-        { sku: "ID-MENU-NASI-GORENG", qty: 9 },
-        { sku: "ID-MENU-ES-TEH", qty: 20 },
+        { sku: "ID-MENU-NASI-TIMBEL", qty: 16 },
+        { sku: "ID-MENU-GURAME-BAKAR", qty: 8 },
+        { sku: "ID-MENU-ES-TEH", qty: 25 },
+        { sku: "ID-MENU-AIR-MINERAL", qty: 10 },
       ],
     },
     {
@@ -518,9 +666,9 @@ async function seedRestaurantTransactionsIndonesia(context: Awaited<ReturnType<t
       cashAccountId: qrisAccount.id,
       date: daysAgo(1),
       items: [
-        { sku: "ID-MENU-AYAM-GEPREK", qty: 18 },
-        { sku: "ID-MENU-SOTO-AYAM", qty: 11 },
-        { sku: "ID-PACK-BOX-NASI", qty: 29 },
+        { sku: "ID-PKG-HEMAT-TIMBEL", qty: 20 },
+        { sku: "ID-PKG-SEAFOOD-BERDUA", qty: 8 },
+        { sku: "ID-MENU-ES-JERUK", qty: 14 },
       ],
     },
     {
@@ -530,10 +678,9 @@ async function seedRestaurantTransactionsIndonesia(context: Awaited<ReturnType<t
       cashAccountId: qrisAccount.id,
       date: daysAgo(4),
       items: [
-        { sku: "ID-MENU-NASI-GORENG", qty: 35 },
-        { sku: "ID-MENU-ES-JERUK", qty: 35 },
-        { sku: "ID-PACK-BOX-NASI", qty: 35 },
-        { sku: "ID-PACK-CUP-16OZ", qty: 35 },
+        { sku: "ID-PKG-SUNDA-KELUARGA", qty: 18 },
+        { sku: "ID-MENU-ES-TEH", qty: 54 },
+        { sku: "ID-MENU-AIR-MINERAL", qty: 54 },
       ],
     },
   ];
@@ -705,6 +852,7 @@ async function main() {
     await seedReportTemplatesIndonesia();
     const contacts = await seedContactsIndonesia();
     const inventoryContext = await seedInventoryIndonesia();
+    await seedPackageBomsIndonesia(inventoryContext);
     await seedRestaurantTransactionsIndonesia(inventoryContext, contacts);
     console.log(`✅ Indonesian restaurant seeding completed in ${(Date.now() - start) / 1000}s`);
   } catch (error) {
@@ -715,4 +863,10 @@ async function main() {
   }
 }
 
-main();
+const isDirectExecution =
+  typeof process.argv[1] === "string" &&
+  process.argv[1].includes("seed-restaurant-id.ts");
+
+if (isDirectExecution) {
+  void main();
+}

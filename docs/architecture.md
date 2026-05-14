@@ -16,6 +16,7 @@
 4. `prisma/`
 - Skema data tersegmentasi per domain (`prisma/schema/*.prisma`).
 - Seed script dan bootstrap data.
+- Setup wizard awal (`app/[locale]/(dashboard)/setup/actions.ts`) melakukan seeding baseline unit + kategori inventory melalui konstanta shared `lib/setup/chart-of-accounts-template.ts` agar konsisten lintas tenant.
 
 5. `docs/`
 - Dokumen arsitektur, domain rules, dan operational governance.

@@ -2,7 +2,7 @@
 title: Setup Awal
 module: general
 order: 10
-updatedAt: 2026-05-13
+updatedAt: 2026-05-14
 summary: Panduan lengkap setup sistem dari nol sampai siap operasional.
 related: 00-start-here,02-master-data,modules/admin,modules/inventory
 ---
@@ -131,7 +131,9 @@ Sebelum mulai, siapkan:
 
 ### 4.3 Product Categories
 1. **Navigasi**: Inventory → Master Data → Categories
-2. **Buat kategori utama**:
+2. **Catatan setup wizard**: saat pertama kali menjalankan setup awal, sistem otomatis menyiapkan kategori baseline: `General`, `Menu Makanan`, `Menu Minuman`, `Menu Snack`, `Menu Dessert`, dan `Bahan Baku`.
+3. Lengkapi/ubah kategori sesuai kebutuhan operasional Anda.
+4. **Buat kategori utama**:
 
 **Bahan Pokok**
 - Code: STAPLE
