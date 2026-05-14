@@ -34,6 +34,20 @@ Menjamin sinkronisasi penjualan POS ke persediaan secara terukur untuk operasion
 - BOM menghasilkan kuantitas pecahan -> transaksi gagal sampai unit-konversi dibenahi.
 - Setup awal warehouse otomatis menyiapkan kategori POS baseline (`Menu Makanan`, `Menu Minuman`, `Menu Snack`, `Menu Dessert`) agar segmentasi katalog menu lebih siap pakai.
 
+## Ekstensi POS Service (Kasir Mode Service)
+
+Selain flow restoran meja/dapur, POS juga mendukung mode `Service` untuk use case jasa (contoh: percetakan/ATK/service job):
+
+1. Produk jasa ditandai lewat `Product.isService = true`.
+2. Saat service order dibuat, sistem membentuk `SalesOrder + SalesInvoice` (opsional DP di awal).
+3. Saat status service menjadi `DONE`, stok diproses dengan aturan berikut:
+- Service dengan BOM aktif: konsumsi komponen BOM.
+- Service tanpa BOM: tidak mengurangi stok.
+- Produk non-service tanpa BOM: tetap fallback mengurangi stok produk.
+4. Pelunasan dilakukan terpisah lewat payment tambahan hingga invoice `PAID`.
+
+Tujuan aturan ini: item jasa tetap bisa dijual walau stok item jasa nol, namun konsumsi bahan fisik tetap tercatat saat jasa membutuhkan material.
+
 ## Ekstensi Flow Restoran (Bayar Belakangan)
 
 Implementasi lanjut (fase service restoran):

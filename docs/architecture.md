@@ -67,6 +67,46 @@ Aturan layer tetap berlaku:
 - Rute lama `/pos/restaurant`, `/pos/restaurant/kitchen`, `/pos/restaurant/billing` dipertahankan sebagai Next.js server component yang `redirect()` ke `/pos?tab=...` untuk backward-compat.
 - `prisma.config.ts` mengeksplisitkan `migrations.path = "prisma/migrations"` (wajib pada Prisma 7 saat `schema` berupa folder), sehingga sidecar `migrate` di `docker-compose.yml` dapat menjalankan `prisma migrate deploy` tanpa fallback.
 
+## POS Service Workflow Layer (2026-05-14)
+
+Cashier POS sekarang punya mode `Produk` dan `Service` dalam tab `Kasir` yang tetap reuse service existing:
+
+- Server action: `app/[locale]/pos/actions.ts`
+- Domain service baru: `modules/services/services/pos-service-workflow.service.ts`
+- Master produk: flag `Product.isService` (`prisma/schema/05_inventory.prisma`)
+- Persist workflow: `POSServiceOrder` dan `POSServiceOrderItem` (`prisma/schema/10_pos.prisma`)
+
+Kontrak alur:
+
+1. `Create Service Order`:
+- validasi session `OPEN`,
+- validasi item wajib `isService=true`,
+- membuat `SalesOrder + SalesInvoice`,
+- opsional membuat payment DP (status invoice: `ISSUED` / `PARTIALLY_PAID` / `PAID`).
+
+2. `Transition Status` (`NEW -> PROCESSING -> READY -> DONE -> CLOSED`, dengan opsi `CANCELLED`):
+- saat masuk `DONE`, sistem menjalankan completion:
+  - buat `SalesShipment` completed,
+  - update status shipped sales order,
+  - konsumsi stok via resolver `resolveStockConsumptionItems`,
+  - posting jurnal COGS jika memang ada movement stok keluar.
+
+3. `Settle`:
+- membuat `SalesPayment`,
+- update `SalesInvoice.balanceDue` + status,
+- sinkronkan `paidAmount`/`remainingAmount` di service order.
+
+Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.service.ts`):
+- Service + BOM aktif: konsumsi komponen BOM.
+- Service tanpa BOM: tidak ada pengurangan stok.
+- Non-service tanpa BOM: fallback kurangi stok produk jual.
+
+### Standalone Route `/services`
+
+- Ditambahkan route terpisah `app/[locale]/services/page.tsx` untuk menjalankan service workflow tanpa bercampur UI kasir produk.
+- Route ini tetap reuse action + domain yang sama (`app/[locale]/pos/actions.ts` dan `modules/services/services/pos-service-workflow.service.ts`).
+- Tujuan: memisahkan surface bisnis jasa agar mudah di-extend ke workflow lanjutan (assignment, SLA, pipeline) tanpa memecah kontrak data/transaksi existing.
+
 ## Budgeting: Budget Operasional + Saving Target (2026-05-13)
 
 - Modul budgeting tetap reuse service/action existing di `app/[locale]/(dashboard)/budgeting/actions.ts`.

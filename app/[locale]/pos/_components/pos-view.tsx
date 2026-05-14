@@ -77,6 +77,7 @@ import {
 import { FloorTab } from "./floor-tab";
 import { KitchenTab } from "./kitchen-tab";
 import { BillingTab } from "./billing-tab";
+import { ServiceWorkflowPanel } from "./service-workflow-panel";
 
 type POSTabValue = "floor" | "cashier" | "kitchen" | "billing";
 
@@ -126,6 +127,9 @@ export function POSView({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [cashierMode, setCashierMode] = useState<"product" | "service">(
+    "product",
+  );
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedDiningSpotId, setSelectedDiningSpotId] = useState<string>("");
   const { toast } = useToast();
@@ -662,119 +666,148 @@ export function POSView({
           className="flex-1 overflow-hidden m-0 data-[state=inactive]:hidden"
         >
           <div className="flex h-full overflow-hidden relative">
-            {/* Left: Product Grid */}
-            <div className="flex-1 overflow-y-auto bg-muted/20 p-2 md:p-4 pb-20 lg:pb-4">
-              <div className="relative w-full mb-4">
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  ref={searchInputRef}
-                  placeholder={`${t("search_products")} (F4)`}
-                  className="h-11 pl-10 text-base shadow-sm transition-all focus-visible:ring-2"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
-                <Button
-                  variant={selectedCategory === null ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(null)}
-                  className="whitespace-nowrap"
-                >
-                  {t("all_items")}
-                  <kbd className="ml-2 hidden rounded border px-1.5 font-sans text-[10px] lg:inline-block">
-                    Alt+1
-                  </kbd>
-                </Button>
-                {categories.map((cat, index) => (
-                  <Button
-                    key={cat.id}
-                    variant={
-                      selectedCategory === cat.id ? "default" : "outline"
-                    }
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className="whitespace-nowrap"
-                  >
-                    {cat.name}
-                    {index < 8 && (
-                      <kbd className="ml-2 hidden rounded border px-1.5 font-sans text-[10px] lg:inline-block">
-                        Alt+{index + 2}
-                      </kbd>
-                    )}
-                  </Button>
-                ))}
-              </div>
-              <ProductGrid
-                key={`${selectedCategory}-${debouncedSearchQuery}`}
-                products={products}
-                onAddToCart={addToCart}
-                onFetchNextPage={fetchNextPage}
-                hasNextPage={!!hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-                isLoading={isLoading}
-                isError={isError}
-                onRetry={() => refetch()}
-              />
+            <div className="absolute left-2 top-2 z-20 flex gap-2 rounded-md border bg-background/90 p-1 shadow-sm">
+              <Button
+                size="sm"
+                variant={cashierMode === "product" ? "default" : "outline"}
+                onClick={() => setCashierMode("product")}
+              >
+                Produk
+              </Button>
+              <Button
+                size="sm"
+                variant={cashierMode === "service" ? "default" : "outline"}
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory(null);
+                  setCashierMode("service");
+                }}
+              >
+                Service
+              </Button>
             </div>
 
-            {/* Right: Cart Desktop */}
-            <div className="hidden lg:block w-[400px] border-l bg-background shadow-xl">
-              <CartView
-                cart={cart}
-                globalDiscount={globalDiscount}
-                onUpdateGlobalDiscount={setGlobalDiscount}
-                onUpdateQuantity={updateQuantity}
-                onUpdateDiscount={updateDiscount}
-                onRemove={removeFromCart}
-                onClear={clearCart}
-                session={session}
-                selectedDiningSpotId={selectedDiningSpotId || undefined}
-                selectedDiningSpot={selectedSpot}
-                checkoutSettings={checkoutSettings}
-              />
-            </div>
-
-            {/* Mobile Cart Trigger */}
-            <div className="lg:hidden absolute bottom-4 left-4 right-4 z-10">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button
-                    className="w-full h-14 rounded-full shadow-lg text-lg flex justify-between px-6"
-                    size="lg"
-                  >
-                    <span className="flex items-center gap-2">
-                      <ShoppingCart className="h-5 w-5" />
-                      {t("cart")}
-                    </span>
-                    <span className="bg-primary-foreground text-primary px-3 py-1 rounded-full text-sm font-bold">
-                      {totalItems}
-                    </span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent
-                  side="bottom"
-                  className="h-[90vh] p-0 flex flex-col"
-                >
-                  <SheetHeader className="sr-only">
-                    <SheetTitle>{t("cart")}</SheetTitle>
-                  </SheetHeader>
-                  <div className="flex-1 overflow-hidden">
-                    <CartView
-                      cart={cart}
-                      globalDiscount={globalDiscount}
-                      onUpdateGlobalDiscount={setGlobalDiscount}
-                      onUpdateQuantity={updateQuantity}
-                      onUpdateDiscount={updateDiscount}
-                      onRemove={removeFromCart}
-                      onClear={clearCart}
-                      session={session}
-                      selectedDiningSpotId={selectedDiningSpotId || undefined}
-                      selectedDiningSpot={selectedSpot}
-                      checkoutSettings={checkoutSettings}
+            {cashierMode === "product" ? (
+              <>
+                {/* Left: Product Grid */}
+                <div className="flex-1 overflow-y-auto bg-muted/20 p-2 md:p-4 pb-20 lg:pb-4">
+                  <div className="relative w-full mb-4 mt-12">
+                    <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      ref={searchInputRef}
+                      placeholder={`${t("search_products")} (F4)`}
+                      className="h-11 pl-10 text-base shadow-sm transition-all focus-visible:ring-2"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+                  <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
+                    <Button
+                      variant={selectedCategory === null ? "default" : "outline"}
+                      onClick={() => setSelectedCategory(null)}
+                      className="whitespace-nowrap"
+                    >
+                      {t("all_items")}
+                      <kbd className="ml-2 hidden rounded border px-1.5 font-sans text-[10px] lg:inline-block">
+                        Alt+1
+                      </kbd>
+                    </Button>
+                    {categories.map((cat, index) => (
+                      <Button
+                        key={cat.id}
+                        variant={
+                          selectedCategory === cat.id ? "default" : "outline"
+                        }
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className="whitespace-nowrap"
+                      >
+                        {cat.name}
+                        {index < 8 && (
+                          <kbd className="ml-2 hidden rounded border px-1.5 font-sans text-[10px] lg:inline-block">
+                            Alt+{index + 2}
+                          </kbd>
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                  <ProductGrid
+                    key={`${selectedCategory}-${debouncedSearchQuery}`}
+                    products={products}
+                    onAddToCart={addToCart}
+                    onFetchNextPage={fetchNextPage}
+                    hasNextPage={!!hasNextPage}
+                    isFetchingNextPage={isFetchingNextPage}
+                    isLoading={isLoading}
+                    isError={isError}
+                    onRetry={() => refetch()}
+                  />
+                </div>
+
+                {/* Right: Cart Desktop */}
+                <div className="hidden lg:block w-[400px] border-l bg-background shadow-xl">
+                  <CartView
+                    cart={cart}
+                    globalDiscount={globalDiscount}
+                    onUpdateGlobalDiscount={setGlobalDiscount}
+                    onUpdateQuantity={updateQuantity}
+                    onUpdateDiscount={updateDiscount}
+                    onRemove={removeFromCart}
+                    onClear={clearCart}
+                    session={session}
+                    selectedDiningSpotId={selectedDiningSpotId || undefined}
+                    selectedDiningSpot={selectedSpot}
+                    checkoutSettings={checkoutSettings}
+                  />
+                </div>
+
+                {/* Mobile Cart Trigger */}
+                <div className="lg:hidden absolute bottom-4 left-4 right-4 z-10">
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button
+                        className="w-full h-14 rounded-full shadow-lg text-lg flex justify-between px-6"
+                        size="lg"
+                      >
+                        <span className="flex items-center gap-2">
+                          <ShoppingCart className="h-5 w-5" />
+                          {t("cart")}
+                        </span>
+                        <span className="bg-primary-foreground text-primary px-3 py-1 rounded-full text-sm font-bold">
+                          {totalItems}
+                        </span>
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent
+                      side="bottom"
+                      className="h-[90vh] p-0 flex flex-col"
+                    >
+                      <SheetHeader className="sr-only">
+                        <SheetTitle>{t("cart")}</SheetTitle>
+                      </SheetHeader>
+                      <div className="flex-1 overflow-hidden">
+                        <CartView
+                          cart={cart}
+                          globalDiscount={globalDiscount}
+                          onUpdateGlobalDiscount={setGlobalDiscount}
+                          onUpdateQuantity={updateQuantity}
+                          onUpdateDiscount={updateDiscount}
+                          onRemove={removeFromCart}
+                          onClear={clearCart}
+                          session={session}
+                          selectedDiningSpotId={selectedDiningSpotId || undefined}
+                          selectedDiningSpot={selectedSpot}
+                          checkoutSettings={checkoutSettings}
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 overflow-y-auto bg-muted/20 p-2 md:p-4 pt-14">
+                <ServiceWorkflowPanel sessionId={session.id} products={products} />
+              </div>
+            )}
           </div>
         </TabsContent>
 

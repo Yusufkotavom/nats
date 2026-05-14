@@ -13,6 +13,7 @@ export const posPlugin: ModulePlugin = {
           icon: StoreIcon,
           items: [
             { title: "POS.cashier", url: "/pos" },
+            { title: "POS.services", url: "/services" },
             { title: "POS.sessions", url: "/pos/sessions" },
             { title: "POS.dining_spots", url: "/pos/dining-spots" },
           ],

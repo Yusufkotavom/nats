@@ -169,11 +169,15 @@ export function ProductGrid({
                 productId={product.id}
               />
               <div className="absolute right-2 top-2">
-                <Badge
-                  variant={product.stock > 0 ? "secondary" : "destructive"}
-                >
-                  {product.stock} {t("in_stock")}
-                </Badge>
+                {product.isService ? (
+                  <Badge variant="outline">Service</Badge>
+                ) : (
+                  <Badge
+                    variant={product.stock > 0 ? "secondary" : "destructive"}
+                  >
+                    {product.stock} {t("in_stock")}
+                  </Badge>
+                )}
               </div>
             </div>
             <CardContent className="p-3 grow">

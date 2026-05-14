@@ -8,6 +8,7 @@ export type ProductFormState = {
   minStock: number;
   isActive: boolean;
   showInPos: boolean;
+  isService: boolean;
   baseUnitId: string;
   purchaseUnitId: string;
   purchaseConversionFactor: string | number;

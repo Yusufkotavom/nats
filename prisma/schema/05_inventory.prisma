@@ -50,6 +50,7 @@ model Product {
 
   isActive  Boolean             @default(true)
   showInPos Boolean             @default(true)
+  isService Boolean             @default(false)
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
   inventory Inventory[]
@@ -70,6 +71,7 @@ model Product {
   salesReturnItems   SalesReturnItem[]
   restaurantOrderItems RestaurantOrderItem[]
   kitchenTicketItems KitchenTicketItem[]
+  posServiceOrderItems POSServiceOrderItem[]
 
   // Production Module
   boms                   BillOfMaterial[]        @relation("ProductBOMs")

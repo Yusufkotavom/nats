@@ -53,6 +53,7 @@ export function ProductForm({
     minStock: product?.minStock || 0,
     isActive: product?.isActive ?? true,
     showInPos: product?.showInPos ?? true,
+    isService: product?.isService ?? false,
     baseUnitId: product?.baseUnitId || "",
     purchaseUnitId: product?.purchaseUnitId || "",
     purchaseConversionFactor:
@@ -116,6 +117,7 @@ export function ProductForm({
       minStock: Number(formData.minStock),
       isActive: formData.isActive,
       showInPos: formData.showInPos,
+      isService: formData.isService,
       baseUnitId: formData.baseUnitId || null,
       purchaseUnitId: formData.purchaseUnitId || null,
       purchaseConversionFactor: purchaseFactor?.toString() || 1,

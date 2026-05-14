@@ -1318,6 +1318,7 @@
         "location": "Location",
         "dashboard": "Dashboard",
         "cashier": "Cashier",
+        "services": "Services",
         "dining_spots": "Dining Spots",
         "dining_spot_management": "Dining Spot Management",
         "close_session": "Close Session",

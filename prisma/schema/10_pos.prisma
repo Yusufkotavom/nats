@@ -25,6 +25,7 @@ model POSSession {
   salesPayments SalesPayment[]
   heldOrders    HeldOrder[]
   restaurantOrders RestaurantOrder[]
+  serviceOrders POSServiceOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -163,6 +164,15 @@ enum POSFeeValueType {
   FIXED
 }
 
+enum POSServiceOrderStatus {
+  NEW
+  PROCESSING
+  READY
+  DONE
+  CLOSED
+  CANCELLED
+}
+
 model POSFeeSetting {
   id        String          @id @default(cuid())
   name      String
@@ -173,6 +183,58 @@ model POSFeeSetting {
   isActive  Boolean         @default(true)
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+}
+
+model POSServiceOrder {
+  id            String                @id @default(cuid())
+  orderNumber   String                @unique
+  status        POSServiceOrderStatus @default(NEW)
+  posSessionId  String
+  posSession    POSSession            @relation(fields: [posSessionId], references: [id], onDelete: Cascade)
+  contactId     String?
+  salesOrderId  String
+  salesInvoiceId String
+  notes         String?
+  subtotal      Decimal               @default(0)
+  totalAmount   Decimal               @default(0)
+  dpAmount      Decimal               @default(0)
+  paidAmount    Decimal               @default(0)
+  remainingAmount Decimal             @default(0)
+  targetDate    DateTime?
+  createdById   String
+  processingAt  DateTime?
+  readyAt       DateTime?
+  doneAt        DateTime?
+  closedAt      DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  items POSServiceOrderItem[]
+
+  @@index([posSessionId, status])
+  @@index([salesOrderId])
+  @@index([salesInvoiceId])
+}
+
+model POSServiceOrderItem {
+  id               String          @id @default(cuid())
+  posServiceOrderId String
+  posServiceOrder  POSServiceOrder @relation(fields: [posServiceOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product         @relation(fields: [productId], references: [id])
+  productName      String
+  quantity         Int
+  unitPrice        Decimal
+  discountAmount   Decimal         @default(0)
+  totalPrice       Decimal
+  hasActiveBom     Boolean         @default(false)
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([posServiceOrderId])
+  @@index([productId])
 }
 
 model RestaurantOrder {

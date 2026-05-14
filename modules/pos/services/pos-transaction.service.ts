@@ -9,7 +9,7 @@ import {
 import { CalculationService } from "@/lib/utils/calculation-service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
 import { JournalService } from "@/modules/accounting/services/journal.service";
-import { resolveBomConsumptionItems } from "@/modules/inventory/services/bom-consumption.service";
+import { resolveStockConsumptionItems } from "@/modules/inventory/services/bom-consumption.service";
 
 const POS_ORDER_NUMBER_PREFIX = "SO-POS";
 const POS_INVOICE_NUMBER_PREFIX = "INV-POS";
@@ -166,24 +166,18 @@ export class POSTransactionService {
                 orderItems: salesOrder.items,
             });
 
-            const ingredientItems = await resolveBomConsumptionItems(tx, shipment.items);
-            const movementItems = ingredientItems.length > 0
-                ? ingredientItems
-                : shipment.items.map((item) => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                }));
+            const movementItems = await resolveStockConsumptionItems(tx, shipment.items);
 
-            await InventoryService.createInventoryMovement(tx, {
-                type: MovementType.OUT,
-                reference: shipment.shipmentNumber,
-                items: movementItems,
-                notes: ingredientItems.length > 0
-                    ? `POS Sale ${salesOrder.orderNumber} (BOM consumption)`
-                    : `POS Sale ${salesOrder.orderNumber}`,
-                transactionDate: new Date(),
-                warehouseId: session.warehouseId || undefined,
-            });
+            if (movementItems.length > 0) {
+                await InventoryService.createInventoryMovement(tx, {
+                    type: MovementType.OUT,
+                    reference: shipment.shipmentNumber,
+                    items: movementItems,
+                    notes: `POS Sale ${salesOrder.orderNumber} (stock consumption)`,
+                    transactionDate: new Date(),
+                    warehouseId: session.warehouseId || undefined,
+                });
+            }
 
             const totalCogs = await this.calculateInventoryOutCost(tx, movementItems);
             if (totalCogs.gt(0)) {
@@ -331,24 +325,18 @@ export class POSTransactionService {
                 orderItems: salesOrder.items,
             });
 
-            const ingredientItems = await resolveBomConsumptionItems(tx, shipment.items);
-            const movementItems = ingredientItems.length > 0
-                ? ingredientItems
-                : shipment.items.map((item) => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                }));
+            const movementItems = await resolveStockConsumptionItems(tx, shipment.items);
 
-            await InventoryService.createInventoryMovement(tx, {
-                type: MovementType.OUT,
-                reference: shipment.shipmentNumber,
-                items: movementItems,
-                notes: ingredientItems.length > 0
-                    ? `POS Sale ${salesOrder.orderNumber} (BOM consumption)`
-                    : `POS Sale ${salesOrder.orderNumber}`,
-                transactionDate: new Date(),
-                warehouseId: session.warehouseId || undefined,
-            });
+            if (movementItems.length > 0) {
+                await InventoryService.createInventoryMovement(tx, {
+                    type: MovementType.OUT,
+                    reference: shipment.shipmentNumber,
+                    items: movementItems,
+                    notes: `POS Sale ${salesOrder.orderNumber} (stock consumption)`,
+                    transactionDate: new Date(),
+                    warehouseId: session.warehouseId || undefined,
+                });
+            }
 
             const totalCogs = await this.calculateInventoryOutCost(tx, movementItems);
             if (totalCogs.gt(0)) {

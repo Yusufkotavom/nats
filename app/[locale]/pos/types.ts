@@ -5,6 +5,7 @@ export type POSProduct = {
   sku: string;
   price: number;
   image: string | null;
+  isService: boolean;
   categoryId: string | null;
   stock: number;
   categoryName: string | null;

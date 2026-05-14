@@ -1244,6 +1244,7 @@
         "location": "Lokasi",
         "close_session": "Tutup Sesi",
         "cash_in_server": "Cash in Server",
+        "services": "Services",
         "logout": "Keluar",
         "all_items": "Semua Item",
         "transaction_success": "Transaksi Berhasil",

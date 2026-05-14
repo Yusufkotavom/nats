@@ -152,7 +152,7 @@ import { SalesShipmentService } from "@/modules/sales/services/sales-shipment.se
 
 import { InventoryService } from "@/modules/inventory/services/inventory.service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
-import { resolveBomConsumptionItems } from "@/modules/inventory/services/bom-consumption.service";
+import { resolveStockConsumptionItems } from "@/modules/inventory/services/bom-consumption.service";
 
 export const createSalesShipment = authorizedAction(
   "sales.create",
@@ -284,8 +284,7 @@ export const updateSalesShipment = authorizedAction(
             productId: item.productId,
             quantity: item.quantity,
           }));
-          const bomItems = await resolveBomConsumptionItems(tx, soldItems);
-          const movementItemsBase = bomItems.length > 0 ? bomItems : soldItems;
+          const movementItemsBase = await resolveStockConsumptionItems(tx, soldItems);
 
           const movementItems = [];
           let totalCogs = 0;
@@ -297,20 +296,22 @@ export const updateSalesShipment = authorizedAction(
             movementItems.push({
               productId: item.productId,
               quantity: item.quantity,
-              notes: bomItems.length > 0 ? "Sales Shipment (BOM consumption)" : "Sales Shipment",
+              notes: "Sales Shipment (stock consumption)",
               unitCost
             });
 
             totalCogs += item.quantity * unitCost;
           }
 
-          await InventoryService.createInventoryMovement(tx, {
-            type: "OUT",
-            reference: currentShipment.shipmentNumber,
-            notes: data.notes || "Sales Shipment Completed",
-            items: movementItems,
-            transactionDate: data.shipmentDate
-          });
+          if (movementItems.length > 0) {
+            await InventoryService.createInventoryMovement(tx, {
+              type: "OUT",
+              reference: currentShipment.shipmentNumber,
+              notes: data.notes || "Sales Shipment Completed",
+              items: movementItems,
+              transactionDate: data.shipmentDate
+            });
+          }
 
           // Create Journal Entry for COGS
           if (totalCogs > 0) {

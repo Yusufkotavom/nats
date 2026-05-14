@@ -102,6 +102,9 @@ vi.mock("./kitchen-tab", () => ({
 vi.mock("./billing-tab", () => ({
   BillingTab: () => <div data-testid="billing-tab" />,
 }));
+vi.mock("./service-workflow-panel", () => ({
+  ServiceWorkflowPanel: () => <div data-testid="service-workflow-panel" />,
+}));
 
 // --- Session provider mock (used for useSession hook)
 vi.mock("@/components/providers/session-provider", () => ({

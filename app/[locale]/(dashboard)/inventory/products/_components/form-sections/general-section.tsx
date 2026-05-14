@@ -58,7 +58,7 @@ export function GeneralSection({
         containerClassName="grid gap-2"
       />
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <CustomSelect
           label="Category"
           name="categoryId"
@@ -93,6 +93,16 @@ export function GeneralSection({
             disabled={readonly}
           />
           <Label htmlFor="showInPos">Show In POS</Label>
+        </div>
+        <div className="flex items-center space-x-2 pt-8">
+          <Switch
+            id="isService"
+            name="isService"
+            checked={formData.isService}
+            onCheckedChange={(val) => handleInputChange("isService", val)}
+            disabled={readonly}
+          />
+          <Label htmlFor="isService">Service Item</Label>
         </div>
       </div>
     </div>

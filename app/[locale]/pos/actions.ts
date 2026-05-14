@@ -11,6 +11,11 @@ import { POSSessionService } from "@/modules/pos/services/pos-session.service";
 import { HeldOrderService } from "@/modules/pos/services/held-order.service";
 import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
 import { RestaurantOrderService } from "@/modules/pos/services/restaurant-order.service";
+import {
+  POSServiceWorkflowService,
+  type ServicePaymentMethod,
+  type ServiceWorkflowStatus,
+} from "@/modules/services/services/pos-service-workflow.service";
 import { POSCartItem } from "./types";
 
 export type POSCheckoutSettings = {
@@ -136,6 +141,7 @@ export async function getPOSProducts(
       sku: p.sku,
       price: p.price.toNumber(),
       image: p.image,
+      isService: p.isService,
       categoryId: p.categoryId,
       categoryName: p.category?.name || null,
       stock: totalStock,
@@ -152,6 +158,59 @@ export async function getPOSProducts(
     total,
     hasMore: page * pageSize < total,
   });
+}
+
+export async function getPOSServiceProducts() {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize([]);
+  }
+
+  const now = new Date();
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      isService: true,
+    },
+    include: {
+      category: true,
+      inventory: {
+        include: {
+          warehouse: true,
+        },
+      },
+      discounts: {
+        where: {
+          isActive: true,
+          startDate: { lte: now },
+          OR: [{ endDate: null }, { endDate: { gte: now } }],
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  const mapped = products.map((p) => {
+    const totalStock = p.inventory.reduce((acc, inv) => acc + inv.quantity, 0);
+    return {
+      id: p.id,
+      name: p.name,
+      sku: p.sku,
+      price: p.price.toNumber(),
+      image: p.image,
+      isService: p.isService,
+      categoryId: p.categoryId,
+      categoryName: p.category?.name || null,
+      stock: totalStock,
+      availableDiscounts: p.discounts.map((d) => ({
+        code: d.code,
+        type: d.type,
+        value: d.value.toNumber(),
+      })),
+    };
+  });
+
+  return SuperJSON.serialize(mapped);
 }
 
 export async function getPOSCheckoutSettings(): Promise<POSCheckoutSettings> {
@@ -663,6 +722,77 @@ export async function getPOSInvoice(id: string) {
   if (!invoice) return null;
 
   return SuperJSON.serialize(invoice);
+}
+
+export async function getPOSServiceOrders(
+  sessionId: string,
+  status?: ServiceWorkflowStatus,
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const orders = await POSServiceWorkflowService.list(sessionId, status);
+  return SuperJSON.serialize(orders);
+}
+
+export async function createPOSServiceOrder(input: {
+  sessionId: string;
+  customerId?: string;
+  notes?: string;
+  targetDate?: Date;
+  downPaymentAmount?: number;
+  paymentMethod?: ServicePaymentMethod;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    price?: number;
+    discount?: number;
+    notes?: string;
+  }>;
+}) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const order = await POSServiceWorkflowService.create(input, session.userId);
+  revalidatePath("/pos");
+  return SuperJSON.serialize(order);
+}
+
+export async function updatePOSServiceOrderStatus(
+  orderId: string,
+  status: ServiceWorkflowStatus,
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const order = await POSServiceWorkflowService.transitionStatus(
+    orderId,
+    status,
+    session.userId,
+  );
+  revalidatePath("/pos");
+  return SuperJSON.serialize(order);
+}
+
+export async function settlePOSServiceOrder(
+  orderId: string,
+  paymentMethod: ServicePaymentMethod,
+  amount?: number,
+) {
+  const session = await getSession();
+  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const order = await POSServiceWorkflowService.settle(orderId, paymentMethod, amount);
+  revalidatePath("/pos");
+  return SuperJSON.serialize(order);
 }
 
 export async function resumeOrder(heldOrderId: string) {

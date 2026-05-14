@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveBomConsumptionItems } from "./bom-consumption.service";
+import {
+  resolveBomConsumptionItems,
+  resolveStockConsumptionItems,
+} from "./bom-consumption.service";
 
 describe("resolveBomConsumptionItems", () => {
   it("returns empty when no sold items", async () => {
@@ -59,5 +62,61 @@ describe("resolveBomConsumptionItems", () => {
     await expect(
       resolveBomConsumptionItems(tx, [{ productId: "bundle-1", quantity: 3 }])
     ).rejects.toThrow("non-integer consumption");
+  });
+});
+
+describe("resolveStockConsumptionItems", () => {
+  it("skips service product without BOM", async () => {
+    const tx: any = {
+      product: {
+        findUnique: vi.fn().mockResolvedValue({ isService: true }),
+      },
+      billOfMaterial: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+    };
+
+    const result = await resolveStockConsumptionItems(tx, [
+      { productId: "svc-1", quantity: 2 },
+    ]);
+
+    expect(result).toEqual([]);
+  });
+
+  it("consumes product itself when non-service has no BOM", async () => {
+    const tx: any = {
+      product: {
+        findUnique: vi.fn().mockResolvedValue({ isService: false }),
+      },
+      billOfMaterial: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+    };
+
+    const result = await resolveStockConsumptionItems(tx, [
+      { productId: "prd-1", quantity: 3 },
+    ]);
+
+    expect(result).toEqual([{ productId: "prd-1", quantity: 3 }]);
+  });
+
+  it("consumes BOM components for service with BOM", async () => {
+    const tx: any = {
+      product: {
+        findUnique: vi.fn().mockResolvedValue({ isService: true }),
+      },
+      billOfMaterial: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "bom-1",
+          items: [{ productId: "paper", quantity: "2" }],
+        }),
+      },
+    };
+
+    const result = await resolveStockConsumptionItems(tx, [
+      { productId: "svc-print", quantity: 4 },
+    ]);
+
+    expect(result).toEqual([{ productId: "paper", quantity: 8 }]);
   });
 });
