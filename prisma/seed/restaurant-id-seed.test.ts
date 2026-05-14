@@ -1,22 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
+  RESTAURANT_ID_BOM_CANDIDATES,
   RESTAURANT_ID_PACKAGE_BOMS,
   RESTAURANT_ID_PRODUCTS,
 } from "../seed-restaurant-id";
 
 describe("restaurant indonesia seed catalog", () => {
-  it("contains sunda/seafood menus and common indo drinks", () => {
+  it("contains full transcript menu catalog with representative items", () => {
     const skus = new Set(RESTAURANT_ID_PRODUCTS.map((item) => item.sku));
 
-    expect(skus.has("ID-MENU-NASI-TIMBEL")).toBe(true);
-    expect(skus.has("ID-MENU-GURAME-BAKAR")).toBe(true);
-    expect(skus.has("ID-MENU-CUMI-GORENG")).toBe(true);
-    expect(skus.has("ID-MENU-ES-TEH")).toBe(true);
-    expect(skus.has("ID-MENU-ES-JERUK")).toBe(true);
-    expect(skus.has("ID-MENU-AIR-MINERAL")).toBe(true);
+    expect(RESTAURANT_ID_PRODUCTS.length).toBeGreaterThanOrEqual(150);
+    expect(skus.has("ID-UDS-TELOR-ASIN")).toBe(true);
+    expect(skus.has("ID-GURAME-COBEK")).toBe(true);
+    expect(skus.has("ID-KEPITING-JANTAN-TELOR-ASIN")).toBe(true);
+    expect(skus.has("ID-CUMI-GORENG-TEPUNG")).toBe(true);
+    expect(skus.has("ID-AYAM-GRG-KREMES")).toBe(true);
+    expect(skus.has("ID-TUMIS-KANGKUNG")).toBe(true);
+    expect(skus.has("ID-ES-TEH-MANIS")).toBe(true);
+    expect(skus.has("ID-CARAMEL-MACCHIATO")).toBe(true);
+    expect(skus.has("ID-RUJAK-MANIS")).toBe(true);
   });
 
-  it("keeps package BOM minimal and references valid product SKU", () => {
+  it("keeps package BOM valid and references product SKU from catalog", () => {
     const skus = new Set(RESTAURANT_ID_PRODUCTS.map((item) => item.sku));
 
     expect(RESTAURANT_ID_PACKAGE_BOMS.length).toBe(3);
@@ -32,6 +37,16 @@ describe("restaurant indonesia seed catalog", () => {
         expect(component.quantity).toBeGreaterThan(0);
         expect(Number.isInteger(component.quantity)).toBe(true);
       }
+    }
+  });
+
+  it("provides BOM candidate mapping one by one for all seeded products", () => {
+    expect(RESTAURANT_ID_BOM_CANDIDATES.length).toBe(RESTAURANT_ID_PRODUCTS.length);
+    for (const candidate of RESTAURANT_ID_BOM_CANDIDATES) {
+      expect(typeof candidate.sku).toBe("string");
+      expect(candidate.sku.length).toBeGreaterThan(0);
+      expect(typeof candidate.bomHint).toBe("string");
+      expect(candidate.bomHint.length).toBeGreaterThan(0);
     }
   });
 });

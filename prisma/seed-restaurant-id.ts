@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Decimal } from "decimal.js";
 import { prisma } from "./seed/utils";
 import { seedAccounting } from "./seed/accounting";
@@ -33,6 +34,17 @@ export type RestaurantProduct = {
   gudangStock: number;
 };
 
+type RestaurantMenuCatalogItem = {
+  sku: string;
+  name: string;
+  category: string;
+  price: number;
+  unit?: string;
+  bomHint: string;
+};
+
+type MenuSeedMode = "full" | "minimal";
+
 export type RestaurantPackageBomSeed = {
   bomNumber: string;
   productSku: string;
@@ -44,66 +56,375 @@ export type RestaurantPackageBomSeed = {
   }>;
 };
 
-export const RESTAURANT_ID_PRODUCTS: RestaurantProduct[] = [
-  { sku: "ID-MENU-NASI-TIMBEL", name: "Nasi Timbel Komplit", description: "Nasi timbel, ayam goreng, tahu-tempe, sambal, lalapan", category: "Menu Makanan Indonesia", unit: "Porsi", price: 32000, cost: 14500, minStock: 20, outletStock: 85, gudangStock: 0 },
-  { sku: "ID-MENU-GURAME-BAKAR", name: "Gurame Bakar Sunda", description: "Gurame bakar bumbu kecap, sambal terasi, lalapan", category: "Menu Makanan Indonesia", unit: "Porsi", price: 68000, cost: 34000, minStock: 12, outletStock: 45, gudangStock: 0 },
-  { sku: "ID-MENU-CUMI-GORENG", name: "Cumi Goreng Tepung", description: "Cumi segar goreng tepung dengan sambal matah", category: "Menu Makanan Indonesia", unit: "Porsi", price: 52000, cost: 26500, minStock: 12, outletStock: 40, gudangStock: 0 },
-  { sku: "ID-MENU-KANGKUNG-CAH", name: "Kangkung Cah Bawang", description: "Tumis kangkung bawang putih khas warung Sunda", category: "Menu Makanan Indonesia", unit: "Porsi", price: 18000, cost: 7000, minStock: 15, outletStock: 60, gudangStock: 0 },
-  { sku: "ID-MENU-ES-TEH", name: "Es Teh Manis", description: "Teh melati, gula cair, es batu", category: "Menu Minuman", unit: "Porsi", price: 8000, cost: 2500, minStock: 60, outletStock: 180, gudangStock: 0 },
-  { sku: "ID-MENU-ES-JERUK", name: "Es Jeruk Peras", description: "Jeruk peras segar dan gula cair", category: "Menu Minuman", unit: "Porsi", price: 15000, cost: 6000, minStock: 40, outletStock: 110, gudangStock: 0 },
-  { sku: "ID-MENU-AIR-MINERAL", name: "Air Mineral 600ml", description: "Air mineral botol 600ml", category: "Menu Minuman", unit: "Botol", price: 7000, cost: 3500, minStock: 48, outletStock: 120, gudangStock: 0 },
-  { sku: "ID-PKG-HEMAT-TIMBEL", name: "Paket Hemat Timbel + Es Teh", description: "1 Nasi Timbel Komplit + 1 Es Teh Manis", category: "Menu Makanan Indonesia", unit: "Porsi", price: 38000, cost: 17000, minStock: 25, outletStock: 70, gudangStock: 0 },
-  { sku: "ID-PKG-SEAFOOD-BERDUA", name: "Paket Seafood Berdua", description: "1 Gurame Bakar + 1 Cumi Goreng + 2 Es Teh", category: "Menu Makanan Indonesia", unit: "Porsi", price: 125000, cost: 69000, minStock: 10, outletStock: 25, gudangStock: 0 },
-  { sku: "ID-PKG-SUNDA-KELUARGA", name: "Paket Sunda Keluarga", description: "2 Nasi Timbel + 1 Gurame Bakar + 1 Kangkung Cah + 3 Es Teh", category: "Menu Makanan Indonesia", unit: "Porsi", price: 155000, cost: 84000, minStock: 8, outletStock: 20, gudangStock: 0 },
-  { sku: "ID-BB-BERAS-PANDAN", name: "Beras Pandan Wangi", description: "Beras premium untuk nasi timbel", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 14500, minStock: 80, outletStock: 70, gudangStock: 350 },
-  { sku: "ID-BB-GURAME-SEGAR", name: "Ikan Gurame Segar", description: "Bahan baku utama gurame bakar", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 42000, minStock: 35, outletStock: 30, gudangStock: 90 },
-  { sku: "ID-BB-CUMI-SEGAR", name: "Cumi Segar", description: "Bahan baku utama cumi goreng", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 78000, minStock: 25, outletStock: 20, gudangStock: 70 },
-  { sku: "ID-BB-KANGKUNG", name: "Kangkung Ikat", description: "Sayur kangkung untuk menu cah kangkung", category: "Bahan Baku Dapur", unit: "Ikat", price: 0, cost: 9000, minStock: 30, outletStock: 25, gudangStock: 80 },
-  { sku: "ID-BB-TEH-MELATI", name: "Teh Melati Curah", description: "Bahan baku minuman teh restoran", category: "Bumbu & Rempah", unit: "Pack", price: 0, cost: 48000, minStock: 20, outletStock: 18, gudangStock: 60 },
-  { sku: "ID-BB-JERUK-PERAS", name: "Jeruk Peras", description: "Bahan baku es jeruk", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 18000, minStock: 25, outletStock: 22, gudangStock: 75 },
-  { sku: "ID-BB-GULA-PASIR", name: "Gula Pasir", description: "Bahan baku pemanis minuman", category: "Bahan Baku Dapur", unit: "Kilogram", price: 0, cost: 17000, minStock: 40, outletStock: 35, gudangStock: 120 },
-  { sku: "ID-BB-CABE-RAWIT", name: "Cabe Rawit Merah", description: "Cabe rawit untuk sambal dan bumbu", category: "Bumbu & Rempah", unit: "Kilogram", price: 0, cost: 65000, minStock: 15, outletStock: 18, gudangStock: 55 },
-  { sku: "ID-BB-BAWANG-MERAH", name: "Bawang Merah Brebes", description: "Bawang merah untuk bumbu dasar", category: "Bumbu & Rempah", unit: "Kilogram", price: 0, cost: 42000, minStock: 20, outletStock: 20, gudangStock: 80 },
-  { sku: "ID-BB-MINYAK-GORENG", name: "Minyak Goreng 18L", description: "Minyak goreng jeriken untuk produksi harian", category: "Bahan Baku Dapur", unit: "Liter", price: 0, cost: 17000, minStock: 90, outletStock: 120, gudangStock: 260 },
-  { sku: "ID-PACK-BOX-NASI", name: "Box Nasi Takeaway", description: "Kemasan nasi paper box food grade", category: "Kemasan Takeaway", unit: "Pack", price: 0, cost: 55000, minStock: 20, outletStock: 24, gudangStock: 80 },
-  { sku: "ID-PACK-CUP-16OZ", name: "Cup Minuman 16oz + Lid", description: "Cup plastik untuk es teh dan es jeruk", category: "Kemasan Takeaway", unit: "Pack", price: 0, cost: 38000, minStock: 15, outletStock: 30, gudangStock: 70 },
+const MENU_CATALOG: RestaurantMenuCatalogItem[] = [
+  { sku: "ID-UDS-TELOR-ASIN", name: "Udang Super Telor Asin", category: "Menu Seafood", price: 150000, bomHint: "udang, tepung, telur asin, minyak" },
+  { sku: "ID-UDS-BAKAR-MADU", name: "Udang Super Bakar Madu", category: "Menu Seafood", price: 140000, bomHint: "udang, madu, kecap, margarin" },
+  { sku: "ID-UDS-SAUS-PADANG", name: "Udang Super Saus Padang", category: "Menu Seafood", price: 140000, bomHint: "udang, cabai, bawang, saus tomat" },
+  { sku: "ID-UDS-ASAM-MANIS", name: "Udang Super Asam Manis", category: "Menu Seafood", price: 135000, bomHint: "udang, saus asam manis, bawang" },
+  { sku: "ID-UDS-SAUS-TIRAM", name: "Udang Super Saus Tiram", category: "Menu Seafood", price: 135000, bomHint: "udang, saus tiram, bawang, minyak wijen" },
+  { sku: "ID-UDS-GORENG-TEPUNG", name: "Udang Super Goreng Tepung", category: "Menu Seafood", price: 135000, bomHint: "udang, tepung, minyak" },
+  { sku: "ID-UDS-GORENG", name: "Udang Super Goreng", category: "Menu Seafood", price: 135000, bomHint: "udang, bumbu marinasi, minyak" },
+  { sku: "ID-UDS-REBUS", name: "Udang Super Rebus", category: "Menu Seafood", price: 135000, bomHint: "udang, garam, jeruk nipis" },
+  { sku: "ID-UDS-SOP", name: "Udang Super Sop", category: "Menu Seafood", price: 135000, bomHint: "udang, kaldu, sayur sop" },
+  { sku: "ID-UDT-TELOR-ASIN", name: "Udang Standar Telor Asin", category: "Menu Seafood", price: 135000, bomHint: "udang, tepung, telur asin, minyak" },
+  { sku: "ID-UDT-BAKAR-MADU", name: "Udang Standar Bakar Madu", category: "Menu Seafood", price: 125000, bomHint: "udang, madu, kecap, margarin" },
+  { sku: "ID-UDT-SAUS-PADANG", name: "Udang Standar Saus Padang", category: "Menu Seafood", price: 125000, bomHint: "udang, cabai, bawang, saus tomat" },
+  { sku: "ID-UDT-ASAM-MANIS", name: "Udang Standar Asam Manis", category: "Menu Seafood", price: 120000, bomHint: "udang, saus asam manis, bawang" },
+  { sku: "ID-UDT-SAUS-TIRAM", name: "Udang Standar Saus Tiram", category: "Menu Seafood", price: 120000, bomHint: "udang, saus tiram, bawang, minyak wijen" },
+  { sku: "ID-UDT-GORENG-TEPUNG", name: "Udang Standar Goreng Tepung", category: "Menu Seafood", price: 120000, bomHint: "udang, tepung, minyak" },
+  { sku: "ID-UDT-GORENG", name: "Udang Standar Goreng", category: "Menu Seafood", price: 120000, bomHint: "udang, bumbu marinasi, minyak" },
+  { sku: "ID-UDT-REBUS", name: "Udang Standar Rebus", category: "Menu Seafood", price: 120000, bomHint: "udang, garam, jeruk nipis" },
+  { sku: "ID-UDT-SOP", name: "Udang Standar Sop", category: "Menu Seafood", price: 120000, bomHint: "udang, kaldu, sayur sop" },
+  { sku: "ID-GURAME-FILLET-TELOR-ASIN", name: "Gurame Fillet Telor Asin", category: "Menu Ikan", price: 125000, bomHint: "gurame fillet, telur asin, tepung" },
+  { sku: "ID-GURAME-CENGHAR", name: "Gurame Cenghar", category: "Menu Ikan", price: 125000, bomHint: "gurame, bumbu cenghar, cabai" },
+  { sku: "ID-GURAME-KECOMBRANG", name: "Gurame Kecombrang", category: "Menu Ikan", price: 125000, bomHint: "gurame, kecombrang, bawang, cabai" },
+  { sku: "ID-GURAME-FILLET-ASAM-MANIS", name: "Gurame Fillet Asam Manis", category: "Menu Ikan", price: 120000, bomHint: "gurame fillet, saus asam manis" },
+  { sku: "ID-GURAME-FILLET-SAUS-PADANG", name: "Gurame Fillet Saus Padang", category: "Menu Ikan", price: 120000, bomHint: "gurame fillet, bumbu padang" },
+  { sku: "ID-GURAME-FILLET-SAUS-TIRAM", name: "Gurame Fillet Saus Tiram", category: "Menu Ikan", price: 120000, bomHint: "gurame fillet, saus tiram" },
+  { sku: "ID-GURAME-PESMOL", name: "Gurame Pesmol", category: "Menu Ikan", price: 120000, bomHint: "gurame, kunyit, kemiri, bawang" },
+  { sku: "ID-GURAME-TERBANG", name: "Gurame Terbang", category: "Menu Ikan", price: 120000, bomHint: "gurame, tepung tipis, minyak" },
+  { sku: "ID-GURAME-BAKAR-MADU", name: "Gurame Bakar Madu", category: "Menu Ikan", price: 115000, bomHint: "gurame, madu, kecap, margarin" },
+  { sku: "ID-GURAME-BAKAR-KECAP", name: "Gurame Bakar Kecap", category: "Menu Ikan", price: 115000, bomHint: "gurame, kecap, bawang, cabai" },
+  { sku: "ID-GURAME-COBEK", name: "Gurame Bumbu Cobek", category: "Menu Ikan", price: 115000, bomHint: "gurame, sambal cobek, tomat, bawang" },
+  { sku: "ID-GURAME-SAUS-TIRAM", name: "Gurame Saus Tiram", category: "Menu Ikan", price: 115000, bomHint: "gurame, saus tiram, bawang" },
+  { sku: "ID-GURAME-SAUS-PADANG", name: "Gurame Saus Padang", category: "Menu Ikan", price: 115000, bomHint: "gurame, bumbu padang" },
+  { sku: "ID-GURAME-ASAM-MANIS", name: "Gurame Asam Manis", category: "Menu Ikan", price: 115000, bomHint: "gurame, saus asam manis" },
+  { sku: "ID-GURAME-SOP", name: "Gurame Sop", category: "Menu Ikan", price: 115000, bomHint: "gurame, kaldu, sayur sop" },
+  { sku: "ID-GURAME-GORENG", name: "Gurame Goreng", category: "Menu Ikan", price: 115000, bomHint: "gurame, bumbu marinasi, minyak" },
+  { sku: "ID-KERAPU-BAKAR-MADU", name: "Kerapu Bakar Madu", category: "Menu Ikan", price: 130000, bomHint: "kerapu, madu, kecap" },
+  { sku: "ID-KERAPU-SAUS-TIRAM", name: "Kerapu Saus Tiram", category: "Menu Ikan", price: 130000, bomHint: "kerapu, saus tiram, bawang" },
+  { sku: "ID-KERAPU-SAUS-PADANG", name: "Kerapu Saus Padang", category: "Menu Ikan", price: 130000, bomHint: "kerapu, bumbu padang" },
+  { sku: "ID-KERAPU-ASAM-MANIS", name: "Kerapu Asam Manis", category: "Menu Ikan", price: 130000, bomHint: "kerapu, saus asam manis" },
+  { sku: "ID-KERAPU-SAUS-MANGGA", name: "Kerapu Saus Mangga", category: "Menu Ikan", price: 130000, bomHint: "kerapu, mangga muda, cabai" },
+  { sku: "ID-KERAPU-PESMOL", name: "Kerapu Pesmol", category: "Menu Ikan", price: 130000, bomHint: "kerapu, kunyit, kemiri, bawang" },
+  { sku: "ID-KERAPU-BAKAR-KECAP", name: "Kerapu Bakar Kecap", category: "Menu Ikan", price: 130000, bomHint: "kerapu, kecap, bawang, cabai" },
+  { sku: "ID-KERAPU-GORENG", name: "Kerapu Goreng", category: "Menu Ikan", price: 130000, bomHint: "kerapu, bumbu marinasi, minyak" },
+  { sku: "ID-SEAFOOD-MANG-ENGKING", name: "Seafood Mang Engking", category: "Menu Paket", price: 260000, bomHint: "mix seafood, sambal, sayur pelengkap" },
+  { sku: "ID-KEPITING-JANTAN-TELOR-ASIN", name: "Kepiting Jantan Telor Asin", category: "Menu Kepiting", price: 145000, bomHint: "kepiting, telur asin, tepung" },
+  { sku: "ID-KEPITING-JANTAN-SAUS-PADANG", name: "Kepiting Jantan Saus Padang", category: "Menu Kepiting", price: 135000, bomHint: "kepiting, bumbu padang" },
+  { sku: "ID-KEPITING-JANTAN-SAUS-TIRAM", name: "Kepiting Jantan Saus Tiram", category: "Menu Kepiting", price: 130000, bomHint: "kepiting, saus tiram, bawang" },
+  { sku: "ID-KEPITING-JANTAN-ASAM-MANIS", name: "Kepiting Jantan Asam Manis", category: "Menu Kepiting", price: 130000, bomHint: "kepiting, saus asam manis" },
+  { sku: "ID-KEPITING-JANTAN-GORENG", name: "Kepiting Jantan Goreng", category: "Menu Kepiting", price: 130000, bomHint: "kepiting, bumbu marinasi, minyak" },
+  { sku: "ID-KEPITING-JANTAN-REBUS", name: "Kepiting Jantan Rebus", category: "Menu Kepiting", price: 130000, bomHint: "kepiting, garam, jahe" },
+  { sku: "ID-KEPITING-SOKA-TELOR-ASIN", name: "Kepiting Soka Telor Asin", category: "Menu Kepiting", price: 140000, bomHint: "kepiting soka, telur asin, tepung" },
+  { sku: "ID-KEPITING-SOKA-SAUS-PADANG", name: "Kepiting Soka Saus Padang", category: "Menu Kepiting", price: 130000, bomHint: "kepiting soka, bumbu padang" },
+  { sku: "ID-KEPITING-SOKA-SAUS-TIRAM", name: "Kepiting Soka Saus Tiram", category: "Menu Kepiting", price: 125000, bomHint: "kepiting soka, saus tiram" },
+  { sku: "ID-KEPITING-SOKA-ASAM-MANIS", name: "Kepiting Soka Asam Manis", category: "Menu Kepiting", price: 125000, bomHint: "kepiting soka, saus asam manis" },
+  { sku: "ID-KEPITING-SOKA-GORENG-TEPUNG", name: "Kepiting Soka Goreng Tepung", category: "Menu Kepiting", price: 125000, bomHint: "kepiting soka, tepung, minyak" },
+  { sku: "ID-CUMI-TELOR-ASIN", name: "Cumi Telor Asin", category: "Menu Cumi & Kerang", price: 80000, bomHint: "cumi, telur asin, tepung" },
+  { sku: "ID-CUMI-SAUS-PADANG", name: "Cumi Saus Padang", category: "Menu Cumi & Kerang", price: 70000, bomHint: "cumi, bumbu padang" },
+  { sku: "ID-CUMI-SAUS-TIRAM", name: "Cumi Saus Tiram", category: "Menu Cumi & Kerang", price: 70000, bomHint: "cumi, saus tiram" },
+  { sku: "ID-CUMI-ASAM-MANIS", name: "Cumi Asam Manis", category: "Menu Cumi & Kerang", price: 70000, bomHint: "cumi, saus asam manis" },
+  { sku: "ID-CUMI-GORENG-TEPUNG", name: "Cumi Goreng Tepung", category: "Menu Cumi & Kerang", price: 70000, bomHint: "cumi, tepung, minyak" },
+  { sku: "ID-CUMI-GORENG", name: "Cumi Goreng", category: "Menu Cumi & Kerang", price: 70000, bomHint: "cumi, bumbu marinasi, minyak" },
+  { sku: "ID-KERANG-SAUS-PADANG", name: "Kerang Saus Padang", category: "Menu Cumi & Kerang", price: 70000, bomHint: "kerang, bumbu padang" },
+  { sku: "ID-KERANG-SAUS-TIRAM", name: "Kerang Saus Tiram", category: "Menu Cumi & Kerang", price: 70000, bomHint: "kerang, saus tiram" },
+  { sku: "ID-KERANG-SAUS-ASAM-MANIS", name: "Kerang Saus Asam Manis", category: "Menu Cumi & Kerang", price: 70000, bomHint: "kerang, saus asam manis" },
+  { sku: "ID-SIMPING-GORENG", name: "Kerang Simping Goreng", category: "Menu Cumi & Kerang", price: 70000, bomHint: "kerang simping, tepung, minyak" },
+  { sku: "ID-SIMPING-REBUS", name: "Kerang Simping Rebus", category: "Menu Cumi & Kerang", price: 70000, bomHint: "kerang simping, garam, jahe" },
+  { sku: "ID-BANDENG-TELOR-ASIN", name: "Bandeng Tanpa Duri Telor Asin", category: "Menu Ikan", price: 75000, bomHint: "bandeng, telur asin, tepung" },
+  { sku: "ID-BANDENG-BAKAR-KECAP", name: "Bandeng Bakar Kecap", category: "Menu Ikan", price: 70000, bomHint: "bandeng, kecap, bawang" },
+  { sku: "ID-BANDENG-BAKAR-MADU", name: "Bandeng Bakar Madu", category: "Menu Ikan", price: 70000, bomHint: "bandeng, madu, kecap" },
+  { sku: "ID-BANDENG-SAUS-PADANG", name: "Bandeng Saus Padang", category: "Menu Ikan", price: 70000, bomHint: "bandeng, bumbu padang" },
+  { sku: "ID-BANDENG-SAUS-ASAM-MANIS", name: "Bandeng Saus Asam Manis", category: "Menu Ikan", price: 70000, bomHint: "bandeng, saus asam manis" },
+  { sku: "ID-BANDENG-SAUS-TIRAM", name: "Bandeng Saus Tiram", category: "Menu Ikan", price: 70000, bomHint: "bandeng, saus tiram" },
+  { sku: "ID-AYAM-GRG-SERUNDENG", name: "Ayam Goreng Serundeng", category: "Menu Ayam Bebek Sapi", price: 99000, bomHint: "ayam, bumbu serundeng, kelapa parut" },
+  { sku: "ID-AYAM-GRG-KREMES", name: "Ayam Goreng Kremes", category: "Menu Ayam Bebek Sapi", price: 99000, bomHint: "ayam, adonan kremes, minyak" },
+  { sku: "ID-AYAM-BAKAR-MADU", name: "Ayam Bakar Madu", category: "Menu Ayam Bebek Sapi", price: 99000, bomHint: "ayam, madu, kecap, bawang" },
+  { sku: "ID-AYAM-BAKAR-KECAP", name: "Ayam Bakar Kecap", category: "Menu Ayam Bebek Sapi", price: 99000, bomHint: "ayam, kecap, bawang, cabai" },
+  { sku: "ID-BEBEK-GRG-SERUNDENG", name: "Bebek Goreng Serundeng", category: "Menu Ayam Bebek Sapi", price: 130000, bomHint: "bebek, bumbu serundeng, kelapa" },
+  { sku: "ID-BEBEK-GRG-KREMES", name: "Bebek Goreng Kremes", category: "Menu Ayam Bebek Sapi", price: 130000, bomHint: "bebek, adonan kremes, minyak" },
+  { sku: "ID-SAPI-TUMIS-PEDAS", name: "Daging Sapi Tumis Pedas", category: "Menu Ayam Bebek Sapi", price: 90000, bomHint: "daging sapi, cabai, bawang, saus" },
+  { sku: "ID-SOP-IGA-SAPI", name: "Sop Iga Sapi", category: "Menu Ayam Bebek Sapi", price: 80000, bomHint: "iga sapi, kaldu, wortel, kentang" },
+  { sku: "ID-SOP-BUNTUT", name: "Sop Buntut", category: "Menu Ayam Bebek Sapi", price: 80000, bomHint: "buntut sapi, kaldu, sayur sop" },
+  { sku: "ID-IGA-BAKAR-MADU", name: "Iga Bakar Madu", category: "Menu Ayam Bebek Sapi", price: 80000, bomHint: "iga sapi, madu, kecap" },
+  { sku: "ID-IGA-PENYET", name: "Iga Penyet", category: "Menu Ayam Bebek Sapi", price: 80000, bomHint: "iga sapi, sambal penyet, lalapan" },
+  { sku: "ID-RAWON", name: "Rawon", category: "Menu Ayam Bebek Sapi", price: 80000, bomHint: "daging sapi, kluwek, tauge pendek" },
+  { sku: "ID-TAHU-GORENG", name: "Tahu Goreng", category: "Menu Sayuran & Lauk", price: 12000, bomHint: "tahu, bumbu, minyak" },
+  { sku: "ID-TEMPE-GORENG", name: "Tempe Goreng", category: "Menu Sayuran & Lauk", price: 12000, bomHint: "tempe, bumbu, minyak" },
+  { sku: "ID-TAHU-TEMPE-GORENG", name: "Tahu + Tempe Goreng", category: "Menu Sayuran & Lauk", price: 12000, bomHint: "tahu, tempe, bumbu, minyak" },
+  { sku: "ID-SAMBAL-PETAI", name: "Sambal Petai", category: "Menu Nasi & Sambal", price: 25000, bomHint: "petai, cabai, bawang, tomat" },
+  { sku: "ID-SAMBAL-TERASI-DADAK", name: "Sambal Terasi Dadak", category: "Menu Nasi & Sambal", price: 25000, bomHint: "cabai, terasi, tomat, bawang" },
+  { sku: "ID-SAMBAL-PENCIT", name: "Sambal Pencit", category: "Menu Nasi & Sambal", price: 8500, bomHint: "mangga muda, cabai, gula" },
+  { sku: "ID-SAMBAL-MATAH", name: "Sambal Matah", category: "Menu Nasi & Sambal", price: 8500, bomHint: "bawang merah, cabai, serai, minyak" },
+  { sku: "ID-SAMBAL-TOMAT", name: "Sambal Tomat", category: "Menu Nasi & Sambal", price: 7500, bomHint: "tomat, cabai, bawang" },
+  { sku: "ID-SAMBAL-KECAP", name: "Sambal Kecap", category: "Menu Nasi & Sambal", price: 7500, bomHint: "kecap, cabai, bawang" },
+  { sku: "ID-SAMBAL-BAWANG", name: "Sambal Bawang", category: "Menu Nasi & Sambal", price: 7500, bomHint: "cabai, bawang, minyak" },
+  { sku: "ID-SAMBAL-TOLENGJENG", name: "Sambal Tolengjeng", category: "Menu Nasi & Sambal", price: 7500, bomHint: "cabai, bawang, rempah khas" },
+  { sku: "ID-SAMBAL-HEJO", name: "Sambal Hejo", category: "Menu Nasi & Sambal", price: 7500, bomHint: "cabai hijau, tomat hijau, bawang" },
+  { sku: "ID-SAMBAL-SEGAR", name: "Sambal Segar", category: "Menu Nasi & Sambal", price: 7500, bomHint: "cabai segar, tomat, bawang" },
+  { sku: "ID-NASI-PUTIH", name: "Nasi Putih", category: "Menu Nasi & Sambal", price: 10000, bomHint: "beras, air" },
+  { sku: "ID-NASI-BAKUL-KECIL", name: "Nasi Bakul Kecil", category: "Menu Nasi & Sambal", price: 40000, bomHint: "beras, air, daun pisang opsional" },
+  { sku: "ID-NASI-BAKUL-BESAR", name: "Nasi Bakul Besar", category: "Menu Nasi & Sambal", price: 60000, bomHint: "beras, air, daun pisang opsional" },
+  { sku: "ID-NASI-LIWET", name: "Nasi Liwet", category: "Menu Nasi & Sambal", price: 44000, bomHint: "beras, santan, daun salam, serai" },
+  { sku: "ID-PAKET-10-ORANG", name: "Paket 10 Orang", category: "Menu Paket", price: 1195000, bomHint: "bundle multi-menu sesuai daftar paket" },
+  { sku: "ID-PAKET-6-ORANG", name: "Paket 6 Orang", category: "Menu Paket", price: 795000, bomHint: "bundle multi-menu sesuai daftar paket" },
+  { sku: "ID-PAKET-4-ORANG", name: "Paket 4 Orang", category: "Menu Paket", price: 495000, bomHint: "bundle multi-menu sesuai daftar paket" },
+  { sku: "ID-CAPCAY-SEAFOOD", name: "Capcay Seafood", category: "Menu Sayuran & Lauk", price: 45000, bomHint: "mix sayur, udang/cumi, saus" },
+  { sku: "ID-CAPCAY-AYAM", name: "Capcay Ayam", category: "Menu Sayuran & Lauk", price: 35000, bomHint: "mix sayur, ayam, saus" },
+  { sku: "ID-CAPCAY-BIASA", name: "Capcay Biasa", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "mix sayur, bawang, saus" },
+  { sku: "ID-KAREDOK", name: "Karedok", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "sayuran segar, bumbu kacang" },
+  { sku: "ID-TUMIS-KANGKUNG", name: "Tumis Kangkung", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "kangkung, bawang, cabai" },
+  { sku: "ID-TUMIS-GENJER", name: "Tumis Genjer", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "genjer, bawang, cabai" },
+  { sku: "ID-TUMIS-BABY-KAILAN", name: "Tumis Baby Kailan", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "baby kailan, bawang putih, saus tiram" },
+  { sku: "ID-TUMIS-BROKOLI", name: "Tumis Brokoli", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "brokoli, bawang putih, saus" },
+  { sku: "ID-TUMIS-DAUN-PEPAYA", name: "Tumis Daun Pepaya", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "daun pepaya, bawang, cabai" },
+  { sku: "ID-TUMIS-BABY-BUNCIS", name: "Tumis Baby Buncis", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "baby buncis, bawang, saus" },
+  { sku: "ID-OSENG-TOGE-IKAN-TERI", name: "Oseng Toge Ikan Teri", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "toge, ikan teri, bawang, cabai" },
+  { sku: "ID-OSENG-TEMPE-LEUNCA", name: "Oseng Tempe Leunca", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "tempe, leunca, bawang, cabai" },
+  { sku: "ID-SAYUR-ASEM", name: "Sayur Asem", category: "Menu Sayuran & Lauk", price: 25000, bomHint: "sayur asem mix, asam jawa, gula" },
+  { sku: "ID-PETAI-BAKAR-GORENG-REBUS", name: "Petai Bakar/Goreng/Rebus", category: "Menu Sayuran & Lauk", price: 30000, bomHint: "petai, minyak/air, bumbu sederhana" },
+  { sku: "ID-LALAPAN-MENTAH", name: "Lalapan Mentah", category: "Menu Sayuran & Lauk", price: 15000, bomHint: "timun, kemangi, kol, selada" },
+  { sku: "ID-ES-TELER", name: "Es Teler", category: "Menu Minuman", price: 33000, bomHint: "alpukat, kelapa, nangka, susu, es" },
+  { sku: "ID-ES-CAMPUR", name: "Es Campur", category: "Menu Minuman", price: 33000, bomHint: "campuran buah/jeli, sirup, es" },
+  { sku: "ID-ES-DAWET", name: "Es Dawet", category: "Menu Minuman", price: 25000, bomHint: "cendol, santan, gula merah, es" },
+  { sku: "ID-ES-MARQUISA", name: "Es Marquisa", category: "Menu Minuman", price: 25000, bomHint: "sirup markisa, gula, es" },
+  { sku: "ID-ES-LEMON-TEA", name: "Es Lemon Tea", category: "Menu Minuman", price: 25000, bomHint: "teh, lemon, gula, es" },
+  { sku: "ID-ES-JERUK-NIPIS", name: "Es Jeruk Nipis", category: "Menu Minuman", price: 22500, bomHint: "jeruk nipis, gula, es" },
+  { sku: "ID-ES-JERUK-MANIS", name: "Es Jeruk Manis", category: "Menu Minuman", price: 25000, bomHint: "jeruk manis, gula, es" },
+  { sku: "ID-ES-TEH-MANIS", name: "Es Teh Manis", category: "Menu Minuman", price: 10000, bomHint: "teh, gula, es" },
+  { sku: "ID-ES-TEH-TAWAR", name: "Es Teh Tawar", category: "Menu Minuman", price: 7500, bomHint: "teh, es" },
+  { sku: "ID-ES-SUSU-PUTIH-COKLAT", name: "Es Susu Putih/Coklat", category: "Menu Minuman", price: 15000, bomHint: "susu, coklat/sirup, es" },
+  { sku: "ID-LECI-TEA", name: "Leci Tea", category: "Menu Minuman", price: 23000, bomHint: "teh, leci, gula, es" },
+  { sku: "ID-AIR-MINERAL-600", name: "Air Mineral Prim-A 600 ml", category: "Menu Minuman", price: 10000, unit: "Botol", bomHint: "produk jadi siap jual" },
+  { sku: "ID-AIR-ES-BATU", name: "Air Es / Es Batu", category: "Menu Minuman", price: 2000, bomHint: "es batu, air" },
+  { sku: "ID-MILKSHAKE-STRAWBERRY", name: "Milkshake Strawberry", category: "Menu Minuman", price: 27500, bomHint: "susu, es krim, sirup strawberry" },
+  { sku: "ID-MILKSHAKE-VANILLA", name: "Milkshake Vanilla", category: "Menu Minuman", price: 27500, bomHint: "susu, es krim vanilla" },
+  { sku: "ID-MILKSHAKE-CHOCOLATE", name: "Milkshake Chocolate", category: "Menu Minuman", price: 27500, bomHint: "susu, es krim coklat" },
+  { sku: "ID-FLOAT-STRAWBERRY", name: "Float Strawberry", category: "Menu Minuman", price: 35000, bomHint: "soft drink/susu, es krim strawberry" },
+  { sku: "ID-FLOAT-VANILLA", name: "Float Vanilla", category: "Menu Minuman", price: 35000, bomHint: "soft drink/susu, es krim vanilla" },
+  { sku: "ID-FLOAT-CHOCOLATE", name: "Float Chocolate", category: "Menu Minuman", price: 35000, bomHint: "soft drink/susu, es krim coklat" },
+  { sku: "ID-FLOAT-CAPPUCCINO", name: "Float Cappuccino", category: "Menu Minuman", price: 35000, bomHint: "kopi, susu, es krim vanilla" },
+  { sku: "ID-FLOAT-MANGGA", name: "Float Mangga", category: "Menu Minuman", price: 35000, bomHint: "sirup mangga, es krim vanilla" },
+  { sku: "ID-FLOAT-ALPUKAT", name: "Float Alpukat", category: "Menu Minuman", price: 35000, bomHint: "alpukat, susu, es krim vanilla" },
+  { sku: "ID-MINP-MARQUISA", name: "Marquisa Panas", category: "Menu Minuman", price: 22000, bomHint: "sirup markisa, air panas" },
+  { sku: "ID-MINP-LEMON-TEA", name: "Lemon Tea Panas", category: "Menu Minuman", price: 24000, bomHint: "teh, lemon, air panas" },
+  { sku: "ID-MINP-JERUK-MANIS", name: "Jeruk Manis Panas", category: "Menu Minuman", price: 22000, bomHint: "jeruk manis, air panas" },
+  { sku: "ID-MINP-JERUK-NIPIS", name: "Jeruk Nipis Panas", category: "Menu Minuman", price: 22000, bomHint: "jeruk nipis, air panas" },
+  { sku: "ID-MINP-TEH-TAWAR", name: "Teh Tawar Panas", category: "Menu Minuman", price: 5000, bomHint: "teh, air panas" },
+  { sku: "ID-MINP-TEH-MANIS", name: "Teh Manis Panas", category: "Menu Minuman", price: 8000, bomHint: "teh, gula, air panas" },
+  { sku: "ID-MINP-KOPI-HITAM", name: "Kopi Hitam", category: "Menu Minuman", price: 15000, bomHint: "kopi bubuk, air panas" },
+  { sku: "ID-MINP-KOPI-SUSU", name: "Kopi Susu", category: "Menu Minuman", price: 15000, bomHint: "kopi, susu, gula" },
+  { sku: "ID-MINP-SUSU-PUTIH-COKLAT", name: "Susu Putih / Coklat Panas", category: "Menu Minuman", price: 15000, bomHint: "susu, coklat opsional" },
+  { sku: "ID-MINP-LATTE", name: "Latte", category: "Menu Minuman", price: 15000, bomHint: "espresso, susu" },
+  { sku: "ID-MINP-VANILLA-LATTE", name: "Vanilla Latte", category: "Menu Minuman", price: 15000, bomHint: "espresso, susu, vanilla" },
+  { sku: "ID-MINP-MOCHA-LATTE", name: "Mocha Latte", category: "Menu Minuman", price: 15000, bomHint: "espresso, susu, coklat" },
+  { sku: "ID-MINP-CAPPUCINO", name: "Cappucino Panas", category: "Menu Minuman", price: 15000, bomHint: "espresso, susu foam" },
+  { sku: "ID-JUS-DURIAN", name: "Jus Durian", category: "Menu Minuman", price: 33000, bomHint: "buah durian, gula, air/es" },
+  { sku: "ID-JUS-ALPUKAT", name: "Jus Alpukat", category: "Menu Minuman", price: 28000, bomHint: "alpukat, gula, susu opsional" },
+  { sku: "ID-JUS-STRAWBERRY", name: "Jus Strawberry", category: "Menu Minuman", price: 25000, bomHint: "strawberry, gula, air/es" },
+  { sku: "ID-JUS-MELON", name: "Jus Melon", category: "Menu Minuman", price: 23000, bomHint: "melon, gula, air/es" },
+  { sku: "ID-JUS-JAMBU", name: "Jus Jambu", category: "Menu Minuman", price: 23000, bomHint: "jambu, gula, air/es" },
+  { sku: "ID-JUS-SIRSAK", name: "Jus Sirsak", category: "Menu Minuman", price: 23000, bomHint: "sirsak, gula, air/es" },
+  { sku: "ID-JUS-TOMAT", name: "Jus Tomat", category: "Menu Minuman", price: 23000, bomHint: "tomat, gula, air/es" },
+  { sku: "ID-JUS-SEMANGKA", name: "Jus Semangka", category: "Menu Minuman", price: 23000, bomHint: "semangka, gula, air/es" },
+  { sku: "ID-JUS-APEL", name: "Jus Apel", category: "Menu Minuman", price: 23000, bomHint: "apel, gula, air/es" },
+  { sku: "ID-JUS-JERUK", name: "Jus Jeruk", category: "Menu Minuman", price: 23000, bomHint: "jeruk, gula, air/es" },
+  { sku: "ID-JUS-MANGGA", name: "Jus Mangga", category: "Menu Minuman", price: 23000, bomHint: "mangga, gula, air/es" },
+  { sku: "ID-JUS-PEPAYA", name: "Jus Pepaya", category: "Menu Minuman", price: 23000, bomHint: "pepaya, gula, air/es" },
+  { sku: "ID-ES-KELAPA-KOPYOR", name: "Es Kelapa Kopyor", category: "Menu Minuman", price: 45000, bomHint: "kelapa kopyor, sirup, es" },
+  { sku: "ID-KELAPA-MUDA-UTUH", name: "Kelapa Muda Utuh", category: "Menu Minuman", price: 30000, bomHint: "kelapa muda utuh" },
+  { sku: "ID-KELAPA-MUDA-UTUH-JERUK", name: "Kelapa Muda Utuh + Jeruk", category: "Menu Minuman", price: 35000, bomHint: "kelapa muda, jeruk" },
+  { sku: "ID-ES-KELAPA-MUDA-GELAS", name: "Es Kelapa Muda Gelas", category: "Menu Minuman", price: 25000, bomHint: "daging kelapa muda, es, sirup" },
+  { sku: "ID-ES-KELAPA-MUDA-GELAS-JERUK", name: "Es Kelapa Muda Gelas + Jeruk", category: "Menu Minuman", price: 27500, bomHint: "kelapa muda, jeruk, es" },
+  { sku: "ID-ES-CINCAU", name: "Es Cincau", category: "Menu Minuman", price: 25000, bomHint: "cincau, sirup gula, es" },
+  { sku: "ID-BANDREK-ORIGINAL-PANAS", name: "Bandrek Original Panas", category: "Menu Minuman", price: 20000, bomHint: "jahe, gula aren, rempah" },
+  { sku: "ID-BANDREK-SUSU-PANAS", name: "Bandrek Susu Panas", category: "Menu Minuman", price: 20000, bomHint: "jahe, susu, gula aren" },
+  { sku: "ID-ES-KUWUT", name: "Es Kuwut", category: "Menu Minuman", price: 25000, bomHint: "melon, selasih, jeruk, es" },
+  { sku: "ID-SODA-GEMBIRA", name: "Soda Gembira", category: "Menu Minuman", price: 25000, bomHint: "soda, susu kental manis, sirup" },
+  { sku: "ID-LEMON-SQUASH", name: "Lemon Squash", category: "Menu Minuman", price: 25000, bomHint: "lemon, soda, gula" },
+  { sku: "ID-ES-MARQUISA-SODA", name: "Es Marquisa Soda", category: "Menu Minuman", price: 25000, bomHint: "sirup markisa, soda, es" },
+  { sku: "ID-RUJAK-MANIS", name: "Rujak Manis", category: "Menu Dessert", price: 30000, bomHint: "buah mix, bumbu rujak" },
+  { sku: "ID-ES-CREAM-GORENG", name: "Es Cream Goreng", category: "Menu Dessert", price: 30000, bomHint: "es krim, roti/tepung, minyak" },
+  { sku: "ID-SINGKONG-GORENG", name: "Singkong Goreng", category: "Menu Dessert", price: 30000, bomHint: "singkong, minyak, garam" },
+  { sku: "ID-BUAH-POTONG", name: "Buah Potong", category: "Menu Dessert", price: 25000, bomHint: "buah segar mix" },
+  { sku: "ID-ICE-CREAM-STRAWBERRY", name: "Ice Cream Strawberry", category: "Menu Dessert", price: 25000, bomHint: "es krim strawberry siap saji" },
+  { sku: "ID-ICE-CREAM-VANILLA", name: "Ice Cream Vanilla", category: "Menu Dessert", price: 25000, bomHint: "es krim vanilla siap saji" },
+  { sku: "ID-ICE-CREAM-CHOCOLATE", name: "Ice Cream Chocolate", category: "Menu Dessert", price: 25000, bomHint: "es krim coklat siap saji" },
+  { sku: "ID-PISANG-GORENG-COKLAT-KEJU", name: "Pisang Goreng Coklat / Keju", category: "Menu Dessert", price: 25000, bomHint: "pisang, tepung, coklat/keju" },
+  { sku: "ID-TEMPE-MENDOAN", name: "Tempe Mendoan", category: "Menu Dessert", price: 25000, bomHint: "tempe, adonan mendoan, minyak" },
+  { sku: "ID-JAVANESE-ICE-KOPI", name: "Javanese Ice Kopi", category: "Menu Minuman", price: 30000, bomHint: "espresso/kopi, gula, es" },
+  { sku: "ID-V60-HOT-COFFEE", name: "V.60 - Hot Coffe", category: "Menu Minuman", price: 30000, bomHint: "biji kopi, filter V60, air panas" },
+  { sku: "ID-VIETNAM-DRIP", name: "Vietnam Drip", category: "Menu Minuman", price: 25000, bomHint: "kopi vietnam, susu kental manis" },
+  { sku: "ID-TUBRUK-ARIGINAL", name: "Tubruk Ariginal", category: "Menu Minuman", price: 20000, bomHint: "kopi bubuk, air panas" },
+  { sku: "ID-TUBRUK-ORIGINAL", name: "Tubruk Original", category: "Menu Minuman", price: 20000, bomHint: "kopi bubuk, air panas" },
+  { sku: "ID-ESPRESSO", name: "Espresso", category: "Menu Minuman", price: 25000, bomHint: "single/double shot espresso" },
+  { sku: "ID-AMERICANO", name: "Americano", category: "Menu Minuman", price: 25000, bomHint: "espresso, air panas" },
+  { sku: "ID-ES-KOPI-GULA-AREN", name: "Es Kopi Gula Aren", category: "Menu Minuman", price: 30000, bomHint: "espresso, susu, gula aren, es" },
+  { sku: "ID-ES-CAPPUCINO", name: "Es Cappucino", category: "Menu Minuman", price: 30000, bomHint: "espresso, susu, es" },
+  { sku: "ID-ES-KOPI-LATE", name: "Es Kopi Late", category: "Menu Minuman", price: 30000, bomHint: "espresso, susu, es" },
+  { sku: "ID-CARAMEL-MACCHIATO", name: "Caramel Macchiato", category: "Menu Minuman", price: 30000, bomHint: "espresso, susu, caramel" },
 ];
 
-export const RESTAURANT_ID_PACKAGE_BOMS: RestaurantPackageBomSeed[] = [
+const MENU_SEED_MODE: MenuSeedMode =
+  process.env.RESTAURANT_MENU_SEED_MODE === "minimal" ? "minimal" : "full";
+const MENU_LIMIT_PER_CATEGORY = Math.max(
+  1,
+  Number(process.env.RESTAURANT_MENU_LIMIT_PER_CATEGORY ?? "2"),
+);
+
+function pickMenuCatalogForSeed(source: RestaurantMenuCatalogItem[]) {
+  if (MENU_SEED_MODE !== "minimal") return source;
+  const grouped = new Map<string, RestaurantMenuCatalogItem[]>();
+  for (const item of source) {
+    grouped.set(item.category, [...(grouped.get(item.category) ?? []), item]);
+  }
+  return Array.from(grouped.entries()).flatMap(([category, items]) => {
+    if (category !== "Menu Paket") {
+      return items.slice(0, MENU_LIMIT_PER_CATEGORY);
+    }
+
+    const prioritized = [
+      ...items.filter((item) => item.sku.startsWith("ID-PAKET-")),
+      ...items.filter((item) => !item.sku.startsWith("ID-PAKET-")),
+    ];
+    return prioritized.slice(0, MENU_LIMIT_PER_CATEGORY);
+  });
+}
+
+const ACTIVE_MENU_CATALOG = pickMenuCatalogForSeed(MENU_CATALOG);
+const ACTIVE_SKUS = new Set(ACTIVE_MENU_CATALOG.map((item) => item.sku));
+
+function estimateCost(price: number, category: string) {
+  if (category === "Menu Paket") return Math.round(price * 0.62);
+  if (category === "Menu Minuman") return Math.round(price * 0.35);
+  if (category === "Menu Dessert") return Math.round(price * 0.4);
+  return Math.round(price * 0.48);
+}
+
+function minStockByCategory(category: string) {
+  if (category === "Menu Minuman") return 25;
+  if (category === "Menu Dessert") return 12;
+  if (category === "Menu Paket") return 8;
+  return 10;
+}
+
+export const RESTAURANT_ID_PRODUCTS: RestaurantProduct[] = ACTIVE_MENU_CATALOG.map((item) => ({
+  sku: item.sku,
+  name: item.name,
+  description: `Menu transcript Mang Engking. BOM kandidat: ${item.bomHint}`,
+  category: item.category,
+  unit: item.unit ?? "Porsi",
+  price: item.price,
+  cost: estimateCost(item.price, item.category),
+  minStock: minStockByCategory(item.category),
+  outletStock: 0,
+  gudangStock: 0,
+}));
+
+export const RESTAURANT_ID_BOM_CANDIDATES = ACTIVE_MENU_CATALOG.map((item) => ({
+  sku: item.sku,
+  name: item.name,
+  bomHint: item.bomHint,
+}));
+
+const BASE_PACKAGE_BOMS: RestaurantPackageBomSeed[] = [
   {
-    bomNumber: "ID-BOM-PKG-HEMAT-TIMBEL",
-    productSku: "ID-PKG-HEMAT-TIMBEL",
-    name: "BOM Paket Hemat Timbel + Es Teh",
+    bomNumber: "ID-BOM-PKG-10-ORANG",
+    productSku: "ID-PAKET-10-ORANG",
+    name: "BOM Paket 10 Orang",
     quantity: 1,
     components: [
-      { sku: "ID-MENU-NASI-TIMBEL", quantity: 1 },
-      { sku: "ID-MENU-ES-TEH", quantity: 1 },
+      { sku: "ID-UDT-BAKAR-MADU", quantity: 1 },
+      { sku: "ID-UDT-GORENG", quantity: 1 },
+      { sku: "ID-UDS-SAUS-TIRAM", quantity: 1 },
+      { sku: "ID-GURAME-COBEK", quantity: 1 },
+      { sku: "ID-GURAME-BAKAR-KECAP", quantity: 1 },
+      { sku: "ID-GURAME-SAUS-PADANG", quantity: 1 },
+      { sku: "ID-AYAM-GRG-SERUNDENG", quantity: 1 },
+      { sku: "ID-CUMI-GORENG-TEPUNG", quantity: 1 },
+      { sku: "ID-NASI-PUTIH", quantity: 10 },
+      { sku: "ID-TUMIS-KANGKUNG", quantity: 2 },
+      { sku: "ID-KAREDOK", quantity: 2 },
+      { sku: "ID-LALAPAN-MENTAH", quantity: 2 },
+      { sku: "ID-SAMBAL-TERASI-DADAK", quantity: 3 },
+      { sku: "ID-SAMBAL-TOMAT", quantity: 2 },
+      { sku: "ID-AIR-MINERAL-600", quantity: 10 },
     ],
   },
   {
-    bomNumber: "ID-BOM-PKG-SEAFOOD-BERDUA",
-    productSku: "ID-PKG-SEAFOOD-BERDUA",
-    name: "BOM Paket Seafood Berdua",
+    bomNumber: "ID-BOM-PKG-6-ORANG",
+    productSku: "ID-PAKET-6-ORANG",
+    name: "BOM Paket 6 Orang",
     quantity: 1,
     components: [
-      { sku: "ID-MENU-GURAME-BAKAR", quantity: 1 },
-      { sku: "ID-MENU-CUMI-GORENG", quantity: 1 },
-      { sku: "ID-MENU-ES-TEH", quantity: 2 },
+      { sku: "ID-UDT-BAKAR-MADU", quantity: 1 },
+      { sku: "ID-AYAM-GRG-KREMES", quantity: 1 },
+      { sku: "ID-UDS-SAUS-TIRAM", quantity: 1 },
+      { sku: "ID-GURAME-COBEK", quantity: 1 },
+      { sku: "ID-GURAME-BAKAR-KECAP", quantity: 1 },
+      { sku: "ID-NASI-PUTIH", quantity: 6 },
+      { sku: "ID-TUMIS-KANGKUNG", quantity: 1 },
+      { sku: "ID-KAREDOK", quantity: 1 },
+      { sku: "ID-LALAPAN-MENTAH", quantity: 1 },
+      { sku: "ID-SAMBAL-TERASI-DADAK", quantity: 2 },
+      { sku: "ID-SAMBAL-TOMAT", quantity: 1 },
+      { sku: "ID-ES-JERUK-MANIS", quantity: 3 },
+      { sku: "ID-ES-TEH-MANIS", quantity: 3 },
     ],
   },
   {
-    bomNumber: "ID-BOM-PKG-SUNDA-KELUARGA",
-    productSku: "ID-PKG-SUNDA-KELUARGA",
-    name: "BOM Paket Sunda Keluarga",
+    bomNumber: "ID-BOM-PKG-4-ORANG",
+    productSku: "ID-PAKET-4-ORANG",
+    name: "BOM Paket 4 Orang",
     quantity: 1,
     components: [
-      { sku: "ID-MENU-NASI-TIMBEL", quantity: 2 },
-      { sku: "ID-MENU-GURAME-BAKAR", quantity: 1 },
-      { sku: "ID-MENU-KANGKUNG-CAH", quantity: 1 },
-      { sku: "ID-MENU-ES-TEH", quantity: 3 },
+      { sku: "ID-UDT-BAKAR-MADU", quantity: 1 },
+      { sku: "ID-GURAME-COBEK", quantity: 1 },
+      { sku: "ID-AYAM-GRG-KREMES", quantity: 1 },
+      { sku: "ID-NASI-PUTIH", quantity: 4 },
+      { sku: "ID-TUMIS-KANGKUNG", quantity: 1 },
+      { sku: "ID-KAREDOK", quantity: 1 },
+      { sku: "ID-SAMBAL-TERASI-DADAK", quantity: 1 },
+      { sku: "ID-SAMBAL-TOMAT", quantity: 1 },
+      { sku: "ID-ES-JERUK-MANIS", quantity: 2 },
+      { sku: "ID-ES-TEH-MANIS", quantity: 2 },
     ],
   },
 ];
+
+function buildMinimalPackageBoms(catalog: RestaurantMenuCatalogItem[]) {
+  const byCategory = new Map<string, RestaurantMenuCatalogItem[]>();
+  for (const item of catalog) {
+    byCategory.set(item.category, [...(byCategory.get(item.category) ?? []), item]);
+  }
+
+  const packageMenus = (byCategory.get("Menu Paket") ?? []).slice(0, 2);
+  const seafood = byCategory.get("Menu Seafood")?.[0];
+  const fish = byCategory.get("Menu Ikan")?.[0];
+  const side = byCategory.get("Menu Sayuran & Lauk")?.[0];
+  const riceOrSambal = byCategory.get("Menu Nasi & Sambal")?.[0];
+  const drink = byCategory.get("Menu Minuman")?.[0];
+
+  return packageMenus
+    .map((pkg, idx) => {
+      const components = [
+        seafood && { sku: seafood.sku, quantity: 1 },
+        fish && { sku: fish.sku, quantity: 1 },
+        side && { sku: side.sku, quantity: 1 },
+        riceOrSambal && { sku: riceOrSambal.sku, quantity: idx === 0 ? 2 : 1 },
+        drink && { sku: drink.sku, quantity: idx === 0 ? 3 : 2 },
+      ].filter((item): item is { sku: string; quantity: number } => Boolean(item));
+
+      return {
+        bomNumber: `ID-BOM-${pkg.sku.replace("ID-", "")}`,
+        productSku: pkg.sku,
+        name: `BOM ${pkg.name}`,
+        quantity: 1,
+        components,
+      };
+    })
+    .filter((bom) => bom.components.length > 0);
+}
+
+export const RESTAURANT_ID_PACKAGE_BOMS: RestaurantPackageBomSeed[] =
+  MENU_SEED_MODE === "minimal"
+    ? buildMinimalPackageBoms(ACTIVE_MENU_CATALOG)
+    : BASE_PACKAGE_BOMS.filter(
+        (bom) =>
+          ACTIVE_SKUS.has(bom.productSku) &&
+          bom.components.every((component) => ACTIVE_SKUS.has(component.sku)),
+      );
 
 async function upsertContact(data: {
   name: string;
@@ -164,6 +485,63 @@ async function setInventory(productId: string, warehouseId: string, quantity: nu
       unitCost: d(unitCost),
       reorderPoint,
     },
+  });
+}
+
+async function cleanupRestaurantSeedProducts() {
+  console.log("🧹 Cleaning all existing products before restaurant reseed...");
+  const idProducts = await prisma.product.findMany({
+    select: { id: true },
+  });
+  if (idProducts.length === 0) return;
+  const productIds = idProducts.map((item) => item.id);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.priceHistory.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.kitchenTicketItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.restaurantOrderItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.productionIssueItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.productionReceiptItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.productionIssue.deleteMany({
+      where: { productionOrder: { productId: { in: productIds } } },
+    });
+    await tx.productionReceipt.deleteMany({
+      where: { productionOrder: { productId: { in: productIds } } },
+    });
+    await tx.purchaseReceiveItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.purchaseOrderItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.purchaseReturnItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.salesShipmentItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.salesOrderItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.salesInvoiceItem.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.salesReturnItem.deleteMany({ where: { productId: { in: productIds } } });
+
+    await tx.billOfMaterialItem.deleteMany({
+      where: {
+        OR: [
+          { productId: { in: productIds } },
+          { billOfMaterial: { productId: { in: productIds } } },
+        ],
+      },
+    });
+    await tx.billOfMaterial.deleteMany({
+      where: {
+        OR: [
+          { productId: { in: productIds } },
+          { bomNumber: { startsWith: "ID-BOM-" } },
+        ],
+      },
+    });
+
+    await tx.inventoryMovementDetail.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.inventoryMovement.updateMany({
+      where: { productId: { in: productIds } },
+      data: { productId: null },
+    });
+    await tx.inventory.deleteMany({ where: { productId: { in: productIds } } });
+
+    await tx.productionOrder.deleteMany({ where: { productId: { in: productIds } } });
+    await tx.product.deleteMany({ where: { id: { in: productIds } } });
   });
 }
 
@@ -320,23 +698,22 @@ async function seedInventoryIndonesia() {
 
   const units = [
     ["Porsi", "porsi"],
-    ["Kilogram", "kg"],
-    ["Gram", "g"],
-    ["Liter", "L"],
     ["Botol", "btl"],
-    ["Pack", "pack"],
-    ["Ikat", "ikat"],
-    ["Butir", "btr"],
   ] as const;
   const unitByName: Record<string, Awaited<ReturnType<typeof upsertUnit>>> = {};
   for (const [name, symbol] of units) unitByName[name] = await upsertUnit(name, symbol);
 
   const categories = [
-    ["Menu Makanan Indonesia", "Menu siap jual: nasi, ayam, ikan, dan paket resto"],
-    ["Menu Minuman", "Minuman dingin/panas khas Indonesia"],
-    ["Bahan Baku Dapur", "Stok bahan utama untuk produksi menu"],
-    ["Bumbu & Rempah", "Bumbu basah, kering, sambal, dan rempah"],
-    ["Kemasan Takeaway", "Box nasi, paper bag, cup, sedotan, dan packaging online"],
+    ["Menu Seafood", "Menu seafood utama berdasarkan transcript menu."],
+    ["Menu Ikan", "Menu ikan gurame, kerapu, bandeng."],
+    ["Menu Kepiting", "Menu kepiting jantan dan kepiting soka."],
+    ["Menu Cumi & Kerang", "Menu cumi serta kerang/simping."],
+    ["Menu Ayam Bebek Sapi", "Menu ayam, bebek, dan daging sapi."],
+    ["Menu Sayuran & Lauk", "Sayur, lauk pelengkap, dan gorengan pendamping."],
+    ["Menu Nasi & Sambal", "Nasi dan aneka sambal."],
+    ["Menu Paket", "Paket rame/rame berdasarkan menu cetak."],
+    ["Menu Minuman", "Minuman dingin, panas, kopi, soda, jus."],
+    ["Menu Dessert", "Dessert dan kudapan manis."],
   ] as const;
   const categoryByName: Record<string, Awaited<ReturnType<typeof upsertCategory>>> = {};
   for (const [name, description] of categories) categoryByName[name] = await upsertCategory(name, description);
@@ -389,6 +766,18 @@ async function seedPackageBomsIndonesia(
   context: Awaited<ReturnType<typeof seedInventoryIndonesia>>,
 ) {
   console.log("📦 Seeding minimal BOM for package products...");
+
+  const activeBomNumbers = new Set(RESTAURANT_ID_PACKAGE_BOMS.map((item) => item.bomNumber));
+  const stalePackageBoms = await prisma.billOfMaterial.findMany({
+    where: { bomNumber: { startsWith: "ID-BOM-PKG-" } },
+    select: { id: true, bomNumber: true },
+  });
+  for (const stale of stalePackageBoms) {
+    if (!activeBomNumbers.has(stale.bomNumber)) {
+      await prisma.billOfMaterialItem.deleteMany({ where: { billOfMaterialId: stale.id } });
+      await prisma.billOfMaterial.delete({ where: { id: stale.id } });
+    }
+  }
 
   for (const bom of RESTAURANT_ID_PACKAGE_BOMS) {
     const targetProduct = context.productBySku[bom.productSku];
@@ -841,20 +1230,19 @@ async function seedReportTemplatesIndonesia() {
 }
 
 async function main() {
-  console.log("🚀 Start Indonesian restaurant seeding for NATS...");
+  console.log("🚀 Start Indonesian restaurant product-only seeding for NATS...");
   const start = Date.now();
   try {
     await seedCompany();
     await seedAccounting();
     await seedUsers();
     await seedCompanyIndonesia();
-    await seedCashAccountsIndonesia();
-    await seedReportTemplatesIndonesia();
-    const contacts = await seedContactsIndonesia();
+    console.log(`🧭 Menu seed mode: ${MENU_SEED_MODE}${MENU_SEED_MODE === "minimal" ? ` (limit ${MENU_LIMIT_PER_CATEGORY} per category)` : ""}`);
+    await cleanupRestaurantSeedProducts();
     const inventoryContext = await seedInventoryIndonesia();
     await seedPackageBomsIndonesia(inventoryContext);
-    await seedRestaurantTransactionsIndonesia(inventoryContext, contacts);
-    console.log(`✅ Indonesian restaurant seeding completed in ${(Date.now() - start) / 1000}s`);
+    console.log("ℹ️ Contact, cash account, and transaction seed are intentionally skipped.");
+    console.log(`✅ Indonesian restaurant product-only seeding completed in ${(Date.now() - start) / 1000}s`);
   } catch (error) {
     console.error("❌ Indonesian restaurant seeding failed:", error);
     process.exit(1);

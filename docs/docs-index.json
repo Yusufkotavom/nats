@@ -179,6 +179,17 @@
         "new recurring issue appears",
         "error handling behavior changed"
       ]
+    },
+    {
+      "id": "restaurant-menu-transcript-seed-mapping",
+      "path": "docs/ss menu/transcript-seed-mapping.md",
+      "type": "seed-transcript",
+      "status": "active",
+      "mustUpdateWhen": [
+        "source menu transcript changed",
+        "restaurant product seed catalog changed",
+        "bom candidate mapping changed"
+      ]
     }
   ]
 }

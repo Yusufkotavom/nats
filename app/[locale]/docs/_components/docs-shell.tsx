@@ -12,7 +12,7 @@ type GuideMeta = Omit<GuideDoc, "content">;
 type DocHeading = {
   id: string;
   text: string;
-  level: 2 | 3;
+  level: 2 | 3 | 4;
 };
 
 function findAdjacentDocs(current: GuideMeta, docs: GuideMeta[]) {
@@ -45,10 +45,10 @@ function extractHeadings(markdown: string): DocHeading[] {
   const headings: DocHeading[] = [];
 
   for (const line of lines) {
-    const match = /^(##|###)\s+(.+)$/.exec(line.trim());
+    const match = /^(##|###|####)\s+(.+)$/.exec(line.trim());
     if (!match) continue;
 
-    const level = match[1] === "##" ? 2 : 3;
+    const level = match[1] === "##" ? 2 : match[1] === "###" ? 3 : 4;
     const text = match[2].trim();
     if (!text) continue;
 
@@ -106,7 +106,7 @@ export function DocsShell({
   }, [current.slug, headings]);
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_250px]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_270px]">
       <article className="rounded-xl border bg-card p-6 shadow-sm md:p-8">
         <div className="mb-8 border-b pb-6">
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
@@ -118,15 +118,46 @@ export function DocsShell({
           </p>
         </div>
 
-        <div className="prose prose-slate max-w-none text-[15px] leading-7 dark:prose-invert prose-headings:scroll-mt-24 prose-headings:font-semibold prose-h2:mt-10 prose-h2:mb-3 prose-h2:border-b prose-h2:pb-2 prose-h3:mt-8 prose-h3:mb-2 prose-p:my-4 prose-li:my-1 prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:font-mono prose-code:text-[0.9em] prose-code:before:content-none prose-code:after:content-none prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:bg-slate-950 prose-pre:px-4 prose-pre:py-4 prose-pre:text-slate-100 prose-table:my-6 prose-th:border prose-th:bg-muted/50 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-xs prose-th:uppercase prose-th:tracking-wide prose-td:border prose-td:px-3 prose-td:py-2 prose-blockquote:rounded-r-lg prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/40 prose-blockquote:px-4 prose-blockquote:py-2 prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+        {headings.length > 0 && (
+          <details className="mb-8 rounded-xl border bg-muted/20 px-4 py-3 xl:hidden" open>
+            <summary className="cursor-pointer text-sm font-semibold">{t("on_this_page")}</summary>
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {headings.map((heading) => (
+                <li key={heading.id}>
+                  <a
+                    href={`#${heading.id}`}
+                    className={`block rounded px-2 py-1 text-foreground/85 hover:bg-muted hover:text-foreground ${
+                      heading.level === 3 ? "ml-3 text-[13px]" : heading.level === 4 ? "ml-6 text-[12px]" : ""
+                    }`}
+                  >
+                    {heading.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
+        <div className="prose prose-zinc max-w-[84ch] text-[16px] leading-8 dark:prose-invert prose-headings:scroll-mt-24 prose-headings:font-semibold prose-headings:tracking-tight prose-h1:mt-16 prose-h1:mb-6 prose-h1:text-3xl prose-h2:mt-16 prose-h2:mb-5 prose-h2:text-2xl prose-h3:mt-12 prose-h3:mb-4 prose-h3:text-xl prose-h4:mt-10 prose-h4:mb-3 prose-h4:text-lg prose-p:my-5 prose-p:leading-8 prose-li:my-1.5 prose-li:leading-7 prose-ul:my-5 prose-ol:my-5 prose-hr:my-10 prose-hr:border-border prose-code:rounded prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:font-mono prose-code:text-[0.85em] prose-code:before:content-none prose-code:after:content-none prose-pre:my-8 prose-pre:overflow-x-auto prose-pre:whitespace-pre-wrap prose-pre:break-words prose-pre:rounded-xl prose-pre:border prose-pre:bg-slate-950 prose-pre:px-5 prose-pre:py-4 prose-pre:text-slate-100 prose-table:my-8 prose-th:border prose-th:bg-muted/50 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-xs prose-th:uppercase prose-th:tracking-wide prose-td:border prose-td:px-3 prose-td:py-2 prose-td:align-top prose-blockquote:my-6 prose-blockquote:rounded-r-lg prose-blockquote:border-l-4 prose-blockquote:border-primary/50 prose-blockquote:bg-muted/40 prose-blockquote:px-4 prose-blockquote:py-2 prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
+              h1: ({ children }) => {
+                const text = toPlainText(children).trim();
+                const id = toHeadingId(text);
+                return (
+                  <h1 id={id} className="relative border border-rose-200/80 bg-rose-50/80 px-4 py-3 text-rose-900 first:mt-0 dark:border-rose-900/50 dark:bg-rose-950/35 dark:text-rose-100">
+                    <a href={`#${id}`} className="no-underline hover:text-primary">
+                      {children}
+                    </a>
+                  </h1>
+                );
+              },
               h2: ({ children }) => {
                 const text = toPlainText(children).trim();
                 const id = toHeadingId(text);
                 return (
-                  <h2 id={id}>
+                  <h2 id={id} className="relative border border-sky-200/80 bg-sky-50/80 px-4 py-2.5 text-sky-900 first:mt-0 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-100">
                     <a href={`#${id}`} className="no-underline hover:text-primary">
                       {children}
                     </a>
@@ -137,18 +168,30 @@ export function DocsShell({
                 const text = toPlainText(children).trim();
                 const id = toHeadingId(text);
                 return (
-                  <h3 id={id}>
+                  <h3 id={id} className="border border-emerald-200/80 bg-emerald-50/80 px-4 py-2 text-emerald-900 first:mt-0 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
                     <a href={`#${id}`} className="no-underline hover:text-primary">
                       {children}
                     </a>
                   </h3>
                 );
               },
+              h4: ({ children }) => {
+                const text = toPlainText(children).trim();
+                const id = toHeadingId(text);
+                return (
+                  <h4 id={id} className="border border-amber-200/90 bg-amber-50/80 px-3.5 py-1.5 text-amber-900 first:mt-0 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                    <a href={`#${id}`} className="no-underline hover:text-primary">
+                      {children}
+                    </a>
+                  </h4>
+                );
+              },
               table: ({ children }) => (
                 <div className="my-4 w-full overflow-x-auto">
-                  <table className="w-full min-w-[680px] border-collapse text-sm">{children}</table>
+                  <table className="w-full min-w-0 table-fixed border-collapse text-sm [&_td]:whitespace-normal [&_td]:break-words [&_th]:whitespace-normal [&_th]:break-words">{children}</table>
                 </div>
               ),
+              hr: () => <hr className="my-10 border-border/80" />,
               ul: ({ children }) => <ul className="list-disc space-y-1 pl-6 marker:text-muted-foreground">{children}</ul>,
               ol: ({ children }) => <ol className="list-decimal space-y-1 pl-6 marker:text-muted-foreground">{children}</ol>,
               a: ({ href, children }) => (
@@ -218,7 +261,7 @@ export function DocsShell({
                       heading.id === activeHeading
                         ? "bg-primary/10 text-primary font-medium"
                         : "text-foreground/80 hover:bg-muted hover:text-foreground"
-                    } ${heading.level === 3 ? "ml-3 text-[13px]" : ""}`}
+                    } ${heading.level === 3 ? "ml-3 text-[13px]" : heading.level === 4 ? "ml-6 text-[12px]" : ""}`}
                   >
                     {heading.text}
                   </a>
