@@ -986,7 +986,8 @@
         "budgets": "Anggaran",
         "plans": "Rencana Anggaran",
         "variance": "Analisis Varian",
-        "dashboard": "Dasbor Penganggaran"
+        "dashboard": "Dasbor Penganggaran",
+        "saving_targets": "Target Dana Internal"
     },
     "Company": {
         "settings": "Pengaturan",

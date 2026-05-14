@@ -986,7 +986,8 @@
         "budgets": "Budgets",
         "plans": "Budget Plans",
         "variance": "Variance Analysis",
-        "dashboard": "Budgeting Dashboard"
+        "dashboard": "Budgeting Dashboard",
+        "saving_targets": "Saving Targets"
     },
     "Company": {
         "settings": "Settings",

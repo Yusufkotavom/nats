@@ -2,7 +2,7 @@
 title: Modul Budgeting
 module: budgeting
 order: 180
-updatedAt: 2026-05-13
+updatedAt: 2026-05-14
 summary: Penyusunan budget operasional dan target dana internal (celengan) terhadap realisasi.
 related: modules/accounting,modules/admin
 ---
@@ -22,6 +22,7 @@ related: modules/accounting,modules/admin
 - Budget tracking
 - Variance analysis
 - Saving target (target dana internal/celengan)
+- Akses route utama dari sidebar: `Budgeting`, `Budgets`, `Saving Targets`.
 
 ## Saving Target Dana Internal
 - Saving target dibuat dari menu `Budgeting > Saving Targets`.

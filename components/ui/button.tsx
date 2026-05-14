@@ -89,7 +89,7 @@ function Button({
         buttonVariants({ variant, size, className })
       )}
       {...restProps}
-      onClick={handleClick}
+      onClick={onClick ? handleClick : undefined}
     />
   );
 }

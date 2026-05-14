@@ -70,6 +70,10 @@ Aturan layer tetap berlaku:
 ## Budgeting: Budget Operasional + Saving Target (2026-05-13)
 
 - Modul budgeting tetap reuse service/action existing di `app/[locale]/(dashboard)/budgeting/actions.ts`.
+- Navigasi sidebar `Finance & Accounting > Budgeting` memuat tiga route operasional:
+1. `/budgeting`
+2. `/budgeting/budgets`
+3. `/budgeting/saving-targets`
 - Ditambahkan klasifikasi dokumen budget: `Budget.kind` (`BUDGET` dan `SAVING_TARGET`) untuk pemisahan view tanpa membuat modul domain baru.
 - Periode kalkulasi kini mendukung:
 1. Periode custom per dokumen (`periodStart`/`periodEnd`).
