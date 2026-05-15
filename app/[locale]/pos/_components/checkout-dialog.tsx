@@ -16,15 +16,42 @@ import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { Loader2, CreditCard, Banknote, QrCode, Keyboard } from 'lucide-react';
 import { NumPad } from './numpad';
 import { useTranslations } from 'next-intl';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { POSContactOption } from "../types";
 
 interface CheckoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   totalAmount: number;
-  onConfirm: (paymentMethod: 'CASH' | 'CARD' | 'QRIS', amountPaid: number) => Promise<void>;
+  onConfirm: (
+    paymentMethod: 'CASH' | 'CARD' | 'QRIS',
+    amountPaid: number,
+    customerId?: string,
+  ) => Promise<void>;
+  contacts: POSContactOption[];
+  selectedContactId?: string;
+  onSelectedContactChange: (contactId?: string) => void;
+  onQuickCreateContact: () => void;
+  onQuickInformContact?: () => void;
 }
 
-export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: CheckoutDialogProps) {
+export function CheckoutDialog({
+  open,
+  onOpenChange,
+  totalAmount,
+  onConfirm,
+  contacts,
+  selectedContactId,
+  onSelectedContactChange,
+  onQuickCreateContact,
+  onQuickInformContact,
+}: CheckoutDialogProps) {
   const t = useTranslations('POS');
   const [method, setMethod] = useState<'CASH' | 'CARD' | 'QRIS'>('CASH');
   // Use string state to support keypad input (e.g., "10.")
@@ -49,7 +76,11 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
     if (!isValid) return;
     setLoading(true);
     try {
-      await onConfirm(method, method === 'CASH' ? amountPaid : totalAmount);
+      await onConfirm(
+        method,
+        method === 'CASH' ? amountPaid : totalAmount,
+        selectedContactId || undefined,
+      );
       onOpenChange(false);
     } catch (e) {
       console.error(e);
@@ -113,6 +144,42 @@ export function CheckoutDialog({ open, onOpenChange, totalAmount, onConfirm }: C
               >
                 <QrCode className="mb-3 h-6 w-6" />
                 <span className="text-sm font-medium">{t('qris')}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Customer</Label>
+              <Select
+                value={selectedContactId || "walk-in"}
+                onValueChange={(value) =>
+                  onSelectedContactChange(value === "walk-in" ? undefined : value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Walk-in Customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walk-in">Walk-in Customer</SelectItem>
+                  {contacts.map((contact) => (
+                    <SelectItem key={contact.id} value={contact.id}>
+                      {contact.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={onQuickCreateContact}>
+                  + Quick Contact
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!selectedContactId}
+                  onClick={() => onQuickInformContact?.()}
+                >
+                  Quick Inform
+                </Button>
               </div>
             </div>
 

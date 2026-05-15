@@ -62,6 +62,8 @@ export default async function DashboardLayout({
               currencyFormat: companyProfile.currencyFormat,
               locale: companyProfile.locale,
               timezone: companyProfile.timezone,
+              posEnableRestaurantFeatures:
+                companyProfile.posEnableRestaurantFeatures,
             }
           : null,
       }}

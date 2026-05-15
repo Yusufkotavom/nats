@@ -12,7 +12,11 @@ const prismaMock = vi.hoisted(() => ({
   },
   contact: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
+  },
+  contactCommunicationLog: {
+    findMany: vi.fn(),
   },
   salesOrder: {
     create: vi.fn(),
@@ -34,6 +38,7 @@ const prismaMock = vi.hoisted(() => ({
     findFirst: vi.fn(),
   },
   pOSServiceOrder: {
+    findMany: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -103,5 +108,53 @@ describe("POSServiceWorkflowService", () => {
     await expect(
       POSServiceWorkflowService.transitionStatus("svc-1", "CLOSED", "user-1"),
     ).rejects.toThrow("Service order can only be closed when invoice is fully paid");
+  });
+
+  it("maps customer profile and latest whatsapp log timestamp in list()", async () => {
+    prismaMock.pOSServiceOrder.findMany.mockResolvedValue([
+      {
+        id: "svc-1",
+        posSessionId: "sess-1",
+        contactId: "c-1",
+        status: "READY",
+        orderNumber: "SVC-001",
+        salesInvoiceId: "inv-1",
+        totalAmount: 150000,
+        paidAmount: 50000,
+        remainingAmount: 100000,
+        createdAt: new Date("2026-05-15T08:00:00.000Z"),
+        items: [],
+      },
+    ]);
+    prismaMock.contact.findMany.mockResolvedValue([
+      {
+        id: "c-1",
+        name: "Customer A",
+        phone: "08123",
+        email: "c@example.com",
+      },
+    ]);
+    const latestAt = new Date("2026-05-15T09:30:00.000Z");
+    prismaMock.contactCommunicationLog.findMany.mockResolvedValue([
+      {
+        id: "log-1",
+        sourceId: "svc-1",
+        createdAt: latestAt,
+      },
+    ]);
+
+    const result = await POSServiceWorkflowService.list("sess-1");
+
+    expect(prismaMock.contactCommunicationLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sourceType: "SERVICE_ORDER",
+          channel: "WHATSAPP",
+        }),
+      }),
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]?.customerName).toBe("Customer A");
+    expect(result[0]?.latestCommunicationAt).toEqual(latestAt);
   });
 });

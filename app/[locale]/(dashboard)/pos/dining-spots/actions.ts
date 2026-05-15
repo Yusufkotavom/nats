@@ -6,12 +6,23 @@ import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
+import { prisma } from "@/lib/prisma";
+
+async function assertRestaurantFeaturesEnabled() {
+  const profile = await prisma.companyProfile.findFirst({
+    select: { posEnableRestaurantFeatures: true },
+  });
+  if (profile?.posEnableRestaurantFeatures === false) {
+    throw new Error("Restaurant features are disabled in POS settings");
+  }
+}
 
 export async function getDiningSpotAdminData() {
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize({ areas: [] });
   }
+  await assertRestaurantFeaturesEnabled();
 
   const areas = await DiningSpotService.getAreasWithSpots();
   return SuperJSON.serialize({ areas });
@@ -21,6 +32,7 @@ export const createDiningArea = authorizedAction(
   "pos.access",
   async (input: { name: string; code: string; sortOrder?: number; isActive?: boolean }) => {
     try {
+      await assertRestaurantFeaturesEnabled();
       const created = await DiningSpotService.createArea(input);
       revalidatePath("/pos/dining-spots");
       revalidatePath("/pos");
@@ -41,6 +53,7 @@ export const updateDiningArea = authorizedAction(
     input: { name: string; code: string; sortOrder?: number; isActive?: boolean },
   ) => {
     try {
+      await assertRestaurantFeaturesEnabled();
       const updated = await DiningSpotService.updateArea(id, input);
       revalidatePath("/pos/dining-spots");
       revalidatePath("/pos");
@@ -56,6 +69,7 @@ export const updateDiningArea = authorizedAction(
 
 export const deleteDiningArea = authorizedAction("pos.access", async (id: string) => {
   try {
+    await assertRestaurantFeaturesEnabled();
     await DiningSpotService.deleteArea(id);
     revalidatePath("/pos/dining-spots");
     revalidatePath("/pos");
@@ -79,6 +93,7 @@ export const createDiningSpot = authorizedAction(
     isActive?: boolean;
   }) => {
     try {
+      await assertRestaurantFeaturesEnabled();
       const created = await DiningSpotService.createSpot(input);
       revalidatePath("/pos/dining-spots");
       revalidatePath("/pos");
@@ -106,6 +121,7 @@ export const updateDiningSpot = authorizedAction(
     },
   ) => {
     try {
+      await assertRestaurantFeaturesEnabled();
       const updated = await DiningSpotService.updateSpot(id, input);
       revalidatePath("/pos/dining-spots");
       revalidatePath("/pos");
@@ -121,6 +137,7 @@ export const updateDiningSpot = authorizedAction(
 
 export const deleteDiningSpot = authorizedAction("pos.access", async (id: string) => {
   try {
+    await assertRestaurantFeaturesEnabled();
     await DiningSpotService.deleteSpot(id);
     revalidatePath("/pos/dining-spots");
     revalidatePath("/pos");

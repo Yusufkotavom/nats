@@ -14,6 +14,7 @@ model CompanyProfile {
   locale                   String   @default("en-US")
   timezone                 String   @default("UTC")
   posProductVisibilityMode String   @default("POS_ONLY") // POS_ONLY | ALL_ACTIVE
+  posEnableRestaurantFeatures Boolean @default(true)
   posServiceChargePercent  Decimal  @default(0)
   posTaxPercent            Decimal  @default(0)
   posAdditionalFeeAmount   Decimal  @default(0)

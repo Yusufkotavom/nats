@@ -16,6 +16,7 @@ import {
   type ServicePaymentMethod,
   type ServiceWorkflowStatus,
 } from "@/modules/services/services/pos-service-workflow.service";
+import { ContactType } from "@/prisma/generated/prisma/client";
 import { POSCartItem } from "./types";
 
 export type POSCheckoutSettings = {
@@ -29,6 +30,20 @@ export type POSCheckoutSettings = {
     isActive: boolean;
   }[];
 };
+
+async function isRestaurantFeaturesEnabled() {
+  const profile = await prisma.companyProfile.findFirst({
+    select: { posEnableRestaurantFeatures: true },
+  });
+  return profile?.posEnableRestaurantFeatures !== false;
+}
+
+async function assertRestaurantFeaturesEnabled() {
+  const enabled = await isRestaurantFeaturesEnabled();
+  if (!enabled) {
+    throw new Error("Restaurant features are disabled in POS settings");
+  }
+}
 
 export async function getPOSSessions() {
   const session = await getSession();
@@ -213,6 +228,82 @@ export async function getPOSServiceProducts() {
   return SuperJSON.serialize(mapped);
 }
 
+export async function getPOSContacts(search: string = "", take: number = 30) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize([]);
+  }
+
+  const normalizedTake = Number.isFinite(take) ? Math.max(1, Math.min(take, 100)) : 30;
+  const normalizedSearch = search.trim();
+
+  const contacts = await prisma.contact.findMany({
+    where: {
+      type: ContactType.CUSTOMER,
+      isActive: true,
+      ...(normalizedSearch
+        ? {
+            OR: [
+              { name: { contains: normalizedSearch, mode: "insensitive" } },
+              { phone: { contains: normalizedSearch, mode: "insensitive" } },
+              { email: { contains: normalizedSearch, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+    },
+    orderBy: { name: "asc" },
+    take: normalizedTake,
+  });
+
+  return SuperJSON.serialize(contacts);
+}
+
+export async function createPOSQuickContact(input: {
+  name: string;
+  phone?: string;
+  email?: string;
+}) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const name = input.name.trim();
+  const phone = input.phone?.trim() || null;
+  const email = input.email?.trim() || null;
+
+  if (!name) {
+    throw new Error("Nama kontak wajib diisi");
+  }
+
+  const contact = await prisma.contact.create({
+    data: {
+      type: ContactType.CUSTOMER,
+      name,
+      phone,
+      email,
+      isActive: true,
+      taxExempt: false,
+    },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+    },
+  });
+
+  revalidatePath("/pos");
+  revalidatePath("/general/contacts");
+  return SuperJSON.serialize(contact);
+}
+
 export async function getPOSCheckoutSettings(): Promise<POSCheckoutSettings> {
   const feeLines = await prisma.pOSFeeSetting.findMany({
     where: { isActive: true },
@@ -290,6 +381,10 @@ export async function getDiningSpots() {
   if (!session || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
+  const restaurantEnabled = await isRestaurantFeaturesEnabled();
+  if (!restaurantEnabled) {
+    return SuperJSON.serialize([]);
+  }
 
   await DiningSpotService.ensureDefaultLayout();
 
@@ -321,6 +416,7 @@ export async function openDiningSpot(
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
 
   const result = await DiningSpotService.openSpot(
     diningSpotId,
@@ -337,6 +433,7 @@ export async function closeDiningSpot(diningSpotId: string, notes?: string) {
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
 
   await DiningSpotService.closeSpot(diningSpotId, session.userId, notes);
   revalidatePath("/pos");
@@ -346,6 +443,10 @@ export async function getRestaurantFloorOverview(sessionId: string) {
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
+  }
+  const restaurantEnabled = await isRestaurantFeaturesEnabled();
+  if (!restaurantEnabled) {
+    return SuperJSON.serialize([]);
   }
   const data = await RestaurantOrderService.getFloorOverview(sessionId);
   return SuperJSON.serialize(data);
@@ -370,6 +471,7 @@ export async function sendOrderToKitchen(
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
 
   const result = await RestaurantOrderService.sendToKitchen({
     sessionId,
@@ -393,6 +495,10 @@ export async function getKitchenTickets(sessionId: string, station?: string) {
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  const restaurantEnabled = await isRestaurantFeaturesEnabled();
+  if (!restaurantEnabled) {
+    return SuperJSON.serialize([]);
+  }
   const data = await RestaurantOrderService.getKitchenTickets(sessionId, station);
   return SuperJSON.serialize(data);
 }
@@ -402,6 +508,7 @@ export async function getKitchenTicketForPrint(ticketId: string) {
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
   const data = await RestaurantOrderService.getKitchenTicketForPrint(ticketId);
   return SuperJSON.serialize(data);
 }
@@ -414,6 +521,7 @@ export async function updateKitchenItemStatus(
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
 
   await RestaurantOrderService.updateKitchenItemStatus(kitchenItemId, status);
   revalidatePath("/pos/restaurant");
@@ -425,6 +533,10 @@ export async function getRestaurantBillingQueue(sessionId: string) {
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
+  }
+  const restaurantEnabled = await isRestaurantFeaturesEnabled();
+  if (!restaurantEnabled) {
+    return SuperJSON.serialize([]);
   }
   const data = await RestaurantOrderService.getBillingQueue(sessionId);
   return SuperJSON.serialize(data);
@@ -447,6 +559,7 @@ export async function generateRestaurantBill(
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
 
   const result = await RestaurantOrderService.generateBill(sessionId, orderId, feeBreakdown);
   revalidatePath("/pos/restaurant");
@@ -464,6 +577,7 @@ export async function settleRestaurantBill(
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
 
   const result = await RestaurantOrderService.settleBill(
     sessionId,
@@ -481,6 +595,7 @@ export async function closeRestaurantOrder(orderId: string) {
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
+  await assertRestaurantFeaturesEnabled();
 
   await RestaurantOrderService.closePaidOrder(orderId, session.userId);
   revalidatePath("/pos/restaurant");

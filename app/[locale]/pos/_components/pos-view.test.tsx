@@ -152,6 +152,7 @@ const baseProps = () => ({
       area: { id: "area-1", name: "Indoor" },
     },
   ]),
+  restaurantFeaturesEnabled: true,
   checkoutSettings: { feeLines: [] },
 });
 
@@ -165,6 +166,20 @@ function renderView() {
   return render(
     <QueryClientProvider client={client}>
       <POSView {...baseProps()} />
+    </QueryClientProvider>,
+  );
+}
+
+function renderViewWithProps(override: Partial<ReturnType<typeof baseProps>>) {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <POSView {...baseProps()} {...override} />
     </QueryClientProvider>,
   );
 }
@@ -281,5 +296,13 @@ describe("POSView tab shell", () => {
     expect(labels[0]).toHaveTextContent(/cash_in_server/i);
     expect(labels[1]).toHaveTextContent(/actual cash/i);
     expect(actionMocks.getPOSSessionCloseSummary).toHaveBeenCalledWith("sess-1");
+  });
+
+  it("hides restaurant tabs and table chip when restaurant feature is disabled", () => {
+    renderViewWithProps({ restaurantFeaturesEnabled: false });
+    expect(screen.queryByRole("tab", { name: /meja/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /dapur/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /billing/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Belum pilih meja/i)).not.toBeInTheDocument();
   });
 });

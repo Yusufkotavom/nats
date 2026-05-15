@@ -19,6 +19,7 @@ export type SessionData = {
     currencyFormat: string;
     locale: string;
     timezone: string;
+    posEnableRestaurantFeatures?: boolean;
   } | null;
 } | null;
 

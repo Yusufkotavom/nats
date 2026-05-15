@@ -20,6 +20,131 @@ export async function getContact(id: string) {
   return contact;
 }
 
+export async function getContactMessagingContext(contactId: string) {
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+      type: true,
+    },
+  });
+
+  if (!contact) return null;
+
+  const [latestInvoice, latestSalesOrder, latestServiceOrder, recentWhatsAppLogs] = await Promise.all([
+    prisma.salesInvoice.findFirst({
+      where: { contactId },
+      include: {
+        items: {
+          select: {
+            description: true,
+            product: { select: { name: true } },
+            quantity: true,
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: [{ invoiceDate: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.salesOrder.findFirst({
+      where: { contactId },
+      include: {
+        items: {
+          select: {
+            product: { select: { name: true } },
+            quantity: true,
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: [{ orderDate: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.pOSServiceOrder.findFirst({
+      where: { contactId },
+      include: {
+        items: {
+          select: {
+            productName: true,
+            quantity: true,
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.contactCommunicationLog.findMany({
+      where: {
+        contactId,
+        channel: "WHATSAPP",
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+  ]);
+
+  return {
+    contact,
+    latestInvoice: latestInvoice
+      ? {
+          id: latestInvoice.id,
+          invoiceNumber: latestInvoice.invoiceNumber,
+          status: latestInvoice.status,
+          invoiceDate: latestInvoice.invoiceDate,
+          totalAmount: Number(latestInvoice.totalAmount),
+          balanceDue: Number(latestInvoice.balanceDue),
+          items: latestInvoice.items.map((item) => ({
+            name: item.product?.name || item.description,
+            quantity: Number(item.quantity || 0),
+          })),
+        }
+      : null,
+    latestSalesOrder: latestSalesOrder
+      ? {
+          id: latestSalesOrder.id,
+          orderNumber: latestSalesOrder.orderNumber,
+          status: latestSalesOrder.status,
+          orderDate: latestSalesOrder.orderDate,
+          items: latestSalesOrder.items.map((item) => ({
+            name: item.product?.name || "-",
+            quantity: Number(item.quantity || 0),
+          })),
+        }
+      : null,
+    latestServiceOrder: latestServiceOrder
+      ? {
+          id: latestServiceOrder.id,
+          orderNumber: latestServiceOrder.orderNumber,
+          status: latestServiceOrder.status,
+          targetDate: latestServiceOrder.targetDate,
+          items: latestServiceOrder.items.map((item) => ({
+            name: item.productName,
+            quantity: item.quantity,
+          })),
+        }
+      : null,
+    recentWhatsAppLogs: recentWhatsAppLogs.map((log) => ({
+      id: log.id,
+      channel: log.channel,
+      eventType: log.eventType,
+      status: log.status,
+      sourceType: log.sourceType,
+      sourceId: log.sourceId,
+      target: log.target,
+      message: log.message,
+      providerMessageId: log.providerMessageId,
+      documentLinks: Array.isArray(log.documentLinks) ? log.documentLinks : [],
+      queuedAt: log.queuedAt,
+      sentAt: log.sentAt,
+      deliveredAt: log.deliveredAt,
+      readAt: log.readAt,
+      createdAt: log.createdAt,
+    })),
+  };
+}
+
 export async function getContactCashTransactions({
   contactId,
   page = 1,

@@ -2,7 +2,7 @@
 title: Master Data
 module: general
 order: 20
-updatedAt: 2026-05-13
+updatedAt: 2026-05-15
 summary: Panduan lengkap mengelola data fondasi sistem dengan contoh praktis.
 related: 01-setup-awal,03-operasional-harian,modules/inventory,modules/production,modules/admin
 ---
@@ -441,6 +441,28 @@ Credit Limit: 10000000 (Rp 10 juta)
 Payment Terms: Net 14
 Status: Active
 ```
+
+### 6.3 Template WhatsApp per Contact (Marketing Assist)
+
+Halaman detail contact sekarang mendukung composer WhatsApp dengan template custom.
+
+1. Buka `General > Contacts`.
+2. Pilih contact yang ingin di-follow-up.
+3. Di panel **WhatsApp Template & Follow-up**:
+   - pilih jenis template (`Promo`, `Update Service`, `Reminder Pembayaran`),
+   - ubah isi template sesuai kebutuhan,
+   - gunakan token seperti `{{contact_name}}`, `{{latest_service_items}}`, `{{latest_invoice_number}}`.
+4. Klik **Kirim WhatsApp** untuk buka chat WA dengan pesan yang sudah terisi.
+
+Catatan:
+- Template disimpan per contact di database (button **Simpan Template (DB)**), jadi bisa dipakai konsisten lintas device/user.
+- Pesan otomatis membawa konteks transaksi terbaru:
+  - service terakhir (order + item),
+  - order/produk terakhir,
+  - invoice terakhir (total + sisa tagihan).
+- Jika invoice tersedia, tombol **Buka PDF Invoice** dan **Buka Nota POS** muncul untuk memudahkan share info nota/dokumen.
+- Panel **Riwayat WA Terbaru** menampilkan jejak kirim pesan terakhir (event + status + waktu) agar tim bisa cek follow-up tanpa buka WhatsApp satu per satu.
+- Dari panel riwayat, status WA bisa ditandai bertahap (`Sent`, `Delivered`, `Read`, `Failed`) untuk menjaga tracking follow-up customer tetap rapi di DB.
 
 ## 🍳 Langkah 7: BOM (Bill of Materials)
 

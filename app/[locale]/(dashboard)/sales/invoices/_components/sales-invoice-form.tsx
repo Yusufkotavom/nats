@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -70,6 +70,11 @@ import { useCompanyProfile } from "@/components/providers/session-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import {
+  buildSalesInvoiceWhatsAppMessage,
+  normalizePhoneForWhatsApp,
+} from "@/lib/communication/sales-whatsapp";
+import { createContactCommunicationLog } from "@/app/[locale]/communications/actions";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -98,6 +103,7 @@ export function SalesInvoiceForm({
   );
 
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!invoice;
   const formatDate = useFormatDate();
@@ -447,6 +453,87 @@ export function SalesInvoiceForm({
     ? salesOrders.filter((so) => so.contactId === formData.contactId)
     : salesOrders;
 
+  const handleSendInvoiceWhatsApp = async () => {
+    if (!invoice) return;
+    if (!invoice?.contact?.phone) {
+      await createContactCommunicationLog({
+        contactId: invoice.contactId,
+        eventType: "SALES_INVOICE",
+        sourceType: "SALES_INVOICE",
+        sourceId: invoice.id,
+        target: undefined,
+        message: `Gagal kirim WA invoice ${invoice.invoiceNumber}: nomor telepon tidak tersedia`,
+        status: "FAILED",
+        errorMessage: "Customer phone number is not available",
+      });
+      toast({
+        variant: "destructive",
+        title: tCommon("error"),
+        description: t("whatsapp_missing_phone"),
+      });
+      return;
+    }
+
+    const normalized = normalizePhoneForWhatsApp(invoice.contact.phone);
+    if (!normalized) {
+      await createContactCommunicationLog({
+        contactId: invoice.contactId,
+        eventType: "SALES_INVOICE",
+        sourceType: "SALES_INVOICE",
+        sourceId: invoice.id,
+        target: invoice.contact.phone || undefined,
+        message: `Gagal kirim WA invoice ${invoice.invoiceNumber}: format nomor tidak valid`,
+        status: "FAILED",
+        errorMessage: "Customer phone format is invalid for WhatsApp",
+      });
+      toast({
+        variant: "destructive",
+        title: tCommon("error"),
+        description: t("whatsapp_invalid_phone"),
+      });
+      return;
+    }
+
+    const locale = pathname.split("/").filter(Boolean)[0] || "id";
+    const baseUrl = window.location.origin;
+    const invoiceUrl = `${baseUrl}/${locale}/reporting/preview?code=SALES_INVOICE&invoiceId=${invoice.id}`;
+    const receiptUrl = `${baseUrl}/${locale}/reporting/preview?code=POS_RECEIPT&invoiceId=${invoice.id}`;
+    const totalAmount = Number(invoice.totalAmount || 0);
+    const balanceDue = Number(invoice.balanceDue || 0);
+    const message = buildSalesInvoiceWhatsAppMessage({
+      contactName: invoice.contact.name,
+      invoiceNumber: invoice.invoiceNumber,
+      totalAmount,
+      balanceDue,
+      invoiceUrl,
+      receiptUrl,
+      introLabel: t("whatsapp_invoice_intro"),
+      totalLabel: t("whatsapp_invoice_total"),
+      balanceLabel: t("whatsapp_invoice_balance"),
+      helpLabel: t("whatsapp_invoice_help"),
+    });
+
+    await createContactCommunicationLog({
+      contactId: invoice.contactId,
+      eventType: "SALES_INVOICE",
+      sourceType: "SALES_INVOICE",
+      sourceId: invoice.id,
+      target: normalized,
+      message,
+      status: "SENT",
+      documentLinks: [
+        { label: "Invoice PDF", url: invoiceUrl },
+        { label: "POS Receipt", url: receiptUrl },
+      ],
+    });
+
+    window.open(
+      `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
   return (
     <PageFormLayout>
       <form onSubmit={handleSubmit}>
@@ -471,6 +558,16 @@ export function SalesInvoiceForm({
               >
                 <PrinterIcon className="mr-2 h-4 w-4" />
                 Print
+              </Button>
+            )}
+            {invoice && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSendInvoiceWhatsApp}
+              >
+                {t("send_whatsapp")}
               </Button>
             )}
             {invoice?.status === "DRAFT" && (

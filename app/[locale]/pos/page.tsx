@@ -12,13 +12,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
 import { POSView } from "./_components/pos-view";
 import { getTranslations } from "next-intl/server";
+import { prisma } from "@/lib/prisma";
+import { SuperJSON } from "@/lib/superjson";
 
 export default async function POSPage() {
   const t = await getTranslations("POS");
   const session = await getOpenPOSSession();
   const products = await getPOSProducts();
   const categories = await getPOSCategories();
-  const diningSpots = await getDiningSpots();
+  const profile = await prisma.companyProfile.findFirst({
+    select: { posEnableRestaurantFeatures: true },
+  });
+  const restaurantFeaturesEnabled =
+    profile?.posEnableRestaurantFeatures !== false;
+  const diningSpots = restaurantFeaturesEnabled
+    ? await getDiningSpots()
+    : SuperJSON.serialize([]);
   const checkoutSettings = await getPOSCheckoutSettings();
   const warehouses = await getWarehouses();
 
@@ -55,6 +64,7 @@ export default async function POSPage() {
         categories={categories}
         session={session}
         diningSpots={diningSpots}
+        restaurantFeaturesEnabled={restaurantFeaturesEnabled}
         checkoutSettings={checkoutSettings}
       />
     </div>

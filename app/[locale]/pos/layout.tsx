@@ -32,6 +32,8 @@ export default async function POSLayout({
             currencyFormat: companyProfile.currencyFormat,
             locale: companyProfile.locale,
             timezone: companyProfile.timezone,
+            posEnableRestaurantFeatures:
+              companyProfile.posEnableRestaurantFeatures,
           }
           : null,
       }}

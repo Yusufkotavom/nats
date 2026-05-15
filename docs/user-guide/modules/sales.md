@@ -2,7 +2,7 @@
 title: Modul Sales
 module: sales
 order: 120
-updatedAt: 2026-05-13
+updatedAt: 2026-05-15
 summary: Panduan lengkap proses penjualan dari order sampai payment dengan contoh praktis.
 related: modules/pos,modules/inventory,modules/accounting
 ---
@@ -157,6 +157,22 @@ PO Customer: PO-CATERING-001 (jika ada)
    - Debit: Piutang Dagang Rp 3.510.375
    - Kredit: Penjualan Makanan Rp 3.162.500
    - Kredit: PPN Keluaran Rp 347.875
+
+### 3.4 Kirim Invoice via WhatsApp (MVP)
+Di halaman detail/edit Sales Invoice, gunakan tombol **Kirim WA** untuk komunikasi cepat ke customer:
+
+1. Pastikan contact invoice punya nomor telepon valid.
+2. Klik **Kirim WA** di header action Sales Invoice.
+3. Sistem akan membuka WhatsApp dengan pesan siap kirim yang berisi:
+   - nomor invoice,
+   - total invoice,
+   - sisa tagihan,
+   - link **PDF Invoice**,
+   - link **Nota POS** (sebagai referensi transaksi).
+
+Catatan:
+- Fitur ini fokus untuk komunikasi operasional (info invoice/tagihan), bukan campaign promo.
+- Jika nomor telepon kosong/tidak valid, sistem menampilkan warning dan WA tidak dibuka.
 
 ## 💰 Langkah 4: Sales Payment
 

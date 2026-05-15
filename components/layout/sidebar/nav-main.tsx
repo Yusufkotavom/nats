@@ -4,6 +4,7 @@ import { ChevronRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { useSession } from "@/components/providers/session-provider";
 
 import {
   Collapsible,
@@ -39,15 +40,28 @@ export function NavMain({
 }) {
   const pathname = usePathname();
   const t = useTranslations();
+  const session = useSession();
+  const restaurantFeaturesEnabled =
+    session?.companyProfile?.posEnableRestaurantFeatures !== false;
 
   return (
     <SidebarGroup>
       {label && <SidebarGroupLabel>{t(label)}</SidebarGroupLabel>}
       <SidebarMenu>
         {items.map((item) => {
+          const filteredSubItems =
+            item.items?.filter((subItem) => {
+              if (
+                !restaurantFeaturesEnabled &&
+                subItem.url === "/pos/dining-spots"
+              ) {
+                return false;
+              }
+              return true;
+            }) ?? [];
           const isActive =
             item.isActive ||
-            item.items?.some((subItem) => pathname.startsWith(subItem.url));
+            filteredSubItems.some((subItem) => pathname.startsWith(subItem.url));
 
           return (
             <Collapsible
@@ -66,7 +80,7 @@ export function NavMain({
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {item.items?.map((subItem) => (
+                    {filteredSubItems.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton
                           asChild

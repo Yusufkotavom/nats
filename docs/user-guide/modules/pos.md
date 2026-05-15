@@ -2,7 +2,7 @@
 title: Modul POS
 module: pos
 order: 110
-updatedAt: 2026-05-14
+updatedAt: 2026-05-15
 summary: Operasional POS terpadu untuk restoran dan service workflow (DP/pelunasan) dalam satu halaman.
 related: 03-operasional-harian,modules/inventory,modules/production,modules/sales,modules/purchase,modules/accounting
 ---
@@ -29,6 +29,19 @@ Satu halaman `/pos` menampung seluruh alur restoran lewat 4 tab:
 | **Billing** | `/pos?tab=billing` | Generate bill, terima pembayaran (cash/card/QRIS), tutup meja setelah lunas. |
 
 Meja yang sedang aktif ditandai dengan chip di header shell POS (bukan dropdown), dan dipakai lintas tab.
+
+## Toggle Fitur Restoran
+Admin bisa menyembunyikan semua fungsi restoran dari POS lewat:
+
+- `Admin > Settings > POS`
+- switch: **Aktifkan Fitur Restoran di POS**
+
+Jika dimatikan:
+
+- tab `Meja`, `Dapur`, `Billing` hilang (hanya `Kasir`),
+- aksi `Kitchen` dan catatan dapur di cart hilang,
+- menu `POS > Dining Spots` disembunyikan,
+- route restoran legacy otomatis diarahkan ke tab kasir.
 
 ## Mode Kasir: Produk vs Service
 Di tab **Kasir**, tersedia dua mode:
@@ -95,6 +108,34 @@ Produk service dapat dijual walau stok produk service nol.
 6. Saat status `DONE`, sistem menyelesaikan shipment internal dan proses konsumsi stok sesuai aturan BOM.
 7. Jika masih ada sisa tagihan, klik **Pelunasan** sampai `remaining = 0`.
 8. Setelah invoice lunas, status bisa ditutup ke `CLOSED`.
+
+### Notifikasi WA Otomatis untuk Service (MVP)
+Untuk customer yang punya nomor WhatsApp/email, sistem otomatis membuka draft pesan update pada momen:
+
+1. **Service order dibuat** (termasuk info DP jika ada).
+2. **Status berubah ke READY/DONE** (pesan siap ambil).
+3. **Pelunasan/pembayaran diterima** (sebagai bukti pembayaran).
+
+Jika channel WA/email tidak tersedia, sistem menampilkan warning agar data contact dilengkapi.
+
+Setiap aksi kirim WA/update service di atas juga dicatat sebagai log komunikasi agar jejak follow-up tidak hilang.
+Status follow-up dapat dipantau bertahap (`Queued`, `Sent`, `Delivered`, `Read`, `Failed`) dari modul Contact.
+
+## Quick Contact & Quick Inform (Marketing Assist)
+
+Untuk mempercepat follow-up customer langsung dari POS:
+
+- Di dialog **Checkout** (mode kasir produk), user bisa:
+  - pilih customer dari daftar contact aktif,
+  - klik **+ Quick Contact** untuk buat customer baru tanpa keluar dari POS,
+  - klik **Quick Inform** untuk kirim pesan cepat promo/update (prioritas WhatsApp, fallback email).
+- Di panel **Service Queue**, user bisa:
+  - pilih customer sebelum membuat service order,
+  - quick create contact langsung dari panel service,
+  - kirim **Quick Inform** per order untuk update progres ke customer.
+  - melihat indikator **Kontak terakhir** pada setiap order (timestamp follow-up WA terbaru).
+
+Jika customer tidak punya nomor HP/email, tombol inform akan tampil error agar data contact dilengkapi dulu.
 
 ## Kitchen Ticket Print
 - Dialog cetak menyertakan: nomor tiket, meja (kode + area), kasir, session, waktu kirim, daftar item (qty + nama + SKU + catatan), note order.

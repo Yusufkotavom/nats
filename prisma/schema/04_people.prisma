@@ -6,6 +6,33 @@ enum ContactType {
   EMPLOYEE
 }
 
+enum ContactCommunicationChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum ContactCommunicationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ContactCommunicationEventType {
+  CONTACT_TEMPLATE
+  SALES_INVOICE
+  SERVICE_CREATED
+  SERVICE_STATUS_UPDATED
+  SERVICE_PAYMENT_RECEIVED
+}
+
+enum ContactMessageTemplateKind {
+  PROMO
+  SERVICE_UPDATE
+  PAYMENT_REMINDER
+}
+
 model Contact {
   id        String      @id @default(cuid())
   type      ContactType
@@ -41,4 +68,47 @@ model Contact {
   salaryStructures SalaryStructure[]
   salarySlips      SalarySlip[]
   employeeDetail   EmployeeDetail?
+  communicationLogs    ContactCommunicationLog[]
+  messageTemplates     ContactMessageTemplate[]
+}
+
+model ContactCommunicationLog {
+  id         String                     @id @default(cuid())
+  contactId  String
+  contact    Contact                    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channel    ContactCommunicationChannel @default(WHATSAPP)
+  status     ContactCommunicationStatus  @default(SENT)
+  eventType  ContactCommunicationEventType
+  sourceType String?
+  sourceId   String?
+  target     String?
+  message    String
+  providerMessageId String?
+  documentLinks Json?
+  errorMessage String?
+  queuedAt   DateTime?
+  sentAt     DateTime?
+  deliveredAt DateTime?
+  readAt     DateTime?
+  createdById String?
+  createdAt  DateTime                   @default(now())
+  updatedAt  DateTime                   @updatedAt
+
+  @@index([contactId, createdAt])
+  @@index([sourceType, sourceId])
+  @@index([eventType, createdAt])
+}
+
+model ContactMessageTemplate {
+  id         String                     @id @default(cuid())
+  contactId  String
+  contact    Contact                    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  kind       ContactMessageTemplateKind
+  template   String
+  createdById String?
+  createdAt  DateTime                   @default(now())
+  updatedAt  DateTime                   @updatedAt
+
+  @@unique([contactId, kind])
+  @@index([kind, updatedAt])
 }

@@ -21,6 +21,7 @@ export async function getPOSSettings() {
       select: {
         id: true,
         posProductVisibilityMode: true,
+        posEnableRestaurantFeatures: true,
       },
     }),
     prisma.pOSFeeSetting.findMany({
@@ -32,6 +33,7 @@ export async function getPOSSettings() {
     return {
       id: null,
       posProductVisibilityMode: "POS_ONLY" as POSProductVisibilityMode,
+      posEnableRestaurantFeatures: true,
       feeSettings: feeSettings.map((item) => ({
         id: item.id,
         name: item.name,
@@ -48,6 +50,7 @@ export async function getPOSSettings() {
     id: profile.id,
     posProductVisibilityMode:
       (profile.posProductVisibilityMode as POSProductVisibilityMode) || "POS_ONLY",
+    posEnableRestaurantFeatures: profile.posEnableRestaurantFeatures ?? true,
     feeSettings: feeSettings.map((item) => ({
       id: item.id,
       name: item.name,
@@ -64,6 +67,7 @@ export const updatePOSSettings = authorizedAction(
   "company.settings",
   async (data: {
     posProductVisibilityMode: POSProductVisibilityMode;
+    posEnableRestaurantFeatures: boolean;
     feeSettings: POSFeeLineSetting[];
   }) => {
     if (!data.posProductVisibilityMode) {
@@ -92,6 +96,7 @@ export const updatePOSSettings = authorizedAction(
         where: { id: existing.id },
         data: {
           posProductVisibilityMode: data.posProductVisibilityMode,
+          posEnableRestaurantFeatures: data.posEnableRestaurantFeatures,
         },
       });
     } else {
@@ -105,6 +110,7 @@ export const updatePOSSettings = authorizedAction(
           locale: "id-ID",
           timezone: "Asia/Jakarta",
           posProductVisibilityMode: data.posProductVisibilityMode,
+          posEnableRestaurantFeatures: data.posEnableRestaurantFeatures,
         },
       });
     }

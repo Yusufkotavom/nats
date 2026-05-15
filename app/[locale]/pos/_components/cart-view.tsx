@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { processPOSTransaction, holdOrder, sendOrderToKitchen } from "../actions";
-import { POSCartItem, POSDiningSpot } from "../types";
+import { useState, useEffect } from "react";
+import {
+  processPOSTransaction,
+  holdOrder,
+  sendOrderToKitchen,
+  getPOSContacts,
+} from "../actions";
+import { POSCartItem, POSDiningSpot, POSContactOption } from "../types";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -25,7 +30,7 @@ import {
 } from "./kitchen-ticket-print-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ProductImage } from "./product-image";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
@@ -39,6 +44,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { QuickContactDialog } from "./quick-contact-dialog";
+import { buildMailtoUrl, buildWhatsAppUrl } from "./contact-communication";
+import { SuperJSON } from "@/lib/superjson";
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -51,6 +59,7 @@ interface CartViewProps {
   session: any;
   selectedDiningSpotId?: string;
   selectedDiningSpot?: POSDiningSpot;
+  restaurantFeaturesEnabled?: boolean;
   checkoutSettings: {
     feeLines: {
       id: string;
@@ -75,6 +84,7 @@ export function CartView({
   session,
   selectedDiningSpotId,
   selectedDiningSpot,
+  restaurantFeaturesEnabled = true,
   checkoutSettings,
 }: CartViewProps) {
   const t = useTranslations("POS");
@@ -88,6 +98,8 @@ export function CartView({
   const [kitchenPrintPayload, setKitchenPrintPayload] =
     useState<KitchenTicketPrintPayload | null>(null);
   const [kitchenNote, setKitchenNote] = useState("");
+  const [selectedContactId, setSelectedContactId] = useState<string | undefined>();
+  const [quickContactOpen, setQuickContactOpen] = useState(false);
 
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
@@ -98,6 +110,17 @@ export function CartView({
   const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const router = useRouter();
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["pos-contacts"],
+    queryFn: async () => {
+      const raw = await getPOSContacts();
+      return SuperJSON.deserialize<POSContactOption[]>(raw);
+    },
+  });
+
+  const selectedContact =
+    contacts.find((contact) => contact.id === selectedContactId) ?? null;
 
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -226,6 +249,7 @@ export function CartView({
       }
 
       onClear();
+      setSelectedContactId(undefined);
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -247,8 +271,8 @@ export function CartView({
         cart,
         total,
         note,
-        undefined,
-        customerName,
+        selectedContactId,
+        selectedContact?.name || customerName,
         globalDiscount,
         selectedDiningSpotId,
       );
@@ -294,7 +318,7 @@ export function CartView({
           discount: item.discount,
         })),
         kitchenNote.trim() || undefined,
-        undefined,
+        selectedContactId,
         globalDiscount,
       );
 
@@ -405,6 +429,32 @@ export function CartView({
     setDiscountOpen(true);
   };
 
+  const handleQuickInform = () => {
+    if (!selectedContact) return;
+
+    const promoMessage = `Halo ${selectedContact.name}, promo terbaru kami sudah tersedia. Balas pesan ini untuk info detail atau pemesanan.`;
+    const waUrl = buildWhatsAppUrl(selectedContact.phone, promoMessage);
+    if (waUrl) {
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    const mailtoUrl = buildMailtoUrl(
+      selectedContact.email,
+      "Info Promo Terbaru",
+      promoMessage,
+    );
+    if (mailtoUrl) {
+      window.open(mailtoUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    toast({
+      variant: "destructive",
+      title: "Kontak belum punya nomor WhatsApp/email",
+    });
+  };
+
   const getActiveDiscountValue = () => {
     if (selectedItemId) {
       const item = cart.find((i) => i.id === selectedItemId);
@@ -496,6 +546,14 @@ export function CartView({
                     <div className="font-bold">
                       {formatCurrency(item.price * item.quantity)}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => onRemove(item.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
 
@@ -580,7 +638,7 @@ export function CartView({
           </div>
         </div>
 
-        {selectedDiningSpotId ? (
+        {restaurantFeaturesEnabled && selectedDiningSpotId ? (
           <div className="mt-3">
             <label className="text-xs text-muted-foreground">
               Catatan ke Dapur (opsional)
@@ -616,21 +674,23 @@ export function CartView({
               <TooltipContent>{t("hold_order_shortcut")}</TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  className="flex-1 h-12"
-                  variant="outline"
-                  size="lg"
-                  disabled={cart.length === 0 || !selectedDiningSpotId || sendingToKitchen}
-                  onClick={handleSendToKitchen}
-                >
-                  <ChefHat className="mr-2 h-4 w-4" />
-                  Kitchen
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Kirim order ke kitchen</TooltipContent>
-            </Tooltip>
+            {restaurantFeaturesEnabled ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    className="flex-1 h-12"
+                    variant="outline"
+                    size="lg"
+                    disabled={cart.length === 0 || !selectedDiningSpotId || sendingToKitchen}
+                    onClick={handleSendToKitchen}
+                  >
+                    <ChefHat className="mr-2 h-4 w-4" />
+                    Kitchen
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Kirim order ke kitchen</TooltipContent>
+              </Tooltip>
+            ) : null}
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -657,7 +717,14 @@ export function CartView({
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         totalAmount={total}
-        onConfirm={(method, amount) => handleCheckout(method, amount)}
+        contacts={contacts}
+        selectedContactId={selectedContactId}
+        onSelectedContactChange={setSelectedContactId}
+        onQuickCreateContact={() => setQuickContactOpen(true)}
+        onQuickInformContact={handleQuickInform}
+        onConfirm={(method, amount, customerId) =>
+          handleCheckout(method, amount, customerId)
+        }
       />
 
       <HoldOrderDialog
@@ -707,6 +774,14 @@ export function CartView({
         onDone={() => {
           setKitchenPrintPayload(null);
           onClear();
+        }}
+      />
+      <QuickContactDialog
+        open={quickContactOpen}
+        onOpenChange={setQuickContactOpen}
+        onCreated={(contact) => {
+          queryClient.invalidateQueries({ queryKey: ["pos-contacts"] });
+          setSelectedContactId(contact.id);
         }}
       />
     </div>

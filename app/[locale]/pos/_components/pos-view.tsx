@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   closePOSSession,
   getPOSSessionCloseSummary,
@@ -92,6 +92,7 @@ interface POSViewProps {
   categories: SuperJSONResult;
   session: SuperJSONResult;
   diningSpots: SuperJSONResult;
+  restaurantFeaturesEnabled: boolean;
   checkoutSettings: POSCheckoutSettings;
 }
 
@@ -108,6 +109,7 @@ export function POSView({
   categories: serializedCategories,
   session: serializedSession,
   diningSpots: serializedDiningSpots,
+  restaurantFeaturesEnabled,
   checkoutSettings,
 }: POSViewProps) {
   const t = useTranslations("POS");
@@ -141,13 +143,32 @@ export function POSView({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const tabParam = searchParams.get("tab");
-  const activeTab: POSTabValue = isPOSTabValue(tabParam) ? tabParam : "cashier";
+  const rawTab: POSTabValue = isPOSTabValue(tabParam) ? tabParam : "cashier";
+  const activeTab: POSTabValue =
+    !restaurantFeaturesEnabled &&
+    (rawTab === "floor" || rawTab === "kitchen" || rawTab === "billing")
+      ? "cashier"
+      : rawTab;
 
-  const setActiveTab = (next: POSTabValue) => {
+  const setActiveTab = useCallback((next: POSTabValue) => {
+    const safeNext =
+      !restaurantFeaturesEnabled &&
+      (next === "floor" || next === "kitchen" || next === "billing")
+        ? "cashier"
+        : next;
     const params = new URLSearchParams(searchParams);
-    params.set("tab", next);
+    params.set("tab", safeNext);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  }, [pathname, router, searchParams, restaurantFeaturesEnabled]);
+
+  useEffect(() => {
+    if (
+      !restaurantFeaturesEnabled &&
+      (rawTab === "floor" || rawTab === "kitchen" || rawTab === "billing")
+    ) {
+      setActiveTab("cashier");
+    }
+  }, [restaurantFeaturesEnabled, rawTab, setActiveTab]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -160,16 +181,21 @@ export function POSView({
 
       // Alt+M/K/D/B to switch tabs (allowed from any tab)
       if (e.altKey && !isEditing) {
-        const keyMap: Record<string, POSTabValue | undefined> = {
-          m: "floor",
-          M: "floor",
-          k: "cashier",
-          K: "cashier",
-          d: "kitchen",
-          D: "kitchen",
-          b: "billing",
-          B: "billing",
-        };
+        const keyMap: Record<string, POSTabValue | undefined> = restaurantFeaturesEnabled
+          ? {
+              m: "floor",
+              M: "floor",
+              k: "cashier",
+              K: "cashier",
+              d: "kitchen",
+              D: "kitchen",
+              b: "billing",
+              B: "billing",
+            }
+          : {
+              k: "cashier",
+              K: "cashier",
+            };
         const nextTab = keyMap[e.key];
         if (nextTab) {
           e.preventDefault();
@@ -200,13 +226,17 @@ export function POSView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [categories, activeTab, setActiveTab]);
+  }, [categories, activeTab, setActiveTab, restaurantFeaturesEnabled]);
 
   useEffect(() => {
+    if (!restaurantFeaturesEnabled) {
+      setSelectedDiningSpotId("");
+      return;
+    }
     const spotFromQuery = searchParams.get("spot");
     if (!spotFromQuery) return;
     setSelectedDiningSpotId(spotFromQuery);
-  }, [searchParams]);
+  }, [searchParams, restaurantFeaturesEnabled]);
 
   const {
     data: productData,
@@ -263,6 +293,7 @@ export function POSView({
       const res = await getDiningSpots();
       return SuperJSON.deserialize<POSDiningSpot[]>(res);
     },
+    enabled: restaurantFeaturesEnabled,
     initialData: initialDiningSpots,
   });
 
@@ -433,20 +464,21 @@ export function POSView({
     if (resumedGlobalDiscount !== undefined) {
       setGlobalDiscount(resumedGlobalDiscount);
     }
-    if (diningSpotId) {
+    if (restaurantFeaturesEnabled && diningSpotId) {
       setSelectedDiningSpotId(diningSpotId);
     }
     toast({ title: t("items_added") });
   };
 
   const handleSelectSpot = (spotId: string, goCashier?: boolean) => {
+    if (!restaurantFeaturesEnabled) return;
     setSelectedDiningSpotId(spotId);
     if (goCashier) setActiveTab("cashier");
   };
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const spotChip = selectedSpot ? (
+  const spotChip = !restaurantFeaturesEnabled ? null : selectedSpot ? (
     <Badge variant="outline" className="gap-1 font-normal">
       <span className="text-muted-foreground">Meja:</span>
       <span className="font-medium">
@@ -467,7 +499,9 @@ export function POSView({
       <header className="flex h-16 items-center justify-between border-b bg-background px-2 sm:px-4 gap-2">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <h1 className="hidden text-xl font-bold lg:block">{t("pos")}</h1>
-          <div className="hidden md:inline-flex">{spotChip}</div>
+          {spotChip ? (
+            <div className="hidden md:inline-flex">{spotChip}</div>
+          ) : null}
           <div className="hidden md:block text-sm text-muted-foreground min-w-0">
             {sessionData?.userName && (
               <span className="mr-3 font-medium text-foreground">
@@ -635,31 +669,39 @@ export function POSView({
       >
         <div className="border-b bg-muted/40 px-2 sm:px-4">
           <TabsList className="bg-transparent p-0 h-10">
-            <TabsTrigger value="floor" className="gap-2">
-              <Utensils className="h-4 w-4" /> Meja
-            </TabsTrigger>
+            {restaurantFeaturesEnabled ? (
+              <TabsTrigger value="floor" className="gap-2">
+                <Utensils className="h-4 w-4" /> Meja
+              </TabsTrigger>
+            ) : null}
             <TabsTrigger value="cashier" className="gap-2">
               <ShoppingCart className="h-4 w-4" /> Kasir
             </TabsTrigger>
-            <TabsTrigger value="kitchen" className="gap-2">
-              <ChefHat className="h-4 w-4" /> Dapur
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="gap-2">
-              <Receipt className="h-4 w-4" /> Billing
-            </TabsTrigger>
+            {restaurantFeaturesEnabled ? (
+              <TabsTrigger value="kitchen" className="gap-2">
+                <ChefHat className="h-4 w-4" /> Dapur
+              </TabsTrigger>
+            ) : null}
+            {restaurantFeaturesEnabled ? (
+              <TabsTrigger value="billing" className="gap-2">
+                <Receipt className="h-4 w-4" /> Billing
+              </TabsTrigger>
+            ) : null}
           </TabsList>
         </div>
 
-        <TabsContent
-          value="floor"
-          className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden"
-        >
-          <FloorTab
-            sessionId={session.id}
-            selectedDiningSpotId={selectedDiningSpotId}
-            onSelectSpot={handleSelectSpot}
-          />
-        </TabsContent>
+        {restaurantFeaturesEnabled ? (
+          <TabsContent
+            value="floor"
+            className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden"
+          >
+            <FloorTab
+              sessionId={session.id}
+              selectedDiningSpotId={selectedDiningSpotId}
+              onSelectSpot={handleSelectSpot}
+            />
+          </TabsContent>
+        ) : null}
 
         <TabsContent
           value="cashier"
@@ -754,8 +796,13 @@ export function POSView({
                     onRemove={removeFromCart}
                     onClear={clearCart}
                     session={session}
-                    selectedDiningSpotId={selectedDiningSpotId || undefined}
+                    selectedDiningSpotId={
+                      restaurantFeaturesEnabled
+                        ? selectedDiningSpotId || undefined
+                        : undefined
+                    }
                     selectedDiningSpot={selectedSpot}
+                    restaurantFeaturesEnabled={restaurantFeaturesEnabled}
                     checkoutSettings={checkoutSettings}
                   />
                 </div>
@@ -794,8 +841,13 @@ export function POSView({
                           onRemove={removeFromCart}
                           onClear={clearCart}
                           session={session}
-                          selectedDiningSpotId={selectedDiningSpotId || undefined}
+                          selectedDiningSpotId={
+                            restaurantFeaturesEnabled
+                              ? selectedDiningSpotId || undefined
+                              : undefined
+                          }
                           selectedDiningSpot={selectedSpot}
+                          restaurantFeaturesEnabled={restaurantFeaturesEnabled}
                           checkoutSettings={checkoutSettings}
                         />
                       </div>
@@ -811,22 +863,26 @@ export function POSView({
           </div>
         </TabsContent>
 
-        <TabsContent
-          value="kitchen"
-          className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden"
-        >
-          <KitchenTab sessionId={session.id} />
-        </TabsContent>
+        {restaurantFeaturesEnabled ? (
+          <TabsContent
+            value="kitchen"
+            className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden"
+          >
+            <KitchenTab sessionId={session.id} />
+          </TabsContent>
+        ) : null}
 
-        <TabsContent
-          value="billing"
-          className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden"
-        >
-          <BillingTab
-            sessionId={session.id}
-            checkoutSettings={checkoutSettings}
-          />
-        </TabsContent>
+        {restaurantFeaturesEnabled ? (
+          <TabsContent
+            value="billing"
+            className="flex-1 overflow-y-auto m-0 data-[state=inactive]:hidden"
+          >
+            <BillingTab
+              sessionId={session.id}
+              checkoutSettings={checkoutSettings}
+            />
+          </TabsContent>
+        ) : null}
       </Tabs>
 
       <POSHistoryDialog

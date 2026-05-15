@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getSessionMock = vi.hoisted(() => vi.fn());
 const hasPermissionMock = vi.hoisted(() => vi.fn());
+const ensureDefaultLayoutMock = vi.hoisted(() => vi.fn());
+const revalidatePathMock = vi.hoisted(() => vi.fn());
 
 const prismaMock = vi.hoisted(() => ({
   companyProfile: {
@@ -10,6 +12,13 @@ const prismaMock = vi.hoisted(() => ({
   product: {
     findMany: vi.fn(),
     count: vi.fn(),
+  },
+  diningSpot: {
+    findMany: vi.fn(),
+  },
+  contact: {
+    findMany: vi.fn(),
+    create: vi.fn(),
   },
 }));
 
@@ -22,8 +31,23 @@ vi.mock("@/lib/permissions/utils", () => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+vi.mock("next/cache", () => ({
+  revalidatePath: (...args: unknown[]) => revalidatePathMock(...args),
+}));
+vi.mock("@/modules/pos/services/dining-spot.service", () => ({
+  DiningSpotService: {
+    ensureDefaultLayout: (...args: unknown[]) =>
+      ensureDefaultLayoutMock(...args),
+  },
+}));
 
-import { getPOSProducts, getPOSServiceProducts } from "./actions";
+import {
+  getPOSProducts,
+  getPOSServiceProducts,
+  getDiningSpots,
+  getPOSContacts,
+  createPOSQuickContact,
+} from "./actions";
 import { SuperJSON } from "@/lib/superjson";
 
 describe("pos/actions getPOSProducts", () => {
@@ -33,6 +57,7 @@ describe("pos/actions getPOSProducts", () => {
     hasPermissionMock.mockReturnValue(true);
     prismaMock.companyProfile.findFirst.mockResolvedValue({
       posProductVisibilityMode: "POS_ONLY",
+      posEnableRestaurantFeatures: true,
     });
   });
 
@@ -63,6 +88,7 @@ describe("pos/actions getPOSProducts", () => {
     prismaMock.product.count.mockResolvedValue(0);
     prismaMock.companyProfile.findFirst.mockResolvedValue({
       posProductVisibilityMode: "ALL_ACTIVE",
+      posEnableRestaurantFeatures: true,
     });
 
     await getPOSProducts(1, 20);
@@ -87,6 +113,38 @@ describe("pos/actions getPOSProducts", () => {
     expect(data.total).toBe(0);
     expect(data.hasMore).toBe(false);
     expect(prismaMock.product.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("pos/actions getDiningSpots", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSessionMock.mockResolvedValue({ permissions: ["pos.access"] });
+    hasPermissionMock.mockReturnValue(true);
+    prismaMock.companyProfile.findFirst.mockResolvedValue({
+      posEnableRestaurantFeatures: true,
+    });
+    prismaMock.diningSpot.findMany.mockResolvedValue([]);
+  });
+
+  it("returns empty array when restaurant features are disabled", async () => {
+    prismaMock.companyProfile.findFirst.mockResolvedValue({
+      posEnableRestaurantFeatures: false,
+    });
+
+    const result = await getDiningSpots();
+    const data = SuperJSON.deserialize<unknown[]>(result);
+
+    expect(data).toEqual([]);
+    expect(ensureDefaultLayoutMock).not.toHaveBeenCalled();
+    expect(prismaMock.diningSpot.findMany).not.toHaveBeenCalled();
+  });
+
+  it("loads dining spots when restaurant features are enabled", async () => {
+    await getDiningSpots();
+
+    expect(ensureDefaultLayoutMock).toHaveBeenCalled();
+    expect(prismaMock.diningSpot.findMany).toHaveBeenCalled();
   });
 });
 
@@ -120,5 +178,70 @@ describe("pos/actions getPOSServiceProducts", () => {
 
     expect(data).toEqual([]);
     expect(prismaMock.product.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("pos/actions contact helpers", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSessionMock.mockResolvedValue({ permissions: ["pos.access"] });
+    hasPermissionMock.mockReturnValue(true);
+  });
+
+  it("returns customer contacts when authorized", async () => {
+    prismaMock.contact.findMany.mockResolvedValue([
+      { id: "c-1", name: "A", phone: "08123", email: "a@example.com" },
+    ]);
+
+    const result = await getPOSContacts("08123");
+    const data = SuperJSON.deserialize<
+      Array<{ id: string; name: string; phone: string | null; email: string | null }>
+    >(result);
+
+    expect(data).toHaveLength(1);
+    expect(prismaMock.contact.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          type: "CUSTOMER",
+          isActive: true,
+        }),
+      }),
+    );
+  });
+
+  it("returns empty contacts when unauthorized", async () => {
+    getSessionMock.mockResolvedValue(null);
+
+    const result = await getPOSContacts();
+    const data = SuperJSON.deserialize<unknown[]>(result);
+
+    expect(data).toEqual([]);
+    expect(prismaMock.contact.findMany).not.toHaveBeenCalled();
+  });
+
+  it("creates quick contact as customer", async () => {
+    prismaMock.contact.create.mockResolvedValue({
+      id: "c-1",
+      name: "Walk-in Baru",
+      phone: "0812",
+      email: null,
+    });
+
+    const result = await createPOSQuickContact({
+      name: "Walk-in Baru",
+      phone: "0812",
+    });
+    const data = SuperJSON.deserialize<{ id: string; name: string }>(result);
+
+    expect(data.id).toBe("c-1");
+    expect(prismaMock.contact.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: "CUSTOMER",
+          name: "Walk-in Baru",
+          phone: "0812",
+        }),
+      }),
+    );
   });
 });

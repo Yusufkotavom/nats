@@ -281,7 +281,11 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
           if (!open) setCheckoutOrder(null);
         }}
         totalAmount={checkoutOrder?.balance ?? 0}
-        onConfirm={handleConfirmCheckout}
+        contacts={[]}
+        selectedContactId={undefined}
+        onSelectedContactChange={() => undefined}
+        onQuickCreateContact={() => undefined}
+        onConfirm={(method, amount) => handleConfirmCheckout(method, amount)}
       />
     </div>
   );

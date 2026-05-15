@@ -60,13 +60,39 @@ export class POSServiceWorkflowService {
 
     const customerIds = Array.from(new Set(orders.map((o) => o.contactId).filter(Boolean))) as string[];
     const customers = customerIds.length
-      ? await prisma.contact.findMany({ where: { id: { in: customerIds } }, select: { id: true, name: true } })
+      ? await prisma.contact.findMany({
+          where: { id: { in: customerIds } },
+          select: { id: true, name: true, phone: true, email: true },
+        })
       : [];
-    const customerMap = new Map(customers.map((c) => [c.id, c.name]));
+    const customerMap = new Map(customers.map((c) => [c.id, c]));
+    const orderIds = orders.map((order) => order.id);
+    const communicationLogs = orderIds.length
+      ? await prisma.contactCommunicationLog.findMany({
+          where: {
+            sourceType: "SERVICE_ORDER",
+            sourceId: { in: orderIds },
+            channel: "WHATSAPP",
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
+    const latestCommunicationMap = new Map<string, Date>();
+    communicationLogs.forEach((log) => {
+      if (!log.sourceId) return;
+      if (!latestCommunicationMap.has(log.sourceId)) {
+        latestCommunicationMap.set(log.sourceId, log.createdAt);
+      }
+    });
 
     return orders.map((order) => ({
       ...order,
-      customerName: order.contactId ? customerMap.get(order.contactId) ?? DEFAULT_WALK_IN_CUSTOMER_NAME : DEFAULT_WALK_IN_CUSTOMER_NAME,
+      customerName: order.contactId
+        ? customerMap.get(order.contactId)?.name ?? DEFAULT_WALK_IN_CUSTOMER_NAME
+        : DEFAULT_WALK_IN_CUSTOMER_NAME,
+      customerPhone: order.contactId ? customerMap.get(order.contactId)?.phone ?? null : null,
+      customerEmail: order.contactId ? customerMap.get(order.contactId)?.email ?? null : null,
+      latestCommunicationAt: latestCommunicationMap.get(order.id) ?? null,
     }));
   }
 

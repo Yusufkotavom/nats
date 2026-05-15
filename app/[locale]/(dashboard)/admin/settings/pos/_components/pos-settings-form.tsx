@@ -15,6 +15,7 @@ import { Plus, Trash2 } from "lucide-react";
 type POSSettings = {
   id: string | null;
   posProductVisibilityMode: POSProductVisibilityMode;
+  posEnableRestaurantFeatures: boolean;
   feeSettings: {
     id?: string;
     name: string;
@@ -34,12 +35,16 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
   const [mode, setMode] = useState<POSProductVisibilityMode>(
     initialData.posProductVisibilityMode || "POS_ONLY",
   );
+  const [restaurantEnabled, setRestaurantEnabled] = useState<boolean>(
+    initialData.posEnableRestaurantFeatures ?? true,
+  );
   const [feeSettings, setFeeSettings] = useState(initialData.feeSettings || []);
 
   const handleSave = () => {
     startTransition(async () => {
       const result = await updatePOSSettings({
         posProductVisibilityMode: mode,
+        posEnableRestaurantFeatures: restaurantEnabled,
         feeSettings: feeSettings.map((item, index) => ({ ...item, sortOrder: index })),
       });
       if (result.success) {
@@ -94,6 +99,24 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
               <SelectItem value="ALL_ACTIVE">{t("pos_product_visibility_all_active")}</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2 rounded-md border p-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="posEnableRestaurantFeatures">
+                {t("pos_enable_restaurant_features")}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t("pos_enable_restaurant_features_desc")}
+              </p>
+            </div>
+            <Switch
+              id="posEnableRestaurantFeatures"
+              checked={restaurantEnabled}
+              onCheckedChange={setRestaurantEnabled}
+            />
+          </div>
         </div>
 
         <div className="space-y-3 rounded-md border p-3">

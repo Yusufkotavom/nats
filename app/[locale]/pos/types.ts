@@ -35,3 +35,10 @@ export type POSDiningSpot = {
     heldOrders: number;
   };
 };
+
+export type POSContactOption = {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+};
