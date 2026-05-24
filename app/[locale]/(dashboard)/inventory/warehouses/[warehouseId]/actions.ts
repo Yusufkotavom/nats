@@ -8,23 +8,32 @@ import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getWarehouse(warehouseId: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return null;
   }
 
-  const warehouse = await prisma.warehouse.findUnique({
-    where: { id: warehouseId },
+  const warehouse = await prisma.warehouse.findFirst({
+    where: { id: warehouseId, companyId: session.activeCompanyId },
   });
   return SuperJSON.serialize(warehouse);
 }
 
 export async function getCategories() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return [];
   }
 
   const categories = await prisma.category.findMany({
+    where: { companyId: session.activeCompanyId },
     orderBy: { name: "asc" },
   });
   return SuperJSON.serialize(categories);
@@ -38,7 +47,11 @@ export async function getWarehouseInventory(
   categoryId?: string,
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return {
       inventory: [],
       total: 0,
@@ -50,7 +63,9 @@ export async function getWarehouseInventory(
 
   const where: Prisma.InventoryWhereInput = {
     warehouseId,
+    warehouse: { companyId: session.activeCompanyId },
     product: {
+      companyId: session.activeCompanyId,
       ...(search
         ? {
             OR: [

@@ -4,13 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { hash } from "bcryptjs";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
-import { sendActivationEmail } from "@/lib/mail";
+import { createSession } from "@/lib/auth/auth";
 
 export async function registerUserAndTenant(prevState: unknown, formData: FormData) {
     const fullName = formData.get("fullName") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-    const companyName = formData.get("companyName") as string; // Optional or mapped to CompanyProfile if needed later
+    const companyName = formData.get("companyName") as string;
 
     const errors: { fullName?: string[]; email?: string[]; password?: string[]; companyName?: string[] } = {};
 
@@ -26,7 +26,9 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         errors.password = ["Password must be at least 6 characters long"];
     }
 
-    // companyName check can be optional for single-tenant if the company is already set up
+    if (!companyName || companyName.trim().length < 2) {
+        errors.companyName = ["Company name is required and should be at least 2 characters"];
+    }
 
     if (Object.keys(errors).length > 0) {
         return { errors };
@@ -45,43 +47,79 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         };
     }
 
-    // Fetch the superadmin role
-    const superAdminRole = await prisma.role.findUnique({
-        where: { name: "superadmin" },
+    // Ensure tenant admin role exists for self-signup flow
+    const tenantAdminRole = await prisma.role.upsert({
+        where: { name: "company_admin" },
+        update: {
+            isActive: true,
+        },
+        create: {
+            name: "company_admin",
+            description: "Company administrator",
+            permissions: ["*"],
+            isActive: true,
+        },
     });
-
-    if (!superAdminRole) {
-        return {
-            errors: {
-                email: ["System configuration error: superadmin role not found. Please seed the database."],
-            },
-        };
-    }
 
     try {
         const hashedPassword = await hash(password, 10);
 
-        const newUser = await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                name: fullName,
-                roleId: superAdminRole.id
+        const companyCodeBase = companyName
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "")
+            .slice(0, 40);
+        const companyCode = `${companyCodeBase || "company"}-${randomUUID().slice(0, 8)}`;
+
+        const created = await prisma.$transaction(async (tx) => {
+            const company = await tx.company.create({
+                data: {
+                    code: companyCode,
+                    name: companyName.trim(),
+                },
+            });
+
+            await tx.companyProfile.create({
+                data: {
+                    companyId: company.id,
+                    name: companyName.trim(),
+                    email,
+                },
+            });
+
+            const newUser = await tx.user.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    name: fullName,
+                    roleId: tenantAdminRole.id,
+                },
+            });
+
+            await tx.companyMembership.create({
+                data: {
+                    companyId: company.id,
+                    userId: newUser.id,
+                    isDefault: true,
+                },
+            });
+
+            return {
+                companyId: company.id,
+                userId: newUser.id,
+                userName: newUser.name ?? fullName.trim(),
+            };
+        });
+        await createSession(
+            created.userId,
+            created.userName,
+            tenantAdminRole,
+            {
+                activeCompanyId: created.companyId,
+                isPlatformSuperAdmin: false,
             },
-        });
-
-        // Generate email verification token
-        const token = randomUUID();
-        await prisma.verificationToken.create({
-            data: {
-                identifier: email,
-                token,
-                expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-            }
-        });
-
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        await sendActivationEmail(email, token, appUrl);
+        );
 
     } catch (error: any) {
         console.error("Registration error:", error);
@@ -92,5 +130,5 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         };
     }
 
-    redirect("/check-email");
+    redirect("/dashboard");
 }

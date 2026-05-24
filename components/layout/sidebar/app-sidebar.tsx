@@ -14,6 +14,8 @@ import {
 import { TeamSwitcher } from "@/components/layout/others/team-switcher";
 import { NavUser } from "@/components/layout/sidebar/nav-user";
 import { getNavigationBySection } from "@/modules/plugins";
+import { useCompanyProfile } from "@/components/providers/session-provider";
+import { filterAdministrationNavigation } from "@/components/layout/sidebar/navigation-filters";
 
 // Removed static sample data since it will be passed via props
 
@@ -21,6 +23,7 @@ export function AppSidebar({
   user,
   companyName = "Company Name",
   descText = "Community Edition",
+  isPlatformSuperAdmin = false,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: {
@@ -31,8 +34,22 @@ export function AppSidebar({
   };
   companyName?: string;
   descText?: string;
+  isPlatformSuperAdmin?: boolean;
 }) {
+  const companyProfile = useCompanyProfile();
+  const enableDepartmentDimension =
+    companyProfile?.enableDepartmentDimension ?? true;
+  const enableProjectDimension =
+    companyProfile?.enableProjectDimension ?? true;
   const navigation = getNavigationBySection();
+  const adminNavigation = navigation["Administration"].map((group) => ({
+    ...group,
+    items: filterAdministrationNavigation(group.items || [], {
+      isPlatformSuperAdmin,
+      enableDepartmentDimension,
+      enableProjectDimension,
+    }),
+  }));
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -61,7 +78,7 @@ export function AppSidebar({
         />
         <NavMain
           label="Navigation.administration"
-          items={navigation["Administration"]}
+          items={adminNavigation}
         />
       </SidebarContent>
       <SidebarFooter>

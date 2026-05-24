@@ -131,6 +131,7 @@ export function PurchaseReceiveForm({
     })) || []
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   const [formData, setFormData] = useState<
     Omit<PurchaseReceiveInput, "items"> & {
@@ -390,38 +391,40 @@ export function PurchaseReceiveForm({
                   </CustomSelect>
                 </div>
 
-                <div className="col-span-2 grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <SearchableSelect
-                      value={formData.departmentId || ""}
-                      onValueChange={(val) =>
-                        setFormData((prev) => ({ ...prev, departmentId: val || null }))
-                      }
-                      options={departments.map((d) => ({
-                        value: d.id,
-                        label: d.name,
-                      }))}
-                      placeholder="Select Department"
-                      disabled={readonly}
-                    />
+                {showDimensionFields ? (
+                  <div className="col-span-2 grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Department</Label>
+                      <SearchableSelect
+                        value={formData.departmentId || ""}
+                        onValueChange={(val) =>
+                          setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                        }
+                        options={departments.map((d) => ({
+                          value: d.id,
+                          label: d.name,
+                        }))}
+                        placeholder="Select Department"
+                        disabled={readonly}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Project</Label>
+                      <SearchableSelect
+                        value={formData.projectId || ""}
+                        onValueChange={(val) =>
+                          setFormData((prev) => ({ ...prev, projectId: val || null }))
+                        }
+                        options={projects.map((p) => ({
+                          value: p.id,
+                          label: p.name,
+                        }))}
+                        placeholder="Select Project"
+                        disabled={readonly}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Project</Label>
-                    <SearchableSelect
-                      value={formData.projectId || ""}
-                      onValueChange={(val) =>
-                        setFormData((prev) => ({ ...prev, projectId: val || null }))
-                      }
-                      options={projects.map((p) => ({
-                        value: p.id,
-                        label: p.name,
-                      }))}
-                      placeholder="Select Project"
-                      disabled={readonly}
-                    />
-                  </div>
-                </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <Label>Receive Date</Label>

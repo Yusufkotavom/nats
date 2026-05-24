@@ -13,6 +13,7 @@ import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
+import { getActiveCompanyContext } from "@/lib/company-context";
 import {
   PageListLayout,
   PageListHeader,
@@ -33,11 +34,12 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
       ? `${formatDate(budget.periodStart, { dateFormat: "dd/MM/yyyy" })} - ${formatDate(budget.periodEnd, { dateFormat: "dd/MM/yyyy" })}`
       : `Fiscal Year: ${budget.fiscalYear}`;
 
-  const [varianceResponse, session, companyProfile] = await Promise.all([
+  const [varianceResponse, session, companyContext] = await Promise.all([
     getBudgetVariance(budget.id),
     getSession(),
-    prisma.companyProfile.findFirst()
+    getActiveCompanyContext(),
   ]);
+  const companyProfile = companyContext?.profile ?? null;
 
   const varianceData = varianceResponse.success ? SuperJSON.deserialize<any[]>(varianceResponse.data) : [];
 

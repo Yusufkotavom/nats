@@ -477,3 +477,199 @@ export async function updateServiceOrderPricing(input: {
   revalidatePath("/services");
   return SuperJSON.serialize(result);
 }
+
+export async function getServiceOrderForEdit(orderId: string) {
+  const session = await getSession();
+  assertAccess(session);
+
+  const order = await prisma.pOSServiceOrder.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+  if (!order) throw new Error("Service order tidak ditemukan");
+
+  return SuperJSON.serialize({
+    id: order.id,
+    status: order.status,
+    notes: order.notes || "",
+    items: order.items.map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: Number(item.unitPrice),
+      notes: item.notes || "",
+    })),
+  });
+}
+
+export async function updateServiceOrder(input: {
+  orderId: string;
+  status: ServiceWorkflowStatus;
+  notes?: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    notes?: string;
+  }>;
+}) {
+  const session = await getSession();
+  assertAccess(session);
+
+  if (!input.items.length) throw new Error("Item service order wajib diisi");
+
+  const result = await prisma.$transaction(async (tx) => {
+    const order = await tx.pOSServiceOrder.findUnique({
+      where: { id: input.orderId },
+      include: { items: true },
+    });
+    if (!order) throw new Error("Service order tidak ditemukan");
+
+    const products = await tx.product.findMany({
+      where: { id: { in: input.items.map((item) => item.productId) } },
+      select: { id: true, name: true, isService: true },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    if (!input.items.some((item) => productMap.get(item.productId)?.isService)) {
+      throw new Error("Minimal harus ada 1 item service");
+    }
+
+    const normalizedItems = input.items.map((item) => {
+      const product = productMap.get(item.productId);
+      if (!product) throw new Error("Produk tidak ditemukan");
+      if (item.quantity <= 0) throw new Error("Qty harus lebih dari 0");
+      if (item.unitPrice < 0) throw new Error("Harga tidak valid");
+      return {
+        ...item,
+        productName: product.name,
+        totalPrice: item.quantity * item.unitPrice,
+      };
+    });
+
+    const subtotal = normalizedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const paidAmount = Number(order.paidAmount);
+    const remaining = Math.max(subtotal - paidAmount, 0);
+
+    await tx.pOSServiceOrderItem.deleteMany({ where: { posServiceOrderId: order.id } });
+    await tx.pOSServiceOrderItem.createMany({
+      data: normalizedItems.map((item) => ({
+        posServiceOrderId: order.id,
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discountAmount: 0,
+        totalPrice: item.totalPrice,
+        notes: item.notes?.trim() || null,
+      })),
+    });
+
+    await tx.salesOrderItem.deleteMany({ where: { salesOrderId: order.salesOrderId } });
+    await tx.salesOrderItem.createMany({
+      data: normalizedItems.map((item) => ({
+        salesOrderId: order.salesOrderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        discountRate: 0,
+      })),
+    });
+
+    await tx.salesInvoiceItem.deleteMany({ where: { salesInvoiceId: order.salesInvoiceId } });
+    await tx.salesInvoiceItem.createMany({
+      data: normalizedItems.map((item) => ({
+        salesInvoiceId: order.salesInvoiceId,
+        productId: item.productId,
+        description: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+        discount: 0,
+        tax: 0,
+      })),
+    });
+
+    await tx.salesOrder.update({
+      where: { id: order.salesOrderId },
+      data: {
+        subtotal,
+        totalAmount: subtotal,
+        notes: input.notes?.trim() || null,
+      },
+    });
+
+    await tx.salesInvoice.update({
+      where: { id: order.salesInvoiceId },
+      data: {
+        subtotal,
+        totalAmount: subtotal,
+        balanceDue: remaining,
+        notes: input.notes?.trim() || null,
+      },
+    });
+
+    const updated = await tx.pOSServiceOrder.update({
+      where: { id: order.id },
+      data: {
+        notes: input.notes?.trim() || null,
+        subtotal,
+        totalAmount: subtotal,
+        remainingAmount: remaining,
+      },
+      include: { items: true },
+    });
+
+    return updated;
+  });
+
+  const currentStatus = result.status as ServiceWorkflowStatus;
+  const updatedOrder =
+    currentStatus !== input.status
+      ? await POSServiceWorkflowService.transitionStatus(result.id, input.status, session!.userId)
+      : result;
+
+  revalidatePath("/services");
+  return SuperJSON.serialize(updatedOrder);
+}
+
+export async function getServiceNotifySettings() {
+  const session = await getSession();
+  assertAccess(session);
+  if (!session?.activeCompanyId) {
+    return SuperJSON.serialize({
+      serviceTemplateCreated: "",
+      serviceTemplateReady: "",
+      serviceTemplateCostDone: "",
+      serviceTemplatePickedUp: "",
+      serviceWarrantyDuration: 0,
+      serviceWarrantyUnit: "DAY",
+    });
+  }
+
+  const profile = await prisma.companyProfile.findUnique({
+    where: { companyId: session.activeCompanyId },
+    select: {
+      serviceTemplateCreated: true,
+      serviceTemplateReady: true,
+      serviceTemplateCostDone: true,
+      serviceTemplatePickedUp: true,
+      serviceWarrantyDuration: true,
+      serviceWarrantyUnit: true,
+    },
+  });
+
+  return SuperJSON.serialize({
+    serviceTemplateCreated: profile?.serviceTemplateCreated || "",
+    serviceTemplateReady: profile?.serviceTemplateReady || "",
+    serviceTemplateCostDone: profile?.serviceTemplateCostDone || "",
+    serviceTemplatePickedUp: profile?.serviceTemplatePickedUp || "",
+    serviceWarrantyDuration: profile?.serviceWarrantyDuration || 0,
+    serviceWarrantyUnit: profile?.serviceWarrantyUnit || "DAY",
+  });
+}

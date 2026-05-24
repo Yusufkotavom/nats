@@ -3,12 +3,17 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { SuperJSON } from "@/lib/superjson";
+import { Prisma } from "@/prisma/generated/prisma/client";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getWarehouses(page: number = 1, limit: number = 10) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return {
       warehouses: [],
       total: 0,
@@ -20,6 +25,7 @@ export async function getWarehouses(page: number = 1, limit: number = 10) {
 
   const [warehouses, total] = await Promise.all([
     prisma.warehouse.findMany({
+      where: { companyId: session.activeCompanyId },
       include: {
         inventory: {
           include: {
@@ -31,7 +37,9 @@ export async function getWarehouses(page: number = 1, limit: number = 10) {
       skip,
       take: limit,
     }),
-    prisma.warehouse.count(),
+    prisma.warehouse.count({
+      where: { companyId: session.activeCompanyId },
+    }),
   ]);
 
   return {
@@ -49,8 +57,13 @@ export const createWarehouse = authorizedAction(
   "warehouses.create",
   async (data: { name: string; location?: string }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       const warehouse = await prisma.$transaction(async (tx) => {
-        return await WarehouseService.createWarehouse(tx, data);
+        return await WarehouseService.createWarehouse(tx, data, session.activeCompanyId!);
       });
       revalidatePath("/inventory/warehouses");
       return { success: true, data: warehouse };
@@ -65,8 +78,13 @@ export const updateWarehouse = authorizedAction(
   "warehouses.edit",
   async (id: string, data: { name: string; location?: string }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       const warehouse = await prisma.$transaction(async (tx) => {
-        return await WarehouseService.updateWarehouse(tx, id, data);
+        return await WarehouseService.updateWarehouse(tx, id, data, session.activeCompanyId!);
       });
       revalidatePath("/inventory/warehouses");
       return { success: true, data: warehouse };
@@ -81,8 +99,13 @@ export const deleteWarehouse = authorizedAction(
   "warehouses.delete",
   async (id: string) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       await prisma.$transaction(async (tx) => {
-        await WarehouseService.deleteWarehouse(tx, id);
+        await WarehouseService.deleteWarehouse(tx, id, session.activeCompanyId!);
       });
       revalidatePath("/inventory/warehouses");
       return { success: true };
@@ -95,11 +118,20 @@ export const deleteWarehouse = authorizedAction(
 
 export async function getInventoryLevels(warehouseId?: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return [];
   }
 
-  const where = warehouseId ? { warehouseId } : {};
+  const where: Prisma.InventoryWhereInput = {
+    warehouse: { companyId: session.activeCompanyId },
+  };
+  if (warehouseId) {
+    where.warehouseId = warehouseId;
+  }
 
   const inventory = await prisma.inventory.findMany({
     where,

@@ -17,7 +17,7 @@ export default async function ServiceOrdersNewPage() {
   }
 
   const session = SuperJSON.deserialize<{ id: string }>(sessionRaw);
-  const products = SuperJSON.deserialize<Array<{ id: string; name: string; price: number }>>(productsRaw);
+  const products = SuperJSON.deserialize<Array<{ id: string; name: string; price: number; isService?: boolean }>>(productsRaw);
   const contacts = SuperJSON.deserialize<Array<{ id: string; name: string }>>(contactsRaw);
 
   return (

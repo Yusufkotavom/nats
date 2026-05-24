@@ -1,56 +1,30 @@
-import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "@/i18n/routing";
 import { getLocale } from "next-intl/server";
-
-function getSecretKey(): Uint8Array {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) {
-    throw new Error("FATAL: SESSION_SECRET environment variable is not set!");
-  }
-  return new TextEncoder().encode(secret);
-}
-
-export type SessionPayload = {
-  userId: string;
-  userName: string;
-  roleId: string;
-  role: string; // Storing role name
-  permissions: string[];
-  expiresAt: Date;
-};
-
-export async function encrypt(payload: SessionPayload) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(getSecretKey());
-}
-
-export async function decrypt(session: string | undefined = "") {
-  try {
-    const { payload } = await jwtVerify(session, getSecretKey(), {
-      algorithms: ["HS256"],
-    });
-    return payload as unknown as SessionPayload;
-  } catch (error) {
-    return null;
-  }
-}
+import { prisma } from "@/lib/prisma";
+import { decrypt, encrypt } from "./session-token";
 
 export async function createSession(
   userId: string,
   userName: string,
-  role: { id: string; name: string; permissions: string[] }
+  role: { id: string; name: string; permissions: string[] },
+  options?: {
+    activeCompanyId?: string | null;
+    isPlatformSuperAdmin?: boolean;
+    impersonatedCompanyId?: string | null;
+  },
 ) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const isPlatformSuperAdmin = options?.isPlatformSuperAdmin ?? role.name === "superadmin";
   const session = await encrypt({
     userId,
     userName,
     roleId: role.id,
     role: role.name,
     permissions: role.permissions,
+    activeCompanyId: options?.activeCompanyId ?? null,
+    isPlatformSuperAdmin,
+    impersonatedCompanyId: options?.impersonatedCompanyId ?? null,
     expiresAt,
   });
   const cookieStore = await cookies();
@@ -80,6 +54,10 @@ export async function getSession() {
     roleId: payload.roleId,
     role: payload.role,
     permissions: payload.permissions,
+    activeCompanyId: payload.impersonatedCompanyId || payload.activeCompanyId || null,
+    baseCompanyId: payload.activeCompanyId || null,
+    impersonatedCompanyId: payload.impersonatedCompanyId || null,
+    isPlatformSuperAdmin: Boolean(payload.isPlatformSuperAdmin),
   };
 }
 
@@ -97,4 +75,106 @@ export async function verifySession() {
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete("session");
+}
+
+export async function resolveUserCompanyContext(userId: string) {
+  const memberships = await prisma.companyMembership.findMany({
+    where: { userId },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    select: {
+      companyId: true,
+      company: {
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+
+  const activeMembership = memberships.find((m) => m.company.status === "ACTIVE");
+  return {
+    activeCompanyId: activeMembership?.companyId ?? null,
+  };
+}
+
+export async function setImpersonationContext(companyId: string) {
+  const session = await getSession();
+  if (!session || !session.isPlatformSuperAdmin) {
+    throw new Error("Unauthorized");
+  }
+
+  const role = await prisma.role.findUnique({
+    where: { id: session.roleId },
+    select: { id: true, name: true, permissions: true },
+  });
+  if (!role) throw new Error("Role not found");
+
+  await createSession(session.userId, session.userName, role, {
+    activeCompanyId: session.baseCompanyId,
+    isPlatformSuperAdmin: session.isPlatformSuperAdmin,
+    impersonatedCompanyId: companyId,
+  });
+}
+
+export async function clearImpersonationContext() {
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+
+  const role = await prisma.role.findUnique({
+    where: { id: session.roleId },
+    select: { id: true, name: true, permissions: true },
+  });
+  if (!role) throw new Error("Role not found");
+
+  await createSession(session.userId, session.userName, role, {
+    activeCompanyId: session.baseCompanyId,
+    isPlatformSuperAdmin: session.isPlatformSuperAdmin,
+    impersonatedCompanyId: null,
+  });
+}
+
+export async function requireActiveCompanyId() {
+  const session = await verifySession();
+  if (!session.activeCompanyId) {
+    throw new Error("No active company selected");
+  }
+  return session.activeCompanyId;
+}
+
+export async function switchActiveCompanyContext(companyId: string) {
+  const session = await verifySession();
+  const role = await prisma.role.findUnique({
+    where: { id: session.roleId },
+    select: { id: true, name: true, permissions: true },
+  });
+  if (!role) throw new Error("Role not found");
+
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { id: true, status: true },
+  });
+  if (!company || company.status !== "ACTIVE") {
+    throw new Error("Company is not active");
+  }
+
+  if (!session.isPlatformSuperAdmin) {
+    const membership = await prisma.companyMembership.findUnique({
+      where: {
+        companyId_userId: {
+          companyId,
+          userId: session.userId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!membership) {
+      throw new Error("Forbidden: no access to selected company");
+    }
+  }
+
+  await createSession(session.userId, session.userName, role, {
+    activeCompanyId: companyId,
+    isPlatformSuperAdmin: session.isPlatformSuperAdmin,
+    impersonatedCompanyId: null,
+  });
 }

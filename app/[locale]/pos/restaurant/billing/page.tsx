@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 /**
  * Legacy route. The Billing board is now a tab inside /pos.
  */
 export default async function LegacyBillingRedirect() {
-  const profile = await prisma.companyProfile.findFirst({
-    select: { posEnableRestaurantFeatures: true },
-  });
+  const companyContext = await getActiveCompanyContext();
+  const profile = companyContext?.profile ?? null;
   if (profile?.posEnableRestaurantFeatures === false) {
     redirect("/pos?tab=cashier");
   }

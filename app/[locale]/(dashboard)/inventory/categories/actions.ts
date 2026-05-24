@@ -12,7 +12,11 @@ export async function getCategories(
   search?: string
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "products.view")
+  ) {
     return {
       categories: [],
       total: 0,
@@ -22,16 +26,14 @@ export async function getCategories(
 
   const skip = (page - 1) * limit;
   const where: Prisma.CategoryWhereInput = {
-    AND: [],
+    companyId: session.activeCompanyId,
   };
 
   if (search) {
-    (where.AND as Prisma.CategoryWhereInput[]).push({
-      OR: [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ],
-    });
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { description: { contains: search, mode: "insensitive" } },
+    ];
   }
 
   const [categories, total] = await Promise.all([
@@ -62,8 +64,16 @@ export const createCategory = authorizedAction(
   "categories.create",
   async (data: { name: string; description?: string }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       const category = await prisma.category.create({
-        data,
+        data: {
+          ...data,
+          companyId: session.activeCompanyId,
+        },
       });
       revalidatePath("/inventory/categories");
       return { success: true, data: category };
@@ -78,8 +88,21 @@ export const updateCategory = authorizedAction(
   "categories.edit",
   async (id: string, data: { name: string; description?: string }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
+      const existing = await prisma.category.findFirst({
+        where: { id, companyId: session.activeCompanyId },
+        select: { id: true },
+      });
+      if (!existing) {
+        return { success: false, error: "Category not found in active company" };
+      }
+
       const category = await prisma.category.update({
-        where: { id },
+        where: { id: existing.id },
         data,
       });
       revalidatePath("/inventory/categories");
@@ -95,9 +118,18 @@ export const deleteCategory = authorizedAction(
   "categories.delete",
   async (id: string) => {
     try {
-      await prisma.category.delete({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
+      const deleted = await prisma.category.deleteMany({
+        where: { id, companyId: session.activeCompanyId },
       });
+      if (deleted.count === 0) {
+        return { success: false, error: "Category not found in active company" };
+      }
+
       revalidatePath("/inventory/categories");
       return { success: true };
     } catch (error) {

@@ -8,6 +8,7 @@ import { SuperJSON } from "@/lib/superjson";
 
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export async function getCompanyProfile() {
   const session = await getSession();
@@ -15,13 +16,18 @@ export async function getCompanyProfile() {
     return null;
   }
 
-  const companyProfile = await prisma.companyProfile.findFirst();
+  const companyContext = await getActiveCompanyContext();
+  const companyProfile = companyContext?.profile ?? null;
   return SuperJSON.serialize(companyProfile);
 }
 
 export async function getMovementBatches(page: number = 1, limit: number = 10) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return {
       batches: [],
       total: 0,
@@ -33,6 +39,7 @@ export async function getMovementBatches(page: number = 1, limit: number = 10) {
 
   const [batches, total] = await Promise.all([
     prisma.inventoryMovement.findMany({
+      where: { companyId: session.activeCompanyId },
       include: {
         fromWarehouse: true,
         toWarehouse: true,
@@ -46,7 +53,9 @@ export async function getMovementBatches(page: number = 1, limit: number = 10) {
       skip,
       take: limit,
     }),
-    prisma.inventoryMovement.count(),
+    prisma.inventoryMovement.count({
+      where: { companyId: session.activeCompanyId },
+    }),
   ]);
 
   return {
@@ -58,12 +67,16 @@ export async function getMovementBatches(page: number = 1, limit: number = 10) {
 
 export async function getMovementBatchById(id: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return null;
   }
 
-  const batch = await prisma.inventoryMovement.findUnique({
-    where: { id },
+  const batch = await prisma.inventoryMovement.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       fromWarehouse: true,
       toWarehouse: true,
@@ -86,11 +99,20 @@ export async function getMovementBatchById(id: string) {
 
 export async function getMovements() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return [];
   }
 
   const movements = await prisma.inventoryMovementDetail.findMany({
+    where: {
+      inventoryMovement: {
+        companyId: session.activeCompanyId,
+      },
+    },
     include: {
       product: true,
       inventoryMovement: {
@@ -122,9 +144,26 @@ export const createBatchMovement = authorizedAction(
       data;
 
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
+      const targetWarehouseId = type === "IN" ? toWarehouseId : fromWarehouseId;
+      if (targetWarehouseId) {
+        const warehouse = await prisma.warehouse.findFirst({
+          where: { id: targetWarehouseId, companyId: session.activeCompanyId },
+          select: { id: true },
+        });
+        if (!warehouse) {
+          return { success: false, error: "Warehouse not found in active company" };
+        }
+      }
+
       await prisma.$transaction(async (tx) => {
         await InventoryService.createInventoryMovement(tx, {
           type,
+          companyId: session.activeCompanyId!,
           items: items.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -160,11 +199,19 @@ export const approveMovement = authorizedAction(
   "inventory_movements.create", // TODO: Add specific permission for approval?
   async (movementId: string) => {
     const session = await getSession();
-    if (!session) throw new Error("Unauthorized");
+    if (!session || !session.activeCompanyId) throw new Error("Unauthorized");
+
+    const movement = await prisma.inventoryMovement.findFirst({
+      where: { id: movementId, companyId: session.activeCompanyId },
+      select: { id: true },
+    });
+    if (!movement) {
+      return { success: false, error: "Movement not found in active company" };
+    }
 
     try {
       await prisma.$transaction(async (tx) => {
-        await InventoryService.approveMovement(tx, movementId, session.userId);
+        await InventoryService.approveMovement(tx, movement.id, session.userId);
       });
 
       revalidatePath("/inventory/movements");
@@ -186,17 +233,20 @@ export const rejectMovement = authorizedAction(
   "inventory_movements.create",
   async ({ movementId, reason }: { movementId: string; reason: string }) => {
     const session = await getSession();
-    if (!session) throw new Error("Unauthorized");
+    if (!session || !session.activeCompanyId) throw new Error("Unauthorized");
 
     try {
-      await prisma.inventoryMovement.update({
-        where: { id: movementId },
+      const updated = await prisma.inventoryMovement.updateMany({
+        where: { id: movementId, companyId: session.activeCompanyId },
         data: {
           status: "REJECTED",
           rejectionReason: reason,
           // approvedBy is not set for rejection, maybe add rejectedBy?
         },
       });
+      if (updated.count === 0) {
+        return { success: false, error: "Movement not found in active company" };
+      }
 
       revalidatePath("/inventory/movements");
       return { success: true };

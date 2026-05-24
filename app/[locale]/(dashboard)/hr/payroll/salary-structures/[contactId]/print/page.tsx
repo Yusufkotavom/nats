@@ -7,6 +7,7 @@ import { getSalaryStructure } from "../../../actions";
 import { SalarySlip } from "./_components/salary-slip";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 interface PageProps {
     params: Promise<{ contactId: string }>;
@@ -15,13 +16,14 @@ interface PageProps {
 export default async function PrintSalarySlipPage({ params }: PageProps) {
     const { contactId } = await params;
 
-    const [contact, companyProfile] = await Promise.all([
+    const [contact, companyContext] = await Promise.all([
         prisma.contact.findUnique({
             where: { id: contactId, type: ContactType.EMPLOYEE },
             include: { employeeDetail: true },
         }),
-        prisma.companyProfile.findFirst(),
+        getActiveCompanyContext(),
     ]);
+    const companyProfile = companyContext?.profile ?? null;
 
     if (!contact) {
         notFound();

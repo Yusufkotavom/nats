@@ -94,6 +94,7 @@ export function SalesPaymentForm({
     })) || []
   );
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
+  const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
     queryKey: ["unpaid-sales-invoices"],
@@ -336,38 +337,40 @@ export function SalesPaymentForm({
             disabled={readonly}
           />
 
-          <div className="md:col-span-2 grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("department")}</label>
-              <SearchableSelect
-                value={formData.departmentId || ""}
-                onValueChange={(val) =>
-                  setFormData((prev) => ({ ...prev, departmentId: val || null }))
-                }
-                options={departments.map((d) => ({
-                  value: d.id,
-                  label: d.name,
-                }))}
-                placeholder={t("placeholder_select_department")}
-                disabled={readonly}
-              />
+          {showDimensionFields ? (
+            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("department")}</label>
+                <SearchableSelect
+                  value={formData.departmentId || ""}
+                  onValueChange={(val) =>
+                    setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                  }
+                  options={departments.map((d) => ({
+                    value: d.id,
+                    label: d.name,
+                  }))}
+                  placeholder={t("placeholder_select_department")}
+                  disabled={readonly}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t("project")}</label>
+                <SearchableSelect
+                  value={formData.projectId || ""}
+                  onValueChange={(val) =>
+                    setFormData((prev) => ({ ...prev, projectId: val || null }))
+                  }
+                  options={projects.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  }))}
+                  placeholder={t("placeholder_select_project")}
+                  disabled={readonly}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("project")}</label>
-              <SearchableSelect
-                value={formData.projectId || ""}
-                onValueChange={(val) =>
-                  setFormData((prev) => ({ ...prev, projectId: val || null }))
-                }
-                options={projects.map((p) => ({
-                  value: p.id,
-                  label: p.name,
-                }))}
-                placeholder={t("placeholder_select_project")}
-                disabled={readonly}
-              />
-            </div>
-          </div>
+          ) : null}
 
           <div className="md:col-span-2">
             <CustomTextarea

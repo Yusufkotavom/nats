@@ -4,6 +4,7 @@ import { enqueueIntegrationEventOnce } from "@/modules/integration/outbox";
 
 export interface CreateInventoryMovementData {
     type: MovementType;
+    companyId?: string;
     items: {
         productId: string;
         quantity: number;
@@ -29,6 +30,7 @@ export class InventoryService {
     ) {
         const {
             type,
+            companyId,
             items,
             warehouseId: providedWarehouseId,
             reference,
@@ -41,6 +43,7 @@ export class InventoryService {
         let warehouseId = providedWarehouseId;
         if (!warehouseId) {
             const defaultWarehouse = await tx.warehouse.findFirst({
+                where: companyId ? { companyId } : undefined,
                 orderBy: { createdAt: "asc" },
             });
             if (!defaultWarehouse) {
@@ -60,6 +63,7 @@ export class InventoryService {
                 reference,
                 notes,
                 status,
+                companyId,
                 transactionDate,
                 // Keep warehouse trace on header for all stock movements, including adjustments.
                 toWarehouseId: isInbound || isAdjustment ? warehouseId : undefined,

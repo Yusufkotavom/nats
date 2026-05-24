@@ -16,6 +16,7 @@ const POS_INVOICE_NUMBER_PREFIX = "INV-POS";
 const POS_PAYMENT_NUMBER_PREFIX = "PAY-POS";
 const POS_SHIPMENT_NUMBER_PREFIX = "SHP-POS";
 const DEFAULT_WALK_IN_CUSTOMER_NAME = "Walk-in Customer";
+const POS_INTERACTIVE_TX_TIMEOUT_MS = 8_000;
 
 interface POSTransactionItem {
     productId: string;
@@ -225,7 +226,7 @@ export class POSTransactionService {
             ];
 
             return { invoiceId: salesInvoice.id, outboxIds, alreadyQueuedIds };
-        });
+        }, { timeout: POS_INTERACTIVE_TX_TIMEOUT_MS });
 
         const processingResults = await Promise.all(
             result.outboxIds.map((outboxId) =>
@@ -379,7 +380,7 @@ export class POSTransactionService {
                 outboxIds: [invoiceOutbox.id],
                 alreadyQueuedIds: invoiceOutbox.alreadyQueued ? [invoiceOutbox.id] : [],
             };
-        });
+        }, { timeout: POS_INTERACTIVE_TX_TIMEOUT_MS });
 
         const processingResults = await Promise.all(
             result.outboxIds.map((outboxId) =>
@@ -463,7 +464,7 @@ export class POSTransactionService {
                 outboxIds: [paymentOutbox.id],
                 alreadyQueuedIds: paymentOutbox.alreadyQueued ? [paymentOutbox.id] : [],
             };
-        });
+        }, { timeout: POS_INTERACTIVE_TX_TIMEOUT_MS });
 
         const processingResults = await Promise.all(
             result.outboxIds.map((outboxId) =>

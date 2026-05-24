@@ -2,11 +2,10 @@
 
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
   CreditCard,
+  Building2,
   LogOut,
-  Sparkles,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +26,13 @@ import {
 } from "@/components/ui/sidebar";
 import { logout } from "@/app/[locale]/auth/actions";
 import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
+import {
+  getMyCompanyMemberships,
+  stopCompanyImpersonation,
+  switchMyActiveCompany,
+} from "@/app/[locale]/(dashboard)/admin/companies/actions";
+import { useSession } from "@/components/providers/session-provider";
 
 export function NavUser({
   user,
@@ -39,6 +45,19 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const session = useSession();
+  const [memberships, setMemberships] = useState<
+    Array<{ companyId: string; companyName: string; isDefault: boolean }>
+  >([]);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const loadMemberships = async () => {
+      const data = await getMyCompanyMemberships();
+      setMemberships(data);
+    };
+    loadMemberships();
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -93,6 +112,49 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            {memberships.length > 0 ? (
+              <>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Active Company
+                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  {memberships.map((membership) => (
+                    <DropdownMenuItem
+                      key={membership.companyId}
+                      disabled={isPending}
+                      onClick={() =>
+                        startTransition(async () => {
+                          await switchMyActiveCompany(membership.companyId);
+                          window.location.reload();
+                        })
+                      }
+                    >
+                      <Building2 />
+                      {membership.companyName}
+                      {session?.activeCompanyId === membership.companyId ? " • active" : ""}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            {session?.isPlatformSuperAdmin && session?.impersonatedCompanyId ? (
+              <>
+                <DropdownMenuItem
+                  disabled={isPending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      await stopCompanyImpersonation();
+                      window.location.reload();
+                    })
+                  }
+                >
+                  <BadgeCheck />
+                  Stop Impersonation
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
             <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
               <LogOut />
               Log out

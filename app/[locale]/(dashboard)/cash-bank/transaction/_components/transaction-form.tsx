@@ -81,6 +81,8 @@ export function TransactionForm({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formatCurrency = useFormatCurrency();
+  const showDimensionFields =
+    (departments?.length ?? 0) > 0 || (projects?.length ?? 0) > 0;
 
   const attachmentDialog = useAttachmentDialog({
     initialAttachments: initialData?.attachments,
@@ -331,28 +333,30 @@ export function TransactionForm({
             disabled={readOnly}
           />
 
-          <div className="col-span-2 grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label>{t("department")}</Label>
-              <SearchableSelect
-                value={formData.departmentId || ""}
-                onValueChange={(val) => setFormData({ ...formData, departmentId: val || undefined })}
-                options={departments?.map(d => ({ value: d.id, label: d.name })) || []}
-                placeholder={t("select_department")}
-                disabled={readOnly}
-              />
+          {showDimensionFields ? (
+            <div className="col-span-2 grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label>{t("department")}</Label>
+                <SearchableSelect
+                  value={formData.departmentId || ""}
+                  onValueChange={(val) => setFormData({ ...formData, departmentId: val || undefined })}
+                  options={departments?.map(d => ({ value: d.id, label: d.name })) || []}
+                  placeholder={t("select_department")}
+                  disabled={readOnly}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>{t("project")}</Label>
+                <SearchableSelect
+                  value={formData.projectId || ""}
+                  onValueChange={(val) => setFormData({ ...formData, projectId: val || undefined })}
+                  options={projects?.map(p => ({ value: p.id, label: p.name })) || []}
+                  placeholder={t("select_project")}
+                  disabled={readOnly}
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label>{t("project")}</Label>
-              <SearchableSelect
-                value={formData.projectId || ""}
-                onValueChange={(val) => setFormData({ ...formData, projectId: val || undefined })}
-                options={projects.map(p => ({ value: p.id, label: p.name })) || []}
-                placeholder={t("select_project")}
-                disabled={readOnly}
-              />
-            </div>
-          </div>
+          ) : null}
         </div>
 
         {/* Allocations Table */}

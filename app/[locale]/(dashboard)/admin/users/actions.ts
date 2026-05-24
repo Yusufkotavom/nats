@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { requireActiveCompanyContext } from "@/lib/company-context";
 
 interface UserCreateData {
   name: string;
@@ -22,28 +23,40 @@ interface UserUpdateData {
 }
 
 export async function getUsers(page: number, limit: number) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "users.edit")) {
+    return { data: [], total: 0, totalPages: 0 };
+  }
+  const { companyId } = await requireActiveCompanyContext();
   const skip = (page - 1) * limit;
 
-  const [data, total] = await Promise.all([
-    prisma.user.findMany({
+  const [memberships, total] = await Promise.all([
+    prisma.companyMembership.findMany({
+      where: { companyId },
       skip,
       take: limit,
       orderBy: { createdAt: "desc" },
       select: {
-        id: true,
-        name: true,
-        email: true,
-        role: {
+        user: {
           select: {
-            name: true,
             id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+            role: {
+              select: {
+                name: true,
+                id: true,
+              },
+            },
           },
         },
-        createdAt: true,
       },
     }),
-    prisma.user.count(),
+    prisma.companyMembership.count({ where: { companyId } }),
   ]);
+
+  const data = memberships.map((membership) => membership.user);
 
   return { data, total, totalPages: Math.ceil(total / limit) };
 }
@@ -55,6 +68,7 @@ export async function getRoles() {
   }
 
   return prisma.role.findMany({
+    where: session.isPlatformSuperAdmin ? undefined : { name: { not: "superadmin" } },
     select: {
       id: true,
       name: true,
@@ -67,6 +81,7 @@ export const createUser = authorizedAction(
   "users.create",
   async (data: UserCreateData) => {
     try {
+      const { companyId } = await requireActiveCompanyContext();
       if (!data.name) {
         return { success: false, error: "Name is required" };
       }
@@ -88,13 +103,23 @@ export const createUser = authorizedAction(
         10
       );
 
-      const user = await prisma.user.create({
-        data: {
-          name: data.name,
-          email: data.email,
-          password: hashedPassword,
-          roleId: data.roleId,
-        },
+      const user = await prisma.$transaction(async (tx) => {
+        const createdUser = await tx.user.create({
+          data: {
+            name: data.name,
+            email: data.email,
+            password: hashedPassword,
+            roleId: data.roleId,
+          },
+        });
+        await tx.companyMembership.create({
+          data: {
+            companyId,
+            userId: createdUser.id,
+            isDefault: false,
+          },
+        });
+        return createdUser;
       });
       revalidatePath("/admin/users");
       return { success: true, data: user };
@@ -109,6 +134,15 @@ export const updateUser = authorizedAction(
   "users.edit",
   async (id: string, data: UserUpdateData) => {
     try {
+      const { companyId } = await requireActiveCompanyContext();
+      const membership = await prisma.companyMembership.findUnique({
+        where: { companyId_userId: { companyId, userId: id } },
+        select: { id: true },
+      });
+      if (!membership) {
+        return { success: false, error: "User not found in active company" };
+      }
+
       if (data.name !== undefined && !data.name) {
         return { success: false, error: "Name cannot be empty" };
       }
@@ -155,8 +189,19 @@ export const deleteUser = authorizedAction(
   "users.delete",
   async (id: string) => {
     try {
-      await prisma.user.delete({
-        where: { id },
+      const { companyId } = await requireActiveCompanyContext();
+      await prisma.$transaction(async (tx) => {
+        await tx.companyMembership.deleteMany({
+          where: { companyId, userId: id },
+        });
+        const remaining = await tx.companyMembership.count({
+          where: { userId: id },
+        });
+        if (remaining === 0) {
+          await tx.user.delete({
+            where: { id },
+          });
+        }
       });
       revalidatePath("/admin/users");
       return { success: true };

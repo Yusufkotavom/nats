@@ -46,29 +46,57 @@ async function main() {
       });
     }
 
-    const categoryMakanan = await prisma.category.upsert({
-      where: { name: "Menu Makanan" },
-      update: { description: "Menu makanan siap jual" },
-      create: { name: "Menu Makanan", description: "Menu makanan siap jual" },
-    });
+    const upsertCategoryByName = async (name: string, description: string) => {
+      const existing = await prisma.category.findFirst({
+        where: { name },
+        select: { id: true },
+      });
+      if (existing) {
+        return prisma.category.update({
+          where: { id: existing.id },
+          data: { description },
+        });
+      }
+      return prisma.category.create({
+        data: { name, description },
+      });
+    };
 
-    const categoryMinuman = await prisma.category.upsert({
-      where: { name: "Menu Minuman" },
-      update: { description: "Menu minuman siap jual" },
-      create: { name: "Menu Minuman", description: "Menu minuman siap jual" },
-    });
+    const upsertWarehouseByName = async (name: string, location: string) => {
+      const existing = await prisma.warehouse.findFirst({
+        where: { name },
+        select: { id: true },
+      });
+      if (existing) {
+        return prisma.warehouse.update({
+          where: { id: existing.id },
+          data: { location },
+        });
+      }
+      return prisma.warehouse.create({
+        data: { name, location },
+      });
+    };
 
-    const categoryBahan = await prisma.category.upsert({
-      where: { name: "Bahan Baku Restoran" },
-      update: { description: "Bahan baku dapur restoran" },
-      create: { name: "Bahan Baku Restoran", description: "Bahan baku dapur restoran" },
-    });
+    const categoryMakanan = await upsertCategoryByName(
+      "Menu Makanan",
+      "Menu makanan siap jual",
+    );
 
-    const warehouse = await prisma.warehouse.upsert({
-      where: { name: "Gudang Dapur Utama" },
-      update: { location: "Area Dapur" },
-      create: { name: "Gudang Dapur Utama", location: "Area Dapur" },
-    });
+    const categoryMinuman = await upsertCategoryByName(
+      "Menu Minuman",
+      "Menu minuman siap jual",
+    );
+
+    const categoryBahan = await upsertCategoryByName(
+      "Bahan Baku Restoran",
+      "Bahan baku dapur restoran",
+    );
+
+    const warehouse = await upsertWarehouseByName(
+      "Gudang Dapur Utama",
+      "Area Dapur",
+    );
 
     const getUnit = async (symbol: string) => prisma.unit.findUniqueOrThrow({ where: { symbol } });
     const unitPrs = await getUnit("PRS");

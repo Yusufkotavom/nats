@@ -15,7 +15,7 @@ import {
   getOutstandingSummary,
   getOverdueInvoices,
 } from "./actions";
-import { prisma } from "@/lib/prisma";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export default async function PurchaseDashboardPage() {
   const queryClient = new QueryClient();
@@ -79,7 +79,8 @@ export default async function PurchaseDashboardPage() {
     }),
   ]);
 
-  const companyProfile = await prisma.companyProfile.findFirst();
+  const companyContext = await getActiveCompanyContext();
+  const companyProfile = companyContext?.profile ?? null;
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

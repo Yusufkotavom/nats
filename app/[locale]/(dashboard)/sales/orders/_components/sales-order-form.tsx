@@ -378,6 +378,7 @@ export function SalesOrderForm({
   const displayOrderNumber = order?.orderNumber?.startsWith("DRAFT")
     ? "Draft"
     : order?.orderNumber;
+  const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   return (
     <PageFormLayout>
@@ -594,21 +595,24 @@ export function SalesOrderForm({
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
-                    <CustomSelect
-                      value={formData.contactId}
-                      label={t("customer")}
-                      onValueChange={(val) =>
-                        setFormData((prev) => ({ ...prev, contactId: val }))
-                      }
-                      placeholder={t("placeholder_select_customer")}
-                      disabled={isReadOnly}
-                    >
-                      {customers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </CustomSelect>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t("customer")}</label>
+                      <SearchableSelect
+                        value={formData.contactId || ""}
+                        onValueChange={(val) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            contactId: val || "",
+                          }))
+                        }
+                        options={customers.map((c) => ({
+                          value: c.id,
+                          label: c.name,
+                        }))}
+                        placeholder={t("placeholder_select_customer")}
+                        disabled={isReadOnly}
+                      />
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       <CustomInput
                         type="date"
@@ -650,28 +654,30 @@ export function SalesOrderForm({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">{t("department")}</label>
-                        <SearchableSelect
-                          value={formData.departmentId || ""}
-                          onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
-                          options={departments.map(d => ({ value: d.id, label: d.name }))}
-                          placeholder={t("placeholder_select_department")}
-                          disabled={isReadOnly}
-                        />
+                    {showDimensionFields ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">{t("department")}</label>
+                          <SearchableSelect
+                            value={formData.departmentId || ""}
+                            onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
+                            options={departments.map(d => ({ value: d.id, label: d.name }))}
+                            placeholder={t("placeholder_select_department")}
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">{t("project")}</label>
+                          <SearchableSelect
+                            value={formData.projectId || ""}
+                            onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
+                            options={projects.map(p => ({ value: p.id, label: p.name }))}
+                            placeholder={t("placeholder_select_project")}
+                            disabled={isReadOnly}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">{t("project")}</label>
-                        <SearchableSelect
-                          value={formData.projectId || ""}
-                          onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
-                          options={projects.map(p => ({ value: p.id, label: p.name }))}
-                          placeholder={t("placeholder_select_project")}
-                          disabled={isReadOnly}
-                        />
-                      </div>
-                    </div>
+                    ) : null}
                   </div>
                   <CustomTextarea
                     value={formData.notes || ""}

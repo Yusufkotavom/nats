@@ -32,7 +32,11 @@ export type POSCheckoutSettings = {
 };
 
 async function isRestaurantFeaturesEnabled() {
-  const profile = await prisma.companyProfile.findFirst({
+  const session = await getSession();
+  if (!session?.activeCompanyId) return false;
+
+  const profile = await prisma.companyProfile.findUnique({
+    where: { companyId: session.activeCompanyId },
     select: { posEnableRestaurantFeatures: true },
   });
   return profile?.posEnableRestaurantFeatures !== false;
@@ -47,11 +51,12 @@ async function assertRestaurantFeaturesEnabled() {
 
 export async function getPOSSessions() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
 
   const sessions = await prisma.pOSSession.findMany({
+    where: { companyId: session.activeCompanyId },
     orderBy: { startTime: "desc" },
     include: {
       warehouse: {
@@ -90,7 +95,7 @@ export async function getPOSProducts(
   categoryId?: string,
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize({
       items: [],
       total: 0,
@@ -98,12 +103,16 @@ export async function getPOSProducts(
     });
   }
 
-  const companyProfile = await prisma.companyProfile.findFirst({
-    select: { posProductVisibilityMode: true },
-  });
+  const companyProfile = session.activeCompanyId
+    ? await prisma.companyProfile.findUnique({
+        where: { companyId: session.activeCompanyId },
+        select: { posProductVisibilityMode: true },
+      })
+    : null;
   const visibilityMode = companyProfile?.posProductVisibilityMode || "POS_ONLY";
 
   const where: any = {
+    companyId: session.activeCompanyId,
     isActive: true,
   };
   if (visibilityMode !== "ALL_ACTIVE") {
@@ -177,15 +186,15 @@ export async function getPOSProducts(
 
 export async function getPOSServiceProducts() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
 
   const now = new Date();
   const products = await prisma.product.findMany({
     where: {
+      companyId: session.activeCompanyId,
       isActive: true,
-      isService: true,
     },
     include: {
       category: true,
@@ -230,7 +239,7 @@ export async function getPOSServiceProducts() {
 
 export async function getPOSContacts(search: string = "", take: number = 30) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
 
@@ -239,6 +248,7 @@ export async function getPOSContacts(search: string = "", take: number = 30) {
 
   const contacts = await prisma.contact.findMany({
     where: {
+      companyId: session.activeCompanyId,
       type: ContactType.CUSTOMER,
       isActive: true,
       ...(normalizedSearch
@@ -264,13 +274,60 @@ export async function getPOSContacts(search: string = "", take: number = 30) {
   return SuperJSON.serialize(contacts);
 }
 
+export async function getPOSServiceNotifySettings() {
+  const session = await getSession();
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
+    return SuperJSON.serialize({
+      serviceNotifyOnCreated: true,
+      serviceNotifyOnReady: true,
+      serviceNotifyOnCostDone: true,
+      serviceNotifyOnPickedUp: true,
+      serviceTemplateCreated: "",
+      serviceTemplateReady: "",
+      serviceTemplateCostDone: "",
+      serviceTemplatePickedUp: "",
+      serviceWarrantyDuration: 0,
+      serviceWarrantyUnit: "DAY",
+    });
+  }
+
+  const profile = await prisma.companyProfile.findUnique({
+    where: { companyId: session.activeCompanyId },
+    select: {
+      serviceNotifyOnCreated: true,
+      serviceNotifyOnReady: true,
+      serviceNotifyOnCostDone: true,
+      serviceNotifyOnPickedUp: true,
+      serviceTemplateCreated: true,
+      serviceTemplateReady: true,
+      serviceTemplateCostDone: true,
+      serviceTemplatePickedUp: true,
+      serviceWarrantyDuration: true,
+      serviceWarrantyUnit: true,
+    },
+  });
+
+  return SuperJSON.serialize({
+    serviceNotifyOnCreated: profile?.serviceNotifyOnCreated ?? true,
+    serviceNotifyOnReady: profile?.serviceNotifyOnReady ?? true,
+    serviceNotifyOnCostDone: profile?.serviceNotifyOnCostDone ?? true,
+    serviceNotifyOnPickedUp: profile?.serviceNotifyOnPickedUp ?? true,
+    serviceTemplateCreated: profile?.serviceTemplateCreated || "",
+    serviceTemplateReady: profile?.serviceTemplateReady || "",
+    serviceTemplateCostDone: profile?.serviceTemplateCostDone || "",
+    serviceTemplatePickedUp: profile?.serviceTemplatePickedUp || "",
+    serviceWarrantyDuration: profile?.serviceWarrantyDuration ?? 0,
+    serviceWarrantyUnit: profile?.serviceWarrantyUnit || "DAY",
+  });
+}
+
 export async function createPOSQuickContact(input: {
   name: string;
   phone?: string;
   email?: string;
 }) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
 
@@ -284,6 +341,7 @@ export async function createPOSQuickContact(input: {
 
   const contact = await prisma.contact.create({
     data: {
+      companyId: session.activeCompanyId,
       type: ContactType.CUSTOMER,
       name,
       phone,
@@ -305,8 +363,13 @@ export async function createPOSQuickContact(input: {
 }
 
 export async function getPOSCheckoutSettings(): Promise<POSCheckoutSettings> {
+  const session = await getSession();
+  if (!session?.activeCompanyId) {
+    return { feeLines: [] };
+  }
+
   const feeLines = await prisma.pOSFeeSetting.findMany({
-    where: { isActive: true },
+    where: { isActive: true, companyId: session.activeCompanyId },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
@@ -325,11 +388,12 @@ export async function getPOSCheckoutSettings(): Promise<POSCheckoutSettings> {
 
 export async function getPOSCategories() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
 
   const categories = await prisma.category.findMany({
+    where: { companyId: session.activeCompanyId },
     orderBy: { name: "asc" },
   });
   return SuperJSON.serialize(categories);
@@ -337,11 +401,12 @@ export async function getPOSCategories() {
 
 export async function getWarehouses() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
 
   const warehouses = await prisma.warehouse.findMany({
+    where: { companyId: session.activeCompanyId },
     orderBy: { name: "asc" },
   });
   return SuperJSON.serialize(warehouses);
@@ -351,10 +416,12 @@ export async function getOpenPOSSession() {
   const session = await getSession();
   const userId = session?.userId;
 
-  if (!userId || !hasPermission(session.permissions, "pos.access")) return null;
+  if (!userId || !session?.activeCompanyId || !hasPermission(session.permissions, "pos.access"))
+    return null;
 
   const posSession = await prisma.pOSSession.findFirst({
     where: {
+      companyId: session.activeCompanyId,
       status: "OPEN",
       cashierId: userId,
     },
@@ -378,7 +445,7 @@ export async function getOpenPOSSession() {
 
 export async function getDiningSpots() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "pos.access")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
   const restaurantEnabled = await isRestaurantFeaturesEnabled();
@@ -389,7 +456,7 @@ export async function getDiningSpots() {
   await DiningSpotService.ensureDefaultLayout();
 
   const spots = await prisma.diningSpot.findMany({
-    where: { isActive: true },
+    where: { isActive: true, companyId: session.activeCompanyId },
     include: {
       area: true,
       sessions: {
@@ -607,9 +674,13 @@ export async function openPOSSession(openingCash: number, warehouseId: string) {
   const userId = session?.userId;
   if (!userId || !hasPermission(session.permissions, "pos.access"))
     throw new Error("Unauthorized");
+  if (!session.activeCompanyId) {
+    throw new Error("No active company selected");
+  }
 
   const newSession = await POSSessionService.open(
     userId,
+    session.activeCompanyId,
     openingCash,
     warehouseId,
   );

@@ -442,11 +442,17 @@ async function upsertContact(data: {
 }
 
 async function upsertWarehouse(name: string, location: string) {
-  return prisma.warehouse.upsert({
+  const existing = await prisma.warehouse.findFirst({
     where: { name },
-    update: { location },
-    create: { name, location },
+    select: { id: true },
   });
+  if (existing) {
+    return prisma.warehouse.update({
+      where: { id: existing.id },
+      data: { location },
+    });
+  }
+  return prisma.warehouse.create({ data: { name, location } });
 }
 
 async function upsertUnit(name: string, symbol: string) {
@@ -458,11 +464,17 @@ async function upsertUnit(name: string, symbol: string) {
 }
 
 async function upsertCategory(name: string, description: string) {
-  return prisma.category.upsert({
+  const existing = await prisma.category.findFirst({
     where: { name },
-    update: { description },
-    create: { name, description },
+    select: { id: true },
   });
+  if (existing) {
+    return prisma.category.update({
+      where: { id: existing.id },
+      data: { description },
+    });
+  }
+  return prisma.category.create({ data: { name, description } });
 }
 
 async function setInventory(productId: string, warehouseId: string, quantity: number, unitCost: number, reorderPoint: number) {
@@ -548,7 +560,9 @@ async function cleanupRestaurantSeedProducts() {
 async function seedCompanyIndonesia() {
   console.log("🇮🇩 Updating company profile for Indonesian restaurant demo...");
 
-  const profile = await prisma.companyProfile.findFirst();
+  const profile = await prisma.companyProfile.findFirst({
+    include: { company: true },
+  });
   const data = {
     name: "Restoran Nusantara Rasa",
     address: "Jl. Kemang Raya No. 88, Jakarta Selatan, DKI Jakarta 12730",
@@ -562,7 +576,22 @@ async function seedCompanyIndonesia() {
   };
 
   if (profile) return prisma.companyProfile.update({ where: { id: profile.id }, data });
-  return prisma.companyProfile.create({ data });
+
+  const company = await prisma.company.upsert({
+    where: { code: "restoran-nusantara-rasa" },
+    update: { name: data.name },
+    create: {
+      code: "restoran-nusantara-rasa",
+      name: data.name,
+    },
+  });
+
+  return prisma.companyProfile.create({
+    data: {
+      ...data,
+      companyId: company.id,
+    },
+  });
 }
 
 async function seedCashAccountsIndonesia() {

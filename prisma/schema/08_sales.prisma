@@ -11,6 +11,7 @@ enum SalesOrderStatus {
 
 model SalesOrder {
   id           String           @id @default(cuid())
+  companyId    String?
   orderNumber  String           @unique
   contactId    String
   contact      Contact          @relation(fields: [contactId], references: [id])
@@ -58,6 +59,9 @@ model SalesOrder {
   // POS Relation
   posSessionId String?
   posSession   POSSession? @relation(fields: [posSessionId], references: [id])
+  company      Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model SalesOrderItem {
@@ -92,6 +96,7 @@ enum SalesShipmentStatus {
 
 model SalesShipment {
   id             String      @id @default(cuid())
+  companyId      String?
   shipmentNumber String      @unique
   salesOrderId   String?
   salesOrder     SalesOrder? @relation(fields: [salesOrderId], references: [id])
@@ -118,6 +123,9 @@ model SalesShipment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model SalesShipmentItem {
@@ -148,6 +156,7 @@ enum SalesInvoiceStatus {
 
 model SalesInvoice {
   id            String  @id @default(cuid())
+  companyId     String?
   invoiceNumber String  @unique
   contactId     String
   contact       Contact @relation(fields: [contactId], references: [id])
@@ -192,6 +201,9 @@ model SalesInvoice {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model SalesInvoiceItem {
@@ -224,6 +236,7 @@ model SalesInvoiceItem {
 
 model SalesPayment {
   id            String @id @default(cuid())
+  companyId     String?
   paymentNumber String @unique
   contactId     String
 
@@ -259,6 +272,9 @@ model SalesPayment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 enum SalesReturnStatus {
@@ -270,6 +286,7 @@ enum SalesReturnStatus {
 
 model SalesReturn {
   id           String  @id @default(cuid())
+  companyId    String?
   returnNumber String  @unique
   contactId    String
   contact      Contact @relation(fields: [contactId], references: [id])
@@ -300,6 +317,9 @@ model SalesReturn {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model SalesReturnItem {

@@ -109,13 +109,24 @@ export async function seedDemoIndonesia() {
     prisma.cashAccount.deleteMany(),
     prisma.account.deleteMany(),
     prisma.contact.deleteMany(),
+    prisma.companyImpersonationAudit.deleteMany(),
+    prisma.companyMembership.deleteMany(),
     prisma.user.deleteMany(),
     prisma.role.deleteMany(),
     prisma.companyProfile.deleteMany(),
+    prisma.company.deleteMany(),
   ]);
+
+  const company = await prisma.company.create({
+    data: {
+      code: "pt-nusantara-rasa-digital",
+      name: "PT Nusantara Rasa Digital",
+    },
+  });
 
   await prisma.companyProfile.create({
     data: {
+      companyId: company.id,
       name: "PT Nusantara Rasa Digital",
       address: "Jl. Jenderal Sudirman No. 88, Jakarta Selatan, DKI Jakarta 12190",
       phone: "+62-21-5099-7788",
@@ -136,8 +147,15 @@ export async function seedDemoIndonesia() {
 
   const password = await hash("Demo12345!", 10);
   const adminUser = await prisma.user.create({ data: { email: "admin@nusantararasa.co.id", name: "Admin Demo", password, roleId: roleSuperadmin.id } });
-  await prisma.user.create({ data: { email: "manager@nusantararasa.co.id", name: "Rina Manager", password, roleId: roleManager.id } });
-  await prisma.user.create({ data: { email: "kasir@nusantararasa.co.id", name: "Budi Kasir", password, roleId: roleCashier.id } });
+  const managerUser = await prisma.user.create({ data: { email: "manager@nusantararasa.co.id", name: "Rina Manager", password, roleId: roleManager.id } });
+  const cashierUser = await prisma.user.create({ data: { email: "kasir@nusantararasa.co.id", name: "Budi Kasir", password, roleId: roleCashier.id } });
+  await prisma.companyMembership.createMany({
+    data: [
+      { companyId: company.id, userId: adminUser.id, isDefault: true },
+      { companyId: company.id, userId: managerUser.id, isDefault: true },
+      { companyId: company.id, userId: cashierUser.id, isDefault: true },
+    ],
+  });
 
   const accounts = await prisma.account.createManyAndReturn({
     data: [

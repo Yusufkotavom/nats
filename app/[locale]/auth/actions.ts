@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { compare, hash } from "bcryptjs";
-import { createSession, deleteSession } from "@/lib/auth/auth";
+import { createSession, deleteSession, resolveUserCompanyContext } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
 
 export async function login(prevState: unknown, formData: FormData) {
@@ -60,7 +60,23 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  await createSession(user.id, user.name, user.role);
+  const isPlatformSuperAdmin = user.role.name === "superadmin";
+  const { activeCompanyId } = await resolveUserCompanyContext(user.id);
+
+  if (!isPlatformSuperAdmin && !activeCompanyId) {
+    return {
+      errors: {
+        email: [
+          "Account is not assigned to any active company. Please contact platform administrator.",
+        ],
+      },
+    };
+  }
+
+  await createSession(user.id, user.name, user.role, {
+    activeCompanyId,
+    isPlatformSuperAdmin,
+  });
 
   if (user.role.name === "Cashier") {
     redirect("/pos");
@@ -103,6 +119,10 @@ export async function loginDemo() {
     });
   }
 
-  await createSession(user.id, user.name, user.role);
+  const { activeCompanyId } = await resolveUserCompanyContext(user.id);
+  await createSession(user.id, user.name, user.role, {
+    activeCompanyId,
+    isPlatformSuperAdmin: user.role.name === "superadmin",
+  });
   redirect("/dashboard");
 }

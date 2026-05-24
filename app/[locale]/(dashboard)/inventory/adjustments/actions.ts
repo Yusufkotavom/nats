@@ -13,6 +13,8 @@ import { JournalService } from "@/modules/accounting/services/journal.service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
 import { Decimal } from "decimal.js";
 
+const INVENTORY_ADJUSTMENT_TX_TIMEOUT_MS = 8_000;
+
 const adjustmentLineSchema = z.object({
   productId: z.string().min(1),
   actualStock: z.number().int(),
@@ -27,7 +29,11 @@ const postStockAdjustmentSchema = z.object({
 
 export async function getStockAdjustmentFormData() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return SuperJSON.serialize({
       warehouses: [],
       products: [],
@@ -36,11 +42,12 @@ export async function getStockAdjustmentFormData() {
 
   const [warehouses, products] = await Promise.all([
     prisma.warehouse.findMany({
+      where: { companyId: session.activeCompanyId },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, companyId: session.activeCompanyId },
       orderBy: { name: "asc" },
       select: {
         id: true,
@@ -67,12 +74,19 @@ export async function getStockAdjustmentFormData() {
 
 export async function getWarehouseStockSnapshot(warehouseId: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return SuperJSON.serialize([]);
   }
 
   const inventory = await prisma.inventory.findMany({
-    where: { warehouseId },
+    where: {
+      warehouseId,
+      warehouse: { companyId: session.activeCompanyId },
+    },
     select: {
       productId: true,
       quantity: true,
@@ -123,18 +137,35 @@ export const postStockAdjustment = authorizedAction(
 
     const data = parsed.data;
     const session = await getSession();
-    if (!session) {
+    if (!session || !session.activeCompanyId) {
       return { success: false, error: "Unauthorized" };
     }
 
     try {
+      const [inventoryAssetAccount, adjustmentExpenseAccount, adjustmentIncomeAccount] =
+        await Promise.all([
+          getRequiredDefaultAccount("INVENTORY_ASSET"),
+          getRequiredDefaultAccount("UNCATEGORIZED_EXPENSE"),
+          getRequiredDefaultAccount("UNCATEGORIZED_INCOME"),
+        ]);
+
       const result = await prisma.$transaction(async (tx) => {
-        const inventoryAssetAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
-        const adjustmentExpenseAccount = await getRequiredDefaultAccount("UNCATEGORIZED_EXPENSE");
-        const adjustmentIncomeAccount = await getRequiredDefaultAccount("UNCATEGORIZED_INCOME");
+        const warehouse = await tx.warehouse.findFirst({
+          where: {
+            id: data.warehouseId,
+            companyId: session.activeCompanyId!,
+          },
+          select: { id: true },
+        });
+        if (!warehouse) {
+          throw new Error("Warehouse not found in active company");
+        }
 
         const currentRows = await tx.inventory.findMany({
-          where: { warehouseId: data.warehouseId },
+          where: {
+            warehouseId: data.warehouseId,
+            product: { companyId: session.activeCompanyId! },
+          },
           select: { productId: true, quantity: true },
         });
 
@@ -144,9 +175,15 @@ export const postStockAdjustment = authorizedAction(
         }
 
         const productCosts = await tx.product.findMany({
-          where: { id: { in: data.lines.map((line) => line.productId) } },
+          where: {
+            id: { in: data.lines.map((line) => line.productId) },
+            companyId: session.activeCompanyId!,
+          },
           select: { id: true, averageCost: true, cost: true, name: true, sku: true },
         });
+        if (productCosts.length !== data.lines.length) {
+          throw new Error("One or more products are not in active company");
+        }
         const costByProduct = new Map(productCosts.map((p) => [p.id, new Decimal(p.averageCost ?? p.cost ?? 0)]));
 
         const adjustmentItems = data.lines
@@ -167,6 +204,7 @@ export const postStockAdjustment = authorizedAction(
 
         const movement = await InventoryService.createInventoryMovement(tx, {
           type: MovementType.ADJUSTMENT,
+          companyId: session.activeCompanyId!,
           warehouseId: data.warehouseId,
           reference: `ADJ-${Date.now()}`,
           notes: data.note || "Stock adjustment",
@@ -242,7 +280,7 @@ export const postStockAdjustment = authorizedAction(
           journalEntryId,
           adjustedLines: adjustmentItems.length,
         };
-      });
+      }, { timeout: INVENTORY_ADJUSTMENT_TX_TIMEOUT_MS });
 
       revalidatePath("/inventory/adjustments");
       revalidatePath("/inventory/movements");

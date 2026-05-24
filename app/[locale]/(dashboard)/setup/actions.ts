@@ -10,6 +10,7 @@ import {
     DEFAULT_CATEGORIES,
 } from "@/lib/setup/chart-of-accounts-template";
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client";
+import { requireActiveCompanyContext } from "@/lib/company-context";
 
 export type SetupStatus = {
     hasCompanyProfile: boolean;
@@ -24,6 +25,7 @@ export type SetupStatus = {
  * Fetches current setup completion status for each wizard step.
  */
 export async function getSetupStatus(): Promise<SetupStatus> {
+    const { companyId } = await requireActiveCompanyContext();
     const [
         companyProfile,
         accountCount,
@@ -32,12 +34,12 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         unitCount,
         categoryCount,
     ] = await Promise.all([
-        prisma.companyProfile.findFirst(),
+        prisma.companyProfile.findUnique({ where: { companyId } }),
         prisma.account.count(),
         prisma.defaultAccount.count({ where: { isActive: true } }),
-        prisma.warehouse.count(),
+        prisma.warehouse.count({ where: { companyId } }),
         prisma.unit.count(),
-        prisma.category.count(),
+        prisma.category.count({ where: { companyId } }),
     ]);
 
     return {
@@ -75,7 +77,10 @@ export const saveCompanyProfile = authorizedAction(
             return { success: false, error: "Company name is required" };
         }
 
-        const existing = await prisma.companyProfile.findFirst();
+        const { companyId } = await requireActiveCompanyContext();
+        const existing = await prisma.companyProfile.findUnique({
+            where: { companyId },
+        });
 
         if (existing) {
             await prisma.companyProfile.update({
@@ -83,9 +88,14 @@ export const saveCompanyProfile = authorizedAction(
                 data,
             });
         } else {
-            await prisma.companyProfile.create({ data });
+            await prisma.companyProfile.create({
+                data: {
+                    companyId,
+                    ...data,
+                },
+            });
         }
-
+        
         revalidatePath("/", "layout");
         return { success: true };
     }
@@ -220,9 +230,14 @@ export const saveInitialWarehouse = authorizedAction(
             return { success: false, error: "Warehouse name is required" };
         }
 
+        const { companyId } = await requireActiveCompanyContext();
+
         // Create warehouse
-        const existing = await prisma.warehouse.findUnique({
-            where: { name: data.name },
+        const existing = await prisma.warehouse.findFirst({
+            where: {
+                name: data.name,
+                companyId,
+            },
         });
 
         if (!existing) {
@@ -230,6 +245,7 @@ export const saveInitialWarehouse = authorizedAction(
                 data: {
                     name: data.name,
                     location: data.location || null,
+                    companyId,
                 },
             });
         }
@@ -246,11 +262,19 @@ export const saveInitialWarehouse = authorizedAction(
 
         // Seed default categories
         for (const category of DEFAULT_CATEGORIES) {
-            const existingCategory = await prisma.category.findUnique({
-                where: { name: category.name },
+            const existingCategory = await prisma.category.findFirst({
+                where: {
+                    name: category.name,
+                    companyId,
+                },
             });
             if (!existingCategory) {
-                await prisma.category.create({ data: category });
+                await prisma.category.create({
+                    data: {
+                        ...category,
+                        companyId,
+                    },
+                });
             }
         }
 

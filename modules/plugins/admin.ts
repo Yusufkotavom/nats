@@ -23,6 +23,7 @@ export const adminPlugin: ModulePlugin = {
           url: "#",
           icon: Shield,
           items: [
+            { title: "Admin.companies", url: "/admin/companies" },
             { title: "Admin.users", url: "/admin/users" },
             { title: "Admin.roles", url: "/admin/roles" },
             { title: "System.document-numbering", url: "/admin/settings/document-numbering" },
@@ -49,6 +50,11 @@ export const adminPlugin: ModulePlugin = {
       name: "users.create",
       description: "Allows creating new users",
       module: "users",
+    },
+    {
+      name: "platform.company.manage",
+      description: "Allows platform-level company management and impersonation",
+      module: "platform",
     },
     {
       name: "users.edit",

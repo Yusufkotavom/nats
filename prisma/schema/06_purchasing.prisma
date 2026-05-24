@@ -10,6 +10,7 @@ enum PurchaseOrderStatus {
 
 model PurchaseOrder {
   id           String              @id @default(cuid())
+  companyId    String?
   orderNumber  String              @unique
   contactId    String
   contact      Contact             @relation(fields: [contactId], references: [id])
@@ -48,6 +49,9 @@ model PurchaseOrder {
   department   Department? @relation(fields: [departmentId], references: [id])
   projectId    String?
   project      Project?    @relation(fields: [projectId], references: [id])
+  company      Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model PurchaseOrderItem {
@@ -74,6 +78,7 @@ model PurchaseOrderItem {
 
 model PurchasePayment {
   id            String  @id @default(cuid())
+  companyId     String?
   paymentNumber String  @unique
   contactId     String
   contact       Contact @relation(fields: [contactId], references: [id])
@@ -104,6 +109,9 @@ model PurchasePayment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 enum PurchaseReceiveStatus {
@@ -114,6 +122,7 @@ enum PurchaseReceiveStatus {
 
 model PurchaseReceive {
   id              String         @id @default(cuid())
+  companyId       String?
   receiveNumber   String         @unique
   purchaseOrderId String?
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
@@ -138,6 +147,9 @@ model PurchaseReceive {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model PurchaseReceiveItem {
@@ -167,6 +179,7 @@ enum PurchaseInvoiceStatus {
 
 model PurchaseInvoice {
   id            String  @id @default(cuid())
+  companyId     String?
   invoiceNumber String
   contactId     String
   contact       Contact @relation(fields: [contactId], references: [id])
@@ -204,8 +217,10 @@ model PurchaseInvoice {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@unique([contactId, invoiceNumber])
+  @@index([companyId])
 }
 
 model PurchaseInvoiceItem {
@@ -241,6 +256,7 @@ enum PurchaseReturnStatus {
 
 model PurchaseReturn {
   id           String  @id @default(cuid())
+  companyId    String?
   returnNumber String  @unique
   contactId    String
   contact      Contact @relation(fields: [contactId], references: [id])
@@ -271,6 +287,9 @@ model PurchaseReturn {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model PurchaseReturnItem {

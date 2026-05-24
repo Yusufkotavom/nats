@@ -1,6 +1,7 @@
 // ACCOUNTING MODULE
 model Account {
   id                   String                @id @default(cuid())
+  companyId            String?
   code                 String                @unique
   name                 String
   type                 AccountType
@@ -27,15 +28,18 @@ model Account {
   // Cash & Bank Relations
   cashAccount                CashAccount?
   cashTransactionAllocations CashTransactionAllocation[]
+  company                    Company?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([code])
   @@index([type])
   @@index([parentId])
+  @@index([companyId])
 }
 
 model JournalEntry {
   id     String @id @default(cuid())
   userId String
+  companyId String?
 
   entryNumber     String             @unique
   transactionDate DateTime
@@ -66,10 +70,12 @@ model JournalEntry {
   // Production Module Relations
   productionIssue   ProductionIssue?
   productionReceipt ProductionReceipt?
+  company           Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([transactionDate])
   @@index([status])
   @@index([userId])
+  @@index([companyId])
 }
 
 model JournalEntryLine {
@@ -100,15 +106,18 @@ model JournalEntryLine {
 
 model DefaultAccount {
   id        String                @id @default(cuid())
+  companyId String?
   accountId String
   account   Account               @relation(fields: [accountId], references: [id])
   purpose   DefaultAccountPurpose
   isActive  Boolean               @default(true)
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
+  company   Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([purpose])
   @@index([accountId])
+  @@index([companyId])
 }
 
 enum DefaultAccountPurpose {

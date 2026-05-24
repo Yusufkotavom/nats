@@ -11,11 +11,16 @@ import { hasPermission } from '@/lib/permissions/utils';
 
 export async function getCategories() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, 'products.view')) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, 'products.view')
+  ) {
     return [];
   }
 
   const categories = await prisma.category.findMany({
+    where: { companyId: session.activeCompanyId },
     orderBy: { name: 'asc' },
   });
   return categories;
@@ -28,7 +33,11 @@ export async function getPricingProducts(
   categoryId?: string
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, 'products.view')) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, 'products.view')
+  ) {
     return {
       products: SuperJSON.serialize([]),
       total: 0,
@@ -38,6 +47,7 @@ export async function getPricingProducts(
 
   const skip = (page - 1) * limit;
   const where: Prisma.ProductWhereInput = {
+    companyId: session.activeCompanyId,
     AND: [],
   };
 
@@ -89,11 +99,16 @@ export async function getAllPricingProductIds(
   categoryId?: string
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, 'products.view')) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, 'products.view')
+  ) {
     return [];
   }
 
   const where: Prisma.ProductWhereInput = {
+    companyId: session.activeCompanyId,
     AND: [],
   };
 
@@ -122,7 +137,11 @@ export const updateSinglePrice = authorizedAction(
   'products.edit',
   async (data: { id: string; price: number }) => {
     try {
-      await updateProductPrice(data.id, data.price);
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: 'No active company selected' };
+      }
+      await updateProductPrice(data.id, data.price, session.activeCompanyId);
       revalidatePath('/inventory/pricing');
       return { success: true };
     } catch (error) {
@@ -134,12 +153,16 @@ export const updateSinglePrice = authorizedAction(
 
 export async function getProductDiscounts(productId: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, 'products.view')) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, 'products.view')
+  ) {
     return SuperJSON.serialize([]);
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
+  const product = await prisma.product.findFirst({
+    where: { id: productId, companyId: session.activeCompanyId },
     include: {
       discounts: {
         orderBy: { priority: 'desc' },
@@ -163,6 +186,18 @@ export const createAndAssignDiscount = authorizedAction(
     priority?: number;
   }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: 'No active company selected' };
+      }
+      const product = await prisma.product.findFirst({
+        where: { id: data.productId, companyId: session.activeCompanyId },
+        select: { id: true },
+      });
+      if (!product) {
+        return { success: false, error: 'Product not found in active company' };
+      }
+
       // Create discount and connect to product
       // We check if discount with code exists first
       const existingDiscount = await prisma.discount.findUnique({
@@ -186,7 +221,7 @@ export const createAndAssignDiscount = authorizedAction(
         });
 
         await prisma.product.update({
-          where: { id: data.productId },
+          where: { id: product.id },
           data: {
             discounts: {
               connect: { id: existingDiscount.id },
@@ -213,7 +248,7 @@ export const createAndAssignDiscount = authorizedAction(
           minQuantity: data.minQuantity,
           priority: data.priority || 0,
           products: {
-            connect: { id: data.productId },
+            connect: { id: product.id },
           },
         },
       });
@@ -253,8 +288,20 @@ export const removeDiscountFromProduct = authorizedAction(
   'products.edit',
   async (data: { productId: string; discountId: string }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: 'No active company selected' };
+      }
+      const product = await prisma.product.findFirst({
+        where: { id: data.productId, companyId: session.activeCompanyId },
+        select: { id: true },
+      });
+      if (!product) {
+        return { success: false, error: 'Product not found in active company' };
+      }
+
       await prisma.product.update({
-        where: { id: data.productId },
+        where: { id: product.id },
         data: {
           discounts: {
             disconnect: { id: data.discountId },
@@ -388,7 +435,13 @@ export const deleteGlobalDiscount = authorizedAction(
 // --- Internal Helpers ---
 
 export async function previewPriceChanges(input: BatchPricingInput) {
+  const session = await getSession();
+  if (!session?.activeCompanyId || !hasPermission(session.permissions, 'products.view')) {
+    return { changes: [] };
+  }
+
   const where: Prisma.ProductWhereInput = {};
+  where.companyId = session.activeCompanyId;
 
   if (input.scope === 'CATEGORY' && input.categoryId) {
     where.categoryId = input.categoryId;
@@ -447,14 +500,15 @@ export async function previewPriceChanges(input: BatchPricingInput) {
 }
 
 async function batchUpdateProductPrices(
-  updates: { id: string; price: number }[]
+  updates: { id: string; price: number }[],
+  companyId: string,
 ) {
   // Prisma doesn't support bulk update with different values efficiently yet
   // We'll use a transaction of updates
   await prisma.$transaction(
     updates.map((u) =>
-      prisma.product.update({
-        where: { id: u.id },
+      prisma.product.updateMany({
+        where: { id: u.id, companyId },
         data: { price: u.price },
       })
     )
@@ -463,9 +517,9 @@ async function batchUpdateProductPrices(
   return updates.length;
 }
 
-async function updateProductPrice(id: string, price: number) {
-  await prisma.product.update({
-    where: { id },
+async function updateProductPrice(id: string, price: number, companyId: string) {
+  await prisma.product.updateMany({
+    where: { id, companyId },
     data: { price },
   });
 }
@@ -474,6 +528,10 @@ export const applyBatchPricing = authorizedAction(
   'products.edit',
   async (data: BatchPricingInput) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: 'No active company selected' };
+      }
       const preview = await previewPriceChanges(data);
 
       if (preview.changes.length === 0) {
@@ -485,7 +543,7 @@ export const applyBatchPricing = authorizedAction(
         price: c.newPrice,
       }));
 
-      const count = await batchUpdateProductPrices(updates);
+      const count = await batchUpdateProductPrices(updates, session.activeCompanyId);
 
       revalidatePath('/inventory/products');
 

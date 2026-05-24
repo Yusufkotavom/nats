@@ -51,6 +51,8 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
   const [items, setItems] = useState<ItemRow[]>([
     { id: crypto.randomUUID(), productId: "", quantity: 1, unitCost: 0 },
   ]);
+  const showDimensionFields =
+    data.departments.length > 0 || data.projects.length > 0;
 
   const productMap = useMemo(
     () => new Map(data.products.map((p) => [p.id, p])),
@@ -175,31 +177,35 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
             ))}
           </CustomSelect>
 
-          <div className="space-y-2">
-            <Label>Department</Label>
-            <SearchableSelect
-              value={departmentId}
-              onValueChange={(value) => setDepartmentId(value)}
-              options={data.departments.map((department) => ({
-                value: department.id,
-                label: department.name,
-              }))}
-              placeholder="Select Department"
-            />
-          </div>
+          {showDimensionFields ? (
+            <>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <SearchableSelect
+                  value={departmentId}
+                  onValueChange={(value) => setDepartmentId(value)}
+                  options={data.departments.map((department) => ({
+                    value: department.id,
+                    label: department.name,
+                  }))}
+                  placeholder="Select Department"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label>Project</Label>
-            <SearchableSelect
-              value={projectId}
-              onValueChange={(value) => setProjectId(value)}
-              options={data.projects.map((project) => ({
-                value: project.id,
-                label: project.name,
-              }))}
-              placeholder="Select Project"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label>Project</Label>
+                <SearchableSelect
+                  value={projectId}
+                  onValueChange={(value) => setProjectId(value)}
+                  options={data.projects.map((project) => ({
+                    value: project.id,
+                    label: project.name,
+                  }))}
+                  placeholder="Select Project"
+                />
+              </div>
+            </>
+          ) : null}
 
           <CustomInput
             label="Tanggal Transaksi"

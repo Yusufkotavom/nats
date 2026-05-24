@@ -5,6 +5,7 @@ import {
   createPOSServiceOrder,
   getPOSServiceOrders,
   getPOSContacts,
+  getPOSServiceNotifySettings,
   settlePOSServiceOrder,
   updatePOSServiceOrderStatus,
 } from "../actions";
@@ -30,9 +31,7 @@ import { QuickContactDialog } from "./quick-contact-dialog";
 import { buildMailtoUrl, buildWhatsAppUrl } from "./contact-communication";
 import { usePathname } from "next/navigation";
 import {
-  buildServiceOrderCreatedMessage,
   buildServicePaymentReceivedMessage,
-  buildServiceStatusUpdatedMessage,
 } from "@/lib/communication/service-whatsapp";
 import { createContactCommunicationLog } from "@/app/[locale]/communications/actions";
 
@@ -69,6 +68,19 @@ type ServiceOrder = {
   customerPhone?: string | null;
   customerEmail?: string | null;
   items: ServiceOrderItem[];
+};
+
+type ServiceNotifySettings = {
+  serviceNotifyOnCreated: boolean;
+  serviceNotifyOnReady: boolean;
+  serviceNotifyOnCostDone: boolean;
+  serviceNotifyOnPickedUp: boolean;
+  serviceTemplateCreated: string;
+  serviceTemplateReady: string;
+  serviceTemplateCostDone: string;
+  serviceTemplatePickedUp: string;
+  serviceWarrantyDuration: number;
+  serviceWarrantyUnit: "DAY" | "MONTH";
 };
 
 function formatCurrency(value: number) {
@@ -148,9 +160,32 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
       return SuperJSON.deserialize<POSContactOption[]>(raw);
     },
   });
+  const { data: notifySettings } = useQuery({
+    queryKey: ["pos-service-notify-settings"],
+    queryFn: async () => {
+      const raw = await getPOSServiceNotifySettings();
+      return SuperJSON.deserialize<ServiceNotifySettings>(raw);
+    },
+  });
 
   const refreshOrders = async () => {
     await queryClient.invalidateQueries({ queryKey: ["pos-service-orders", sessionId] });
+  };
+
+  const warrantyText = useMemo(() => {
+    const duration = notifySettings?.serviceWarrantyDuration ?? 0;
+    const unit = notifySettings?.serviceWarrantyUnit || "DAY";
+    if (duration <= 0) return "-";
+    if (unit === "MONTH") return `${duration} bulan`;
+    return `${duration} hari`;
+  }, [notifySettings?.serviceWarrantyDuration, notifySettings?.serviceWarrantyUnit]);
+
+  const renderTemplate = (template: string, vars: Record<string, string>) => {
+    let output = template;
+    Object.entries(vars).forEach(([key, value]) => {
+      output = output.replaceAll(`{{${key}}}`, value);
+    });
+    return output;
   };
 
   const sendServiceUpdate = async (
@@ -276,32 +311,32 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
         const targetDateLabel = targetDate
           ? new Date(`${targetDate}T00:00:00`).toLocaleDateString("id-ID")
           : "-";
-        const message = buildServiceOrderCreatedMessage({
-          customerName: selectedCustomer.name,
-          orderNumber: createdOrder.orderNumber,
-          itemsSummary: `${selectedProduct?.name || "Service"} x${quantity}`,
-          totalAmount: Number(createdOrder.totalAmount || 0),
-          downPaymentAmount: downPayment > 0 ? downPayment : Number(createdOrder.paidAmount || 0),
-          remainingAmount: Number(createdOrder.remainingAmount || 0),
-          targetDateLabel,
-        });
-        await sendServiceUpdate(
-          selectedCustomer.name,
-          selectedCustomer.phone,
-          selectedCustomer.email,
-          message,
-          "Info Service Masuk",
-          {
-            contactId: selectedCustomer.id,
-            eventType: "SERVICE_CREATED",
-            sourceId: createdOrder.id || createdOrder.orderNumber,
-            target: selectedCustomer.phone || undefined,
-            documentLinks: [
-              invoiceUrl ? { label: "Invoice PDF", url: invoiceUrl } : null,
-              receiptUrl ? { label: "POS Receipt", url: receiptUrl } : null,
-            ].filter(Boolean) as Array<{ label: string; url: string }>,
-          },
-        );
+        if (notifySettings?.serviceNotifyOnCreated ?? true) {
+          const fallbackMessage = [
+            `Halo ${selectedCustomer.name},`,
+            "",
+            `WO ${createdOrder.orderNumber} sudah diterima.`,
+            `Total: ${Number(createdOrder.totalAmount || 0).toLocaleString("id-ID")}`,
+            `DP: ${(downPayment > 0 ? downPayment : Number(createdOrder.paidAmount || 0)).toLocaleString("id-ID")}`,
+            `Sisa: ${Number(createdOrder.remainingAmount || 0).toLocaleString("id-ID")}`,
+            `Target selesai: ${targetDateLabel}`,
+          ].join("\n");
+          const template = notifySettings?.serviceTemplateCreated?.trim();
+          const message = template
+            ? renderTemplate(template, {
+                customer_name: selectedCustomer.name,
+                order_number: createdOrder.orderNumber,
+                status: "NEW",
+                target_date: targetDateLabel,
+                total_amount: Number(createdOrder.totalAmount || 0).toLocaleString("id-ID"),
+                down_payment: (downPayment > 0 ? downPayment : Number(createdOrder.paidAmount || 0)).toLocaleString("id-ID"),
+                remaining_amount: Number(createdOrder.remainingAmount || 0).toLocaleString("id-ID"),
+                payment_amount: (downPayment > 0 ? downPayment : Number(createdOrder.paidAmount || 0)).toLocaleString("id-ID"),
+                warranty_text: warrantyText,
+              })
+            : fallbackMessage;
+          // Quick inform is managed from /services module.
+        }
       }
 
       setProductId("");
@@ -341,29 +376,39 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
         const receiptUrl = order.salesInvoiceId
           ? `${baseUrl}/${locale}/reporting/preview?code=POS_RECEIPT&invoiceId=${order.salesInvoiceId}`
           : null;
-        const message = buildServiceStatusUpdatedMessage({
-          customerName: order.customerName,
-          orderNumber: order.orderNumber,
-          status: nextStatus,
-          readyToPickup: nextStatus === "READY" || nextStatus === "DONE",
-        });
-        await sendServiceUpdate(
-          order.customerName,
-          order.customerPhone,
-          order.customerEmail,
-          message,
-          "Update Status Service",
-          {
-            contactId: order.contactId,
-            eventType: "SERVICE_STATUS_UPDATED",
-            sourceId: order.id,
-            target: order.customerPhone || undefined,
-            documentLinks: [
-              invoiceUrl ? { label: "Invoice PDF", url: invoiceUrl } : null,
-              receiptUrl ? { label: "POS Receipt", url: receiptUrl } : null,
-            ].filter(Boolean) as Array<{ label: string; url: string }>,
-          },
-        );
+        const allowReady = nextStatus === "READY" && (notifySettings?.serviceNotifyOnReady ?? true);
+        const allowCostDone = nextStatus === "DONE" && (notifySettings?.serviceNotifyOnCostDone ?? true);
+        const allowPickedUp = nextStatus === "CLOSED" && (notifySettings?.serviceNotifyOnPickedUp ?? true);
+        if (allowReady || allowCostDone || allowPickedUp) {
+          const defaultMessage = [
+            `Halo ${order.customerName},`,
+            "",
+            `Update WO ${order.orderNumber}: status ${nextStatus}.`,
+            nextStatus === "CLOSED" && warrantyText !== "-" ? `Garansi berlaku ${warrantyText}.` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+          const template =
+            nextStatus === "READY"
+              ? notifySettings?.serviceTemplateReady?.trim()
+              : nextStatus === "DONE"
+                ? notifySettings?.serviceTemplateCostDone?.trim()
+                : notifySettings?.serviceTemplatePickedUp?.trim();
+          const message = template
+            ? renderTemplate(template, {
+                customer_name: order.customerName,
+                order_number: order.orderNumber,
+                status: nextStatus,
+                target_date: order.targetDate ? new Date(order.targetDate).toLocaleDateString("id-ID") : "-",
+                total_amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
+                down_payment: Number(order.paidAmount || 0).toLocaleString("id-ID"),
+                remaining_amount: Number(order.remainingAmount || 0).toLocaleString("id-ID"),
+                payment_amount: "0",
+                warranty_text: warrantyText,
+              })
+            : defaultMessage;
+          // Quick inform is managed from /services module.
+        }
       }
       await refreshOrders();
     } catch (error) {
@@ -407,23 +452,7 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
           paymentAmount: remaining,
           remainingAmount: 0,
         });
-        await sendServiceUpdate(
-          order.customerName,
-          order.customerPhone,
-          order.customerEmail,
-          message,
-          "Bukti Pembayaran Service",
-          {
-            contactId: order.contactId,
-            eventType: "SERVICE_PAYMENT_RECEIVED",
-            sourceId: order.id,
-            target: order.customerPhone || undefined,
-            documentLinks: [
-              invoiceUrl ? { label: "Invoice PDF", url: invoiceUrl } : null,
-              receiptUrl ? { label: "POS Receipt", url: receiptUrl } : null,
-            ].filter(Boolean) as Array<{ label: string; url: string }>,
-          },
-        );
+        // Quick inform is managed from /services module.
       }
       await refreshOrders();
     } catch (error) {
@@ -462,7 +491,7 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
   };
 
   return (
-    <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_minmax(0,1fr)]">
       <Card className="h-fit">
         <CardHeader>
           <CardTitle className="text-base">Buat Service Order</CardTitle>
@@ -512,23 +541,10 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
               <Button type="button" size="sm" variant="outline" onClick={() => setQuickContactOpen(true)}>
                 + Quick Contact
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={customerId === "walk-in"}
-                onClick={() => {
-                  const selected = contacts.find((item) => item.id === customerId);
-                  if (!selected) return;
-                  handleQuickInform(selected.name, selected.phone, selected.email);
-                }}
-              >
-                Quick Inform
-              </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>Qty</Label>
               <Input
@@ -549,7 +565,7 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>DP</Label>
               <Input
@@ -610,7 +626,7 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
             <Badge variant="secondary">{orders.length}</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="max-h-[calc(100vh-16rem)] space-y-3 overflow-y-auto">
+        <CardContent className="space-y-3 overflow-y-auto lg:max-h-[calc(100vh-16rem)]">
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">Loading queue...</div>
           ) : null}
@@ -685,19 +701,6 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
                       Pelunasan
                     </Button>
                   ) : null}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      handleQuickInform(
-                        order.customerName,
-                        order.customerPhone,
-                        order.customerEmail,
-                      )
-                    }
-                  >
-                    Quick Inform
-                  </Button>
                 </div>
               </div>
             );

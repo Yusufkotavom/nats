@@ -3,11 +3,13 @@
 import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { serializePrisma } from "@/lib/prisma";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export async function getSubscriptionData() {
     const session = await verifySession();
 
-    const companyProfile = await prisma.companyProfile.findFirst();
+    const companyContext = await getActiveCompanyContext();
+    const companyProfile = companyContext?.profile ?? null;
 
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;

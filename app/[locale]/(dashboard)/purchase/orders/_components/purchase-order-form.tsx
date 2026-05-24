@@ -356,6 +356,7 @@ export function PurchaseOrderForm({
   const displayOrderNumber = order?.orderNumber?.startsWith("DRAFT")
     ? "Draft"
     : order?.orderNumber;
+  const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   useEffect(() => {
     const checkBudget = async () => {
@@ -649,28 +650,30 @@ export function PurchaseOrderForm({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Department</label>
-                        <SearchableSelect
-                          value={formData.departmentId || ""}
-                          onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
-                          options={departments.map(d => ({ value: d.id, label: d.name }))}
-                          placeholder="Default Budget"
-                          disabled={isReadOnly}
-                        />
+                    {showDimensionFields ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Department</label>
+                          <SearchableSelect
+                            value={formData.departmentId || ""}
+                            onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
+                            options={departments.map(d => ({ value: d.id, label: d.name }))}
+                            placeholder="Default Budget"
+                            disabled={isReadOnly}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Project</label>
+                          <SearchableSelect
+                            value={formData.projectId || ""}
+                            onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
+                            options={projects.map(p => ({ value: p.id, label: p.name }))}
+                            placeholder="Default Budget"
+                            disabled={isReadOnly}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Project</label>
-                        <SearchableSelect
-                          value={formData.projectId || ""}
-                          onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
-                          options={projects.map(p => ({ value: p.id, label: p.name }))}
-                          placeholder="Default Budget"
-                          disabled={isReadOnly}
-                        />
-                      </div>
-                    </div>
+                    ) : null}
                   </div>
                   <CustomTextarea
                     value={formData.notes || ""}

@@ -35,6 +35,7 @@ enum ContactMessageTemplateKind {
 
 model Contact {
   id        String      @id @default(cuid())
+  companyId String?
   type      ContactType
   name      String
   email     String?
@@ -70,10 +71,14 @@ model Contact {
   employeeDetail   EmployeeDetail?
   communicationLogs    ContactCommunicationLog[]
   messageTemplates     ContactMessageTemplate[]
+  company              Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model ContactCommunicationLog {
   id         String                     @id @default(cuid())
+  companyId  String?
   contactId  String
   contact    Contact                    @relation(fields: [contactId], references: [id], onDelete: Cascade)
   channel    ContactCommunicationChannel @default(WHATSAPP)
@@ -93,14 +98,17 @@ model ContactCommunicationLog {
   createdById String?
   createdAt  DateTime                   @default(now())
   updatedAt  DateTime                   @updatedAt
+  company    Company?                   @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([contactId, createdAt])
   @@index([sourceType, sourceId])
   @@index([eventType, createdAt])
+  @@index([companyId, createdAt])
 }
 
 model ContactMessageTemplate {
   id         String                     @id @default(cuid())
+  companyId  String?
   contactId  String
   contact    Contact                    @relation(fields: [contactId], references: [id], onDelete: Cascade)
   kind       ContactMessageTemplateKind
@@ -108,7 +116,9 @@ model ContactMessageTemplate {
   createdById String?
   createdAt  DateTime                   @default(now())
   updatedAt  DateTime                   @updatedAt
+  company    Company?                   @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@unique([contactId, kind])
   @@index([kind, updatedAt])
+  @@index([companyId])
 }

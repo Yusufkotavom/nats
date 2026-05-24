@@ -8,10 +8,23 @@ const SESSION_NUMBER_PREFIX = "SES";
 type DbClient = typeof prisma | Prisma.TransactionClient;
 
 export class POSSessionService {
-    static async open(userId: string, openingCash: number, warehouseId: string) {
+    static async open(
+        userId: string,
+        companyId: string,
+        openingCash: number,
+        warehouseId: string,
+    ) {
+        if (!companyId) {
+            throw new Error("No active company selected");
+        }
+
         // Close any existing open sessions for this user
         await prisma.pOSSession.updateMany({
-            where: { cashierId: userId, status: "OPEN" },
+            where: {
+                cashierId: userId,
+                status: "OPEN",
+                OR: [{ companyId }, { companyId: null }],
+            },
             data: { status: "CLOSED", endTime: new Date() },
         });
 
@@ -19,6 +32,7 @@ export class POSSessionService {
 
         return await prisma.pOSSession.create({
             data: {
+                companyId,
                 sessionNumber,
                 cashierId: userId,
                 openingCash: new Decimal(openingCash),

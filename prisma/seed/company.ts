@@ -1,7 +1,7 @@
 import { prisma } from "./utils";
 
 export async function seedCompany() {
-    console.log("Seeding Company Profile...");
+    console.log("Seeding Company...");
 
     const companyProfile = {
         name: "NATS Accounting",
@@ -15,14 +15,22 @@ export async function seedCompany() {
         timezone: "UTC",
     };
 
-    const existingProfile = await prisma.companyProfile.findFirst();
-    if (!existingProfile) {
-        await prisma.companyProfile.create({
-            data: companyProfile,
-        });
-    } else {
-        // Optional: Update existing profile if needed, or leave as is.
-        // For now, we leave it be to preserve user changes if any.
-        console.log("Company profile already exists.");
-    }
+    const company = await prisma.company.upsert({
+        where: { code: "nats-accounting" },
+        update: { name: companyProfile.name },
+        create: {
+            code: "nats-accounting",
+            name: companyProfile.name,
+            status: "ACTIVE",
+        },
+    });
+
+    await prisma.companyProfile.upsert({
+        where: { companyId: company.id },
+        update: companyProfile,
+        create: {
+            companyId: company.id,
+            ...companyProfile,
+        },
+    });
 }

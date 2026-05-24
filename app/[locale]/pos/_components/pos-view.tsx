@@ -77,7 +77,6 @@ import {
 import { FloorTab } from "./floor-tab";
 import { KitchenTab } from "./kitchen-tab";
 import { BillingTab } from "./billing-tab";
-import { ServiceWorkflowPanel } from "./service-workflow-panel";
 
 type POSTabValue = "floor" | "cashier" | "kitchen" | "billing";
 
@@ -129,9 +128,6 @@ export function POSView({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [cashierMode, setCashierMode] = useState<"product" | "service">(
-    "product",
-  );
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedDiningSpotId, setSelectedDiningSpotId] = useState<string>("");
   const { toast } = useToast();
@@ -708,28 +704,6 @@ export function POSView({
           className="flex-1 overflow-hidden m-0 data-[state=inactive]:hidden"
         >
           <div className="flex h-full overflow-hidden relative">
-            <div className="absolute left-2 top-2 z-20 flex gap-2 rounded-md border bg-background/90 p-1 shadow-sm">
-              <Button
-                size="sm"
-                variant={cashierMode === "product" ? "default" : "outline"}
-                onClick={() => setCashierMode("product")}
-              >
-                Produk
-              </Button>
-              <Button
-                size="sm"
-                variant={cashierMode === "service" ? "default" : "outline"}
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory(null);
-                  setCashierMode("service");
-                }}
-              >
-                Service
-              </Button>
-            </div>
-
-            {cashierMode === "product" ? (
               <>
                 {/* Left: Product Grid */}
                 <div className="flex-1 overflow-y-auto bg-muted/20 p-2 md:p-4 pb-20 lg:pb-4">
@@ -855,11 +829,6 @@ export function POSView({
                   </Sheet>
                 </div>
               </>
-            ) : (
-              <div className="flex-1 overflow-y-auto bg-muted/20 p-2 md:p-4 pt-14">
-                <ServiceWorkflowPanel sessionId={session.id} products={products} />
-              </div>
-            )}
           </div>
         </TabsContent>
 

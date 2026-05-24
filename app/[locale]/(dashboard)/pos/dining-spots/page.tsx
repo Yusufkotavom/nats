@@ -4,13 +4,12 @@ import { getTranslations } from "next-intl/server";
 import { PageListContent, PageListHeader, PageListLayout, PageListTitle } from "@/components/layout/page/list-layout";
 import { getDiningSpotAdminData } from "./actions";
 import { DiningSpotManager } from "./_components/dining-spot-manager";
-import { prisma } from "@/lib/prisma";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export default async function DiningSpotsPage() {
   const t = await getTranslations("POS");
-  const profile = await prisma.companyProfile.findFirst({
-    select: { posEnableRestaurantFeatures: true },
-  });
+  const companyContext = await getActiveCompanyContext();
+  const profile = companyContext?.profile ?? null;
   const restaurantEnabled = profile?.posEnableRestaurantFeatures !== false;
 
   if (!restaurantEnabled) {

@@ -17,7 +17,7 @@ export function ServiceOrderForm({
   contacts,
 }: {
   sessionId: string;
-  products: Array<{ id: string; name: string; price: number }>;
+  products: Array<{ id: string; name: string; price: number; isService?: boolean }>;
   contacts: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();

@@ -3,9 +3,14 @@ import { enqueueIntegrationEventOnce } from "@/modules/integration/outbox";
 import { ProductInput } from "@/app/[locale]/(dashboard)/inventory/types";
 
 export class ProductService {
-    static async createProduct(tx: Prisma.TransactionClient, data: ProductInput) {
+    static async createProduct(
+        tx: Prisma.TransactionClient,
+        data: ProductInput,
+        companyId: string,
+    ) {
         const product = await tx.product.create({
             data: {
+                companyId,
                 name: data.name,
                 sku: data.sku,
                 description: data.description,
@@ -51,13 +56,18 @@ export class ProductService {
         return product;
     }
 
-    static async updateProduct(tx: Prisma.TransactionClient, id: string, data: ProductInput) {
+    static async updateProduct(
+        tx: Prisma.TransactionClient,
+        id: string,
+        data: ProductInput,
+        companyId: string,
+    ) {
         const currentProduct = await tx.product.findUnique({
             where: { id },
-            select: { price: true },
+            select: { price: true, companyId: true },
         });
 
-        if (!currentProduct) {
+        if (!currentProduct || currentProduct.companyId !== companyId) {
             throw new Error("Product not found");
         }
 
@@ -99,7 +109,19 @@ export class ProductService {
         return updated;
     }
 
-    static async deleteProduct(tx: Prisma.TransactionClient, id: string) {
+    static async deleteProduct(
+        tx: Prisma.TransactionClient,
+        id: string,
+        companyId: string,
+    ) {
+        const product = await tx.product.findUnique({
+            where: { id },
+            select: { id: true, companyId: true },
+        });
+        if (!product || product.companyId !== companyId) {
+            throw new Error("Product not found");
+        }
+
         await tx.product.delete({
             where: { id },
         });

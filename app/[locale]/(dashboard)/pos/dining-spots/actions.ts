@@ -7,11 +7,11 @@ import { revalidatePath } from "next/cache";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
 import { prisma } from "@/lib/prisma";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 async function assertRestaurantFeaturesEnabled() {
-  const profile = await prisma.companyProfile.findFirst({
-    select: { posEnableRestaurantFeatures: true },
-  });
+  const companyContext = await getActiveCompanyContext();
+  const profile = companyContext?.profile ?? null;
   if (profile?.posEnableRestaurantFeatures === false) {
     throw new Error("Restaurant features are disabled in POS settings");
   }

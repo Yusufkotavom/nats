@@ -17,6 +17,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Trash2 } from "lucide-react";
+
+type ServiceLine = {
+  id: string;
+  productId: string;
+  quantity: number;
+  price: number;
+  notes: string;
+};
 
 export function ServiceOrderCreateForm({
   sessionId,
@@ -26,7 +43,7 @@ export function ServiceOrderCreateForm({
   onSuccess,
 }: {
   sessionId: string;
-  products: Array<{ id: string; name: string; price: number }>;
+  products: Array<{ id: string; name: string; price: number; isService?: boolean }>;
   contacts: Array<{ id: string; name: string }>;
   compact?: boolean;
   onSuccess?: () => void;
@@ -35,27 +52,59 @@ export function ServiceOrderCreateForm({
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [customerId, setCustomerId] = useState("walk-in");
-  const [productId, setProductId] = useState("");
-  const [quantity, setQuantity] = useState(1);
-  const [price, setPrice] = useState(0);
   const [downPayment, setDownPayment] = useState(0);
   const [targetDate, setTargetDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [lines, setLines] = useState<ServiceLine[]>([
+    { id: crypto.randomUUID(), productId: "", quantity: 1, price: 0, notes: "" },
+  ]);
 
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
 
-  const selectedProduct = useMemo(
-    () => products.find((product) => product.id === productId),
-    [products, productId],
+  const grandTotal = useMemo(
+    () => lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.price || 0), 0),
+    [lines],
   );
 
+  const handleAddItem = () => {
+    setLines((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), productId: "", quantity: 1, price: 0, notes: "" },
+    ]);
+  };
+
+  const handleRemoveItem = (lineId: string) => {
+    setLines((prev) => prev.filter((line) => line.id !== lineId));
+  };
+
+  const handleLineChange = (lineId: string, patch: Partial<ServiceLine>) => {
+    setLines((prev) =>
+      prev.map((line) => {
+        if (line.id !== lineId) return line;
+        const next = { ...line, ...patch };
+        if (patch.productId !== undefined) {
+          const selected = products.find((product) => product.id === patch.productId);
+          if (selected) next.price = selected.price;
+        }
+        return next;
+      }),
+    );
+  };
+
   const handleCreate = async () => {
-    if (!productId || quantity <= 0) {
-      toast({ title: "Produk service dan qty wajib diisi", variant: "destructive" });
+    if (lines.length === 0) {
+      toast({ title: "Minimal 1 item wajib diisi", variant: "destructive" });
       return;
+    }
+
+    for (const line of lines) {
+      if (!line.productId || line.quantity <= 0) {
+        toast({ title: "Produk dan qty tiap baris wajib diisi", variant: "destructive" });
+        return;
+      }
     }
 
     setSaving(true);
@@ -67,7 +116,12 @@ export function ServiceOrderCreateForm({
         targetDate: targetDate ? new Date(`${targetDate}T00:00:00`) : undefined,
         downPaymentAmount: downPayment > 0 ? downPayment : undefined,
         paymentMethod: downPayment > 0 ? "CASH" : undefined,
-        items: [{ productId, quantity, price: price > 0 ? price : selectedProduct?.price }],
+        items: lines.map((line) => ({
+          productId: line.productId,
+          quantity: line.quantity,
+          price: line.price,
+          notes: line.notes.trim() || undefined,
+        })),
       });
 
       toast({ title: "Service order berhasil dibuat" });
@@ -155,38 +209,92 @@ export function ServiceOrderCreateForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label>Produk Service</Label>
-          <Select
-            value={productId}
-            onValueChange={(value) => {
-              setProductId(value);
-              const product = products.find((item) => item.id === value);
-              if (product) setPrice(product.price);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih produk" />
-            </SelectTrigger>
-            <SelectContent>
-              {products.map((product) => (
-                <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="grid gap-2">
+        <div className="flex items-center justify-between">
+          <Label>Ordered Items</Label>
+          <Button type="button" variant="outline" onClick={handleAddItem}>Tambah Item</Button>
         </div>
-        <div className="grid gap-2">
-          <Label>Qty</Label>
-          <Input type="number" min={1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value) || 1)} />
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Product</TableHead>
+              <TableHead className="w-[110px] text-right">Quantity</TableHead>
+              <TableHead className="w-[160px] text-right">Price</TableHead>
+              <TableHead className="w-[170px] text-right">Total</TableHead>
+              <TableHead className="w-[56px]" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lines.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-muted-foreground">No items added.</TableCell>
+              </TableRow>
+            ) : (
+              lines.map((line) => {
+                const rowTotal = (line.quantity || 0) * (line.price || 0);
+                const selected = products.find((p) => p.id === line.productId);
+                return (
+                  <TableRow key={line.id}>
+                    <TableCell>
+                      <Select
+                        value={line.productId}
+                        onValueChange={(value) => handleLineChange(line.id, { productId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih produk/service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name}{product.isService ? " (Service)" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        className="mt-2"
+                        placeholder="Catatan item (opsional)"
+                        value={line.notes}
+                        onChange={(event) => handleLineChange(line.id, { notes: event.target.value })}
+                      />
+                      {selected?.isService ? null : (
+                        <p className="mt-1 text-xs text-muted-foreground">Item tambahan non-service</p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={1}
+                        className="text-right"
+                        value={line.quantity}
+                        onChange={(event) => handleLineChange(line.id, { quantity: Number(event.target.value) || 1 })}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="text-right"
+                        value={line.price}
+                        onChange={(event) => handleLineChange(line.id, { price: Number(event.target.value) || 0 })}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{rowTotal.toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(line.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+        <div className="text-right text-sm font-semibold">Grand Total: {grandTotal.toLocaleString()}</div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="grid gap-2">
-          <Label>Harga</Label>
-          <Input type="number" min={0} value={price} onChange={(event) => setPrice(Number(event.target.value) || 0)} />
-        </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label>Down Payment</Label>
           <Input type="number" min={0} value={downPayment} onChange={(event) => setDownPayment(Number(event.target.value) || 0)} />

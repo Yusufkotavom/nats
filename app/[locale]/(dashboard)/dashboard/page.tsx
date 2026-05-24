@@ -5,13 +5,14 @@ import {
   QueryClient,
   dehydrate,
 } from "@tanstack/react-query";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getMainDashboardStats } from "./actions";
 import { DashboardView } from "./_components/dashboard-view";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export default async function Page() {
-  const companyProfile = await prisma.companyProfile.findFirst();
+  const companyContext = await getActiveCompanyContext();
+  const companyProfile = companyContext?.profile;
 
   if (!companyProfile) {
     redirect("/setup");

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 import { updatePOSSettings, type POSProductVisibilityMode } from "../actions";
@@ -16,6 +17,16 @@ type POSSettings = {
   id: string | null;
   posProductVisibilityMode: POSProductVisibilityMode;
   posEnableRestaurantFeatures: boolean;
+  serviceNotifyOnCreated: boolean;
+  serviceNotifyOnReady: boolean;
+  serviceNotifyOnCostDone: boolean;
+  serviceNotifyOnPickedUp: boolean;
+  serviceTemplateCreated: string;
+  serviceTemplateReady: string;
+  serviceTemplateCostDone: string;
+  serviceTemplatePickedUp: string;
+  serviceWarrantyDuration: number;
+  serviceWarrantyUnit: "DAY" | "MONTH";
   feeSettings: {
     id?: string;
     name: string;
@@ -39,12 +50,52 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
     initialData.posEnableRestaurantFeatures ?? true,
   );
   const [feeSettings, setFeeSettings] = useState(initialData.feeSettings || []);
+  const [serviceNotifyOnCreated, setServiceNotifyOnCreated] = useState(
+    initialData.serviceNotifyOnCreated ?? true,
+  );
+  const [serviceNotifyOnReady, setServiceNotifyOnReady] = useState(
+    initialData.serviceNotifyOnReady ?? true,
+  );
+  const [serviceNotifyOnCostDone, setServiceNotifyOnCostDone] = useState(
+    initialData.serviceNotifyOnCostDone ?? true,
+  );
+  const [serviceNotifyOnPickedUp, setServiceNotifyOnPickedUp] = useState(
+    initialData.serviceNotifyOnPickedUp ?? true,
+  );
+  const [serviceTemplateCreated, setServiceTemplateCreated] = useState(
+    initialData.serviceTemplateCreated || "",
+  );
+  const [serviceTemplateReady, setServiceTemplateReady] = useState(
+    initialData.serviceTemplateReady || "",
+  );
+  const [serviceTemplateCostDone, setServiceTemplateCostDone] = useState(
+    initialData.serviceTemplateCostDone || "",
+  );
+  const [serviceTemplatePickedUp, setServiceTemplatePickedUp] = useState(
+    initialData.serviceTemplatePickedUp || "",
+  );
+  const [serviceWarrantyDuration, setServiceWarrantyDuration] = useState(
+    initialData.serviceWarrantyDuration ?? 0,
+  );
+  const [serviceWarrantyUnit, setServiceWarrantyUnit] = useState<"DAY" | "MONTH">(
+    initialData.serviceWarrantyUnit || "DAY",
+  );
 
   const handleSave = () => {
     startTransition(async () => {
       const result = await updatePOSSettings({
         posProductVisibilityMode: mode,
         posEnableRestaurantFeatures: restaurantEnabled,
+        serviceNotifyOnCreated,
+        serviceNotifyOnReady,
+        serviceNotifyOnCostDone,
+        serviceNotifyOnPickedUp,
+        serviceTemplateCreated,
+        serviceTemplateReady,
+        serviceTemplateCostDone,
+        serviceTemplatePickedUp,
+        serviceWarrantyDuration,
+        serviceWarrantyUnit,
         feeSettings: feeSettings.map((item, index) => ({ ...item, sortOrder: index })),
       });
       if (result.success) {
@@ -117,6 +168,90 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
               onCheckedChange={setRestaurantEnabled}
             />
           </div>
+        </div>
+
+        <div className="space-y-3 rounded-md border p-3">
+          <div className="space-y-2">
+            <Label>{t("service_notify_settings")}</Label>
+            <p className="text-xs text-muted-foreground">
+              {t("service_notify_settings_desc")}
+            </p>
+          </div>
+
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label>{t("service_notify_on_created")}</Label>
+              <Switch checked={serviceNotifyOnCreated} onCheckedChange={setServiceNotifyOnCreated} />
+            </div>
+            <Textarea
+              value={serviceTemplateCreated}
+              onChange={(event) => setServiceTemplateCreated(event.target.value)}
+              placeholder="{{customer_name}}, WO {{order_number}} sudah diterima. Total {{total_amount}}."
+            />
+          </div>
+
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label>{t("service_notify_on_ready")}</Label>
+              <Switch checked={serviceNotifyOnReady} onCheckedChange={setServiceNotifyOnReady} />
+            </div>
+            <Textarea
+              value={serviceTemplateReady}
+              onChange={(event) => setServiceTemplateReady(event.target.value)}
+              placeholder="{{customer_name}}, WO {{order_number}} sudah READY dan bisa diambil."
+            />
+          </div>
+
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label>{t("service_notify_on_cost_done")}</Label>
+              <Switch checked={serviceNotifyOnCostDone} onCheckedChange={setServiceNotifyOnCostDone} />
+            </div>
+            <Textarea
+              value={serviceTemplateCostDone}
+              onChange={(event) => setServiceTemplateCostDone(event.target.value)}
+              placeholder="{{customer_name}}, biaya final WO {{order_number}}: {{total_amount}}."
+            />
+          </div>
+
+          <div className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label>{t("service_notify_on_picked_up")}</Label>
+              <Switch checked={serviceNotifyOnPickedUp} onCheckedChange={setServiceNotifyOnPickedUp} />
+            </div>
+            <Textarea
+              value={serviceTemplatePickedUp}
+              onChange={(event) => setServiceTemplatePickedUp(event.target.value)}
+              placeholder="{{customer_name}}, WO {{order_number}} sudah diambil. Garansi: {{warranty_text}}."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{t("service_warranty_duration")}</Label>
+              <Input
+                type="number"
+                min={0}
+                value={serviceWarrantyDuration}
+                onChange={(event) => setServiceWarrantyDuration(Number(event.target.value || 0))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("service_warranty_unit")}</Label>
+              <Select value={serviceWarrantyUnit} onValueChange={(v) => setServiceWarrantyUnit(v as "DAY" | "MONTH")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DAY">{t("service_warranty_unit_day")}</SelectItem>
+                  <SelectItem value="MONTH">{t("service_warranty_unit_month")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t("service_template_variables_hint")}
+          </p>
         </div>
 
         <div className="space-y-3 rounded-md border p-3">

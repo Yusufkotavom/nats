@@ -13,11 +13,16 @@ import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getCategories() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "products.view")
+  ) {
     return [];
   }
 
   return await prisma.category.findMany({
+    where: { companyId: session.activeCompanyId },
     orderBy: { name: "asc" },
   });
 }
@@ -29,8 +34,16 @@ export const createCategory = authorizedAction(
     description?: string;
   }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       const category = await prisma.category.create({
-        data,
+        data: {
+          ...data,
+          companyId: session.activeCompanyId,
+        },
       });
       revalidatePath("/inventory/products");
       return { success: true, data: category };
@@ -50,7 +63,11 @@ export async function getProducts(
   categoryId?: string,
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "products.view")
+  ) {
     return {
       products: [],
       total: 0,
@@ -60,6 +77,7 @@ export async function getProducts(
 
   const skip = (page - 1) * limit;
   const where: Prisma.ProductWhereInput = {
+    companyId: session.activeCompanyId,
     AND: [],
   };
 
@@ -106,12 +124,19 @@ export async function getProducts(
 
 export async function getProduct(id: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "products.view")
+  ) {
     return null;
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id },
+  const product = await prisma.product.findFirst({
+    where: {
+      id,
+      companyId: session.activeCompanyId,
+    },
     include: {
       category: true,
       baseUnit: true,
@@ -130,13 +155,18 @@ export async function getProduct(id: string) {
 
 export async function getProductsByIds(ids: string[]) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "products.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "products.view")
+  ) {
     return [];
   }
 
   const products = await prisma.product.findMany({
     where: {
       id: { in: ids },
+      companyId: session.activeCompanyId,
     },
     include: {
       category: true,
@@ -164,8 +194,13 @@ export const createProduct = authorizedAction(
   "products.create",
   async (data: ProductInput) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       const product = await prisma.$transaction(async (tx) => {
-        return await ProductService.createProduct(tx, data);
+        return await ProductService.createProduct(tx, data, session.activeCompanyId!);
       });
 
       revalidatePath("/inventory/products");
@@ -184,8 +219,13 @@ export const updateProduct = authorizedAction(
   "products.edit",
   async (id: string, data: ProductInput) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       const product = await prisma.$transaction(async (tx) => {
-        return await ProductService.updateProduct(tx, id, data);
+        return await ProductService.updateProduct(tx, id, data, session.activeCompanyId!);
       });
 
       revalidatePath("/inventory/products");
@@ -204,8 +244,13 @@ export const deleteProduct = authorizedAction(
   "products.delete",
   async (id: string) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
       await prisma.$transaction(async (tx) => {
-        await ProductService.deleteProduct(tx, id);
+        await ProductService.deleteProduct(tx, id, session.activeCompanyId!);
       });
       revalidatePath("/inventory/products");
       return { success: true };

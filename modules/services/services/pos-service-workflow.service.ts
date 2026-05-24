@@ -114,17 +114,19 @@ export class POSServiceWorkflowService {
       });
       const productMap = new Map(products.map((p) => [p.id, p]));
 
+      let hasServiceItem = false;
       for (const item of input.items) {
         const product = productMap.get(item.productId);
         if (!product) {
           throw new Error(`Product not found: ${item.productId}`);
         }
-        if (!product.isService) {
-          throw new Error(`Product ${product.name} is not a service item`);
-        }
+        if (product.isService) hasServiceItem = true;
         if (item.quantity <= 0) {
           throw new Error("Quantity must be greater than zero");
         }
+      }
+      if (!hasServiceItem) {
+        throw new Error("Service order must contain at least one service item");
       }
 
       const nowKey = uniqueSuffix();

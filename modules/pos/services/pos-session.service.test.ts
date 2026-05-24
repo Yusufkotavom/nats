@@ -43,6 +43,32 @@ describe("POSSessionService", () => {
     journalMock.createJournalEntry.mockResolvedValue({ id: "je-1" });
   });
 
+  it("opens session with active company scope and closes legacy null-company session", async () => {
+    prismaMock.pOSSession.create.mockResolvedValue({ id: "sess-opened" });
+
+    await POSSessionService.open("user-cashier", "company-1", 100000, "wh-1");
+
+    expect(prismaMock.pOSSession.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          cashierId: "user-cashier",
+          status: "OPEN",
+          OR: [{ companyId: "company-1" }, { companyId: null }],
+        },
+      }),
+    );
+    expect(prismaMock.pOSSession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          companyId: "company-1",
+          cashierId: "user-cashier",
+          warehouseId: "wh-1",
+          status: "OPEN",
+        }),
+      }),
+    );
+  });
+
   it("returns cash summary from opening cash and cash payments", async () => {
     prismaMock.pOSSession.findUnique.mockResolvedValue({
       id: "sess-1",

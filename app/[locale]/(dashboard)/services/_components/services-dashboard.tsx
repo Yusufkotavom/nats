@@ -5,13 +5,14 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createServiceAfterSalesCase,
+  getServiceOrderForEdit,
   getServiceAfterSales,
   getServiceInvoices,
+  getServiceNotifySettings,
   getServiceOrders,
   getServicePayments,
   settleServiceOrder,
-  updateServiceOrderPricing,
-  updateServiceOrderStatus,
+  updateServiceOrder,
 } from "../actions";
 import type {
   ServiceAfterSalesCaseListItem,
@@ -51,7 +52,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Phone, Printer, Trash2, MessageCircle } from "lucide-react";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -59,6 +60,7 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { getOpenPOSSession, getPOSContacts, getPOSServiceProducts } from "../../../pos/actions";
 import { SuperJSON } from "@/lib/superjson";
 import { ServiceOrderCreateForm } from "../orders/_components/service-order-create-form";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type DashboardTab = "orders" | "invoices" | "payments" | "returns_warranty";
 
@@ -109,6 +111,16 @@ function nextStatusOptions(status: ServiceOrderStatus): ServiceOrderStatus[] {
   return map[status];
 }
 
+function normalizePhoneForWhatsApp(phone?: string | null): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("62")) return digits;
+  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
+  if (digits.startsWith("8")) return `62${digits}`;
+  return digits;
+}
+
 export function ServicesDashboard({
   initialTab = "orders",
   lockTab = false,
@@ -136,11 +148,18 @@ export function ServicesDashboard({
   const [previewCode, setPreviewCode] = useState("SERVICE_INVOICE");
   const [previewInput, setPreviewInput] = useState<Record<string, string>>({});
   const [previewTitle, setPreviewTitle] = useState("Print");
-  const [editPriceOpen, setEditPriceOpen] = useState(false);
-  const [editPriceOrderId, setEditPriceOrderId] = useState("");
-  const [editPriceValue, setEditPriceValue] = useState("");
-  const [editQtyValue, setEditQtyValue] = useState("");
+  const [editOrderOpen, setEditOrderOpen] = useState(false);
+  const [editOrderId, setEditOrderId] = useState("");
+  const [editItems, setEditItems] = useState<Array<{
+    id: string;
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    notes: string;
+  }>>([]);
   const [editNotesValue, setEditNotesValue] = useState("");
+  const [editStatusValue, setEditStatusValue] = useState<ServiceOrderStatus>("NEW");
+  const [editStatusOptions, setEditStatusOptions] = useState<ServiceOrderStatus[]>(["NEW"]);
 
   const { toast } = useToast();
   const t = useTranslations("Services");
@@ -185,9 +204,23 @@ export function ServicesDashboard({
       ]);
       return {
         session: sessionRaw ? SuperJSON.deserialize<{ id: string }>(sessionRaw) : null,
-        products: SuperJSON.deserialize<Array<{ id: string; name: string; price: number }>>(productsRaw),
+        products: SuperJSON.deserialize<Array<{ id: string; name: string; price: number; isService?: boolean }>>(productsRaw),
         contacts: SuperJSON.deserialize<Array<{ id: string; name: string }>>(contactsRaw),
       };
+    },
+  });
+  const notifySettingsQuery = useQuery({
+    queryKey: ["services-notify-settings"],
+    queryFn: async () => {
+      const raw = await getServiceNotifySettings();
+      return SuperJSON.deserialize<{
+        serviceTemplateCreated: string;
+        serviceTemplateReady: string;
+        serviceTemplateCostDone: string;
+        serviceTemplatePickedUp: string;
+        serviceWarrantyDuration: number;
+        serviceWarrantyUnit: "DAY" | "MONTH";
+      }>(raw);
     },
   });
 
@@ -226,17 +259,63 @@ export function ServicesDashboard({
     setPreviewOpen(true);
   };
 
-  const onTransition = async (orderId: string, nextStatus: ServiceOrderStatus) => {
-    setPendingActionId(orderId);
-    try {
-      await updateServiceOrderStatus(orderId, nextStatus);
-      await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
-      toast({ title: "Status service order berhasil diperbarui" });
-    } catch (error) {
-      toast({ title: "Gagal update status", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
-    } finally {
-      setPendingActionId(null);
+  const openWhatsApp = (order: ServiceOrderListItem) => {
+    const normalized = normalizePhoneForWhatsApp(order.customerPhone);
+    if (!normalized) {
+      toast({ title: "Nomor telepon customer tidak tersedia", variant: "destructive" });
+      return;
     }
+    const settings = notifySettingsQuery.data;
+    const warrantyText =
+      settings && settings.serviceWarrantyDuration > 0
+        ? `${settings.serviceWarrantyDuration} ${settings.serviceWarrantyUnit === "MONTH" ? "bulan" : "hari"}`
+        : "-";
+    const locale = window.location.pathname.split("/").filter(Boolean)[0] || "id";
+    const origin = window.location.origin;
+    const invoiceUrl = order.salesInvoiceId
+      ? `${origin}/${locale}/reporting/preview?code=SERVICE_INVOICE&invoiceId=${order.salesInvoiceId}`
+      : "-";
+    const invoiceNumber = order.invoiceNumber || "-";
+    const noInvoice = order.salesInvoiceId ? "" : "Belum ada invoice";
+
+    const templateByStatus =
+      order.status === "NEW"
+        ? settings?.serviceTemplateCreated
+        : order.status === "READY"
+          ? settings?.serviceTemplateReady
+          : order.status === "DONE"
+            ? settings?.serviceTemplateCostDone
+            : settings?.serviceTemplatePickedUp;
+
+    let messageText =
+      templateByStatus?.trim() ||
+      `Halo {{customer_name}}, update service order {{order_number}} status {{status}}.`;
+    const replacements: Record<string, string> = {
+      customer_name: order.customerName,
+      order_number: order.orderNumber,
+      status: order.status,
+      invoice_number: invoiceNumber,
+      invoice_url: invoiceUrl,
+      no_invoice: noInvoice || "-",
+      warranty_text: warrantyText,
+      total_amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
+      remaining_amount: Number(order.remainingAmount || 0).toLocaleString("id-ID"),
+      target_date: order.targetDate ? formatDate(order.targetDate) : "-",
+    };
+    Object.entries(replacements).forEach(([key, value]) => {
+      messageText = messageText.replaceAll(`{{${key}}}`, value);
+    });
+    const message = encodeURIComponent(messageText);
+    window.open(`https://wa.me/${normalized}?text=${message}`, "_blank", "noopener,noreferrer");
+  };
+
+  const openCall = (order: ServiceOrderListItem) => {
+    const normalized = normalizePhoneForWhatsApp(order.customerPhone);
+    if (!normalized) {
+      toast({ title: "Nomor telepon customer tidak tersedia", variant: "destructive" });
+      return;
+    }
+    window.open(`tel:+${normalized}`, "_self");
   };
 
   const onSettle = async (order: ServiceOrderListItem) => {
@@ -254,34 +333,88 @@ export function ServicesDashboard({
     }
   };
 
-  const openEditPrice = (order: ServiceOrderListItem) => {
-    setEditPriceOrderId(order.id);
-    setEditPriceValue(String(Number(order.totalAmount) / Math.max(order.quantity, 1)));
-    setEditQtyValue(String(order.quantity || 1));
-    setEditNotesValue("");
-    setEditPriceOpen(true);
+  const openEditOrder = async (order: ServiceOrderListItem) => {
+    setEditOrderId(order.id);
+    setPendingActionId(order.id);
+    try {
+      const raw = await getServiceOrderForEdit(order.id);
+      const detail = SuperJSON.deserialize<{
+        id: string;
+        status: ServiceOrderStatus;
+        notes: string;
+        items: Array<{
+          id: string;
+          productId: string;
+          quantity: number;
+          unitPrice: number;
+          notes: string;
+        }>;
+      }>(raw);
+      setEditItems(detail.items);
+      setEditNotesValue(detail.notes || "");
+      setEditStatusValue(detail.status);
+      setEditStatusOptions([detail.status, ...nextStatusOptions(detail.status)]);
+      setEditOrderOpen(true);
+    } catch (error) {
+      toast({ title: "Gagal load detail order", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setPendingActionId(null);
+    }
   };
 
-  const onUpdatePrice = async () => {
-    if (!editPriceOrderId) return;
-    setPendingActionId(editPriceOrderId);
+  const onSaveOrderEdit = async () => {
+    if (!editOrderId) return;
+    setPendingActionId(editOrderId);
     try {
-      await updateServiceOrderPricing({
-        orderId: editPriceOrderId,
-        unitPrice: Number(editPriceValue) || 0,
-        quantity: Number(editQtyValue) || 1,
+      await updateServiceOrder({
+        orderId: editOrderId,
+        status: editStatusValue,
         notes: editNotesValue.trim() || undefined,
+        items: editItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          notes: item.notes.trim() || undefined,
+        })),
       });
       await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
-      toast({ title: "Harga service berhasil diperbarui" });
-      setEditPriceOpen(false);
+      toast({ title: "Service order berhasil diperbarui" });
+      setEditOrderOpen(false);
     } catch (error) {
-      toast({ title: "Gagal update harga", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
+      toast({ title: "Gagal update service order", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
     } finally {
       setPendingActionId(null);
     }
+  };
+
+  const addEditItem = () => {
+    setEditItems((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), productId: "", quantity: 1, unitPrice: 0, notes: "" },
+    ]);
+  };
+
+  const removeEditItem = (id: string) => {
+    setEditItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const changeEditItem = (
+    id: string,
+    patch: Partial<{ productId: string; quantity: number; unitPrice: number; notes: string }>,
+  ) => {
+    setEditItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const next = { ...item, ...patch };
+        if (patch.productId !== undefined) {
+          const selected = createMetaQuery.data?.products.find((product) => product.id === patch.productId);
+          if (selected) next.unitPrice = selected.price;
+        }
+        return next;
+      }),
+    );
   };
 
   const handleCreateAfterSalesCase = async () => {
@@ -325,24 +458,29 @@ export function ServicesDashboard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            {nextStatusOptions(item.status).map((nextStatus) => (
-              <DropdownMenuItem key={nextStatus} onClick={() => onTransition(item.id, nextStatus)}>
-                Set {nextStatus}
-              </DropdownMenuItem>
-            ))}
+            <DropdownMenuItem onClick={() => openEditOrder(item)}>Edit</DropdownMenuItem>
             {Number(item.remainingAmount) > 0 ? <DropdownMenuItem onClick={() => onSettle(item)}>Settle Payment</DropdownMenuItem> : null}
             <DropdownMenuSeparator />
             {item.salesOrderId ? (
               <DropdownMenuItem onClick={() => openPrint("SERVICE_WORK_ORDER", { orderId: item.salesOrderId as string }, `Print ${item.orderNumber}`)}>
+                <Printer className="mr-2 h-4 w-4" />
                 Print Order
               </DropdownMenuItem>
             ) : null}
             {item.salesInvoiceId ? (
               <DropdownMenuItem onClick={() => openPrint("SERVICE_INVOICE", { invoiceId: item.salesInvoiceId as string }, `Print ${item.invoiceNumber || item.orderNumber}`)}>
+                <Printer className="mr-2 h-4 w-4" />
                 Print Invoice
               </DropdownMenuItem>
             ) : null}
-            <DropdownMenuItem onClick={() => openEditPrice(item)}>Update Harga</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openWhatsApp(item)}>
+              <MessageCircle className="mr-2 h-4 w-4" />
+              WhatsApp
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openCall(item)}>
+              <Phone className="mr-2 h-4 w-4" />
+              Call
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -568,27 +706,89 @@ export function ServicesDashboard({
         input={previewInput}
         title={previewTitle}
       />
-      <Dialog open={editPriceOpen} onOpenChange={setEditPriceOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={editOrderOpen} onOpenChange={setEditOrderOpen}>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Update Harga Service</DialogTitle>
+            <DialogTitle>Edit Service Order</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-2">
-              <Label>Harga Baru</Label>
-              <Input type="number" min={0} value={editPriceValue} onChange={(event) => setEditPriceValue(event.target.value)} />
+              <Label>Status</Label>
+              <Select value={editStatusValue} onValueChange={(value) => setEditStatusValue(value as ServiceOrderStatus)}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  {editStatusOptions.map((statusOption) => (
+                    <SelectItem key={statusOption} value={statusOption}>
+                      {statusOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Qty</Label>
-              <Input type="number" min={1} value={editQtyValue} onChange={(event) => setEditQtyValue(event.target.value)} />
+              <div className="flex items-center justify-between">
+                <Label>Ordered Items</Label>
+                <Button type="button" variant="outline" onClick={addEditItem}>Tambah Item</Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead className="w-[110px]">Quantity</TableHead>
+                    <TableHead className="w-[160px]">Price</TableHead>
+                    <TableHead className="w-[56px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {editItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-muted-foreground">No items added.</TableCell>
+                    </TableRow>
+                  ) : (
+                    editItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <Select value={item.productId} onValueChange={(value) => changeEditItem(item.id, { productId: value })}>
+                            <SelectTrigger><SelectValue placeholder="Pilih produk/service" /></SelectTrigger>
+                            <SelectContent>
+                              {(createMetaQuery.data?.products || []).map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name}{product.isService ? " (Service)" : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            className="mt-2"
+                            placeholder="Catatan item"
+                            value={item.notes}
+                            onChange={(event) => changeEditItem(item.id, { notes: event.target.value })}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" min={1} value={item.quantity} onChange={(event) => changeEditItem(item.id, { quantity: Number(event.target.value) || 1 })} />
+                        </TableCell>
+                        <TableCell>
+                          <Input type="number" min={0} value={item.unitPrice} onChange={(event) => changeEditItem(item.id, { unitPrice: Number(event.target.value) || 0 })} />
+                        </TableCell>
+                        <TableCell>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeEditItem(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
             <div className="grid gap-2">
               <Label>Catatan</Label>
               <Textarea value={editNotesValue} onChange={(event) => setEditNotesValue(event.target.value)} />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditPriceOpen(false)}>Batal</Button>
-              <Button onClick={onUpdatePrice} disabled={!editPriceOrderId || pendingActionId === editPriceOrderId}>
+              <Button variant="outline" onClick={() => setEditOrderOpen(false)}>Batal</Button>
+              <Button onClick={onSaveOrderEdit} disabled={!editOrderId || pendingActionId === editOrderId}>
                 Simpan
               </Button>
             </div>

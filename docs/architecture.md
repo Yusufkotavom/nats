@@ -215,6 +215,10 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
 - Print dari modul service sekarang memakai dokumen private sendiri (`SERVICE_WORK_ORDER`, `SERVICE_INVOICE`) melalui registry reporting, bukan langsung menampilkan template sales/receipt mentah.
 - Service order mendukung `Update Harga` setelah order berjalan (misalnya setelah DP sudah diterima): perubahan akan sinkron ke item + total pada `POSServiceOrder`, `SalesOrder`, dan `SalesInvoice` agar nilai tagihan/sisa bayar tetap konsisten.
 - Company setting menambahkan `serviceUniversalNote` sebagai catatan default lintas dokumen service (disclaimer/ketentuan), dipakai di PDF service order dan service invoice.
+- Company setting `Admin > Settings > POS` sekarang juga mengelola `Service Quick Inform Settings`:
+  - toggle pengiriman per event (`WO diterima`, `READY`, `konfirmasi biaya selesai`, `barang diambil`),
+  - template pesan per event dengan token variabel,
+  - durasi garansi default (`DAY`/`MONTH`) untuk notifikasi saat barang diambil.
 - Tujuan: memisahkan surface bisnis jasa agar mudah di-extend ke workflow lanjutan (assignment, SLA, pipeline) tanpa memecah kontrak data/transaksi existing.
 
 ## Budgeting: Budget Operasional + Saving Target (2026-05-13)

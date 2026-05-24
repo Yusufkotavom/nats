@@ -1,6 +1,7 @@
 // INVENTORY MODULE
 model Unit {
   id        String   @id @default(cuid())
+  companyId String?
   name      String   @unique
   symbol    String   @unique
   createdAt DateTime @default(now())
@@ -9,19 +10,28 @@ model Unit {
   productsBase     Product[] @relation("BaseUnit")
   productsPurchase Product[] @relation("PurchaseUnit")
   productsSales    Product[] @relation("SalesUnit")
+  company          Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
 }
 
 model Category {
   id          String    @id @default(cuid())
-  name        String    @unique
+  companyId   String?
+  name        String
   description String?
   products    Product[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@unique([companyId, name])
 }
 
 model Product {
   id          String    @id @default(cuid())
+  companyId   String?
   sku         String    @unique
   name        String
   description String?
@@ -79,9 +89,11 @@ model Product {
   productionOrders       ProductionOrder[]       @relation("ProductProductionOrders")
   productionIssueItems   ProductionIssueItem[]   @relation("ProductProductionIssues")
   productionReceiptItems ProductionReceiptItem[] @relation("ProductProductionReceipts")
+  company                Company?                @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([categoryId])
   @@index([sku])
+  @@index([companyId])
 }
 
 model PriceHistory {
@@ -120,7 +132,8 @@ enum DiscountType {
 
 model Warehouse {
   id            String              @id @default(cuid())
-  name          String              @unique
+  companyId     String?
+  name          String
   location      String?
   inventory     Inventory[]
   fromMovements InventoryMovement[] @relation("FromWarehouse")
@@ -131,6 +144,10 @@ model Warehouse {
   locations Location[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@unique([companyId, name])
 }
 
 model Location {
@@ -193,6 +210,7 @@ model Inventory {
 
 model InventoryMovement {
   id              String         @id @default(cuid())
+  companyId       String?
   type            MovementType
   reference       String?
   notes           String?
@@ -212,12 +230,14 @@ model InventoryMovement {
   productId String?
 
   approvedById String?
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   approvedAt      DateTime?
   rejectionReason String?
 
   @@index([type])
   @@index([transactionDate])
+  @@index([companyId])
 }
 
 model InventoryMovementDetail {

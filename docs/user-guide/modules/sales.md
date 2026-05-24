@@ -2,7 +2,7 @@
 title: Modul Sales
 module: sales
 order: 120
-updatedAt: 2026-05-15
+updatedAt: 2026-05-24
 summary: Panduan lengkap proses penjualan dari order sampai payment dengan contoh praktis.
 related: modules/pos,modules/inventory,modules/accounting
 ---
@@ -40,6 +40,8 @@ Sales Order → Shipment → Invoice → Payment
 2. **Klik "Create New Order"**
 
 ### 1.3 Isi Header Order
+Catatan: field **Customer** bersifat searchable. Klik field customer lalu pilih customer dari daftar hasil pencarian.
+
 ```
 Order Number: SO-2024-001 (auto generate)
 Customer: PT. Catering Nusantara

@@ -3,9 +3,14 @@
 import { createContext, useContext } from "react";
 
 export type SessionData = {
+  userId?: string;
   userName: string;
   role: string;
   permissions: string[];
+  activeCompanyId?: string | null;
+  activeCompanyName?: string | null;
+  isPlatformSuperAdmin?: boolean;
+  impersonatedCompanyId?: string | null;
   companyProfile: {
     name: string;
     address: string | null;
@@ -19,6 +24,8 @@ export type SessionData = {
     currencyFormat: string;
     locale: string;
     timezone: string;
+    enableDepartmentDimension?: boolean;
+    enableProjectDimension?: boolean;
     posEnableRestaurantFeatures?: boolean;
   } | null;
 } | null;

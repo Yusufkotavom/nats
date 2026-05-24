@@ -2,6 +2,7 @@
 
 model POSSession {
   id            String @id @default(cuid())
+  companyId     String?
   sessionNumber String @unique
 
   cashierId String
@@ -29,6 +30,9 @@ model POSSession {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
 }
 
 enum POSSessionStatus {
@@ -38,6 +42,7 @@ enum POSSessionStatus {
 
 model HeldOrder {
   id        String   @id @default(cuid())
+  companyId String?
   holdId    String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -59,10 +64,14 @@ model HeldOrder {
 
   posSessionId String?
   posSession   POSSession? @relation(fields: [posSessionId], references: [id])
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
 }
 
 model DiningArea {
   id        String   @id @default(cuid())
+  companyId String?
   name      String
   code      String   @unique
   sortOrder Int      @default(0)
@@ -71,10 +80,14 @@ model DiningArea {
   updatedAt DateTime @updatedAt
 
   spots DiningSpot[]
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, sortOrder])
 }
 
 model DiningSpot {
   id        String           @id @default(cuid())
+  companyId String?
   areaId    String
   area      DiningArea       @relation(fields: [areaId], references: [id], onDelete: Cascade)
   spotCode  String           @unique
@@ -94,10 +107,14 @@ model DiningSpot {
   heldOrders HeldOrder[]
   restaurantOrders RestaurantOrder[]
   kitchenTickets KitchenTicket[]
+  company         Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
 }
 
 model DiningSpotSession {
   id           String           @id @default(cuid())
+  companyId    String?
   diningSpotId String
   diningSpot   DiningSpot       @relation(fields: [diningSpotId], references: [id], onDelete: Cascade)
   status       DiningSpotStatus @default(ORDERING)
@@ -109,6 +126,9 @@ model DiningSpotSession {
   notes        String?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  company      Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
 }
 
 enum POSServiceType {
@@ -175,6 +195,7 @@ enum POSServiceOrderStatus {
 
 model POSFeeSetting {
   id        String          @id @default(cuid())
+  companyId String?
   name      String
   category  POSFeeCategory  @default(FEE)
   valueType POSFeeValueType @default(FIXED)
@@ -183,10 +204,15 @@ model POSFeeSetting {
   isActive  Boolean         @default(true)
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, sortOrder])
 }
 
 model POSServiceOrder {
   id            String                @id @default(cuid())
+  companyId     String?
   orderNumber   String                @unique
   status        POSServiceOrderStatus @default(NEW)
   posSessionId  String
@@ -209,12 +235,14 @@ model POSServiceOrder {
   cancelledAt   DateTime?
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
+  company       Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   items POSServiceOrderItem[]
 
   @@index([posSessionId, status])
   @@index([salesOrderId])
   @@index([salesInvoiceId])
+  @@index([companyId, status])
 }
 
 model POSServiceOrderItem {
@@ -239,6 +267,7 @@ model POSServiceOrderItem {
 
 model RestaurantOrder {
   id          String              @id @default(cuid())
+  companyId   String?
   orderNumber String              @unique
   status      RestaurantOrderStatus @default(OPEN)
 
@@ -272,12 +301,14 @@ model RestaurantOrder {
 
   items         RestaurantOrderItem[]
   kitchenTickets KitchenTicket[]
+  company       Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([diningSpotId, status])
   @@index([posSessionId, status])
+  @@index([companyId, status])
 }
 
 model RestaurantOrderItem {
@@ -304,6 +335,7 @@ model RestaurantOrderItem {
 
 model KitchenTicket {
   id                String             @id @default(cuid())
+  companyId         String?
   ticketNumber      String             @unique
   restaurantOrderId String
   restaurantOrder   RestaurantOrder    @relation(fields: [restaurantOrderId], references: [id], onDelete: Cascade)
@@ -318,9 +350,11 @@ model KitchenTicket {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([diningSpotId, status])
   @@index([restaurantOrderId, status])
+  @@index([companyId, status])
 }
 
 model KitchenTicketItem {

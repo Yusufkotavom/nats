@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { createSession } from "@/lib/auth/auth";
+import { createSession, resolveUserCompanyContext } from "@/lib/auth/auth";
 import { Button } from "@/components/ui/button";
 import { XCircle, CheckCircle2, GalleryVerticalEnd } from "lucide-react";
 import Link from "next/link";
@@ -47,7 +47,11 @@ export default async function VerifyEmailPage({
                         })
                     ]);
 
-                    await createSession(user.id, user.role);
+                    const { activeCompanyId } = await resolveUserCompanyContext(user.id);
+                    await createSession(user.id, user.name, user.role, {
+                        activeCompanyId,
+                        isPlatformSuperAdmin: user.role.name === "superadmin",
+                    });
                     isSuccess = true;
                 } else {
                     errorMessage = "Account not found.";

@@ -19,14 +19,18 @@ export async function seedInventory() {
     ];
 
     for (const warehouse of warehouses) {
-        await prisma.warehouse.upsert({
+        const existing = await prisma.warehouse.findFirst({
             where: { name: warehouse.name },
-            update: {},
-            create: {
-                name: warehouse.name,
-                location: warehouse.location,
-            },
+            select: { id: true },
         });
+        if (!existing) {
+            await prisma.warehouse.create({
+                data: {
+                    name: warehouse.name,
+                    location: warehouse.location,
+                },
+            });
+        }
     }
 
     // Seed Units
@@ -59,23 +63,27 @@ export async function seedInventory() {
     ];
 
     for (const category of categories) {
-        await prisma.category.upsert({
+        const existing = await prisma.category.findFirst({
             where: { name: category.name },
-            update: {},
-            create: {
-                name: category.name,
-                description: category.description,
-            },
+            select: { id: true },
         });
+        if (!existing) {
+            await prisma.category.create({
+                data: {
+                    name: category.name,
+                    description: category.description,
+                },
+            });
+        }
     }
 
     // Helper to get ID
     const getCategory = async (name: string) =>
-        prisma.category.findUnique({ where: { name } });
+        prisma.category.findFirst({ where: { name } });
     const getUnit = async (symbol: string) =>
         prisma.unit.findUnique({ where: { symbol } });
     const getWarehouse = async (name: string) =>
-        prisma.warehouse.findUnique({ where: { name } });
+        prisma.warehouse.findFirst({ where: { name } });
 
     const catElectronics = await getCategory("Electronics");
     const catFurniture = await getCategory("Furniture");

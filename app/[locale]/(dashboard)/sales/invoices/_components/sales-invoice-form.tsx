@@ -452,6 +452,7 @@ export function SalesInvoiceForm({
   const filteredSalesOrders = formData.contactId
     ? salesOrders.filter((so) => so.contactId === formData.contactId)
     : salesOrders;
+  const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   const handleSendInvoiceWhatsApp = async () => {
     if (!invoice) return;
@@ -629,28 +630,30 @@ export function SalesInvoiceForm({
                   ))}
                 </CustomSelect>
 
-                <div className="col-span-2 grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{t("department")}</label>
-                    <SearchableSelect
-                      value={formData.departmentId || ""}
-                      onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
-                      options={departments.map(d => ({ value: d.id, label: d.name }))}
-                      placeholder={t("placeholder_select_department")}
-                      disabled={readonly}
-                    />
+                {showDimensionFields ? (
+                  <div className="col-span-2 grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t("department")}</label>
+                      <SearchableSelect
+                        value={formData.departmentId || ""}
+                        onValueChange={(val) => setFormData(prev => ({ ...prev, departmentId: val || null }))}
+                        options={departments.map(d => ({ value: d.id, label: d.name }))}
+                        placeholder={t("placeholder_select_department")}
+                        disabled={readonly}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t("project")}</label>
+                      <SearchableSelect
+                        value={formData.projectId || ""}
+                        onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
+                        options={projects.map(p => ({ value: p.id, label: p.name }))}
+                        placeholder={t("placeholder_select_project")}
+                        disabled={readonly}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{t("project")}</label>
-                    <SearchableSelect
-                      value={formData.projectId || ""}
-                      onValueChange={(val) => setFormData(prev => ({ ...prev, projectId: val || null }))}
-                      options={projects.map(p => ({ value: p.id, label: p.name }))}
-                      placeholder={t("placeholder_select_project")}
-                      disabled={readonly}
-                    />
-                  </div>
-                </div>
+                ) : null}
 
                 <CustomInput
                   label={t("invoice_number")}

@@ -75,6 +75,16 @@ model CompanyProfile {
   posAdditionalFeeAmount   Decimal  @default(0)
   posAdditionalFeeLabel    String?
   serviceUniversalNote     String?
+  serviceNotifyOnCreated   Boolean  @default(true)
+  serviceNotifyOnReady     Boolean  @default(true)
+  serviceNotifyOnCostDone  Boolean  @default(true)
+  serviceNotifyOnPickedUp  Boolean  @default(true)
+  serviceTemplateCreated   String?
+  serviceTemplateReady     String?
+  serviceTemplateCostDone  String?
+  serviceTemplatePickedUp  String?
+  serviceWarrantyDuration  Int      @default(0)
+  serviceWarrantyUnit      String   @default("DAY") // DAY | MONTH
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 

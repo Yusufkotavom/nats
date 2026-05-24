@@ -1,7 +1,7 @@
 import { verifySession } from "@/lib/auth/auth";
-import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { POSClickSound } from "./_components/pos-click-sound";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export default async function POSLayout({
   children,
@@ -10,14 +10,20 @@ export default async function POSLayout({
 }) {
   const session = await verifySession();
 
-  const companyProfile = await prisma.companyProfile.findFirst();
+  const companyContext = await getActiveCompanyContext();
+  const companyProfile = companyContext?.profile ?? null;
 
   return (
     <SessionProvider
       session={{
+        userId: session.userId,
         userName: session.userName,
         role: session.role,
         permissions: session.permissions,
+        activeCompanyId: session.activeCompanyId,
+        activeCompanyName: companyContext?.companyName ?? null,
+        isPlatformSuperAdmin: session.isPlatformSuperAdmin,
+        impersonatedCompanyId: session.impersonatedCompanyId,
         companyProfile: companyProfile
           ? {
             name: companyProfile.name,

@@ -14,7 +14,11 @@ export async function getLocations(
   limit: number = 10
 ) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "inventory.view")) {
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
     return {
       locations: [],
       total: 0,
@@ -25,13 +29,19 @@ export async function getLocations(
 
   const [locations, total] = await Promise.all([
     prisma.location.findMany({
-      where: { warehouseId },
+      where: {
+        warehouseId,
+        warehouse: { companyId: session.activeCompanyId },
+      },
       orderBy: { code: "asc" },
       skip,
       take: limit,
     }),
     prisma.location.count({
-      where: { warehouseId },
+      where: {
+        warehouseId,
+        warehouse: { companyId: session.activeCompanyId },
+      },
     }),
   ]);
 
@@ -42,8 +52,17 @@ export async function getLocations(
 }
 
 export async function getWarehouse(warehouseId: string) {
-    const warehouse = await prisma.warehouse.findUnique({
-        where: { id: warehouseId }
+    const session = await getSession();
+    if (
+      !session ||
+      !session.activeCompanyId ||
+      !hasPermission(session.permissions, "inventory.view")
+    ) {
+      return null;
+    }
+
+    const warehouse = await prisma.warehouse.findFirst({
+      where: { id: warehouseId, companyId: session.activeCompanyId },
     });
     return SuperJSON.serialize(warehouse);
 }
@@ -52,6 +71,19 @@ export const createLocation = authorizedAction(
   "warehouses.edit",
   async (data: { warehouseId: string; name: string; code: string; type: LocationType }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
+      const warehouse = await prisma.warehouse.findFirst({
+        where: { id: data.warehouseId, companyId: session.activeCompanyId },
+        select: { id: true },
+      });
+      if (!warehouse) {
+        return { success: false, error: "Warehouse not found in active company" };
+      }
+
       const location = await prisma.location.create({
         data,
       });
@@ -68,8 +100,24 @@ export const updateLocation = authorizedAction(
   "warehouses.edit",
   async (id: string, data: { name: string; code: string; type: LocationType }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
+      const existing = await prisma.location.findFirst({
+        where: {
+          id,
+          warehouse: { companyId: session.activeCompanyId },
+        },
+        select: { id: true, warehouseId: true },
+      });
+      if (!existing) {
+        return { success: false, error: "Location not found in active company" };
+      }
+
       const location = await prisma.location.update({
-        where: { id },
+        where: { id: existing.id },
         data,
       });
       revalidatePath(`/inventory/warehouses/${location.warehouseId}/locations`);
@@ -85,8 +133,24 @@ export const deleteLocation = authorizedAction(
   "warehouses.edit",
   async (id: string) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+
+      const existing = await prisma.location.findFirst({
+        where: {
+          id,
+          warehouse: { companyId: session.activeCompanyId },
+        },
+        select: { id: true, warehouseId: true },
+      });
+      if (!existing) {
+        return { success: false, error: "Location not found in active company" };
+      }
+
       const location = await prisma.location.delete({
-        where: { id },
+        where: { id: existing.id },
       });
       revalidatePath(`/inventory/warehouses/${location.warehouseId}/locations`);
       return { success: true };

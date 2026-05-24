@@ -6,10 +6,32 @@ import { departmentSchema, projectSchema } from "./schemas";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { requireActiveCompanyContext } from "@/lib/company-context";
+
+async function getDimensionVisibility() {
+  const { companyId } = await requireActiveCompanyContext();
+  const profile = await prisma.companyProfile.findUnique({
+    where: { companyId },
+    select: {
+      enableDepartmentDimension: true,
+      enableProjectDimension: true,
+    },
+  });
+
+  return {
+    enableDepartmentDimension: profile?.enableDepartmentDimension ?? true,
+    enableProjectDimension: profile?.enableProjectDimension ?? true,
+  };
+}
 
 // --- Departments ---
 
 export async function getDepartments() {
+  const { enableDepartmentDimension } = await getDimensionVisibility();
+  if (!enableDepartmentDimension) {
+    return [];
+  }
+
   return await prisma.department.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -75,6 +97,11 @@ export async function getProjects(params?: {
   pageSize?: number;
   search?: string;
 }) {
+  const { enableProjectDimension } = await getDimensionVisibility();
+  if (!enableProjectDimension) {
+    return { projects: [], total: 0 };
+  }
+
   const { page = 1, pageSize = 20, search } = params || {};
   const skip = (page - 1) * pageSize;
 

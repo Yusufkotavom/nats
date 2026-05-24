@@ -5,6 +5,7 @@ import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { redirect } from "next/navigation";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export default async function DashboardLayout({
   children,
@@ -40,14 +41,20 @@ export default async function DashboardLayout({
     }
   }
 
-  const companyProfile = await prisma.companyProfile.findFirst();
+  const companyContext = await getActiveCompanyContext();
+  const companyProfile = companyContext?.profile ?? null;
 
   return (
     <SessionProvider
       session={{
+        userId: session.userId,
         userName: session.userName,
         role: session.role,
         permissions: session.permissions,
+        activeCompanyId: session.activeCompanyId,
+        activeCompanyName: companyContext?.companyName ?? null,
+        isPlatformSuperAdmin: session.isPlatformSuperAdmin,
+        impersonatedCompanyId: session.impersonatedCompanyId,
         companyProfile: companyProfile
           ? {
               name: companyProfile.name,
@@ -60,10 +67,13 @@ export default async function DashboardLayout({
               currencySymbol: companyProfile.currencySymbol,
               dateFormat: companyProfile.dateFormat,
               currencyFormat: companyProfile.currencyFormat,
-              locale: companyProfile.locale,
-              timezone: companyProfile.timezone,
-              posEnableRestaurantFeatures:
-                companyProfile.posEnableRestaurantFeatures,
+	              locale: companyProfile.locale,
+	              timezone: companyProfile.timezone,
+              enableDepartmentDimension:
+                companyProfile.enableDepartmentDimension,
+              enableProjectDimension: companyProfile.enableProjectDimension,
+	              posEnableRestaurantFeatures:
+	                companyProfile.posEnableRestaurantFeatures,
             }
           : null,
       }}
@@ -78,7 +88,8 @@ export default async function DashboardLayout({
       >
         <AppSidebar
           user={userData}
-          companyName={companyProfile?.name || "Company Name"}
+          companyName={companyContext?.companyName || "Company Name"}
+          isPlatformSuperAdmin={session.isPlatformSuperAdmin}
         />
         <SidebarInset>
           <SiteHeader />

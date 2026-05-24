@@ -83,6 +83,7 @@ export function SalesShipmentForm({
         })) || [],
     );
     const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+    const showDimensionFields = departments.length > 0 || projects.length > 0;
 
     const salesOrders = useMemo(
         () =>
@@ -334,38 +335,40 @@ export function SalesShipmentForm({
                             placeholder={t("placeholder_select_so")}
                         />
 
-                    <div className="col-span-2 grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t("department")}</label>
-                                <SearchableSelect
-                                    value={formData.departmentId || ""}
-                                    onValueChange={(val) =>
-                                        setFormData((prev) => ({ ...prev, departmentId: val || null }))
-                                    }
-                                    options={departments.map((d) => ({
-                                        value: d.id,
-                                        label: d.name,
-                                    }))}
-                                    placeholder={t("placeholder_select_department")}
-                                    disabled={readonly}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">{t("project")}</label>
-                                <SearchableSelect
-                                    value={formData.projectId || ""}
-                                    onValueChange={(val) =>
-                                        setFormData((prev) => ({ ...prev, projectId: val || null }))
-                                    }
-                                    options={projects.map((p) => ({
-                                        value: p.id,
-                                        label: p.name,
-                                    }))}
-                                    placeholder={t("placeholder_select_project")}
-                                    disabled={readonly}
-                                />
-                            </div>
-                    </div>
+                    {showDimensionFields ? (
+                        <div className="col-span-2 grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t("department")}</label>
+                                    <SearchableSelect
+                                        value={formData.departmentId || ""}
+                                        onValueChange={(val) =>
+                                            setFormData((prev) => ({ ...prev, departmentId: val || null }))
+                                        }
+                                        options={departments.map((d) => ({
+                                            value: d.id,
+                                            label: d.name,
+                                        }))}
+                                        placeholder={t("placeholder_select_department")}
+                                        disabled={readonly}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t("project")}</label>
+                                    <SearchableSelect
+                                        value={formData.projectId || ""}
+                                        onValueChange={(val) =>
+                                            setFormData((prev) => ({ ...prev, projectId: val || null }))
+                                        }
+                                        options={projects.map((p) => ({
+                                            value: p.id,
+                                            label: p.name,
+                                        }))}
+                                        placeholder={t("placeholder_select_project")}
+                                        disabled={readonly}
+                                    />
+                                </div>
+                        </div>
+                    ) : null}
 
                         <CustomInput
                             label={t("shipment_date")}
