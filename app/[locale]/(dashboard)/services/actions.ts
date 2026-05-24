@@ -57,6 +57,12 @@ export async function getServiceOrders(
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
+      include: {
+        items: {
+          select: { quantity: true },
+          take: 1,
+        },
+      },
     }),
     prisma.pOSServiceOrder.count({ where }),
   ]);
@@ -81,6 +87,7 @@ export async function getServiceOrders(
     customerName: order.contactId ? (contactMap.get(order.contactId)?.name ?? "Walk-in Customer") : "Walk-in Customer",
     customerPhone: order.contactId ? (contactMap.get(order.contactId)?.phone ?? null) : null,
     invoiceNumber: invoiceMap.get(order.salesInvoiceId) ?? null,
+    quantity: order.items[0]?.quantity ?? 1,
     totalAmount: order.totalAmount.toString(),
     paidAmount: order.paidAmount.toString(),
     remainingAmount: order.remainingAmount.toString(),
@@ -382,6 +389,91 @@ export async function settleServiceOrder(
   assertAccess(session);
 
   const result = await POSServiceWorkflowService.settle(orderId, paymentMethod, amount);
+  revalidatePath("/services");
+  return SuperJSON.serialize(result);
+}
+
+export async function updateServiceOrderPricing(input: {
+  orderId: string;
+  unitPrice: number;
+  quantity?: number;
+  notes?: string;
+}) {
+  const session = await getSession();
+  assertAccess(session);
+
+  if (input.unitPrice < 0) {
+    throw new Error("Harga tidak valid");
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const order = await tx.pOSServiceOrder.findUnique({
+      where: { id: input.orderId },
+      include: { items: true },
+    });
+    if (!order) throw new Error("Service order tidak ditemukan");
+    if (!order.items.length) throw new Error("Service order belum punya item");
+
+    const item = order.items[0];
+    const quantity = input.quantity && input.quantity > 0 ? input.quantity : item.quantity;
+    const unitPrice = input.unitPrice;
+    const total = unitPrice * quantity;
+    const paidAmount = Number(order.paidAmount);
+    const remaining = Math.max(total - paidAmount, 0);
+
+    await tx.pOSServiceOrderItem.update({
+      where: { id: item.id },
+      data: {
+        quantity,
+        unitPrice,
+        totalPrice: total,
+      },
+    });
+
+    const updatedOrder = await tx.pOSServiceOrder.update({
+      where: { id: order.id },
+      data: {
+        subtotal: total,
+        totalAmount: total,
+        remainingAmount: remaining,
+        notes: input.notes !== undefined ? input.notes : order.notes,
+      },
+    });
+
+    if (order.salesOrderId) {
+      await tx.salesOrderItem.updateMany({
+        where: { salesOrderId: order.salesOrderId },
+        data: { quantity, unitPrice, totalPrice: total },
+      });
+      await tx.salesOrder.update({
+        where: { id: order.salesOrderId },
+        data: {
+          subtotal: total,
+          totalAmount: total,
+          notes: input.notes !== undefined ? input.notes : undefined,
+        },
+      });
+    }
+
+    if (order.salesInvoiceId) {
+      await tx.salesInvoiceItem.updateMany({
+        where: { salesInvoiceId: order.salesInvoiceId },
+        data: { quantity, unitPrice, totalPrice: total, description: item.productName || "Service" },
+      });
+      await tx.salesInvoice.update({
+        where: { id: order.salesInvoiceId },
+        data: {
+          subtotal: total,
+          totalAmount: total,
+          balanceDue: remaining,
+          notes: input.notes !== undefined ? input.notes : undefined,
+        },
+      });
+    }
+
+    return updatedOrder;
+  });
+
   revalidatePath("/services");
   return SuperJSON.serialize(result);
 }

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
+import { requireActiveCompanyContext } from "@/lib/company-context";
 
 interface CompanyProfileData {
   name: string;
@@ -17,6 +18,9 @@ interface CompanyProfileData {
   currencyFormat: string;
   locale: string;
   timezone: string;
+  serviceUniversalNote?: string | null;
+  enableDepartmentDimension: boolean;
+  enableProjectDimension: boolean;
 }
 
 /**
@@ -33,7 +37,10 @@ export const updateCompanyProfile = authorizedAction(
       return { success: false, error: "Company name is required" };
     }
 
-    const existingProfile = await prisma.companyProfile.findFirst();
+    const { companyId } = await requireActiveCompanyContext();
+    const existingProfile = await prisma.companyProfile.findUnique({
+      where: { companyId },
+    });
 
     if (existingProfile) {
       await prisma.companyProfile.update({
@@ -51,11 +58,15 @@ export const updateCompanyProfile = authorizedAction(
           currencyFormat: data.currencyFormat,
           locale: data.locale,
           timezone: data.timezone,
+          serviceUniversalNote: data.serviceUniversalNote,
+          enableDepartmentDimension: data.enableDepartmentDimension,
+          enableProjectDimension: data.enableProjectDimension,
         },
       });
     } else {
       await prisma.companyProfile.create({
         data: {
+          companyId,
           name: data.name,
           address: data.address,
           phone: data.phone,
@@ -68,6 +79,9 @@ export const updateCompanyProfile = authorizedAction(
           currencyFormat: data.currencyFormat,
           locale: data.locale,
           timezone: data.timezone,
+          serviceUniversalNote: data.serviceUniversalNote,
+          enableDepartmentDimension: data.enableDepartmentDimension,
+          enableProjectDimension: data.enableProjectDimension,
         },
       });
     }
@@ -78,7 +92,9 @@ export const updateCompanyProfile = authorizedAction(
 );
 
 export const getCompanyProfile = async () => {
-  return prisma.companyProfile.findFirst({
+  const { companyId } = await requireActiveCompanyContext();
+  return prisma.companyProfile.findUnique({
+    where: { companyId },
     select: {
       name: true,
       address: true,
@@ -92,6 +108,9 @@ export const getCompanyProfile = async () => {
       currencyFormat: true,
       locale: true,
       timezone: true,
+      serviceUniversalNote: true,
+      enableDepartmentDimension: true,
+      enableProjectDimension: true,
     },
   });
 };

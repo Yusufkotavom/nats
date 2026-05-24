@@ -32,6 +32,7 @@ export interface ReportContext<T = any> {
     currencySymbol?: string;
     currencyFormat?: string;
     locale?: string;
+    serviceUniversalNote?: string;
   };
   translations?: Record<string, string>;
 }

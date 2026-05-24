@@ -11,6 +11,8 @@ import {
   fetchRatiosData,
 } from "@/app/[locale]/(dashboard)/accounting/reports/data";
 import { fetchBudgetTrackingData } from "@/app/[locale]/(dashboard)/budgeting/_reports/budget-tracking/data";
+import { getServiceWorkOrderData } from "@/app/[locale]/(dashboard)/services/_reports/service-work-order/data";
+import { getServiceInvoiceData } from "@/app/[locale]/(dashboard)/services/_reports/service-invoice/data";
 
 export const serverRegistry = {
   SALES_ORDER: { fetchData: getSalesOrderData },
@@ -18,6 +20,8 @@ export const serverRegistry = {
   SALES_INVOICE: { fetchData: getSalesInvoiceData },
   JOURNAL_ENTRY: { fetchData: getJournalEntryData },
   POS_RECEIPT: { fetchData: getPOSReceiptData },
+  SERVICE_WORK_ORDER: { fetchData: getServiceWorkOrderData },
+  SERVICE_INVOICE: { fetchData: getServiceInvoiceData },
   PROFIT_LOSS: { fetchData: fetchProfitLossData },
   BALANCE_SHEET: { fetchData: fetchBalanceSheetData },
   CASH_FLOW: { fetchData: fetchCashFlowData },
@@ -27,4 +31,3 @@ export const serverRegistry = {
 } as const;
 
 export type ReportCode = keyof typeof serverRegistry;
-

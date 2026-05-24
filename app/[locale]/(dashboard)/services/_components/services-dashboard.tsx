@@ -10,6 +10,7 @@ import {
   getServiceOrders,
   getServicePayments,
   settleServiceOrder,
+  updateServiceOrderPricing,
   updateServiceOrderStatus,
 } from "../actions";
 import type {
@@ -132,9 +133,14 @@ export function ServicesDashboard({
   const [caseNotes, setCaseNotes] = useState("");
   const [creatingCase, setCreatingCase] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewCode, setPreviewCode] = useState("SALES_INVOICE");
+  const [previewCode, setPreviewCode] = useState("SERVICE_INVOICE");
   const [previewInput, setPreviewInput] = useState<Record<string, string>>({});
   const [previewTitle, setPreviewTitle] = useState("Print");
+  const [editPriceOpen, setEditPriceOpen] = useState(false);
+  const [editPriceOrderId, setEditPriceOrderId] = useState("");
+  const [editPriceValue, setEditPriceValue] = useState("");
+  const [editQtyValue, setEditQtyValue] = useState("");
+  const [editNotesValue, setEditNotesValue] = useState("");
 
   const { toast } = useToast();
   const t = useTranslations("Services");
@@ -248,6 +254,36 @@ export function ServicesDashboard({
     }
   };
 
+  const openEditPrice = (order: ServiceOrderListItem) => {
+    setEditPriceOrderId(order.id);
+    setEditPriceValue(String(Number(order.totalAmount) / Math.max(order.quantity, 1)));
+    setEditQtyValue(String(order.quantity || 1));
+    setEditNotesValue("");
+    setEditPriceOpen(true);
+  };
+
+  const onUpdatePrice = async () => {
+    if (!editPriceOrderId) return;
+    setPendingActionId(editPriceOrderId);
+    try {
+      await updateServiceOrderPricing({
+        orderId: editPriceOrderId,
+        unitPrice: Number(editPriceValue) || 0,
+        quantity: Number(editQtyValue) || 1,
+        notes: editNotesValue.trim() || undefined,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
+      await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
+      toast({ title: "Harga service berhasil diperbarui" });
+      setEditPriceOpen(false);
+    } catch (error) {
+      toast({ title: "Gagal update harga", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setPendingActionId(null);
+    }
+  };
+
   const handleCreateAfterSalesCase = async () => {
     if (!caseServiceOrderId) {
       toast({ title: "Pilih service order", variant: "destructive" });
@@ -297,20 +333,16 @@ export function ServicesDashboard({
             {Number(item.remainingAmount) > 0 ? <DropdownMenuItem onClick={() => onSettle(item)}>Settle Payment</DropdownMenuItem> : null}
             <DropdownMenuSeparator />
             {item.salesOrderId ? (
-              <DropdownMenuItem onClick={() => openPrint("SALES_ORDER", { orderId: item.salesOrderId as string }, `Print ${item.orderNumber}`)}>
+              <DropdownMenuItem onClick={() => openPrint("SERVICE_WORK_ORDER", { orderId: item.salesOrderId as string }, `Print ${item.orderNumber}`)}>
                 Print Order
               </DropdownMenuItem>
             ) : null}
             {item.salesInvoiceId ? (
-              <DropdownMenuItem onClick={() => openPrint("SALES_INVOICE", { invoiceId: item.salesInvoiceId as string }, `Print ${item.invoiceNumber || item.orderNumber}`)}>
+              <DropdownMenuItem onClick={() => openPrint("SERVICE_INVOICE", { invoiceId: item.salesInvoiceId as string }, `Print ${item.invoiceNumber || item.orderNumber}`)}>
                 Print Invoice
               </DropdownMenuItem>
             ) : null}
-            {item.salesInvoiceId ? (
-              <DropdownMenuItem onClick={() => openPrint("POS_RECEIPT", { invoiceId: item.salesInvoiceId as string }, `Print Receipt ${item.invoiceNumber || item.orderNumber}`)}>
-                Print Receipt
-              </DropdownMenuItem>
-            ) : null}
+            <DropdownMenuItem onClick={() => openEditPrice(item)}>Update Harga</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -329,7 +361,7 @@ export function ServicesDashboard({
       header: "",
       className: "w-[90px]",
       cell: (item) => (
-        <Button variant="ghost" className="h-8" onClick={() => openPrint("SALES_INVOICE", { invoiceId: item.id }, `Print ${item.invoiceNumber}`)}>
+        <Button variant="ghost" className="h-8" onClick={() => openPrint("SERVICE_INVOICE", { invoiceId: item.id }, `Print ${item.invoiceNumber}`)}>
           Print
         </Button>
       ),
@@ -536,6 +568,33 @@ export function ServicesDashboard({
         input={previewInput}
         title={previewTitle}
       />
+      <Dialog open={editPriceOpen} onOpenChange={setEditPriceOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Harga Service</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-2">
+              <Label>Harga Baru</Label>
+              <Input type="number" min={0} value={editPriceValue} onChange={(event) => setEditPriceValue(event.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Qty</Label>
+              <Input type="number" min={1} value={editQtyValue} onChange={(event) => setEditQtyValue(event.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Catatan</Label>
+              <Textarea value={editNotesValue} onChange={(event) => setEditNotesValue(event.target.value)} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditPriceOpen(false)}>Batal</Button>
+              <Button onClick={onUpdatePrice} disabled={!editPriceOrderId || pendingActionId === editPriceOrderId}>
+                Simpan
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageListLayout>
   );
 }

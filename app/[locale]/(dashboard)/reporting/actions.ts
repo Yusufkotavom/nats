@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
 import { ReportFormat } from "@/lib/reporting/types";
 import { getTranslations } from "next-intl/server";
+import { getActiveCompanyContext } from "@/lib/company-context";
 
 export async function getReportData(code: string, input: any) {
   const startTime = Date.now();
@@ -71,7 +72,8 @@ export async function getReportData(code: string, input: any) {
     }
 
     // Fetch Context Info
-    const companyProfile = await prisma.companyProfile.findFirst();
+    const companyContext = await getActiveCompanyContext();
+    const companyProfile = companyContext?.profile ?? null;
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
     });
@@ -102,6 +104,7 @@ export async function getReportData(code: string, input: any) {
         currencySymbol: companyProfile?.currencySymbol || "$",
         currencyFormat: companyProfile?.currencyFormat || "standard",
         locale: companyProfile?.locale || "en-US",
+        serviceUniversalNote: companyProfile?.serviceUniversalNote || "",
       },
       config,
       translations,

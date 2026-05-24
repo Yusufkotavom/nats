@@ -212,6 +212,9 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
   - popup cepat (dengan quick add customer + autofill harga produk),
   - form page penuh `/services/orders/new` untuk pengalaman setara modul transaksi `sales`.
 - Pada `/services/returns-warranty`, create case `RETURN/WARRANTY` sekarang membentuk dokumen `SalesReturn` yang terhubung ke service order/invoice terkait.
+- Print dari modul service sekarang memakai dokumen private sendiri (`SERVICE_WORK_ORDER`, `SERVICE_INVOICE`) melalui registry reporting, bukan langsung menampilkan template sales/receipt mentah.
+- Service order mendukung `Update Harga` setelah order berjalan (misalnya setelah DP sudah diterima): perubahan akan sinkron ke item + total pada `POSServiceOrder`, `SalesOrder`, dan `SalesInvoice` agar nilai tagihan/sisa bayar tetap konsisten.
+- Company setting menambahkan `serviceUniversalNote` sebagai catatan default lintas dokumen service (disclaimer/ketentuan), dipakai di PDF service order dan service invoice.
 - Tujuan: memisahkan surface bisnis jasa agar mudah di-extend ke workflow lanjutan (assignment, SLA, pipeline) tanpa memecah kontrak data/transaksi existing.
 
 ## Budgeting: Budget Operasional + Saving Target (2026-05-13)

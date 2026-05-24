@@ -1,6 +1,59 @@
 // GENERAL TABLE
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Company {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  name        String
+  status      CompanyStatus @default(ACTIVE)
+  createdById String?
+  createdBy   User?         @relation("CompanyCreator", fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  accounts                   Account[]
+  journalEntries             JournalEntry[]
+  defaultAccounts            DefaultAccount[]
+  contacts                   Contact[]
+  contactCommunicationLogs   ContactCommunicationLog[]
+  contactMessageTemplates    ContactMessageTemplate[]
+  units                      Unit[]
+  categories                 Category[]
+  products                   Product[]
+  warehouses                 Warehouse[]
+  inventoryMovements         InventoryMovement[]
+  purchaseOrders             PurchaseOrder[]
+  purchasePayments           PurchasePayment[]
+  purchaseReceives           PurchaseReceive[]
+  purchaseInvoices           PurchaseInvoice[]
+  purchaseReturns            PurchaseReturn[]
+  salesOrders                SalesOrder[]
+  salesShipments             SalesShipment[]
+  salesInvoices              SalesInvoice[]
+  salesPayments              SalesPayment[]
+  salesReturns               SalesReturn[]
+  posSessions                POSSession[]
+  heldOrders                 HeldOrder[]
+  diningAreas                DiningArea[]
+  diningSpots                DiningSpot[]
+  diningSpotSessions         DiningSpotSession[]
+  posFeeSettings             POSFeeSetting[]
+  posServiceOrders           POSServiceOrder[]
+  restaurantOrders           RestaurantOrder[]
+  kitchenTickets             KitchenTicket[]
+  profile                    CompanyProfile?
+  memberships                CompanyMembership[]
+  impersonationAuditAsTarget CompanyImpersonationAudit[] @relation("ImpersonatedCompany")
+
+  @@index([status])
+}
+
 model CompanyProfile {
   id                       String   @id @default(cuid())
+  companyId                String   @unique
   name                     String
   address                  String?
   phone                    String?
@@ -13,14 +66,19 @@ model CompanyProfile {
   currencyFormat           String   @default("standard")
   locale                   String   @default("en-US")
   timezone                 String   @default("UTC")
+  enableDepartmentDimension Boolean @default(true)
+  enableProjectDimension    Boolean @default(true)
   posProductVisibilityMode String   @default("POS_ONLY") // POS_ONLY | ALL_ACTIVE
   posEnableRestaurantFeatures Boolean @default(true)
   posServiceChargePercent  Decimal  @default(0)
   posTaxPercent            Decimal  @default(0)
   posAdditionalFeeAmount   Decimal  @default(0)
   posAdditionalFeeLabel    String?
+  serviceUniversalNote     String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {
@@ -111,8 +169,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  role  Role   @relation(fields: [roleId], references: [id])
-  files File[]
+  role                   Role                        @relation(fields: [roleId], references: [id])
+  files                  File[]
+  memberships            CompanyMembership[]
+  createdCompanies       Company[]                   @relation("CompanyCreator")
+  impersonationStarted   CompanyImpersonationAudit[] @relation("ImpersonationActor")
+  impersonationTargetUser CompanyImpersonationAudit[] @relation("ImpersonationTargetUser")
 }
 
 model VerificationToken {
@@ -134,4 +196,36 @@ model Role {
   updatedAt   DateTime @updatedAt
 
   users User[]
+}
+
+model CompanyMembership {
+  id         String   @id @default(cuid())
+  companyId  String
+  userId     String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, userId])
+  @@index([userId])
+  @@index([companyId, isDefault])
+}
+
+model CompanyImpersonationAudit {
+  id                   String   @id @default(cuid())
+  actorUserId          String
+  impersonatedCompanyId String
+  impersonatedUserId   String?
+  startedAt            DateTime @default(now())
+  endedAt              DateTime?
+
+  actorUser          User     @relation("ImpersonationActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  impersonatedCompany Company  @relation("ImpersonatedCompany", fields: [impersonatedCompanyId], references: [id], onDelete: Cascade)
+  impersonatedUser   User?    @relation("ImpersonationTargetUser", fields: [impersonatedUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, startedAt])
+  @@index([impersonatedCompanyId, startedAt])
 }

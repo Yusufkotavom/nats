@@ -34,6 +34,12 @@ Menjamin sinkronisasi penjualan POS ke persediaan secara terukur untuk operasion
 - BOM menghasilkan kuantitas pecahan -> transaksi gagal sampai unit-konversi dibenahi.
 - Setup awal warehouse otomatis menyiapkan kategori POS baseline (`Menu Makanan`, `Menu Minuman`, `Menu Snack`, `Menu Dessert`) agar segmentasi katalog menu lebih siap pakai.
 
+## Kontrak Multi-Company (2026-05-20)
+- Master inventory `Category` dan `Warehouse` sekarang diisolasi per `activeCompanyId` pada seluruh action dashboard inventory.
+- Detail warehouse (`/inventory/warehouses/[warehouseId]`) dan lokasi warehouse hanya bisa diakses/mutasi jika warehouse milik company aktif.
+- Form stock adjustment dan movement inventory hanya memproses warehouse + produk milik company aktif.
+- Unik nama `Category`/`Warehouse` berlaku per company (`companyId + name`), bukan global lintas tenant.
+
 ## Ekstensi POS Service (Kasir Mode Service)
 
 Selain flow restoran meja/dapur, POS juga mendukung mode `Service` untuk use case jasa (contoh: percetakan/ATK/service job):
@@ -47,6 +53,11 @@ Selain flow restoran meja/dapur, POS juga mendukung mode `Service` untuk use cas
 4. Pelunasan dilakukan terpisah lewat payment tambahan hingga invoice `PAID`.
 
 Tujuan aturan ini: item jasa tetap bisa dijual walau stok item jasa nol, namun konsumsi bahan fisik tetap tercatat saat jasa membutuhkan material.
+
+Kontrak operasional tambahan untuk use case percetakan + service HP/komputer:
+- Dokumen service dicetak dari template private service (`SERVICE_WORK_ORDER`, `SERVICE_INVOICE`) agar isi/format tidak mengambil mentah dari template sales umum.
+- Catatan kerja cukup sederhana (notes per order + `serviceUniversalNote` level company) untuk menghindari over-engineering.
+- Harga service dapat disesuaikan di tengah proses (setelah SO/DP) dengan sinkronisasi nilai dokumen order/invoice agar saldo tagihan tetap akurat.
 
 ## Ekstensi Flow Restoran (Bayar Belakangan)
 

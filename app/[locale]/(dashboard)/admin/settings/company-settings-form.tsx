@@ -16,12 +16,14 @@ import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 import { useTranslations } from "next-intl";
 
@@ -38,6 +40,12 @@ export function CompanySettingsForm({
   const [success, setSuccess] = useState<string | null>(null);
   const [currencySymbol, setCurrencySymbol] = useState(
     initialData?.currencySymbol || ""
+  );
+  const [enableDepartmentDimension, setEnableDepartmentDimension] = useState(
+    initialData?.enableDepartmentDimension ?? true
+  );
+  const [enableProjectDimension, setEnableProjectDimension] = useState(
+    initialData?.enableProjectDimension ?? true
   );
 
   const handleCurrencyChange = (value: string) => {
@@ -71,6 +79,9 @@ export function CompanySettingsForm({
       currencyFormat: formData.get("currencyFormat") as string,
       locale: formData.get("locale") as string,
       timezone: formData.get("timezone") as string,
+      serviceUniversalNote: formData.get("serviceUniversalNote") as string,
+      enableDepartmentDimension,
+      enableProjectDimension,
     };
 
     startTransition(async () => {
@@ -145,10 +156,19 @@ export function CompanySettingsForm({
                 defaultValue={initialData?.website || ""}
               />
             </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="serviceUniversalNote">Service Note (Universal)</Label>
+              <Textarea
+                id="serviceUniversalNote"
+                name="serviceUniversalNote"
+                defaultValue={initialData?.serviceUniversalNote || ""}
+                placeholder="Catatan default untuk dokumen service (mis. SLA, ketentuan revisi, disclaimer data privasi)"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2 pt-4">
-            <h3 className="text-lg font-medium">{t("regional_settings")}</h3>
+	          <div className="space-y-2 pt-4">
+	            <h3 className="text-lg font-medium">{t("regional_settings")}</h3>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="currency">{t("currency")}</Label>
@@ -250,10 +270,46 @@ export function CompanySettingsForm({
                   </SelectContent>
                 </Select>
               </div>
+	            </div>
+	          </div>
+
+          <div className="space-y-2 pt-4">
+            <h3 className="text-lg font-medium">Transaction Dimensions</h3>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2 rounded-md border p-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="enableDepartmentDimension">Enable Department</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Show Department module and Department field in transaction forms.
+                    </p>
+                  </div>
+                  <Switch
+                    id="enableDepartmentDimension"
+                    checked={enableDepartmentDimension}
+                    onCheckedChange={setEnableDepartmentDimension}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 rounded-md border p-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="enableProjectDimension">Enable Project</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Show Project module and Project field in transaction forms.
+                    </p>
+                  </div>
+                  <Switch
+                    id="enableProjectDimension"
+                    checked={enableProjectDimension}
+                    onCheckedChange={setEnableProjectDimension}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          {error && (
+	          {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>{tCommon("error")}</AlertTitle>

@@ -9,6 +9,8 @@ import { CashFlowPdf } from "@/app/[locale]/(dashboard)/accounting/reports/_pdf/
 import { EquityChangePdf } from "@/app/[locale]/(dashboard)/accounting/reports/_pdf/equity";
 import { FinancialRatiosPdf } from "@/app/[locale]/(dashboard)/accounting/reports/_pdf/ratios";
 import { BudgetTrackingPdf } from "@/app/[locale]/(dashboard)/budgeting/_reports/budget-tracking/pdf";
+import { ServiceWorkOrderPdf } from "@/app/[locale]/(dashboard)/services/_reports/service-work-order/pdf";
+import { ServiceInvoicePdf } from "@/app/[locale]/(dashboard)/services/_reports/service-invoice/pdf";
 
 export const clientRegistry = {
   SALES_ORDER: SalesOrderPdf,
@@ -16,6 +18,8 @@ export const clientRegistry = {
   SALES_INVOICE: SalesInvoicePdf,
   JOURNAL_ENTRY: JournalEntryPdf,
   POS_RECEIPT: POSReceiptPdf,
+  SERVICE_WORK_ORDER: ServiceWorkOrderPdf,
+  SERVICE_INVOICE: ServiceInvoicePdf,
   PROFIT_LOSS: ProfitLossPdf,
   BALANCE_SHEET: BalanceSheetPdf,
   CASH_FLOW: CashFlowPdf,
@@ -23,4 +27,3 @@ export const clientRegistry = {
   FINANCIAL_RATIOS: FinancialRatiosPdf,
   BUDGET_TRACKING: BudgetTrackingPdf,
 } as const;
-
