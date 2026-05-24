@@ -29,6 +29,45 @@
 3. Side effect integrasi (outbox/event) dilakukan di service domain, bukan UI.
 4. Validasi kontrak input sedapat mungkin konsisten melalui schema/helper shared.
 
+## Multi-Company + Platform Super Admin (2026-05-20)
+
+Baseline SaaS multi-company sekarang ditambahkan di layer auth + data model tanpa membuat arsitektur paralel:
+
+1. Data model tenancy:
+- `Company`, `CompanyMembership`, `CompanyImpersonationAudit` di `prisma/schema/01_general.prisma`.
+- `CompanyProfile` sekarang one-to-one ke `Company` lewat `companyId`.
+- Domain utama (`accounting`, `people`, `inventory`, `purchasing`, `sales`, `pos`) menambahkan kolom opsional `companyId` untuk isolasi data bertahap.
+
+2. Session context:
+- `lib/auth/auth.ts` menyimpan `activeCompanyId`, `isPlatformSuperAdmin`, dan `impersonatedCompanyId` di payload session.
+- Resolusi company aktif saat login menggunakan membership aktif (`resolveUserCompanyContext`).
+- Super admin dapat melakukan impersonation company via context session, dengan audit trail di `CompanyImpersonationAudit`.
+
+3. App shell & route binding:
+- Dashboard/pos/settings/reporting kini mengambil company profile berdasarkan `activeCompanyId`, bukan `companyProfile.findFirst()`.
+- Helper shared `lib/company-context.ts` menjadi source context company aktif untuk layout + action.
+- Sidebar user (`components/layout/sidebar/nav-user.tsx`) mendukung switch company aktif dan stop impersonation.
+
+4. Platform control plane:
+- Halaman baru `Admin > Companies` di `app/[locale]/(dashboard)/admin/companies`.
+- Cakupan: create company, suspend/activate, start/stop impersonation, switch active company.
+- Item menu ini hanya tampil untuk platform super admin.
+
+5. Migrasi:
+- Migration `prisma/migrations/20260520142000_multi_company_superadmin_foundation/migration.sql`.
+- Termasuk backfill legacy `CompanyProfile` -> `Company` dan bootstrap membership default user existing agar login tetap valid pasca migrasi.
+
+6. Isolasi master inventory lintas company:
+- Seluruh action dashboard inventory untuk `Category`, `Warehouse`, `Warehouse Location`, `Stock Adjustment`, `Movement`, dan `Pricing` sekarang wajib memakai `activeCompanyId` dari session saat read/write.
+- Service `WarehouseService` sekarang menolak update/delete lintas tenant (record harus berasal dari company aktif).
+- Unik nama `Category` dan `Warehouse` dipindah dari global ke per-company melalui komposit `(companyId, name)`.
+- Setup wizard (`saveInitialWarehouse`) sekarang membuat kategori/warehouse baseline dengan `companyId` company aktif.
+
+7. Toggle dimensi transaksi per company:
+- `CompanyProfile` menyimpan flag `enableDepartmentDimension` dan `enableProjectDimension`.
+- Flag ini mengendalikan visibility menu `General > Departments/Projects` pada sidebar, serta field dimensi pada form transaksi (purchase, sales, cash transaction, quick purchase).
+- Loader `getDepartments/getProjects` di layer action akan mengembalikan opsi kosong saat flag dimensi dimatikan, sehingga UI transaksi otomatis menyederhana tanpa mengubah kontrak data transaksi existing.
+
 ## Alur Kritis Restoran: Table -> Kitchen -> Billing -> Inventory
 
 Implementasi saat ini:
@@ -64,6 +103,7 @@ Aturan layer tetap berlaku:
 
 - Seluruh panggilan data dari tab dilakukan lewat server action di `app/[locale]/pos/actions.ts`, yang thin-forward ke service di `modules/pos/services`.
 - Tidak ada logic domain di tab component — hanya orkestrasi UI + `useQuery` cache invalidation lintas tab (keys: `pos-floor-overview`, `pos-kitchen-tickets`, `pos-billing-queue`, `diningSpots`).
+- `openPOSSession` wajib membawa `activeCompanyId` dari session auth ke `POSSession.companyId` saat create. Service open juga menutup sesi `OPEN` legacy milik cashier yang masih `companyId = null` agar transisi pasca-migrasi multi-company tetap konsisten.
 - Rute lama `/pos/restaurant`, `/pos/restaurant/kitchen`, `/pos/restaurant/billing` dipertahankan sebagai Next.js server component yang `redirect()` ke `/pos?tab=...` untuk backward-compat.
 - `prisma.config.ts` mengeksplisitkan `migrations.path = "prisma/migrations"` (wajib pada Prisma 7 saat `schema` berupa folder), sehingga sidecar `migrate` di `docker-compose.yml` dapat menjalankan `prisma migrate deploy` tanpa fallback.
 
@@ -164,8 +204,14 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
 
 ### Standalone Route `/services`
 
-- Ditambahkan route terpisah `app/[locale]/services/page.tsx` untuk menjalankan service workflow tanpa bercampur UI kasir produk.
-- Route ini tetap reuse action + domain yang sama (`app/[locale]/pos/actions.ts` dan `modules/services/services/pos-service-workflow.service.ts`).
+- Route terpisah `/services` dijalankan dari `app/[locale]/(dashboard)/services/page.tsx` agar tetap berada dalam dashboard shell (sidebar + session provider) sambil memisahkan UI jasa dari kasir produk.
+- Route ini sekarang memakai pattern modular CRUD dashboard (style setara `sales`) melalui adapter action khusus di `app/[locale]/(dashboard)/services/actions.ts`, namun tetap reuse domain service yang sama (`modules/services/services/pos-service-workflow.service.ts`) untuk workflow inti.
+- Root `/services` melakukan redirect ke `/services/orders`, dengan route operasional terpisah: `/services/orders`, `/services/invoices`, `/services/payments`, dan `/services/returns-warranty`.
+- Navigasi sidebar `Services` sekarang berdiri sebagai modul sendiri di section `Operations` (tidak lagi nested di group `POS`).
+- Pada `/services/orders`, create order mendukung dua mode input:
+  - popup cepat (dengan quick add customer + autofill harga produk),
+  - form page penuh `/services/orders/new` untuk pengalaman setara modul transaksi `sales`.
+- Pada `/services/returns-warranty`, create case `RETURN/WARRANTY` sekarang membentuk dokumen `SalesReturn` yang terhubung ke service order/invoice terkait.
 - Tujuan: memisahkan surface bisnis jasa agar mudah di-extend ke workflow lanjutan (assignment, SLA, pipeline) tanpa memecah kontrak data/transaksi existing.
 
 ## Budgeting: Budget Operasional + Saving Target (2026-05-13)

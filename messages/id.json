@@ -88,6 +88,7 @@
         "cash_bank": "Kas & Bank",
         "pos": "POS",
         "sales": "Penjualan",
+        "services": "Layanan",
         "purchase": "Pembelian",
         "inventory": "Persediaan",
         "accounting": "Akuntansi",
@@ -102,6 +103,12 @@
         "company": "Perusahaan",
         "general": "Umum",
         "production": "Produksi"
+    },
+    "Services": {
+        "orders": "Order Layanan",
+        "invoices": "Invoice Layanan",
+        "payments": "Pembayaran Layanan",
+        "returns_warranty": "Retur & Garansi"
     },
     "General": {
         "contacts": "Kontak",
@@ -1018,6 +1025,7 @@
         "cannot_deactivate_default": "Anda tidak dapat menonaktifkan tenant bawaan.",
         "activate": "Aktifkan",
         "create_tenant": "Buat Tenant",
+        "companies": "Daftar Perusahaan",
         "users": "Daftar Pengguna",
         "role": "Peran",
         "roles": "Peran & Perizinan",

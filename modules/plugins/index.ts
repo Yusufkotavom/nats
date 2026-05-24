@@ -10,10 +10,12 @@ import { posPlugin } from "./pos";
 import { productionPlugin } from "./production";
 import { purchasePlugin } from "./purchase";
 import { salesPlugin } from "./sales";
+import { servicesPlugin } from "./services";
 import type { NavItem, NavSectionKey, PermissionDefinition } from "./types";
 
 export const plugins = [
   posPlugin,
+  servicesPlugin,
   salesPlugin,
   purchasePlugin,
   cashBankPlugin,
@@ -57,4 +59,3 @@ export function getPermissionRegistry(): PermissionDefinition[] {
     a.module.localeCompare(b.module) || a.name.localeCompare(b.name)
   );
 }
-

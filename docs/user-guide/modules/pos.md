@@ -2,7 +2,7 @@
 title: Modul POS
 module: pos
 order: 110
-updatedAt: 2026-05-15
+updatedAt: 2026-05-20
 summary: Operasional POS terpadu untuk restoran dan service workflow (DP/pelunasan) dalam satu halaman.
 related: 03-operasional-harian,modules/inventory,modules/production,modules/sales,modules/purchase,modules/accounting
 ---
@@ -51,9 +51,16 @@ Di tab **Kasir**, tersedia dua mode:
 
 Mode **Service** hanya menampilkan produk dengan flag `Service Item` aktif di master produk.
 
-Untuk operasional jasa yang ingin dipisah dari layar kasir utama, gunakan halaman standalone:
-- **`/services`** (menu: `POS > Services`)
-- halaman ini memakai engine service order yang sama, tetapi surface UI terpisah agar lebih mudah dikembangkan per lini bisnis jasa.
+Untuk operasional jasa yang ingin dipisah dari layar kasir utama, gunakan modul standalone:
+- **`/services`** (menu sidebar: `Services`)
+- halaman ini memakai engine service order yang sama, namun sekarang menjadi **modul Services mandiri** di sidebar dengan route operasional:
+  - `/services/orders`
+  - `/services/orders/new` (form page penuh)
+  - `/services/invoices`
+  - `/services/payments`
+  - `/services/returns-warranty` (queue return/garansi)
+  - dengan pola list/filter/action setara modul `Sales`.
+  - pada popup create order, user bisa quick add customer dan harga produk service terisi otomatis saat produk dipilih.
 
 ### Aktivasi Produk Service
 1. Buka `Inventory > Products`.
@@ -188,7 +195,8 @@ Rute lama otomatis redirect ke tab yang setara:
 - `/pos/restaurant/kitchen` → `/pos?tab=kitchen`
 - `/pos/restaurant/billing` → `/pos?tab=billing`
 
-Sidebar kini hanya berisi: `Cashier` (`/pos`), `Sessions` (`/pos/sessions`), dan `Dining Spots` (`/pos/dining-spots`).
+Sidebar POS berisi: `Cashier` (`/pos`), `Sessions` (`/pos/sessions`), dan `Dining Spots` (`/pos/dining-spots`).  
+Menu `Services` sekarang menjadi modul sidebar terpisah dengan route operasional sendiri.
 
 ## Validasi
 - Invoice terbuat

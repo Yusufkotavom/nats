@@ -88,6 +88,7 @@
         "cash_bank": "Cash & Bank",
         "pos": "POS",
         "sales": "Sales",
+        "services": "Services",
         "purchase": "Purchase",
         "inventory": "Inventory",
         "accounting": "Accounting",
@@ -102,6 +103,12 @@
         "company": "Company",
         "general": "General",
         "production": "Production"
+    },
+    "Services": {
+        "orders": "Service Orders",
+        "invoices": "Service Invoices",
+        "payments": "Service Payments",
+        "returns_warranty": "Returns & Warranty"
     },
     "General": {
         "contacts": "Contacts",
@@ -1018,6 +1025,7 @@
         "cannot_deactivate_default": "You cannot deactivate the default tenant.",
         "activate": "Activate",
         "create_tenant": "Create Tenant",
+        "companies": "Companies",
         "users": "Users",
         "role": "Role",
         "roles": "Roles & Permissions",
