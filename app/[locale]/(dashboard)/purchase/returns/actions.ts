@@ -248,7 +248,7 @@ export const updatePurchaseReturn = authorizedAction(
             projectId: data.projectId,
             returnDate: data.returnDate,
             notes: data.notes,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             status: (data.status || currentReturn.status) as any,
             totalAmount,
             items: {

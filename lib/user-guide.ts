@@ -67,7 +67,7 @@ async function listMarkdownFiles(dir: string): Promise<string[]> {
 function toDoc(meta: Record<string, string>, filePath: string, content: string): GuideDoc {
   const slug = normalizeSlug(filePath);
   const title = meta.title || slug[slug.length - 1].replace(/-/g, " ");
-  const module = meta.module || "general";
+  const moduleName = meta.module || "general";
   const order = Number(meta.order || "999");
   const updatedAt = meta.updatedAt || new Date().toISOString().slice(0, 10);
   const summary = meta.summary || "";
@@ -78,7 +78,7 @@ function toDoc(meta: Record<string, string>, filePath: string, content: string):
   return {
     slug,
     title,
-    module,
+    module: moduleName,
     order,
     updatedAt,
     summary,

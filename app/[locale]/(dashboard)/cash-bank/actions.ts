@@ -214,7 +214,7 @@ export async function createCashAccount(data: CashAccountFormData) {
 export async function updateCashAccount(
   id: string,
   data: UpdateCashAccountFormData,
-): Promise<ActionResponse<{}>> {
+): Promise<ActionResponse<Record<string, never>>> {
   try {
     const session = await getSession();
     if (!session || !hasPermission(session.permissions, "cash_bank.edit")) {

@@ -8,6 +8,8 @@ import { ContactType } from "@/prisma/generated/prisma/enums";
 import { notFound } from "next/navigation";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration/taxes/actions";
+import { getSalesPipelineBridgeByContext } from "../../_lib/pipeline-bridge";
+import { SalesPipelineTopbar } from "../../_components/sales-pipeline-topbar";
 
 export const metadata: Metadata = {
   title: "View Sales Invoice | NATS",
@@ -21,13 +23,14 @@ interface PageProps {
 export default async function ViewSalesInvoicePage({ params }: PageProps) {
   const { id } = await params;
 
-  const [customers, salesOrders, invoice, departments, projects, taxRates] = await Promise.all([
+  const [customers, salesOrders, invoice, departments, projects, taxRates, pipeline] = await Promise.all([
     getContacts({ type: ContactType.CUSTOMER }),
     getSalesOrdersForSelect(),
     getSalesInvoice(id),
     getDepartments(),
     getProjects(),
     getTaxRates(),
+    getSalesPipelineBridgeByContext({ kind: "invoice", id }),
   ]);
 
   if (!invoice) {
@@ -35,14 +38,17 @@ export default async function ViewSalesInvoicePage({ params }: PageProps) {
   }
 
   return (
-    <SalesInvoiceForm
-      invoice={invoice}
-      customers={customers.data}
-      salesOrders={salesOrders}
-      departments={departments}
-      projects={projects.projects}
-      taxRates={taxRates}
-      readonly={true}
-    />
+    <>
+      <SalesPipelineTopbar data={pipeline} active="invoice" />
+      <SalesInvoiceForm
+        invoice={invoice}
+        customers={customers.data}
+        salesOrders={salesOrders}
+        departments={departments}
+        projects={projects.projects}
+        taxRates={taxRates}
+        readonly={true}
+      />
+    </>
   );
 }

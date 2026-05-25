@@ -19,7 +19,7 @@
 - Setup wizard awal (`app/[locale]/(dashboard)/setup/actions.ts`) melakukan seeding baseline unit + kategori inventory serta sample produk/jasa onboarding melalui konstanta shared `lib/setup/chart-of-accounts-template.ts` agar konsisten lintas tenant dan siap dipakai uji transaksi awal.
 - Default template setup akun awal sekarang memakai `UMKM Balanced (Recommended)` yang lebih ringkas dari template general, tetap mencakup akun operasional penting (kas/bank/piutang/utang/persediaan/HPP) dan akun `Service Revenue` untuk bisnis jasa + produk.
 - Setup `Chart of Accounts`, `Default Accounts`, serta `Warehouse & Basics` kini dihitung dan disimpan per `activeCompanyId` (tenant-scoped), sehingga status wizard tidak lagi terpengaruh data company lain.
-- Workspace pipeline per modul (`/sales/pipeline/[orderId]`, `/services/pipeline/[orderId]`) menggunakan pola wrapper orchestration di layer `app/*/pipeline/*` untuk mengurangi klik antar dokumen, tetapi tetap memanggil service/action domain existing sebagai source of truth.
+- Pipeline lintas dokumen sales memakai pola **top-bar bridge** di halaman dokumen existing (`Sales Order`, `Shipment`, `Invoice`, `Payment`) agar user tetap edit/view di halaman asli sambil berpindah tahap tanpa keluar masuk workspace terpisah.
 
 5. `docs/`
 - Dokumen arsitektur, domain rules, dan operational governance.

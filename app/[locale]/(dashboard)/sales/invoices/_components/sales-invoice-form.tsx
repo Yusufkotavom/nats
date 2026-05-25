@@ -794,7 +794,7 @@ export function SalesInvoiceForm({
                   <CustomSelect
                     value={formData.status}
                     label={t("status")}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                     
                     onValueChange={(val: any) =>
                       setFormData((prev) => ({ ...prev, status: val }))
                     }

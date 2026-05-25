@@ -1,32 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import Link from "next/link";
 
 import { Button } from "./button";
 
-type LinkLikeProps = ComponentProps<"a">;
-
-let capturedProps: LinkLikeProps | null = null;
-
-function CaptureLink(props: LinkLikeProps) {
-  capturedProps = props;
-  return <a {...props} />;
-}
-
 describe("Button", () => {
-  beforeEach(() => {
-    capturedProps = null;
-  });
-
   it("does not inject onClick into child link when no onClick prop is passed", () => {
     render(
       <Button asChild>
-        <CaptureLink href="/budgeting">Budgeting</CaptureLink>
+        <Link href="/budgeting">Budgeting</Link>
       </Button>,
     );
 
-    expect(capturedProps).not.toBeNull();
-    expect(capturedProps?.onClick).toBeUndefined();
+    const link = screen.getByRole("link", { name: "Budgeting" });
+    expect(link.getAttribute("onclick")).toBeNull();
   });
 
   it("keeps click behavior when onClick is explicitly provided", () => {
@@ -34,7 +21,7 @@ describe("Button", () => {
 
     render(
       <Button asChild onClick={handleClick}>
-        <a href="/budgeting">Budgeting</a>
+        <Link href="/budgeting">Budgeting</Link>
       </Button>,
     );
 

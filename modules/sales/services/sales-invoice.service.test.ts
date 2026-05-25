@@ -91,7 +91,7 @@ describe("SalesInvoiceService", () => {
                         create: vi.fn().mockResolvedValue({ id: "outbox-001" }),
                     },
                 };
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 return (cb as any)(tx);
             });
 
@@ -120,7 +120,7 @@ describe("SalesInvoiceService", () => {
                         create: vi.fn().mockResolvedValue({ id: "outbox-002" }),
                     },
                 };
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 return (cb as any)(tx);
             });
 
@@ -163,7 +163,7 @@ describe("SalesInvoiceService", () => {
                         create: vi.fn().mockResolvedValue({ id: "outbox-003" }),
                     },
                 };
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 return (cb as any)(tx);
             });
 

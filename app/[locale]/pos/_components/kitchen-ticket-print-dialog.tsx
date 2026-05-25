@@ -60,7 +60,7 @@ export function KitchenTicketPrintDialog({
     } catch {
       return payload.sentAt.toString();
     }
-  }, [payload?.sentAt]);
+  }, [payload]);
 
   const handlePrint = useCallback(() => {
     // Rely on a scoped print stylesheet: only the ticket area is rendered.

@@ -159,7 +159,7 @@ export const updateUser = authorizedAction(
         };
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const updateData: any = { ...data };
 
       if (data.password) {

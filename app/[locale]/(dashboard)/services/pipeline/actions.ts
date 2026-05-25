@@ -42,11 +42,17 @@ export async function getServicePipelineState(orderId: string): Promise<ServiceP
   const order = await prisma.pOSServiceOrder.findUnique({
     where: { id: orderId },
     include: {
-      contact: { select: { name: true } },
       salesInvoice: { select: { id: true, invoiceNumber: true, status: true } },
     },
   });
   if (!order) throw new Error("Service order not found");
+
+  const contact = order.contactId
+    ? await prisma.contact.findUnique({
+        where: { id: order.contactId },
+        select: { name: true },
+      })
+    : null;
 
   const payment = await prisma.salesPayment.findFirst({
     where: { salesInvoiceId: order.salesInvoiceId },
@@ -65,7 +71,7 @@ export async function getServicePipelineState(orderId: string): Promise<ServiceP
       salesOrderId: order.salesOrderId,
       salesInvoiceId: order.salesInvoiceId,
       status: order.status as ServicePipelineState["order"]["status"],
-      customerName: order.contact?.name || "Walk-in Customer",
+      customerName: contact?.name || "Walk-in Customer",
       totalAmount: Number(order.totalAmount),
       remainingAmount: Number(order.remainingAmount),
     },

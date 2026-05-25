@@ -357,7 +357,10 @@ export const updateSalesShipment = authorizedAction(
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Shipment:", error);
-      return { success: false, error: "Failed to update Sales Shipment" };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to update Sales Shipment",
+      };
     }
   },
 );

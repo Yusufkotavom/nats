@@ -80,7 +80,7 @@ describe("PurchaseReceiveService", () => {
                         create: vi.fn().mockResolvedValue({ id: "outbox-001" }),
                     },
                 };
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 return (cb as any)(tx);
             });
 
@@ -104,7 +104,7 @@ describe("PurchaseReceiveService", () => {
                         create: vi.fn().mockResolvedValue({ id: "outbox-002" }),
                     },
                 };
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 return (cb as any)(tx);
             });
 

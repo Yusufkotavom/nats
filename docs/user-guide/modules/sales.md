@@ -2,7 +2,7 @@
 title: Modul Sales
 module: sales
 order: 120
-updatedAt: 2026-05-24
+updatedAt: 2026-05-25
 summary: Panduan lengkap proses penjualan dari order sampai payment dengan contoh praktis.
 related: modules/pos,modules/inventory,modules/accounting
 ---
@@ -25,6 +25,12 @@ Modul Sales mengelola penjualan non-POS seperti catering, delivery, atau corpora
 Sales Order → Shipment → Invoice → Payment
    (Order)     (Stok -)   (Piutang +)  (Piutang -)
 ```
+
+### Navigasi Pipeline Cepat (Top Bar)
+- Saat membuka detail dokumen Sales (view/edit), sistem menampilkan **Sales Pipeline** di bagian atas halaman.
+- Top bar ini menjadi jembatan cepat antar tahap: `Sales Order` → `Shipment` → `Invoice` → `Payment`.
+- Jika dokumen tahap berikutnya belum ada, step akan tampil placeholder (`-`), jadi user tahu tahap mana yang sudah/ belum terbentuk.
+- Tujuan utamanya mengurangi klik bolak-balik list dokumen, sambil tetap memakai form/original page yang sama.
 
 ## 🚀 Langkah 1: Sales Order
 

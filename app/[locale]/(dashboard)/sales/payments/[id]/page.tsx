@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { SuperJSON } from "@/lib/superjson";
 import { SalesPaymentWithDetails } from "../types";
+import { getSalesPipelineBridgeByContext } from "../../_lib/pipeline-bridge";
+import { SalesPipelineTopbar } from "../../_components/sales-pipeline-topbar";
 
 export const metadata: Metadata = {
   title: "View Sales Payment | NATS",
@@ -20,7 +22,10 @@ interface PageProps {
 
 export default async function ViewSalesPaymentPage(props: PageProps) {
   const params = await props.params;
-  const paymentData = await getSalesPayment(params.id);
+  const [paymentData, pipeline] = await Promise.all([
+    getSalesPayment(params.id),
+    getSalesPipelineBridgeByContext({ kind: "payment", id: params.id }),
+  ]);
 
   if (!paymentData) {
     notFound();
@@ -28,5 +33,10 @@ export default async function ViewSalesPaymentPage(props: PageProps) {
 
   const payment = SuperJSON.deserialize<SalesPaymentWithDetails>(paymentData);
 
-  return <SalesPaymentForm initialData={payment} readonly />;
+  return (
+    <>
+      <SalesPipelineTopbar data={pipeline} active="payment" />
+      <SalesPaymentForm initialData={payment} readonly />
+    </>
+  );
 }

@@ -7,6 +7,8 @@ import { Metadata } from "next";
 import { SuperJSON } from "@/lib/superjson";
 import { SalesPaymentWithDetails } from "../../types";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/accounting/journal-entries/actions";
+import { getSalesPipelineBridgeByContext } from "../../../_lib/pipeline-bridge";
+import { SalesPipelineTopbar } from "../../../_components/sales-pipeline-topbar";
 
 export const metadata: Metadata = {
   title: "Edit Sales Payment | NATS",
@@ -21,9 +23,12 @@ interface PageProps {
 
 export default async function EditSalesPaymentPage(props: PageProps) {
   const params = await props.params;
-  const paymentData = await getSalesPayment(params.id);
-  const departments = await getDepartments();
-  const projects = await getProjects();
+  const [paymentData, departments, projects, pipeline] = await Promise.all([
+    getSalesPayment(params.id),
+    getDepartments(),
+    getProjects(),
+    getSalesPipelineBridgeByContext({ kind: "payment", id: params.id }),
+  ]);
 
   if (!paymentData) {
     notFound();
@@ -33,21 +38,27 @@ export default async function EditSalesPaymentPage(props: PageProps) {
 
   if (payment.journalEntryId) {
     return (
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-center h-full">
-          <p className="text-muted-foreground">
-            Cannot edit posted payments.
-          </p>
+      <>
+        <SalesPipelineTopbar data={pipeline} active="payment" />
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <div className="flex items-center justify-center h-full">
+            <p className="text-muted-foreground">
+              Cannot edit posted payments.
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <SalesPaymentForm
-      initialData={payment}
-      departments={departments}
-      projects={projects.projects}
-    />
+    <>
+      <SalesPipelineTopbar data={pipeline} active="payment" />
+      <SalesPaymentForm
+        initialData={payment}
+        departments={departments}
+        projects={projects.projects}
+      />
+    </>
   );
 }

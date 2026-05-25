@@ -12,7 +12,7 @@ export function formatSequence(
     includeMonth: boolean,
     date: Date = new Date()
 ): string {
-    let components: string[] = [prefix];
+    const components: string[] = [prefix];
 
     if (includeYear || includeMonth) {
         let dateStr = "";

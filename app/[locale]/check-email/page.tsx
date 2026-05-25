@@ -26,7 +26,7 @@ export default function CheckEmailPage() {
                             </div>
                             <h1 className="text-2xl font-bold">Check Your Email</h1>
                             <p className="text-balance text-sm text-muted-foreground">
-                                We've sent an activation link to your email address. Please click the link to verify your account and complete registration.
+                                We&apos;ve sent an activation link to your email address. Please click the link to verify your account and complete registration.
                             </p>
                             <Link href="/auth" className="w-full">
                                 <Button className="w-full mt-4">

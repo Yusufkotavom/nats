@@ -62,6 +62,17 @@ export function ServicePipelineWorkspace({ orderId }: { orderId: string }) {
           <CardTitle>Service Pipeline Workspace</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {stateQuery.isError ? (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="font-medium">Failed to load service pipeline</div>
+              <div className="mt-1">
+                {stateQuery.error instanceof Error
+                  ? stateQuery.error.message
+                  : "Unknown error"}
+              </div>
+              <div className="mt-1 text-xs">Order ID: {orderId}</div>
+            </div>
+          ) : null}
           {state ? (
             <>
               <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -130,7 +141,7 @@ export function ServicePipelineWorkspace({ orderId }: { orderId: string }) {
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              {stateQuery.isLoading ? "Loading pipeline..." : "No data found."}
+              {stateQuery.isLoading ? "Loading pipeline..." : "No data found for this order."}
             </p>
           )}
         </CardContent>

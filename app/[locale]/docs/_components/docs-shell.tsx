@@ -74,13 +74,10 @@ export function DocsShell({
   const t = useTranslations("Docs");
   const { prev, next } = findAdjacentDocs(current, docs);
   const headings = useMemo(() => extractHeadings(current.content), [current.content]);
-  const [activeHeading, setActiveHeading] = useState<string>(headings[0]?.id || "");
+  const [activeHeading, setActiveHeading] = useState<string>("");
 
   useEffect(() => {
-    if (headings.length === 0) {
-      setActiveHeading("");
-      return;
-    }
+    if (headings.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {

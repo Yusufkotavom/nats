@@ -17,7 +17,7 @@ import { CustomInput } from "@/components/ui/custom-input";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { createRole, updateRole } from "../actions";
 import { Prisma } from "@/prisma/generated/prisma/client";
-type Role = Prisma.RoleGetPayload<{}>;
+type Role = Prisma.RoleGetPayload<Prisma.RoleDefaultArgs>;
 
 interface RoleDialogProps {
   role?: Role;

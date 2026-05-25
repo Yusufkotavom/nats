@@ -78,7 +78,7 @@ type OutboxEvent = {
   payload: unknown;
 };
 
-type OutboxAuditLog = Prisma.AuditLogGetPayload<{}>;
+type OutboxAuditLog = Prisma.AuditLogGetPayload<Prisma.AuditLogDefaultArgs>;
 
 function statusVariant(status: string) {
   if (status === "PROCESSED") return "default";

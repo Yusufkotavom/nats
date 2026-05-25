@@ -44,6 +44,10 @@ import { uploadFile } from "@/app/[locale]/(dashboard)/general/files/actions";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
+    PageFormLayout,
+    PageFormHeader,
+    PageFormActions,
+    PageFormContent,
     PageFormTitle,
 } from "@/components/layout/page/form-layout";
 import { useTranslations } from "next-intl";
@@ -180,7 +184,7 @@ export function SalesShipmentForm({
     ) => {
         setFormData((prev) => {
             const newItems = [...prev.items];
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             newItems[index] = { ...newItems[index], [field]: value } as any;
             return { ...prev, items: newItems };
         });
