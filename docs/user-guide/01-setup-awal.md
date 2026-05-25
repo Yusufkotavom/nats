@@ -131,9 +131,10 @@ Sebelum mulai, siapkan:
 
 ### 4.3 Product Categories
 1. **Navigasi**: Inventory → Master Data → Categories
-2. **Catatan setup wizard**: saat pertama kali menjalankan setup awal, sistem otomatis menyiapkan kategori baseline: `General`, `Menu Makanan`, `Menu Minuman`, `Menu Snack`, `Menu Dessert`, dan `Bahan Baku`.
-3. Lengkapi/ubah kategori sesuai kebutuhan operasional Anda.
-4. **Buat kategori utama**:
+2. **Catatan setup wizard**: saat pertama kali menjalankan setup awal, sistem otomatis menyiapkan kategori baseline: `General`, `Menu Makanan`, `Menu Minuman`, `Menu Snack`, `Menu Dessert`, `Bahan Baku`, `ATK & Percetakan`, `Aksesoris HP`, dan `Jasa Service`.
+3. Pada langkah **Warehouse & Basics**, sistem juga otomatis menambahkan sample produk/jasa awal lintas skenario (restoran, percetakan/ATK, konter HP + service) agar user bisa langsung test transaksi tanpa input master dari nol.
+4. Lengkapi/ubah kategori sesuai kebutuhan operasional Anda.
+5. **Buat kategori utama**:
 
 **Bahan Pokok**
 - Code: STAPLE
@@ -355,3 +356,20 @@ Sistem sudah siap untuk operasional harian. Lanjutkan ke:
 ### Bantuan
 - [Troubleshooting](./troubleshooting) - Solusi masalah umum
 - [Glosarium](./glossary) - Definisi istilah sistem
+### Template akun awal yang disarankan (UMKM)
+
+- Setup wizard default menggunakan template **UMKM Balanced (Recommended)**.
+- Template ini dibuat agar tidak terlalu kompleks, tetapi tetap cukup lengkap untuk operasional harian UMKM.
+- Akun penting yang sudah disiapkan mencakup:
+  - kas/bank/e-wallet,
+  - piutang dan utang,
+  - persediaan dan HPP,
+  - **pendapatan service** dan penjualan produk,
+  - beban operasional inti + akun uncategorized.
+- Jika bisnis Anda lebih kompleks (misalnya manufaktur), Anda masih bisa memilih template lain di step `Chart of Accounts`.
+
+### Catatan Multi-Company (SaaS)
+
+- Setup akun awal dan `Warehouse & Basics` sekarang berjalan **per company aktif**.
+- Artinya, company baru tidak lagi otomatis mewarisi status “sudah siap” dari data company lain.
+- Jika Anda switch company, status wizard setup akan mengikuti data company yang sedang aktif.

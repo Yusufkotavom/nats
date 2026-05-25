@@ -36,7 +36,7 @@ export function StepChartOfAccounts({
 }: StepChartOfAccountsProps) {
     const [isPending, startTransition] = useTransition();
     const [isSeeded, setIsSeeded] = useState(existingAccountCount > 0);
-    const [templateId, setTemplateId] = useState("general");
+    const [templateId, setTemplateId] = useState("umkm_balanced");
     const { toast } = useToast();
 
     const selectedTemplateDef = AVAILABLE_TEMPLATES.find(t => t.id === templateId) || AVAILABLE_TEMPLATES[0];

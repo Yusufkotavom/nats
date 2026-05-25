@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { PriceHistory } from "./price-history";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAlert } from "@/hooks/use-alert";
+import { useToast } from "@/hooks/use-toast";
 import { SuperJSON } from "@/lib/superjson";
 import { ProductFormState } from "./form-types";
 import { GeneralSection } from "./form-sections/general-section";
@@ -39,8 +40,10 @@ export function ProductForm({
 
   const router = useRouter();
   const alert = useAlert();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!product;
+  const [localCategories, setLocalCategories] = useState<Category[]>(categories);
 
   // Fully controlled form state
   const [formData, setFormData] = useState<ProductFormState>({
@@ -135,6 +138,12 @@ export function ProductForm({
       }
 
       if (result.success) {
+        toast({
+          title: isEditing ? "Product updated" : "Product created",
+          description: isEditing
+            ? "Perubahan produk berhasil disimpan."
+            : "Produk baru berhasil dibuat dan ditampilkan di daftar produk.",
+        });
         router.push("/inventory/products");
         router.refresh();
       } else {
@@ -180,7 +189,18 @@ export function ProductForm({
                 <GeneralSection
                   formData={formData}
                   handleInputChange={handleInputChange}
-                  categories={categories}
+                  categories={localCategories}
+                  onCategoryCreated={(category) => {
+                    if (!category) return;
+                    setLocalCategories((prev) => {
+                      const exists = prev.some((item) => item.id === category.id);
+                      if (exists) return prev;
+                      return [...prev, category].sort((a, b) =>
+                        a.name.localeCompare(b.name),
+                      );
+                    });
+                    handleInputChange("categoryId", category.id);
+                  }}
                   readonly={readonly}
                 />
               </TabsContent>

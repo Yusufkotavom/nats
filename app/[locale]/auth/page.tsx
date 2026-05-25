@@ -86,7 +86,7 @@ export default function LoginPage() {
               </div>
               <div className="text-center text-sm">
                 {t('no_account')}{" "}
-                <Link href="#" className="underline underline-offset-4">
+                <Link href="/register" className="underline underline-offset-4">
                   {t('sign_up')}
                 </Link>
               </div>

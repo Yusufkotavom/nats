@@ -80,14 +80,6 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
                 },
             });
 
-            await tx.companyProfile.create({
-                data: {
-                    companyId: company.id,
-                    name: companyName.trim(),
-                    email,
-                },
-            });
-
             const newUser = await tx.user.create({
                 data: {
                     email,
@@ -130,5 +122,5 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         };
     }
 
-    redirect("/dashboard");
+    redirect("/setup");
 }

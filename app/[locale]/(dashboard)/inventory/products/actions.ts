@@ -108,7 +108,7 @@ export async function getProducts(
           },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     }),

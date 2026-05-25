@@ -97,27 +97,6 @@ Setara dengan Option A, untuk eksekusi eksplisit seed minimal:
 npm run prisma:seed:minimal
 ```
 
-**Option C: Demo Lengkap (untuk testing skenario end-to-end)**
-Includes sample products dan transaksi demo:
-
-```bash
-npm run prisma:seed:demo
-```
-
-**Option D: Restaurant Minimal (No Transactions)**
-Extends minimal seed with restaurant master data only (menu + bahan baku + BOM dasar), without sales/purchase transactions. Includes realistic base/purchase/sales units with conversion factors. All initial inventory quantities are set to `0`:
-
-```bash
-npm run prisma:seed:restaurant:minimal
-```
-
-**Option E: Restaurant Indonesia (Detailed Inventory + Sunda/Seafood Catalog)**
-Dataset demo restoran Indonesia dengan produk dan inventory detail, fokus menu Sunda/seafood + minuman umum Indonesia, termasuk package product dan BOM minimal untuk paket:
-
-```bash
-npm run prisma:seed:restaurant-id
-```
-
 **Default Credentials:**
 
 - **Password**: `password123` (for all default users)
@@ -162,14 +141,8 @@ docker compose exec app npx prisma migrate deploy
 # Run default minimal seed
 docker compose exec app npm run prisma db seed
 
-# OR run demo lengkap
-docker compose exec app npm run prisma:seed:demo
-
 # OR run minimal seed alias
 docker compose exec app npm run prisma:seed:minimal
-
-# OR run Indonesian restaurant detailed seed
-docker compose exec app npm run prisma:seed:restaurant-id
 ```
 
 ---

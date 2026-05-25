@@ -70,6 +70,7 @@ describe("register/actions registerUserAndTenant", () => {
       }),
     );
     expect(txMock.company.create).toHaveBeenCalled();
+    expect(txMock.companyProfile.create).not.toHaveBeenCalled();
     expect(txMock.companyMembership.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -86,6 +87,6 @@ describe("register/actions registerUserAndTenant", () => {
         isPlatformSuperAdmin: false,
       }),
     );
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
+    expect(redirectMock).toHaveBeenCalledWith("/setup");
   });
 });

@@ -126,6 +126,39 @@ export const DEFAULT_CATEGORIES = [
     { name: "Menu Snack", description: "Menu camilan dan side dish siap jual" },
     { name: "Menu Dessert", description: "Menu pencuci mulut siap jual" },
     { name: "Bahan Baku", description: "Bahan baku operasional dapur/bar" },
+    { name: "ATK & Percetakan", description: "Produk ATK dan kebutuhan cetak harian" },
+    { name: "Aksesoris HP", description: "Produk aksesoris ponsel dan gadget" },
+    { name: "Jasa Service", description: "Layanan service perangkat dan pekerjaan non-stok" },
+];
+
+export type SampleCatalogTemplate = {
+    skuCode: string;
+    name: string;
+    categoryName: string;
+    unitSymbol: string;
+    price: number;
+    cost: number;
+    isService?: boolean;
+    description?: string;
+};
+
+/** Sample products/services seeded in setup wizard for quick trial transactions */
+export const DEFAULT_SAMPLE_CATALOG: SampleCatalogTemplate[] = [
+    // Restaurant
+    { skuCode: "RST-NASGOR", name: "Nasi Goreng Spesial", categoryName: "Menu Makanan", unitSymbol: "PRS", price: 25000, cost: 12000 },
+    { skuCode: "RST-ES-TEH", name: "Es Teh Manis", categoryName: "Menu Minuman", unitSymbol: "GLS", price: 8000, cost: 2500 },
+    { skuCode: "RST-FRENCH", name: "French Fries", categoryName: "Menu Snack", unitSymbol: "PRS", price: 15000, cost: 7000 },
+    { skuCode: "RST-PUDING", name: "Puding Coklat", categoryName: "Menu Dessert", unitSymbol: "PRS", price: 12000, cost: 5000 },
+    // Printing + stationeries
+    { skuCode: "PRT-A4-80", name: "Kertas A4 80gsm", categoryName: "ATK & Percetakan", unitSymbol: "PCS", price: 70000, cost: 58000 },
+    { skuCode: "PRT-BALLP", name: "Pulpen Gel", categoryName: "ATK & Percetakan", unitSymbol: "PCS", price: 5000, cost: 2500 },
+    { skuCode: "PRT-LAM-A4", name: "Laminating A4", categoryName: "Jasa Service", unitSymbol: "PCS", price: 6000, cost: 1500, isService: true, description: "Jasa laminating dokumen ukuran A4" },
+    // Phone counter + services
+    { skuCode: "HP-CASE", name: "Case HP Premium", categoryName: "Aksesoris HP", unitSymbol: "PCS", price: 45000, cost: 22000 },
+    { skuCode: "HP-CABLE", name: "Kabel Data Type-C", categoryName: "Aksesoris HP", unitSymbol: "PCS", price: 30000, cost: 15000 },
+    { skuCode: "HP-TG", name: "Tempered Glass", categoryName: "Aksesoris HP", unitSymbol: "PCS", price: 25000, cost: 10000 },
+    { skuCode: "SRV-HP-CLEAN", name: "Service Cleaning HP", categoryName: "Jasa Service", unitSymbol: "PCS", price: 35000, cost: 10000, isService: true },
+    { skuCode: "SRV-HP-SW", name: "Service Update Software", categoryName: "Jasa Service", unitSymbol: "PCS", price: 75000, cost: 20000, isService: true },
 ];
 
 export const SERVICE_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS.map(a => {
@@ -136,6 +169,55 @@ export const SERVICE_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_AC
 
 export const RETAIL_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS;
 
+/**
+ * Balanced UMKM template:
+ * Keeps onboarding practical (not too many accounts) while still covering
+ * common micro/small-business flows for product + service businesses.
+ */
+export const UMKM_BALANCED_CHART_OF_ACCOUNTS: AccountTemplate[] = [
+    // ASSETS
+    { code: "10000", name: "Assets", type: "asset", normalBalance: "debit", isPosting: false, level: 0, parentCode: null },
+    { code: "11000", name: "Current Assets", type: "asset", normalBalance: "debit", isPosting: false, level: 1, parentCode: "10000" },
+    { code: "11100", name: "Cash and Cash Equivalents", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11110", name: "Bank - Main", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11120", name: "Petty Cash", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11130", name: "E-Wallet", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11200", name: "Accounts Receivable", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11300", name: "Inventory Asset", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+    { code: "11900", name: "Uncategorized Asset", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
+
+    // LIABILITIES
+    { code: "20000", name: "Liabilities", type: "liability", normalBalance: "credit", isPosting: false, level: 0, parentCode: null },
+    { code: "21000", name: "Current Liabilities", type: "liability", normalBalance: "credit", isPosting: false, level: 1, parentCode: "20000" },
+    { code: "21100", name: "Accounts Payable", type: "liability", normalBalance: "credit", isPosting: true, level: 2, parentCode: "21000" },
+    { code: "21200", name: "Sales Tax Payable", type: "liability", normalBalance: "credit", isPosting: true, level: 2, parentCode: "21000" },
+    { code: "21300", name: "Payroll Liability", type: "liability", normalBalance: "credit", isPosting: true, level: 2, parentCode: "21000" },
+
+    // EQUITY
+    { code: "30000", name: "Equity", type: "equity", normalBalance: "credit", isPosting: false, level: 0, parentCode: null },
+    { code: "31000", name: "Capital", type: "equity", normalBalance: "credit", isPosting: true, level: 1, parentCode: "30000" },
+    { code: "32000", name: "Retained Earnings", type: "equity", normalBalance: "credit", isPosting: true, level: 1, parentCode: "30000" },
+    { code: "33000", name: "Opening Balance Equity", type: "equity", normalBalance: "credit", isPosting: true, level: 1, parentCode: "30000" },
+
+    // REVENUE
+    { code: "40000", name: "Revenue", type: "revenue", normalBalance: "credit", isPosting: false, level: 0, parentCode: null },
+    { code: "41000", name: "Operating Revenue", type: "revenue", normalBalance: "credit", isPosting: false, level: 1, parentCode: "40000" },
+    { code: "41100", name: "Service Revenue", type: "revenue", normalBalance: "credit", isPosting: true, level: 2, parentCode: "41000" },
+    { code: "41200", name: "Product Sales", type: "revenue", normalBalance: "credit", isPosting: true, level: 2, parentCode: "41000" },
+    { code: "42000", name: "Sales Discount", type: "revenue", normalBalance: "debit", isPosting: true, level: 2, parentCode: "40000" },
+    { code: "49000", name: "Uncategorized Income", type: "revenue", normalBalance: "credit", isPosting: true, level: 2, parentCode: "40000" },
+
+    // EXPENSES
+    { code: "50000", name: "Expenses", type: "expense", normalBalance: "debit", isPosting: false, level: 0, parentCode: null },
+    { code: "51000", name: "Operating Expenses", type: "expense", normalBalance: "debit", isPosting: false, level: 1, parentCode: "50000" },
+    { code: "51400", name: "Salaries and Wages", type: "expense", normalBalance: "debit", isPosting: true, level: 2, parentCode: "51000" },
+    { code: "51700", name: "Marketing", type: "expense", normalBalance: "debit", isPosting: true, level: 2, parentCode: "51000" },
+    { code: "52000", name: "Cost of Goods Sold", type: "expense", normalBalance: "debit", isPosting: true, level: 2, parentCode: "50000" },
+    { code: "59000", name: "Uncategorized Expense", type: "expense", normalBalance: "debit", isPosting: true, level: 2, parentCode: "50000" },
+    { code: "80000", name: "Other Expenses", type: "expense", normalBalance: "debit", isPosting: false, level: 0, parentCode: null },
+    { code: "81000", name: "Exchange Gain/Loss", type: "expense", normalBalance: "debit", isPosting: true, level: 1, parentCode: "80000" },
+];
+
 export const MANUFACTURING_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS.concat([
     { code: "11310", name: "Raw Materials", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
     { code: "11320", name: "Work in Progress", type: "asset", normalBalance: "debit", isPosting: true, level: 2, parentCode: "11000" },
@@ -143,6 +225,7 @@ export const MANUFACTURING_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART
 ]).sort((a, b) => a.code.localeCompare(b.code));
 
 export const AVAILABLE_TEMPLATES = [
+    { id: "umkm_balanced", name: "UMKM Balanced (Recommended)", description: "Ringkas untuk UMKM, mencakup akun wajib + akun operasional penting termasuk pendapatan service.", getTemplate: () => UMKM_BALANCED_CHART_OF_ACCOUNTS },
     { id: "general", name: "General Business", description: "Standard chart of accounts suitable for most businesses.", getTemplate: () => STANDARD_CHART_OF_ACCOUNTS },
     { id: "service", name: "Service Business", description: "Optimized for service-based businesses without physical inventory.", getTemplate: () => SERVICE_CHART_OF_ACCOUNTS },
     { id: "retail", name: "Retail / Trade", description: "Includes tracking for physical inventory and cost of goods sold.", getTemplate: () => RETAIL_CHART_OF_ACCOUNTS },

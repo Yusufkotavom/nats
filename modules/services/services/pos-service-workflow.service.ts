@@ -102,6 +102,9 @@ export class POSServiceWorkflowService {
       if (!session || session.status !== "OPEN") {
         throw new Error("Session is not open");
       }
+      if (!session.companyId) {
+        throw new Error("Session is not bound to an active company");
+      }
 
       if (input.items.length === 0) {
         throw new Error("Service order items are required");
@@ -109,7 +112,10 @@ export class POSServiceWorkflowService {
 
       const productIds = input.items.map((item) => item.productId);
       const products = await tx.product.findMany({
-        where: { id: { in: productIds } },
+        where: {
+          id: { in: productIds },
+          companyId: session.companyId,
+        },
         select: { id: true, name: true, price: true, isService: true },
       });
       const productMap = new Map(products.map((p) => [p.id, p]));

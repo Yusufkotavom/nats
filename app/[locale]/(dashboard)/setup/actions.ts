@@ -8,6 +8,7 @@ import {
     RECOMMENDED_DEFAULT_ACCOUNT_MAPPINGS,
     DEFAULT_UNITS,
     DEFAULT_CATEGORIES,
+    DEFAULT_SAMPLE_CATALOG,
 } from "@/lib/setup/chart-of-accounts-template";
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client";
 import { requireActiveCompanyContext } from "@/lib/company-context";
@@ -35,10 +36,10 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         categoryCount,
     ] = await Promise.all([
         prisma.companyProfile.findUnique({ where: { companyId } }),
-        prisma.account.count(),
-        prisma.defaultAccount.count({ where: { isActive: true } }),
+        prisma.account.count({ where: { companyId } }),
+        prisma.defaultAccount.count({ where: { companyId, isActive: true } }),
         prisma.warehouse.count({ where: { companyId } }),
-        prisma.unit.count(),
+        prisma.unit.count({ where: { companyId } }),
         prisma.category.count({ where: { companyId } }),
     ]);
 
@@ -109,8 +110,9 @@ export const seedChartOfAccounts = authorizedAction(
     "company.settings",
     async (templateId?: string) => {
         let createdCount = 0;
+        const { companyId } = await requireActiveCompanyContext();
 
-        const id = templateId || "general";
+        const id = templateId || "umkm_balanced";
         const templateDef = AVAILABLE_TEMPLATES.find(t => t.id === id) || AVAILABLE_TEMPLATES[0];
         const chartTemplate = templateDef.getTemplate();
 
@@ -118,21 +120,28 @@ export const seedChartOfAccounts = authorizedAction(
             let parentId: string | null = null;
 
             if (account.parentCode) {
-                const parent = await prisma.account.findUnique({
-                    where: { code: account.parentCode },
+                const parent = await prisma.account.findFirst({
+                    where: {
+                        code: account.parentCode,
+                        companyId,
+                    },
                 });
                 if (parent) {
                     parentId = parent.id;
                 }
             }
 
-            const existing = await prisma.account.findUnique({
-                where: { code: account.code },
+            const existing = await prisma.account.findFirst({
+                where: {
+                    code: account.code,
+                    companyId,
+                },
             });
 
             if (!existing) {
                 await prisma.account.create({
                     data: {
+                        companyId,
                         code: account.code,
                         name: account.name,
                         type: account.type,
@@ -158,10 +167,14 @@ export const seedDefaultAccounts = authorizedAction(
     "company.settings",
     async () => {
         let mappedCount = 0;
+        const { companyId } = await requireActiveCompanyContext();
 
         for (const mapping of RECOMMENDED_DEFAULT_ACCOUNT_MAPPINGS) {
-            const account = await prisma.account.findUnique({
-                where: { code: mapping.code },
+            const account = await prisma.account.findFirst({
+                where: {
+                    code: mapping.code,
+                    companyId,
+                },
             });
 
             const purpose = mapping.purpose as DefaultAccountPurpose;
@@ -169,12 +182,13 @@ export const seedDefaultAccounts = authorizedAction(
             if (account) {
                 // Deactivate existing mapping for this purpose
                 await prisma.defaultAccount.updateMany({
-                    where: { purpose, isActive: true },
+                    where: { companyId, purpose, isActive: true },
                     data: { isActive: false },
                 });
 
                 await prisma.defaultAccount.create({
                     data: {
+                        companyId,
                         purpose,
                         accountId: account.id,
                         isActive: true,
@@ -196,14 +210,16 @@ export const saveCustomDefaultAccounts = authorizedAction(
     async (
         mappings: { purpose: DefaultAccountPurpose; accountId: string }[]
     ) => {
+        const { companyId } = await requireActiveCompanyContext();
         for (const mapping of mappings) {
             await prisma.defaultAccount.updateMany({
-                where: { purpose: mapping.purpose, isActive: true },
+                where: { companyId, purpose: mapping.purpose, isActive: true },
                 data: { isActive: false },
             });
 
             await prisma.defaultAccount.create({
                 data: {
+                    companyId,
                     purpose: mapping.purpose,
                     accountId: mapping.accountId,
                     isActive: true,
@@ -252,11 +268,19 @@ export const saveInitialWarehouse = authorizedAction(
 
         // Seed default units
         for (const unit of DEFAULT_UNITS) {
-            const existingUnit = await prisma.unit.findUnique({
-                where: { name: unit.name },
+            const existingUnit = await prisma.unit.findFirst({
+                where: {
+                    name: unit.name,
+                    companyId,
+                },
             });
             if (!existingUnit) {
-                await prisma.unit.create({ data: unit });
+                await prisma.unit.create({
+                    data: {
+                        ...unit,
+                        companyId,
+                    },
+                });
             }
         }
 
@@ -278,6 +302,59 @@ export const saveInitialWarehouse = authorizedAction(
             }
         }
 
+        // Seed sample products/services for quick onboarding trial
+        const [units, categories] = await Promise.all([
+            prisma.unit.findMany({
+                where: { companyId },
+                select: { id: true, symbol: true },
+            }),
+            prisma.category.findMany({
+                where: { companyId },
+                select: { id: true, name: true },
+            }),
+        ]);
+
+        const unitBySymbol = new Map(units.map((u) => [u.symbol, u.id]));
+        const categoryByName = new Map(categories.map((c) => [c.name, c.id]));
+
+        for (const item of DEFAULT_SAMPLE_CATALOG) {
+            const existingProduct = await prisma.product.findFirst({
+                where: {
+                    companyId,
+                    name: item.name,
+                },
+                select: { id: true },
+            });
+            if (existingProduct) {
+                continue;
+            }
+
+            const categoryId = categoryByName.get(item.categoryName) || null;
+            const unitId = unitBySymbol.get(item.unitSymbol) || null;
+            const companyScopedSku = `${companyId}-${item.skuCode}`;
+
+            await prisma.product.create({
+                data: {
+                    companyId,
+                    sku: companyScopedSku,
+                    name: item.name,
+                    description: item.description || null,
+                    categoryId,
+                    baseUnitId: unitId,
+                    purchaseUnitId: unitId,
+                    salesUnitId: unitId,
+                    price: item.price,
+                    cost: item.cost,
+                    averageCost: item.cost,
+                    purchaseConversionFactor: 1,
+                    salesConversionFactor: 1,
+                    isService: item.isService ?? false,
+                    isActive: true,
+                    showInPos: true,
+                },
+            });
+        }
+
         return { success: true };
     }
 );
@@ -286,8 +363,9 @@ export const saveInitialWarehouse = authorizedAction(
  * Fetches all posting accounts for the default accounts step.
  */
 export async function getPostingAccounts() {
+    const { companyId } = await requireActiveCompanyContext();
     return prisma.account.findMany({
-        where: { isPosting: true },
+        where: { isPosting: true, companyId },
         select: { id: true, code: true, name: true, type: true },
         orderBy: { code: "asc" },
     });
@@ -297,8 +375,9 @@ export async function getPostingAccounts() {
  * Fetches current default account mappings.
  */
 export async function getCurrentDefaultAccounts() {
+    const { companyId } = await requireActiveCompanyContext();
     return prisma.defaultAccount.findMany({
-        where: { isActive: true },
+        where: { companyId, isActive: true },
         include: { account: { select: { id: true, code: true, name: true } } },
     });
 }

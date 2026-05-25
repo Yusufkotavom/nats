@@ -59,7 +59,7 @@ export function StepWarehouse({
             <div>
                 <h2 className="text-xl font-semibold">Warehouse & Basics</h2>
                 <p className="text-muted-foreground mt-1">
-                    Set up your first warehouse and default measurement units. You can add more later.
+                    Set up your first warehouse, default units/categories, and sample products/services. You can adjust all of them later.
                 </p>
             </div>
 
@@ -71,7 +71,7 @@ export function StepWarehouse({
                             Warehouse & basics are configured
                         </p>
                         <p className="text-sm text-green-600 dark:text-green-400">
-                            You can manage warehouses and units in Inventory settings.
+                            Warehouse, defaults, and sample catalog are ready. You can manage them in Inventory.
                         </p>
                     </div>
                 </div>

@@ -1,3 +1,81 @@
+-- Backfill for environments where dining tables were not created in prior migrations.
+DO $$
+BEGIN
+  CREATE TYPE "DiningSpotType" AS ENUM ('TABLE', 'ROOM');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  CREATE TYPE "DiningSpotStatus" AS ENUM ('AVAILABLE', 'ORDERING', 'BILLING', 'CLOSED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "DiningArea" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "code" TEXT NOT NULL,
+  "sortOrder" INTEGER NOT NULL DEFAULT 0,
+  "isActive" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "DiningArea_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "DiningArea_code_key" ON "DiningArea"("code");
+
+CREATE TABLE IF NOT EXISTS "DiningSpot" (
+  "id" TEXT NOT NULL,
+  "areaId" TEXT NOT NULL,
+  "spotCode" TEXT NOT NULL,
+  "spotName" TEXT NOT NULL,
+  "spotType" "DiningSpotType" NOT NULL DEFAULT 'TABLE',
+  "capacity" INTEGER NOT NULL DEFAULT 2,
+  "status" "DiningSpotStatus" NOT NULL DEFAULT 'AVAILABLE',
+  "layoutX" INTEGER,
+  "layoutY" INTEGER,
+  "layoutW" INTEGER,
+  "layoutH" INTEGER,
+  "isActive" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "DiningSpot_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "DiningSpot_spotCode_key" ON "DiningSpot"("spotCode");
+DO $$
+BEGIN
+  ALTER TABLE "DiningSpot"
+    ADD CONSTRAINT "DiningSpot_areaId_fkey" FOREIGN KEY ("areaId") REFERENCES "DiningArea"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "DiningSpotSession" (
+  "id" TEXT NOT NULL,
+  "diningSpotId" TEXT NOT NULL,
+  "status" "DiningSpotStatus" NOT NULL DEFAULT 'ORDERING',
+  "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "closedAt" TIMESTAMP(3),
+  "openedBy" TEXT NOT NULL,
+  "closedBy" TEXT,
+  "guestCount" INTEGER,
+  "notes" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "DiningSpotSession_pkey" PRIMARY KEY ("id")
+);
+
+DO $$
+BEGIN
+  ALTER TABLE "DiningSpotSession"
+    ADD CONSTRAINT "DiningSpotSession_diningSpotId_fkey" FOREIGN KEY ("diningSpotId") REFERENCES "DiningSpot"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
 -- CreateEnum
 CREATE TYPE "RestaurantOrderStatus" AS ENUM ('OPEN', 'SENT_TO_KITCHEN', 'BILLING', 'PAID', 'CLOSED', 'CANCELLED');
 

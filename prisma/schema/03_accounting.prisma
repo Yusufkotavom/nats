@@ -2,7 +2,7 @@
 model Account {
   id                   String                @id @default(cuid())
   companyId            String?
-  code                 String                @unique
+  code                 String
   name                 String
   type                 AccountType
   normalBalance        NormalBalance         @default(debit)
@@ -34,6 +34,7 @@ model Account {
   @@index([type])
   @@index([parentId])
   @@index([companyId])
+  @@unique([companyId, code])
 }
 
 model JournalEntry {

@@ -25,7 +25,7 @@ interface CategoryDialogProps {
   trigger?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: (category?: Category) => void;
 }
 
 export function CategoryDialog({
@@ -56,13 +56,19 @@ export function CategoryDialog({
     };
 
     try {
+      let result;
       if (isEditing) {
-        await updateCategory(category.id, data);
+        result = await updateCategory(category.id, data);
       } else {
-        await createCategory(data);
+        result = await createCategory(data);
       }
+
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to save category");
+      }
+
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      onSuccess?.();
+      onSuccess?.(result?.data as Category | undefined);
       setOpen(false);
     } catch (error) {
       console.error(error);

@@ -9,6 +9,13 @@ import { Decimal } from "decimal.js";
 
 export async function seedAccounting() {
     console.log("Seeding Accounting Module...");
+    const defaultCompany = await prisma.company.findUnique({
+        where: { code: "nats-accounting" },
+        select: { id: true },
+    });
+    if (!defaultCompany) {
+        throw new Error("Default company not found. Run seedCompany first.");
+    }
 
     // 1. Chart of Accounts
     const accounts = [
@@ -440,8 +447,8 @@ export async function seedAccounting() {
     for (const acc of accounts) {
         let parentId = null;
         if (acc.parentCode) {
-            const parent = await prisma.account.findUnique({
-                where: { code: acc.parentCode },
+            const parent = await prisma.account.findFirst({
+                where: { companyId: defaultCompany.id, code: acc.parentCode },
             });
             if (parent) {
                 parentId = parent.id;
@@ -449,7 +456,12 @@ export async function seedAccounting() {
         }
 
         await prisma.account.upsert({
-            where: { code: acc.code },
+            where: {
+                companyId_code: {
+                    companyId: defaultCompany.id,
+                    code: acc.code,
+                },
+            },
             update: {
                 name: acc.name,
                 type: acc.type,
@@ -459,6 +471,7 @@ export async function seedAccounting() {
                 parentId,
             },
             create: {
+                companyId: defaultCompany.id,
                 code: acc.code,
                 name: acc.name,
                 type: acc.type,
@@ -496,7 +509,9 @@ export async function seedAccounting() {
     ];
 
     for (const fa of defaultAccounts) {
-        const acc = await prisma.account.findUnique({ where: { code: fa.code } });
+        const acc = await prisma.account.findFirst({
+            where: { companyId: defaultCompany.id, code: fa.code },
+        });
         if (!acc) {
             throw new Error(
                 `Missing chart of account code ${fa.code} for default account purpose ${fa.purpose}`,
@@ -505,12 +520,12 @@ export async function seedAccounting() {
 
         // Keep one active mapping per purpose to avoid ambiguous runtime resolution.
         const primaryExisting = await prisma.defaultAccount.findFirst({
-            where: { purpose: fa.purpose },
+            where: { companyId: defaultCompany.id, purpose: fa.purpose },
             orderBy: { createdAt: "asc" },
         });
 
         await prisma.defaultAccount.updateMany({
-            where: { purpose: fa.purpose },
+            where: { companyId: defaultCompany.id, purpose: fa.purpose },
             data: { isActive: false },
         });
 
@@ -525,6 +540,7 @@ export async function seedAccounting() {
         } else {
             await prisma.defaultAccount.create({
                 data: {
+                    companyId: defaultCompany.id,
                     purpose: fa.purpose,
                     accountId: acc.id,
                     isActive: true,
@@ -594,8 +610,8 @@ export async function seedAccounting() {
     ];
 
     for (const acc of cashAccountsData) {
-        const glAccount = await prisma.account.findUnique({
-            where: { code: acc.targetGlCode },
+        const glAccount = await prisma.account.findFirst({
+            where: { companyId: defaultCompany.id, code: acc.targetGlCode },
         });
 
         if (glAccount) {

@@ -15,6 +15,24 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
   useParams: vi.fn(() => ({})),
   redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
+  notFound: vi.fn(),
+}))
+
+vi.mock('next/navigation.js', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  })),
+  usePathname: vi.fn(() => '/'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useParams: vi.fn(() => ({})),
+  redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
   notFound: vi.fn(),
 }))
 

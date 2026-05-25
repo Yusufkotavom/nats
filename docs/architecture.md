@@ -16,7 +16,9 @@
 4. `prisma/`
 - Skema data tersegmentasi per domain (`prisma/schema/*.prisma`).
 - Seed script dan bootstrap data.
-- Setup wizard awal (`app/[locale]/(dashboard)/setup/actions.ts`) melakukan seeding baseline unit + kategori inventory melalui konstanta shared `lib/setup/chart-of-accounts-template.ts` agar konsisten lintas tenant.
+- Setup wizard awal (`app/[locale]/(dashboard)/setup/actions.ts`) melakukan seeding baseline unit + kategori inventory serta sample produk/jasa onboarding melalui konstanta shared `lib/setup/chart-of-accounts-template.ts` agar konsisten lintas tenant dan siap dipakai uji transaksi awal.
+- Default template setup akun awal sekarang memakai `UMKM Balanced (Recommended)` yang lebih ringkas dari template general, tetap mencakup akun operasional penting (kas/bank/piutang/utang/persediaan/HPP) dan akun `Service Revenue` untuk bisnis jasa + produk.
+- Setup `Chart of Accounts`, `Default Accounts`, serta `Warehouse & Basics` kini dihitung dan disimpan per `activeCompanyId` (tenant-scoped), sehingga status wizard tidak lagi terpengaruh data company lain.
 
 5. `docs/`
 - Dokumen arsitektur, domain rules, dan operational governance.

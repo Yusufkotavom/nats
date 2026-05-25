@@ -64,6 +64,7 @@ describe("POSServiceWorkflowService", () => {
     prismaMock.pOSSession.findUnique.mockResolvedValue({
       id: "sess-1",
       status: "OPEN",
+      companyId: "company-1",
     });
     prismaMock.product.findMany.mockResolvedValue([
       { id: "prod-1", name: "Produk Biasa", price: 10000, isService: false },
@@ -77,7 +78,34 @@ describe("POSServiceWorkflowService", () => {
         },
         "user-1",
       ),
-    ).rejects.toThrow("is not a service item");
+    ).rejects.toThrow("Service order must contain at least one service item");
+  });
+
+  it("scopes product lookup by POS session companyId", async () => {
+    prismaMock.pOSSession.findUnique.mockResolvedValue({
+      id: "sess-1",
+      status: "OPEN",
+      companyId: "company-1",
+    });
+    prismaMock.product.findMany.mockResolvedValue([]);
+
+    await expect(
+      POSServiceWorkflowService.create(
+        {
+          sessionId: "sess-1",
+          items: [{ productId: "prod-cross-tenant", quantity: 1 }],
+        },
+        "user-1",
+      ),
+    ).rejects.toThrow("Product not found: prod-cross-tenant");
+
+    expect(prismaMock.product.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          companyId: "company-1",
+        }),
+      }),
+    );
   });
 
   it("rejects invalid status transition", async () => {

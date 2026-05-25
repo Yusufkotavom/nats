@@ -2,8 +2,8 @@
 model Unit {
   id        String   @id @default(cuid())
   companyId String?
-  name      String   @unique
-  symbol    String   @unique
+  name      String
+  symbol    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -13,6 +13,8 @@ model Unit {
   company          Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
+  @@unique([companyId, name])
+  @@unique([companyId, symbol])
 }
 
 model Category {
