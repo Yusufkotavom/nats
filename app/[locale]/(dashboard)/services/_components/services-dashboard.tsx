@@ -458,6 +458,9 @@ export function ServicesDashboard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href={`/services/pipeline/${item.id}`}>Open in Pipeline</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openEditOrder(item)}>Edit</DropdownMenuItem>
             {Number(item.remainingAmount) > 0 ? <DropdownMenuItem onClick={() => onSettle(item)}>Settle Payment</DropdownMenuItem> : null}
             <DropdownMenuSeparator />

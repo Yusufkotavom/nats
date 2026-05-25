@@ -21,7 +21,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { SalesOrderWithDetails } from "./types";
 import { DataTable, Column } from "@/components/ui/data-table";
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Pencil, Route, Trash2 } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -197,6 +197,11 @@ export default function SalesOrdersPage() {
                         <DropdownMenuItem asChild>
                             <Link target="_blank" href={`/sales/orders/${order.id}`}>
                                 <Eye className="mr-2 h-4 w-4" /> {tCommon("details")}
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href={`/sales/pipeline/${order.id}`}>
+                                <Route className="mr-2 h-4 w-4" /> Open in Pipeline
                             </Link>
                         </DropdownMenuItem>
                         <Protect permission="sales.edit">
