@@ -10,8 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { getServiceNextStep } from "@/lib/pipeline/workflow";
 import { getServicePipelineState, runServicePipelineAction } from "../actions";
+import { ServicePipelineBridge } from "../../_lib/pipeline-bridge";
+import { ServicePipelineTopbar } from "../../_components/service-pipeline-topbar";
 
-export function ServicePipelineWorkspace({ orderId }: { orderId: string }) {
+export function ServicePipelineWorkspace({
+  orderId,
+  bridge,
+}: {
+  orderId: string;
+  bridge: ServicePipelineBridge;
+}) {
   const { toast } = useToast();
   const locale = useLocale();
   const queryClient = useQueryClient();
@@ -57,6 +65,7 @@ export function ServicePipelineWorkspace({ orderId }: { orderId: string }) {
 
   return (
     <div className="space-y-4">
+      <ServicePipelineTopbar data={bridge} active="order" />
       <Card>
         <CardHeader>
           <CardTitle>Service Pipeline Workspace</CardTitle>

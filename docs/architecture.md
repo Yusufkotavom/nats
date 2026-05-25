@@ -150,6 +150,11 @@ Kontrak alur:
 - update `SalesInvoice.balanceDue` + status,
 - sinkronkan `paidAmount`/`remainingAmount` di service order.
 
+4. `Service Pipeline Bridge`:
+- route `/services/pipeline/[orderId]` bertindak sebagai jembatan cepat lintas dokumen service dengan top bar stage `Service Order → Invoice → Payment`,
+- top bar memakai resolver relasi ringan di `app/[locale]/(dashboard)/services/_lib/pipeline-bridge.ts`,
+- tiap stage tetap membuka dokumen existing sebagai source of truth (invoice/payment memakai dokumen sales yang terhubung).
+
 ### Contact Assist Layer untuk POS Sales/Service (2026-05-15)
 
 - Server action baru di `app/[locale]/pos/actions.ts`:

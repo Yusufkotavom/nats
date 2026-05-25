@@ -59,6 +59,7 @@ Untuk operasional jasa yang ingin dipisah dari layar kasir utama, gunakan modul 
   - `/services/invoices`
   - `/services/payments`
   - `/services/returns-warranty` (queue return/garansi)
+  - `/services/pipeline/[orderId]` (top bar flow cepat `Service Order → Invoice → Payment`)
   - dengan pola list/filter/action setara modul `Sales`.
   - pada popup create order, user bisa quick add customer dan harga produk service terisi otomatis saat produk dipilih.
 
