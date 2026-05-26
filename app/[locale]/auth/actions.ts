@@ -60,6 +60,14 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
+  if (user.role.name === "company_admin" && !user.role.permissions.includes("*")) {
+    const healedRole = await prisma.role.update({
+      where: { id: user.role.id },
+      data: { permissions: ["*"], isActive: true },
+    });
+    user.role = healedRole;
+  }
+
   const isPlatformSuperAdmin = user.role.name === "superadmin";
   const { activeCompanyId } = await resolveUserCompanyContext(user.id);
 

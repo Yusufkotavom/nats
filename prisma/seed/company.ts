@@ -10,9 +10,12 @@ export async function seedCompany() {
         email: "contact@nats.com",
         website: "https://nats.com",
         taxId: "123-456-789",
-        currency: "USD",
-        locale: "en-US",
-        timezone: "UTC",
+        currency: "IDR",
+        currencySymbol: "Rp",
+        dateFormat: "dd/MM/yyyy",
+        currencyFormat: "standard",
+        locale: "id-ID",
+        timezone: "Asia/Jakarta",
     };
 
     const company = await prisma.company.upsert({

@@ -33,7 +33,7 @@ export function StepCompanyProfile({
     hasExisting,
 }: StepCompanyProfileProps) {
     const [isPending, startTransition] = useTransition();
-    const [currencySymbol, setCurrencySymbol] = useState("$");
+    const [currencySymbol, setCurrencySymbol] = useState("Rp");
     const { toast } = useToast();
 
     const handleCurrencyChange = (value: string) => {
@@ -125,7 +125,7 @@ export function StepCompanyProfile({
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="space-y-2">
                             <Label>Currency</Label>
-                            <Select name="currency" defaultValue="USD" onValueChange={handleCurrencyChange}>
+                            <Select name="currency" defaultValue="IDR" onValueChange={handleCurrencyChange}>
                                 <SelectTrigger><SelectValue placeholder="Select currency" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="USD">USD ($)</SelectItem>
@@ -158,7 +158,7 @@ export function StepCompanyProfile({
                         </div>
                         <div className="space-y-2">
                             <Label>Date Format</Label>
-                            <Select name="dateFormat" defaultValue="MM/dd/yyyy">
+                            <Select name="dateFormat" defaultValue="dd/MM/yyyy">
                                 <SelectTrigger><SelectValue placeholder="Select format" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="MM/dd/yyyy">MM/dd/yyyy (12/31/2023)</SelectItem>
@@ -170,7 +170,7 @@ export function StepCompanyProfile({
                         </div>
                         <div className="space-y-2">
                             <Label>Locale</Label>
-                            <Select name="locale" defaultValue="en-US">
+                            <Select name="locale" defaultValue="id-ID">
                                 <SelectTrigger><SelectValue placeholder="Select locale" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="en-US">English (US)</SelectItem>
@@ -181,7 +181,7 @@ export function StepCompanyProfile({
                         </div>
                         <div className="space-y-2">
                             <Label>Timezone</Label>
-                            <Select name="timezone" defaultValue="UTC">
+                            <Select name="timezone" defaultValue="Asia/Jakarta">
                                 <SelectTrigger><SelectValue placeholder="Select timezone" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="UTC">UTC</SelectItem>

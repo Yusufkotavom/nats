@@ -67,6 +67,10 @@ describe("register/actions registerUserAndTenant", () => {
     expect(prismaMock.role.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { name: "company_admin" },
+        update: expect.objectContaining({
+          isActive: true,
+          permissions: ["*"],
+        }),
       }),
     );
     expect(txMock.company.create).toHaveBeenCalled();

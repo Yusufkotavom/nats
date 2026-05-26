@@ -7,22 +7,15 @@ import {
 } from "./chart-of-accounts-template";
 
 describe("setup defaults", () => {
-  it("includes menu-friendly categories for restaurant POS", () => {
+  it("uses minimal default categories", () => {
     const names = DEFAULT_CATEGORIES.map((category) => category.name);
 
-    expect(names).toEqual(
-      expect.arrayContaining([
-        "General",
-        "Menu Makanan",
-        "Menu Minuman",
-        "Menu Snack",
-        "Menu Dessert",
-        "Bahan Baku",
-        "ATK & Percetakan",
-        "Aksesoris HP",
-        "Jasa Service",
-      ]),
-    );
+    expect(names).toEqual(["Product", "Service"]);
+  });
+
+  it("uses only PCS as default unit", () => {
+    const symbols = DEFAULT_UNITS.map((unit) => unit.symbol);
+    expect(symbols).toEqual(["PCS"]);
   });
 
   it("does not contain duplicate category names or unit symbols", () => {
@@ -46,12 +39,12 @@ describe("setup defaults", () => {
     expect(accounts.length).toBeGreaterThanOrEqual(25);
   });
 
-  it("includes mixed sample catalog for goods and services", () => {
+  it("keeps starter sample catalog minimal: 1 good + 1 service", () => {
     const services = DEFAULT_SAMPLE_CATALOG.filter((item) => item.isService);
     const goods = DEFAULT_SAMPLE_CATALOG.filter((item) => !item.isService);
 
-    expect(DEFAULT_SAMPLE_CATALOG.length).toBeGreaterThanOrEqual(10);
-    expect(services.length).toBeGreaterThanOrEqual(3);
-    expect(goods.length).toBeGreaterThanOrEqual(5);
+    expect(DEFAULT_SAMPLE_CATALOG.length).toBe(2);
+    expect(services.length).toBe(1);
+    expect(goods.length).toBe(1);
   });
 });

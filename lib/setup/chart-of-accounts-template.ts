@@ -111,24 +111,12 @@ export const RECOMMENDED_DEFAULT_ACCOUNT_MAPPINGS: {
 /** Default units to seed during initial setup */
 export const DEFAULT_UNITS = [
     { name: "Pieces", symbol: "PCS" },
-    { name: "Box", symbol: "BOX" },
-    { name: "Kilogram", symbol: "KG" },
-    { name: "Porsi", symbol: "PRS" },
-    { name: "Botol", symbol: "BTL" },
-    { name: "Gelas", symbol: "GLS" },
 ];
 
 /** Default product categories to seed during initial setup */
 export const DEFAULT_CATEGORIES = [
-    { name: "General", description: "General products and services" },
-    { name: "Menu Makanan", description: "Produk makanan siap jual untuk POS" },
-    { name: "Menu Minuman", description: "Produk minuman siap jual untuk POS" },
-    { name: "Menu Snack", description: "Menu camilan dan side dish siap jual" },
-    { name: "Menu Dessert", description: "Menu pencuci mulut siap jual" },
-    { name: "Bahan Baku", description: "Bahan baku operasional dapur/bar" },
-    { name: "ATK & Percetakan", description: "Produk ATK dan kebutuhan cetak harian" },
-    { name: "Aksesoris HP", description: "Produk aksesoris ponsel dan gadget" },
-    { name: "Jasa Service", description: "Layanan service perangkat dan pekerjaan non-stok" },
+    { name: "Product", description: "Produk fisik untuk dijual atau dikelola stoknya" },
+    { name: "Service", description: "Jasa/layanan non-stok untuk operasional service" },
 ];
 
 export type SampleCatalogTemplate = {
@@ -144,21 +132,8 @@ export type SampleCatalogTemplate = {
 
 /** Sample products/services seeded in setup wizard for quick trial transactions */
 export const DEFAULT_SAMPLE_CATALOG: SampleCatalogTemplate[] = [
-    // Restaurant
-    { skuCode: "RST-NASGOR", name: "Nasi Goreng Spesial", categoryName: "Menu Makanan", unitSymbol: "PRS", price: 25000, cost: 12000 },
-    { skuCode: "RST-ES-TEH", name: "Es Teh Manis", categoryName: "Menu Minuman", unitSymbol: "GLS", price: 8000, cost: 2500 },
-    { skuCode: "RST-FRENCH", name: "French Fries", categoryName: "Menu Snack", unitSymbol: "PRS", price: 15000, cost: 7000 },
-    { skuCode: "RST-PUDING", name: "Puding Coklat", categoryName: "Menu Dessert", unitSymbol: "PRS", price: 12000, cost: 5000 },
-    // Printing + stationeries
-    { skuCode: "PRT-A4-80", name: "Kertas A4 80gsm", categoryName: "ATK & Percetakan", unitSymbol: "PCS", price: 70000, cost: 58000 },
-    { skuCode: "PRT-BALLP", name: "Pulpen Gel", categoryName: "ATK & Percetakan", unitSymbol: "PCS", price: 5000, cost: 2500 },
-    { skuCode: "PRT-LAM-A4", name: "Laminating A4", categoryName: "Jasa Service", unitSymbol: "PCS", price: 6000, cost: 1500, isService: true, description: "Jasa laminating dokumen ukuran A4" },
-    // Phone counter + services
-    { skuCode: "HP-CASE", name: "Case HP Premium", categoryName: "Aksesoris HP", unitSymbol: "PCS", price: 45000, cost: 22000 },
-    { skuCode: "HP-CABLE", name: "Kabel Data Type-C", categoryName: "Aksesoris HP", unitSymbol: "PCS", price: 30000, cost: 15000 },
-    { skuCode: "HP-TG", name: "Tempered Glass", categoryName: "Aksesoris HP", unitSymbol: "PCS", price: 25000, cost: 10000 },
-    { skuCode: "SRV-HP-CLEAN", name: "Service Cleaning HP", categoryName: "Jasa Service", unitSymbol: "PCS", price: 35000, cost: 10000, isService: true },
-    { skuCode: "SRV-HP-SW", name: "Service Update Software", categoryName: "Jasa Service", unitSymbol: "PCS", price: 75000, cost: 20000, isService: true },
+    { skuCode: "PROD-001", name: "Produk Sample", categoryName: "Product", unitSymbol: "PCS", price: 25000, cost: 12000 },
+    { skuCode: "SRV-001", name: "Jasa Sample", categoryName: "Service", unitSymbol: "PCS", price: 50000, cost: 15000, isService: true, description: "Jasa percobaan untuk uji flow service" },
 ];
 
 export const SERVICE_CHART_OF_ACCOUNTS: AccountTemplate[] = STANDARD_CHART_OF_ACCOUNTS.map(a => {

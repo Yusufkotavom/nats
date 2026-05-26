@@ -52,6 +52,7 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         where: { name: "company_admin" },
         update: {
             isActive: true,
+            permissions: ["*"],
         },
         create: {
             name: "company_admin",
