@@ -52,6 +52,7 @@ export function CheckoutDialog({
   onOpenChange,
   totalAmount,
   onConfirm,
+  paymentMethods,
   contacts,
   selectedContactId,
   onSelectedContactChange,
@@ -78,7 +79,7 @@ export function CheckoutDialog({
         setCashAccountId(defaultMethod.id);
       }
     }
-  }, [open, totalAmount]);
+  }, [open, totalAmount, paymentMethods]);
 
   const amountPaid = parseFloat(amountPaidStr) || 0;
   const change = Math.max(0, amountPaid - totalAmount);

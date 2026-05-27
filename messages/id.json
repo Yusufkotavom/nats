@@ -102,7 +102,8 @@
         "system": "Sistem",
         "company": "Perusahaan",
         "general": "Umum",
-        "production": "Produksi"
+        "production": "Produksi",
+        "payment_methods": "Metode Pembayaran"
     },
     "Services": {
         "orders": "Order Layanan",
@@ -1304,7 +1305,9 @@
         "checkout": "Pembayaran",
         "pos_receipt": "Struk POS",
         "payment": "Pembayaran",
+        "payment_method": "Metode Pembayaran",
         "payment_description": "Pilih metode pembayaran dan proses transaksi.",
+        "placeholder_select_method": "Pilih Metode...",
         "total_amount": "Total Jumlah",
         "cash": "Tunai",
         "card": "Kartu",
