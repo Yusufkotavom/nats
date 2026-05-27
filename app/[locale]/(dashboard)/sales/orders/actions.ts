@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -27,10 +28,17 @@ export async function getSalesOrders(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      orders: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.SalesOrderWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -102,9 +110,12 @@ export async function getSalesOrder(id: string) {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const order = await prisma.salesOrder.findUnique({
-    where: { id },
+  const order = await prisma.salesOrder.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       department: true,
@@ -138,11 +149,11 @@ export const createSalesOrder = authorizedAction(
   async (data: SalesOrderInput) => {
     try {
       const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
 
-      const result = await SalesOrderService.create(data, session.userId);
+      const result = await SalesOrderService.create(data, session.userId, session.activeCompanyId);
 
-      revalidatePath("/sales/orders");
+      revalidateLocalizedPath("/sales/orders");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create SO:", error);
@@ -156,8 +167,10 @@ export const updateSalesOrder = authorizedAction(
   async (id: string, data: SalesOrderInput) => {
     try {
       const session = await getSession();
-      const currentOrder = await prisma.salesOrder.findUnique({
-        where: { id },
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentOrder = await prisma.salesOrder.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: { items: true },
       });
 
@@ -219,8 +232,8 @@ export const updateSalesOrder = authorizedAction(
         });
       });
 
-      revalidatePath("/sales/orders");
-      revalidatePath(`/sales/orders/${id}`);
+      revalidateLocalizedPath("/sales/orders");
+      revalidateLocalizedPath(`/sales/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update SO:", error);
@@ -234,8 +247,10 @@ export const confirmSalesOrder = authorizedAction(
   async (id: string) => {
     try {
       const session = await getSession();
-      const currentOrder = await prisma.salesOrder.findUnique({
-        where: { id },
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentOrder = await prisma.salesOrder.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentOrder) throw new Error("Order not found");
@@ -255,8 +270,8 @@ export const confirmSalesOrder = authorizedAction(
         },
       });
 
-      revalidatePath("/sales/orders");
-      revalidatePath(`/sales/orders/${id}`);
+      revalidateLocalizedPath("/sales/orders");
+      revalidateLocalizedPath(`/sales/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to confirm SO:", error);
@@ -270,8 +285,10 @@ export const cancelSalesOrder = authorizedAction(
   async (id: string) => {
     try {
       const session = await getSession();
-      const currentOrder = await prisma.salesOrder.findUnique({
-        where: { id },
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentOrder = await prisma.salesOrder.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentOrder) throw new Error("Order not found");
@@ -290,8 +307,8 @@ export const cancelSalesOrder = authorizedAction(
         },
       });
 
-      revalidatePath("/sales/orders");
-      revalidatePath(`/sales/orders/${id}`);
+      revalidateLocalizedPath("/sales/orders");
+      revalidateLocalizedPath(`/sales/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to cancel SO:", error);
@@ -305,8 +322,10 @@ export const closeSalesOrder = authorizedAction(
   async (id: string) => {
     try {
       const session = await getSession();
-      const currentOrder = await prisma.salesOrder.findUnique({
-        where: { id },
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentOrder = await prisma.salesOrder.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentOrder) throw new Error("Order not found");
@@ -325,8 +344,8 @@ export const closeSalesOrder = authorizedAction(
         },
       });
 
-      revalidatePath("/sales/orders");
-      revalidatePath(`/sales/orders/${id}`);
+      revalidateLocalizedPath("/sales/orders");
+      revalidateLocalizedPath(`/sales/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to close SO:", error);
@@ -339,8 +358,11 @@ export const deleteSalesOrder = authorizedAction(
   "sales.delete",
   async (id: string) => {
     try {
-      const currentOrder = await prisma.salesOrder.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentOrder = await prisma.salesOrder.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentOrder) {
@@ -354,7 +376,7 @@ export const deleteSalesOrder = authorizedAction(
       await prisma.salesOrder.delete({
         where: { id },
       });
-      revalidatePath("/sales/orders");
+      revalidateLocalizedPath("/sales/orders");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete SO:", error);

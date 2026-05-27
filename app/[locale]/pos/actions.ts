@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath, revalidateLocalizedPaths } from "@/lib/revalidate-localized-path";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { SuperJSON } from "@/lib/superjson";
@@ -357,8 +357,8 @@ export async function createPOSQuickContact(input: {
     },
   });
 
-  revalidatePath("/pos");
-  revalidatePath("/general/contacts");
+  revalidateLocalizedPath("/pos");
+  revalidateLocalizedPath("/general/contacts");
   return SuperJSON.serialize(contact);
 }
 
@@ -491,7 +491,7 @@ export async function openDiningSpot(
     guestCount,
     notes,
   );
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(result);
 }
 
@@ -503,7 +503,7 @@ export async function closeDiningSpot(diningSpotId: string, notes?: string) {
   await assertRestaurantFeaturesEnabled();
 
   await DiningSpotService.closeSpot(diningSpotId, session.userId, notes);
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
 }
 
 export async function getRestaurantFloorOverview(sessionId: string) {
@@ -550,10 +550,12 @@ export async function sendOrderToKitchen(
     globalDiscount,
   });
 
-  revalidatePath("/pos");
-  revalidatePath("/pos/restaurant");
-  revalidatePath("/pos/restaurant/kitchen");
-  revalidatePath("/pos/restaurant/billing");
+  revalidateLocalizedPaths([
+    "/pos",
+    "/pos/restaurant",
+    "/pos/restaurant/kitchen",
+    "/pos/restaurant/billing",
+  ]);
   return SuperJSON.serialize(result);
 }
 
@@ -591,9 +593,11 @@ export async function updateKitchenItemStatus(
   await assertRestaurantFeaturesEnabled();
 
   await RestaurantOrderService.updateKitchenItemStatus(kitchenItemId, status);
-  revalidatePath("/pos/restaurant");
-  revalidatePath("/pos/restaurant/kitchen");
-  revalidatePath("/pos/restaurant/billing");
+  revalidateLocalizedPaths([
+    "/pos/restaurant",
+    "/pos/restaurant/kitchen",
+    "/pos/restaurant/billing",
+  ]);
 }
 
 export async function getRestaurantBillingQueue(sessionId: string) {
@@ -629,8 +633,7 @@ export async function generateRestaurantBill(
   await assertRestaurantFeaturesEnabled();
 
   const result = await RestaurantOrderService.generateBill(sessionId, orderId, feeBreakdown);
-  revalidatePath("/pos/restaurant");
-  revalidatePath("/pos/restaurant/billing");
+  revalidateLocalizedPaths(["/pos/restaurant", "/pos/restaurant/billing"]);
   return SuperJSON.serialize(result);
 }
 
@@ -652,8 +655,7 @@ export async function settleRestaurantBill(
     paymentMethod,
     amount,
   );
-  revalidatePath("/pos/restaurant");
-  revalidatePath("/pos/restaurant/billing");
+  revalidateLocalizedPaths(["/pos/restaurant", "/pos/restaurant/billing"]);
   return SuperJSON.serialize(result);
 }
 
@@ -665,8 +667,7 @@ export async function closeRestaurantOrder(orderId: string) {
   await assertRestaurantFeaturesEnabled();
 
   await RestaurantOrderService.closePaidOrder(orderId, session.userId);
-  revalidatePath("/pos/restaurant");
-  revalidatePath("/pos/restaurant/billing");
+  revalidateLocalizedPaths(["/pos/restaurant", "/pos/restaurant/billing"]);
 }
 
 export async function openPOSSession(openingCash: number, warehouseId: string) {
@@ -685,7 +686,7 @@ export async function openPOSSession(openingCash: number, warehouseId: string) {
     warehouseId,
   );
 
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(newSession);
 }
 
@@ -701,7 +702,7 @@ export async function closePOSSession(
 
   await POSSessionService.close(sessionId, actualCash, notes, sessionUser.userId);
 
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
 }
 
 export async function getPOSSessionCloseSummary(sessionId: string) {
@@ -839,7 +840,7 @@ export async function holdOrder(
     diningSpotId,
   );
 
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(heldOrder);
 }
 
@@ -870,11 +871,12 @@ export async function validateDiscountCode(code: string) {
 
 export async function getHeldOrders() {
   const session = await getSession();
-  if (!session?.userId) throw new Error("Unauthorized");
+  if (!session?.userId || !session.activeCompanyId) throw new Error("Unauthorized");
 
   await HeldOrderService.cleanupExpired();
 
   const heldOrders = await prisma.heldOrder.findMany({
+    where: { companyId: session.activeCompanyId },
     orderBy: { createdAt: "desc" },
     include: { customer: true, diningSpot: true },
   });
@@ -884,10 +886,10 @@ export async function getHeldOrders() {
 
 export async function getPOSInvoice(id: string) {
   const session = await getSession();
-  if (!session?.userId) throw new Error("Unauthorized");
+  if (!session?.userId || !session.activeCompanyId) throw new Error("Unauthorized");
 
-  const invoice = await prisma.salesInvoice.findUnique({
-    where: { id },
+  const invoice = await prisma.salesInvoice.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       items: {
@@ -944,7 +946,7 @@ export async function createPOSServiceOrder(input: {
   }
 
   const order = await POSServiceWorkflowService.create(input, session.userId);
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(order);
 }
 
@@ -962,7 +964,7 @@ export async function updatePOSServiceOrderStatus(
     status,
     session.userId,
   );
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(order);
 }
 
@@ -977,7 +979,7 @@ export async function settlePOSServiceOrder(
   }
 
   const order = await POSServiceWorkflowService.settle(orderId, paymentMethod, amount);
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(order);
 }
 
@@ -987,7 +989,7 @@ export async function resumeOrder(heldOrderId: string) {
 
   const heldOrder = await HeldOrderService.resume(heldOrderId);
 
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(heldOrder);
 }
 
@@ -997,5 +999,5 @@ export async function deleteHeldOrder(heldOrderId: string) {
 
   await HeldOrderService.delete(heldOrderId);
 
-  revalidatePath("/pos");
+  revalidateLocalizedPath("/pos");
 }

@@ -6,6 +6,7 @@ import { Prisma, DiscountType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getPaginationMetadata } from "@/lib/pagination";
 import { SuperJSON } from "@/lib/superjson";
+import { getSession } from "@/lib/auth/auth";
 
 /**
  * Fetch all accounts that can be posted to (isPosting = true).
@@ -16,8 +17,13 @@ import { SuperJSON } from "@/lib/superjson";
  */
 export const getLedgerAccounts = authorizedAction("ledger.view", async () => {
   try {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      return { success: true, data: [] };
+    }
     const accounts = await prisma.account.findMany({
       where: {
+        companyId: session.activeCompanyId,
         isPosting: true,
         isActive: true,
       },
@@ -46,8 +52,12 @@ export const getAccountById = authorizedAction(
   "ledger.view",
   async (id: string) => {
     try {
-      const account = await prisma.account.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+      const account = await prisma.account.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         select: {
           id: true,
           code: true,
@@ -100,10 +110,17 @@ export const getAccountHistory = authorizedAction(
     showDraft?: boolean;
   }) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
       const skip = (page - 1) * pageSize;
 
       const where: Prisma.JournalEntryLineWhereInput = {
         accountId: accountId,
+        journalEntry: {
+          companyId: session.activeCompanyId,
+        },
       };
 
       if (startDate || endDate || showDraft) {
@@ -127,7 +144,10 @@ export const getAccountHistory = authorizedAction(
           journalEntryWhere.status = "posted";
         }
 
-        where.journalEntry = journalEntryWhere;
+        where.journalEntry = {
+          ...(where.journalEntry as Prisma.JournalEntryWhereInput),
+          ...journalEntryWhere,
+        };
       }
 
       const [total, lines, aggregates, account] = await prisma.$transaction([
@@ -162,8 +182,8 @@ export const getAccountHistory = authorizedAction(
             creditAmount: true,
           },
         }),
-        prisma.account.findUnique({
-          where: { id: accountId },
+        prisma.account.findFirst({
+          where: { id: accountId, companyId: session.activeCompanyId },
           select: { normalBalance: true },
         }),
       ]);

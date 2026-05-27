@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -116,7 +117,7 @@ export const createProductionOrder = authorizedAction(
     async (data: ProductionOrderInput) => {
         try {
             const result = await ProductionOrderService.create(data);
-            revalidatePath("/production/orders");
+            revalidateLocalizedPath("/production/orders");
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to create Production Order:", error);
@@ -130,8 +131,8 @@ export const updateProductionOrder = authorizedAction(
     async (id: string, data: ProductionOrderInput) => {
         try {
             const result = await ProductionOrderService.update(id, data);
-            revalidatePath("/production/orders");
-            revalidatePath(`/production/orders/${id}`);
+            revalidateLocalizedPath("/production/orders");
+            revalidateLocalizedPath(`/production/orders/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to update Production Order:", error);
@@ -145,8 +146,8 @@ export const releaseProductionOrder = authorizedAction(
     async (id: string) => {
         try {
             const result = await ProductionOrderService.release(id);
-            revalidatePath("/production/orders");
-            revalidatePath(`/production/orders/${id}`);
+            revalidateLocalizedPath("/production/orders");
+            revalidateLocalizedPath(`/production/orders/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to release Production Order:", error);
@@ -160,8 +161,8 @@ export const closeProductionOrder = authorizedAction(
     async (id: string) => {
         try {
             const result = await ProductionOrderService.close(id);
-            revalidatePath("/production/orders");
-            revalidatePath(`/production/orders/${id}`);
+            revalidateLocalizedPath("/production/orders");
+            revalidateLocalizedPath(`/production/orders/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to close Production Order:", error);
@@ -175,8 +176,8 @@ export const cancelProductionOrder = authorizedAction(
     async (id: string) => {
         try {
             const result = await ProductionOrderService.cancel(id);
-            revalidatePath("/production/orders");
-            revalidatePath(`/production/orders/${id}`);
+            revalidateLocalizedPath("/production/orders");
+            revalidateLocalizedPath(`/production/orders/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to cancel Production Order:", error);

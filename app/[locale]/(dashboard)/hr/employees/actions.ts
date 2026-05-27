@@ -33,7 +33,7 @@ export async function getEmployee(id: string): Promise<ActionResponse> {
 export async function createEmployee(data: CreateEmployeeDTO): Promise<ActionResponse> {
     try {
         const employee = await EmployeeService.createEmployee(data);
-        revalidatePath('/hr/employees');
+        revalidateLocalizedPath('/hr/employees');
         return { success: true, data: SuperJSON.serialize(employee) };
     } catch (error) {
         return { success: false, error: (error as Error).message };
@@ -43,8 +43,8 @@ export async function createEmployee(data: CreateEmployeeDTO): Promise<ActionRes
 export async function updateEmployee(id: string, data: UpdateEmployeeDTO): Promise<ActionResponse> {
     try {
         const employee = await EmployeeService.updateEmployee(id, data);
-        revalidatePath('/hr/employees');
-        revalidatePath(`/hr/employees/${id}`);
+        revalidateLocalizedPath('/hr/employees');
+        revalidateLocalizedPath(`/hr/employees/${id}`);
         return { success: true, data: SuperJSON.serialize(employee) };
     } catch (error) {
         return { success: false, error: (error as Error).message };

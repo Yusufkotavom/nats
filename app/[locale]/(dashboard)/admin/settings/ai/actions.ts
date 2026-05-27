@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { z } from "zod";
 
@@ -60,7 +61,7 @@ export const saveAISettings = authorizedAction(
       });
     }
 
-    revalidatePath("/admin/settings/ai");
+    revalidateLocalizedPath("/admin/settings/ai");
     return { success: true };
   }
 );

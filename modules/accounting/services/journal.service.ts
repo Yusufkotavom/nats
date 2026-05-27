@@ -10,6 +10,7 @@ import { createJournalEntrySchema } from "@/lib/validation/schemas";
 import { z } from "zod";
 
 type CreateJournalEntryInput = z.infer<typeof createJournalEntrySchema>;
+const JOURNAL_INTERACTIVE_TX_TIMEOUT_MS = 8_000;
 
 export class JournalService {
     /**
@@ -204,7 +205,7 @@ export class JournalService {
         if (tx) {
             return executeCreate(tx);
         } else {
-            return prisma.$transaction(executeCreate);
+            return prisma.$transaction(executeCreate, { timeout: JOURNAL_INTERACTIVE_TX_TIMEOUT_MS });
         }
     }
 
@@ -271,7 +272,7 @@ export class JournalService {
             });
 
             return updatedEntry;
-        });
+        }, { timeout: JOURNAL_INTERACTIVE_TX_TIMEOUT_MS });
     }
 
     /**
@@ -362,30 +363,39 @@ export class JournalService {
             });
 
             // 4. Update Running Balances
+            // Fetch latest posted running balance for all impacted accounts in a single query
+            // to avoid per-line findFirst calls inside interactive transaction.
+            const latestBalances = uniqueAccountIds.length
+                ? await db.$queryRaw<Array<{ accountId: string; runningBalance: Prisma.Decimal | null }>>`
+                    SELECT DISTINCT ON ("jl"."accountId")
+                      "jl"."accountId" AS "accountId",
+                      "jl"."runningBalance" AS "runningBalance"
+                    FROM "JournalEntryLine" "jl"
+                    INNER JOIN "JournalEntry" "je" ON "je"."id" = "jl"."journalEntryId"
+                    WHERE "jl"."accountId" IN (${Prisma.join(uniqueAccountIds)})
+                      AND "je"."status" = 'posted'
+                      AND "jl"."journalEntryId" <> ${id}
+                    ORDER BY "jl"."accountId", "je"."postedAt" DESC, "je"."createdAt" DESC
+                `
+                : [];
+
+            const initialBalanceByAccount = new Map<string, Decimal>();
+            for (const row of latestBalances) {
+                initialBalanceByAccount.set(
+                    row.accountId,
+                    row.runningBalance ? new Decimal(row.runningBalance) : new Decimal(0),
+                );
+            }
+
             const accountBalances: Record<string, Decimal> = {};
+            const lineUpdates: Array<{ id: string; runningBalance: Decimal }> = [];
 
             for (const line of existingEntry.lines) {
                 const { accountId, account } = line;
 
                 if (accountBalances[accountId] === undefined) {
-                    const lastEntryLine = await db.journalEntryLine.findFirst({
-                        where: {
-                            accountId,
-                            journalEntry: {
-                                status: "posted",
-                            },
-                            journalEntryId: { not: id },
-                        },
-                        orderBy: [
-                            { journalEntry: { postedAt: "desc" } },
-                            { journalEntry: { createdAt: "desc" } },
-                        ],
-                        select: { runningBalance: true },
-                    });
-
-                    accountBalances[accountId] = lastEntryLine?.runningBalance
-                        ? new Decimal(lastEntryLine.runningBalance)
-                        : new Decimal(0);
+                    accountBalances[accountId] =
+                        initialBalanceByAccount.get(accountId) ?? new Decimal(0);
                 }
 
                 const debit = new Decimal(line.debitAmount || 0);
@@ -401,11 +411,20 @@ export class JournalService {
                         .minus(credit);
                 }
 
-                await db.journalEntryLine.update({
-                    where: { id: line.id },
-                    data: { runningBalance: accountBalances[accountId] },
+                lineUpdates.push({
+                    id: line.id,
+                    runningBalance: accountBalances[accountId],
                 });
             }
+
+            await Promise.all(
+                lineUpdates.map((line) =>
+                    db.journalEntryLine.update({
+                        where: { id: line.id },
+                        data: { runningBalance: line.runningBalance },
+                    })
+                )
+            );
 
             // 5. Emit Outbox Event
             await enqueueIntegrationEvent(db, {
@@ -424,7 +443,7 @@ export class JournalService {
         if (tx) {
             return executePost(tx);
         } else {
-            return prisma.$transaction(executePost);
+            return prisma.$transaction(executePost, { timeout: JOURNAL_INTERACTIVE_TX_TIMEOUT_MS });
         }
     }
 }

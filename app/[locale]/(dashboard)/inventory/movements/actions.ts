@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { MovementType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";
 
@@ -178,9 +179,9 @@ export const createBatchMovement = authorizedAction(
         });
       });
 
-      revalidatePath("/inventory/movements");
-      revalidatePath("/inventory/warehouses");
-      revalidatePath("/inventory/products");
+      revalidateLocalizedPath("/inventory/movements");
+      revalidateLocalizedPath("/inventory/warehouses");
+      revalidateLocalizedPath("/inventory/products");
       return { success: true };
     } catch (error) {
       console.error("Failed to create batch movement:", error);
@@ -214,9 +215,9 @@ export const approveMovement = authorizedAction(
         await InventoryService.approveMovement(tx, movement.id, session.userId);
       });
 
-      revalidatePath("/inventory/movements");
-      revalidatePath("/inventory/warehouses");
-      revalidatePath("/inventory/products");
+      revalidateLocalizedPath("/inventory/movements");
+      revalidateLocalizedPath("/inventory/warehouses");
+      revalidateLocalizedPath("/inventory/products");
       return { success: true };
     } catch (error) {
       console.error("Failed to approve movement:", error);
@@ -248,7 +249,7 @@ export const rejectMovement = authorizedAction(
         return { success: false, error: "Movement not found in active company" };
       }
 
-      revalidatePath("/inventory/movements");
+      revalidateLocalizedPath("/inventory/movements");
       return { success: true };
     } catch (error) {
       console.error("Failed to reject movement:", error);

@@ -1,4 +1,5 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
+import { UnifiedPaymentMethod } from "@/lib/payments/payment-methods";
 
 export type PurchasePaymentInput = {
   paymentNumber: string;
@@ -11,6 +12,7 @@ export type PurchasePaymentInput = {
   departmentId?: string | null;
   projectId?: string | null;
   cashAccountId: string;
+  method?: UnifiedPaymentMethod;
   attachmentIds?: string[];
 };
 

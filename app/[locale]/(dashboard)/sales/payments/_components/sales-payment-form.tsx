@@ -40,6 +40,7 @@ import { useFormatDate, useFormatCurrency } from "@/hooks";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SuperJSONResult } from "superjson";
+import { UNIFIED_PAYMENT_METHODS } from "@/lib/payments/payment-methods";
 
 interface SalesPaymentFormProps {
   initialData?: SalesPaymentWithDetails;
@@ -73,7 +74,7 @@ export function SalesPaymentForm({
     reference: initialData?.reference || "",
     notes: initialData?.notes || "",
     cashAccountId: initialData?.cashAccountId || "",
-    method: initialData?.method || "",
+    method: initialData?.method || "CASH",
     departmentId: initialData?.departmentId || null,
     projectId: initialData?.projectId || null,
     attachmentIds: initialData?.attachments?.map((a) => a.id) || [],
@@ -111,9 +112,23 @@ export function SalesPaymentForm({
     queryKey: ["cash-accounts"],
     queryFn: async () => {
       const data = await getCashAccounts();
-      return SuperJSON.deserialize<CashAccount[]>(data as SuperJSONResult);
+      return SuperJSON.deserialize<{
+        accounts: CashAccount[];
+        defaults: {
+          CASH: string | null;
+          CARD: string | null;
+          QRIS: string | null;
+        };
+      }>(data as SuperJSONResult);
     },
     enabled: !readonly,
+  });
+
+  const filteredCashAccounts = (cashAccountsData?.accounts || []).filter((account) => {
+    if ((formData.method || "CASH") === "CASH") {
+      return account.type === "CASH" || account.type === "PETTY_CASH";
+    }
+    return account.type === "BANK" || account.type === "EWALLET";
   });
 
   useEffect(() => {
@@ -137,6 +152,21 @@ export function SalesPaymentForm({
       }
     }
   }, [formData.salesInvoiceId, invoicesData, initialData]);
+
+  useEffect(() => {
+    if (readonly || initialData || !cashAccountsData) return;
+    const selectedMethod = (formData.method || "CASH") as "CASH" | "CARD" | "QRIS";
+    const allowedIds = new Set(filteredCashAccounts.map((account) => account.id));
+    const isCurrentValid = formData.cashAccountId && allowedIds.has(formData.cashAccountId);
+    if (isCurrentValid) return;
+
+    const defaultId = cashAccountsData.defaults[selectedMethod];
+    const fallbackId = filteredCashAccounts[0]?.id || "";
+    const nextId = defaultId && allowedIds.has(defaultId) ? defaultId : fallbackId;
+    if (nextId && nextId !== formData.cashAccountId) {
+      setFormData((prev) => ({ ...prev, cashAccountId: nextId }));
+    }
+  }, [cashAccountsData, filteredCashAccounts, formData.method, formData.cashAccountId, readonly, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,10 +318,11 @@ export function SalesPaymentForm({
             placeholder={t("placeholder_select_method")}
             disabled={readonly}
           >
-            <SelectItem value="CASH">{t("method_cash")}</SelectItem>
-            <SelectItem value="BANK_TRANSFER">{t("method_bank_transfer")}</SelectItem>
-            <SelectItem value="CHECK">{t("method_check")}</SelectItem>
-            <SelectItem value="OTHER">{t("method_other")}</SelectItem>
+            {UNIFIED_PAYMENT_METHODS.map((method) => (
+              <SelectItem key={method} value={method}>
+                {t(`method_${method.toLowerCase()}`)}
+              </SelectItem>
+            ))}
           </CustomSelect>
 
           <CustomSelect
@@ -306,7 +337,7 @@ export function SalesPaymentForm({
             {readonly && initialData?.cashAccount ? (
               <SelectItem value={initialData.cashAccount.id}>{initialData.cashAccount.name}</SelectItem>
             ) : (
-              cashAccountsData?.map((account) => (
+              filteredCashAccounts.map((account) => (
                 <SelectItem key={account.id} value={account.id}>
                   {account.name} ({account.accountNumber})
                 </SelectItem>

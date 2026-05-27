@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -26,10 +27,17 @@ export async function getPurchaseOrders(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      orders: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseOrderWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -100,9 +108,12 @@ export async function getPurchaseOrder(id: string) {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const order = await prisma.purchaseOrder.findUnique({
-    where: { id },
+  const order = await prisma.purchaseOrder.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       department: true,
@@ -137,7 +148,7 @@ export const createPurchaseOrder = authorizedAction(
 
       const result = await PurchaseOrderService.create(data, session.userId);
 
-      revalidatePath("/purchase/orders");
+      revalidateLocalizedPath("/purchase/orders");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create PO:", error);
@@ -155,8 +166,8 @@ export const updatePurchaseOrder = authorizedAction(
 
       const result = await PurchaseOrderService.update(id, data, session.userId);
 
-      revalidatePath("/purchase/orders");
-      revalidatePath(`/purchase/orders/${id}`);
+      revalidateLocalizedPath("/purchase/orders");
+      revalidateLocalizedPath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update PO:", error);
@@ -172,8 +183,8 @@ export const issuePurchaseOrder = authorizedAction(
     try {
       const result = await PurchaseOrderService.issue(id);
 
-      revalidatePath("/purchase/orders");
-      revalidatePath(`/purchase/orders/${id}`);
+      revalidateLocalizedPath("/purchase/orders");
+      revalidateLocalizedPath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to issue PO:", error);
@@ -189,8 +200,8 @@ export const cancelPurchaseOrder = authorizedAction(
     try {
       const result = await PurchaseOrderService.cancel(id);
 
-      revalidatePath("/purchase/orders");
-      revalidatePath(`/purchase/orders/${id}`);
+      revalidateLocalizedPath("/purchase/orders");
+      revalidateLocalizedPath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to cancel PO:", error);
@@ -209,8 +220,8 @@ export const closePurchaseOrder = authorizedAction(
 
       const result = await PurchaseOrderService.close(id, session.userId);
 
-      revalidatePath("/purchase/orders");
-      revalidatePath(`/purchase/orders/${id}`);
+      revalidateLocalizedPath("/purchase/orders");
+      revalidateLocalizedPath(`/purchase/orders/${id}`);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to close PO:", error);
@@ -225,7 +236,7 @@ export const deletePurchaseOrder = authorizedAction(
   async (id: string) => {
     try {
       await PurchaseOrderService.delete(id);
-      revalidatePath("/purchase/orders");
+      revalidateLocalizedPath("/purchase/orders");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete PO:", error);

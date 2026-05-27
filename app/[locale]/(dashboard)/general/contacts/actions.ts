@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { prisma } from "@/lib/prisma";
 import {
   CreateContactInput,
@@ -497,7 +498,7 @@ export const createContact = authorizedAction(
       const contact = await prisma.contact.create({
         data,
       });
-      revalidatePath("/general/contacts");
+      revalidateLocalizedPath("/general/contacts");
       return { success: true, contact };
     } catch (error) {
       console.error("Failed to create contact:", error);
@@ -515,7 +516,7 @@ export const updateContact = authorizedAction(
         where: { id },
         data,
       });
-      revalidatePath("/general/contacts");
+      revalidateLocalizedPath("/general/contacts");
       return { success: true, contact };
     } catch (error) {
       console.error("Failed to update contact:", error);
@@ -532,7 +533,7 @@ export const deleteContact = authorizedAction(
       await prisma.contact.delete({
         where: { id },
       });
-      revalidatePath("/general/contacts");
+      revalidateLocalizedPath("/general/contacts");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete contact:", error);

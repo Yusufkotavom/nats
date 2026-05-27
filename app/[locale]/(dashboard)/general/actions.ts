@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { departmentSchema, projectSchema } from "./schemas";
 import { z } from "zod";
 import { getTranslations } from "next-intl/server";
@@ -45,7 +46,7 @@ export async function createDepartment(data: z.infer<typeof departmentSchema>) {
     const department = await prisma.department.create({
       data: parsed,
     });
-    revalidatePath("/general/departments");
+    revalidateLocalizedPath("/general/departments");
     return { success: true, data: department };
   } catch (error) {
     console.error("Failed to create department:", error);
@@ -63,7 +64,7 @@ export const updateDepartment = authorizedAction(
         where: { id },
         data: parsed,
       });
-      revalidatePath("/general/departments");
+      revalidateLocalizedPath("/general/departments");
       return { success: true, data: department };
     } catch (error) {
       console.error("Failed to update department:", error);
@@ -81,7 +82,7 @@ export const deleteDepartment = authorizedAction(
         where: { id },
         data: { isActive: false },
       });
-      revalidatePath("/general/departments");
+      revalidateLocalizedPath("/general/departments");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete department:", error);
@@ -134,7 +135,7 @@ export async function createProject(data: z.infer<typeof projectSchema>) {
     const project = await prisma.project.create({
       data: parsed,
     });
-    revalidatePath("/general/projects");
+    revalidateLocalizedPath("/general/projects");
     return { success: true, data: project };
   } catch (error) {
     console.error("Failed to create project:", error);
@@ -152,7 +153,7 @@ export const updateProject = authorizedAction(
         where: { id },
         data: parsed,
       });
-      revalidatePath("/general/projects");
+      revalidateLocalizedPath("/general/projects");
       return { success: true, data: project };
     } catch (error) {
       console.error("Failed to update project:", error);
@@ -169,7 +170,7 @@ export const deleteProject = authorizedAction(
       await prisma.project.delete({
         where: { id },
       });
-      revalidatePath("/general/projects");
+      revalidateLocalizedPath("/general/projects");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete project:", error);

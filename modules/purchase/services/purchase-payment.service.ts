@@ -11,16 +11,19 @@ type CreatePurchasePaymentInput = Omit<PurchasePaymentInput, "paymentNumber"> & 
 };
 
 export class PurchasePaymentService {
-    static async create(data: CreatePurchasePaymentInput, userId: string) {
-        const invoice = await prisma.purchaseInvoice.findUnique({
-            where: { id: data.purchaseInvoiceId },
+    static async create(data: CreatePurchasePaymentInput, userId: string, companyId: string) {
+        const invoice = await prisma.purchaseInvoice.findFirst({
+            where: { id: data.purchaseInvoiceId, companyId },
             include: { payments: true },
         });
 
         if (!invoice) throw new Error("Invoice not found");
 
-        const cashAccount = await prisma.cashAccount.findUnique({
-            where: { id: data.cashAccountId },
+        const cashAccount = await prisma.cashAccount.findFirst({
+            where: {
+                id: data.cashAccountId,
+                glAccount: { companyId },
+            },
         });
 
         if (!cashAccount) throw new Error("Cash account not found");

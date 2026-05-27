@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPaths } from "@/lib/revalidate-localized-path";
 import {
   Prisma,
   PurchaseInvoiceStatus,
@@ -36,10 +36,17 @@ export async function getPurchasePayments(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      payments: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.PurchasePaymentWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -84,9 +91,12 @@ export async function getPurchasePayment(id: string) {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const payment = await prisma.purchasePayment.findUnique({
-    where: { id },
+  const payment = await prisma.purchasePayment.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       purchaseInvoice: true,
@@ -109,9 +119,13 @@ export async function getUnpaidInvoices() {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const invoices = await prisma.purchaseInvoice.findMany({
     where: {
+      companyId: session.activeCompanyId,
       status: { in: ["BILLED", "PARTIALLY_PAID"] },
     },
     include: {
@@ -129,12 +143,48 @@ export async function getCashAccounts() {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const accounts = await prisma.cashAccount.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      glAccount: {
+        companyId: session.activeCompanyId,
+      },
+    },
     orderBy: { name: "asc" },
   });
-  return SuperJSON.serialize(accounts);
+
+  let profile: {
+    defaultCashAccountId: string | null;
+    defaultCardAccountId: string | null;
+    defaultQrisAccountId: string | null;
+  } | null = null;
+  try {
+    profile = await prisma.companyProfile.findUnique({
+      where: { companyId: session.activeCompanyId },
+      select: {
+        defaultCashAccountId: true,
+        defaultCardAccountId: true,
+        defaultQrisAccountId: true,
+      },
+    });
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientValidationError) || !error.message.includes("defaultCashAccountId")) {
+      throw error;
+    }
+  }
+
+  return SuperJSON.serialize({
+    accounts,
+    defaults: {
+      CASH: profile?.defaultCashAccountId ?? null,
+      CARD: profile?.defaultCardAccountId ?? null,
+      QRIS: profile?.defaultQrisAccountId ?? null,
+    },
+  });
 }
 
 import { purchasePaymentSchema } from "@/lib/validation/schemas";
@@ -145,16 +195,16 @@ export const createPurchasePayment = authorizedAction(
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
       const parseResult = purchasePaymentSchema.safeParse(rawData);
       if (!parseResult.success) {
         return { success: false, error: parseResult.error.message };
       }
 
-      const result = await PurchasePaymentService.create(parseResult.data, session.userId);
+      const result = await PurchasePaymentService.create(parseResult.data, session.userId, session.activeCompanyId);
 
-      revalidatePath("/purchase/payments");
-      revalidatePath("/purchase/invoices");
+      revalidateLocalizedPaths(["/purchase/payments", "/purchase/invoices"]);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Payment:", error);
@@ -172,9 +222,10 @@ export const postPurchasePayment = authorizedAction<PostPurchasePaymentResult, [
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const payment = await prisma.purchasePayment.findUnique({
-        where: { id },
+      const payment = await prisma.purchasePayment.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: {
           purchaseInvoice: true,
           cashAccount: true,
@@ -215,9 +266,11 @@ export const postPurchasePayment = authorizedAction<PostPurchasePaymentResult, [
 
       const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
-      revalidatePath("/purchase/payments");
-      revalidatePath("/purchase/invoices");
-      revalidatePath(`/purchase/payments/${id}`);
+      revalidateLocalizedPaths([
+        "/purchase/payments",
+        "/purchase/invoices",
+        `/purchase/payments/${id}`,
+      ]);
       return { success: true, data: { outboxId: outbox.id, ...processed } };
     } catch (error) {
       console.error("Failed to post Payment:", error);
@@ -235,9 +288,10 @@ export const deletePurchasePayment = authorizedAction(
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const payment = await prisma.purchasePayment.findUnique({
-        where: { id },
+      const payment = await prisma.purchasePayment.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: {
           purchaseInvoice: {
             include: { payments: true },
@@ -288,8 +342,7 @@ export const deletePurchasePayment = authorizedAction(
         });
       });
 
-      revalidatePath("/purchase/payments");
-      revalidatePath("/purchase/invoices");
+      revalidateLocalizedPaths(["/purchase/payments", "/purchase/invoices"]);
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Payment:", error);

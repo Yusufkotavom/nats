@@ -90,7 +90,7 @@ export async function updateDefaultAccount(purpose: DefaultAccountPurpose, accou
       })
     })
 
-    revalidatePath("/accounting/configuration/default-accounts")
+    revalidateLocalizedPath("/accounting/configuration/default-accounts")
     return { success: true }
   } catch (error) {
     console.error("Error updating default account:", error)
@@ -138,7 +138,7 @@ export const saveDefaultAccounts = authorizedAction(
         }
       })
 
-      revalidatePath("/accounting/configuration/default-accounts")
+      revalidateLocalizedPath("/accounting/configuration/default-accounts")
       return { success: true }
     } catch (error) {
       console.error("Error saving default accounts:", error)

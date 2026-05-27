@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { saveFileToDisk, deleteFileFromDisk } from "@/lib/file-service";
 import { getSession } from "@/lib/auth/auth";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { getTranslations } from "next-intl/server";
 
 /**
@@ -45,7 +46,7 @@ export async function uploadFile(formData: FormData) {
       },
     });
 
-    revalidatePath("/general/files");
+    revalidateLocalizedPath("/general/files");
     return { success: true, file: savedFile };
   } catch (error) {
     console.error("Upload error:", error);
@@ -82,7 +83,7 @@ export async function deleteFile(id: string) {
       where: { id },
     });
 
-    revalidatePath("/general/files");
+    revalidateLocalizedPath("/general/files");
     return { success: true };
   } catch (error) {
     console.error("Delete error:", error);

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 
 /**
  * Retrieves a paginated list of units of measurement.
@@ -37,7 +38,7 @@ export const createUnit = authorizedAction(
       const unit = await prisma.unit.create({
         data,
       });
-      revalidatePath("/inventory/uom");
+      revalidateLocalizedPath("/inventory/uom");
       return { success: true, data: unit };
     } catch (error) {
       console.error("Failed to create unit:", error);
@@ -57,7 +58,7 @@ export const updateUnit = authorizedAction(
         where: { id },
         data,
       });
-      revalidatePath("/inventory/uom");
+      revalidateLocalizedPath("/inventory/uom");
       return { success: true, data: unit };
     } catch (error) {
       console.error("Failed to update unit:", error);
@@ -95,7 +96,7 @@ export const deleteUnit = authorizedAction(
       await prisma.unit.delete({
         where: { id },
       });
-      revalidatePath("/inventory/uom");
+      revalidateLocalizedPath("/inventory/uom");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete unit:", error);

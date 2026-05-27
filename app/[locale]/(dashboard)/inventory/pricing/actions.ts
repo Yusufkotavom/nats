@@ -142,7 +142,7 @@ export const updateSinglePrice = authorizedAction(
         return { success: false, error: 'No active company selected' };
       }
       await updateProductPrice(data.id, data.price, session.activeCompanyId);
-      revalidatePath('/inventory/pricing');
+      revalidateLocalizedPath('/inventory/pricing');
       return { success: true };
     } catch (error) {
       console.error('Update price error:', error);
@@ -252,7 +252,7 @@ export const createAndAssignDiscount = authorizedAction(
           },
         },
       });
-      revalidatePath('/inventory/pricing');
+      revalidateLocalizedPath('/inventory/pricing');
       return {
         success: true,
         discount: {
@@ -275,7 +275,7 @@ export const toggleDiscountStatus = authorizedAction(
         where: { id: data.discountId },
         data: { isActive: data.isActive },
       });
-      revalidatePath('/inventory/pricing');
+      revalidateLocalizedPath('/inventory/pricing');
       return { success: true };
     } catch (error) {
       console.error('Toggle discount status error:', error);
@@ -308,7 +308,7 @@ export const removeDiscountFromProduct = authorizedAction(
           },
         },
       });
-      revalidatePath('/inventory/pricing');
+      revalidateLocalizedPath('/inventory/pricing');
       return { success: true };
     } catch (error) {
       console.error('Remove discount error:', error);
@@ -369,7 +369,7 @@ export const createGlobalDiscount = authorizedAction(
           priority: data.priority || 0,
         },
       });
-      revalidatePath('/inventory/pricing');
+      revalidateLocalizedPath('/inventory/pricing');
       return { success: true, discount: SuperJSON.serialize(discount) };
     } catch (error) {
       console.error('Create global discount error:', error);
@@ -407,7 +407,7 @@ export const updateGlobalDiscount = authorizedAction(
           isActive: data.isActive,
         },
       });
-      revalidatePath('/inventory/pricing');
+      revalidateLocalizedPath('/inventory/pricing');
       return { success: true, discount: SuperJSON.serialize(discount) };
     } catch (error) {
       console.error('Update global discount error:', error);
@@ -423,7 +423,7 @@ export const deleteGlobalDiscount = authorizedAction(
       await prisma.discount.delete({
         where: { id },
       });
-      revalidatePath('/inventory/pricing');
+      revalidateLocalizedPath('/inventory/pricing');
       return { success: true };
     } catch (error) {
       console.error('Delete global discount error:', error);
@@ -545,7 +545,7 @@ export const applyBatchPricing = authorizedAction(
 
       const count = await batchUpdateProductPrices(updates, session.activeCompanyId);
 
-      revalidatePath('/inventory/products');
+      revalidateLocalizedPath('/inventory/products');
 
       return { success: true, count, error: '' };
     } catch (error) {

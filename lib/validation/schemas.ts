@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SalesInvoiceStatus, MovementType, CashTransactionType } from "@/prisma/generated/prisma/client";
+import { UNIFIED_PAYMENT_METHODS } from "@/lib/payments/payment-methods";
 
 // --- Shared Schemas ---
 const idSchema = z.string().cuid().optional();
@@ -122,7 +123,7 @@ export const salesPaymentSchema = z.object({
   amount: positiveDecimalSchema.refine((val) => val > 0, "Amount must be greater than 0"),
   reference: z.string().optional(),
   notes: z.string().optional(),
-  method: z.string().min(1, "Payment method is required"),
+  method: z.enum(UNIFIED_PAYMENT_METHODS, { message: "Payment method is required" }),
   cashAccountId: requiredIdSchema,
   departmentId: z.string().optional().nullable(),
   projectId: z.string().optional().nullable(),
@@ -137,6 +138,7 @@ export const purchasePaymentSchema = z.object({
   amount: positiveDecimalSchema.refine((val) => val > 0, "Amount must be greater than 0"),
   reference: z.string().optional(),
   notes: z.string().optional(),
+  method: z.enum(UNIFIED_PAYMENT_METHODS).optional(),
   cashAccountId: requiredIdSchema,
   departmentId: z.string().optional().nullable(),
   projectId: z.string().optional().nullable(),

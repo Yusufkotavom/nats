@@ -27,6 +27,16 @@ type POSSettings = {
   serviceTemplatePickedUp: string;
   serviceWarrantyDuration: number;
   serviceWarrantyUnit: "DAY" | "MONTH";
+  defaultCashAccountId: string | null;
+  defaultCardAccountId: string | null;
+  defaultQrisAccountId: string | null;
+  cashAccounts: {
+    id: string;
+    name: string;
+    type: "CASH" | "BANK" | "PETTY_CASH" | "EWALLET";
+    accountNumber: string | null;
+    bankName: string | null;
+  }[];
   feeSettings: {
     id?: string;
     name: string;
@@ -80,6 +90,9 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
   const [serviceWarrantyUnit, setServiceWarrantyUnit] = useState<"DAY" | "MONTH">(
     initialData.serviceWarrantyUnit || "DAY",
   );
+  const [defaultCashAccountId, setDefaultCashAccountId] = useState(initialData.defaultCashAccountId || "none");
+  const [defaultCardAccountId, setDefaultCardAccountId] = useState(initialData.defaultCardAccountId || "none");
+  const [defaultQrisAccountId, setDefaultQrisAccountId] = useState(initialData.defaultQrisAccountId || "none");
 
   const handleSave = () => {
     startTransition(async () => {
@@ -96,6 +109,9 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
         serviceTemplatePickedUp,
         serviceWarrantyDuration,
         serviceWarrantyUnit,
+        defaultCashAccountId: defaultCashAccountId === "none" ? null : defaultCashAccountId,
+        defaultCardAccountId: defaultCardAccountId === "none" ? null : defaultCardAccountId,
+        defaultQrisAccountId: defaultQrisAccountId === "none" ? null : defaultQrisAccountId,
         feeSettings: feeSettings.map((item, index) => ({ ...item, sortOrder: index })),
       });
       if (result.success) {
@@ -252,6 +268,71 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
           <p className="text-xs text-muted-foreground">
             {t("service_template_variables_hint")}
           </p>
+        </div>
+
+        <div className="space-y-3 rounded-md border p-3">
+          <div className="space-y-2">
+            <Label>Default Payment Account Mapping</Label>
+            <p className="text-xs text-muted-foreground">
+              Set akun default per metode pembayaran. Semua modul pembayaran akan ikut mapping ini.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Default CASH Account</Label>
+              <Select value={defaultCashAccountId} onValueChange={setDefaultCashAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select cash account" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No default</SelectItem>
+                  {initialData.cashAccounts
+                    .filter((account) => account.type === "CASH" || account.type === "PETTY_CASH")
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Default CARD Account</Label>
+              <Select value={defaultCardAccountId} onValueChange={setDefaultCardAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select card account" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No default</SelectItem>
+                  {initialData.cashAccounts
+                    .filter((account) => account.type === "BANK" || account.type === "EWALLET")
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Default QRIS Account</Label>
+              <Select value={defaultQrisAccountId} onValueChange={setDefaultQrisAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select qris account" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No default</SelectItem>
+                  {initialData.cashAccounts
+                    .filter((account) => account.type === "BANK" || account.type === "EWALLET")
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-3 rounded-md border p-3">

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 
 type ResetTransactionsResult = {
   deleted: Record<string, number>;
@@ -97,13 +98,13 @@ export const resetTransactionalData = authorizedAction<
     return { success: false, error: "Failed to reset transactions" };
   }
 
-  revalidatePath("/purchase");
-  revalidatePath("/sales");
-  revalidatePath("/pos");
-  revalidatePath("/cash-bank");
-  revalidatePath("/inventory");
-  revalidatePath("/accounting");
-  revalidatePath("/admin/settings/data-reset");
+  revalidateLocalizedPath("/purchase");
+  revalidateLocalizedPath("/sales");
+  revalidateLocalizedPath("/pos");
+  revalidateLocalizedPath("/cash-bank");
+  revalidateLocalizedPath("/inventory");
+  revalidateLocalizedPath("/accounting");
+  revalidateLocalizedPath("/admin/settings/data-reset");
 
   return { success: true, data: { deleted } };
 });

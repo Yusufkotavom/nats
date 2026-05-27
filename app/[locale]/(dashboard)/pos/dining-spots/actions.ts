@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
 import { prisma } from "@/lib/prisma";
@@ -34,8 +35,8 @@ export const createDiningArea = authorizedAction(
     try {
       await assertRestaurantFeaturesEnabled();
       const created = await DiningSpotService.createArea(input);
-      revalidatePath("/pos/dining-spots");
-      revalidatePath("/pos");
+      revalidateLocalizedPath("/pos/dining-spots");
+      revalidateLocalizedPath("/pos");
       return { success: true, data: SuperJSON.serialize(created) };
     } catch (error) {
       return {
@@ -55,8 +56,8 @@ export const updateDiningArea = authorizedAction(
     try {
       await assertRestaurantFeaturesEnabled();
       const updated = await DiningSpotService.updateArea(id, input);
-      revalidatePath("/pos/dining-spots");
-      revalidatePath("/pos");
+      revalidateLocalizedPath("/pos/dining-spots");
+      revalidateLocalizedPath("/pos");
       return { success: true, data: SuperJSON.serialize(updated) };
     } catch (error) {
       return {
@@ -71,8 +72,8 @@ export const deleteDiningArea = authorizedAction("pos.access", async (id: string
   try {
     await assertRestaurantFeaturesEnabled();
     await DiningSpotService.deleteArea(id);
-    revalidatePath("/pos/dining-spots");
-    revalidatePath("/pos");
+    revalidateLocalizedPath("/pos/dining-spots");
+    revalidateLocalizedPath("/pos");
     return { success: true };
   } catch (error) {
     return {
@@ -95,8 +96,8 @@ export const createDiningSpot = authorizedAction(
     try {
       await assertRestaurantFeaturesEnabled();
       const created = await DiningSpotService.createSpot(input);
-      revalidatePath("/pos/dining-spots");
-      revalidatePath("/pos");
+      revalidateLocalizedPath("/pos/dining-spots");
+      revalidateLocalizedPath("/pos");
       return { success: true, data: SuperJSON.serialize(created) };
     } catch (error) {
       return {
@@ -123,8 +124,8 @@ export const updateDiningSpot = authorizedAction(
     try {
       await assertRestaurantFeaturesEnabled();
       const updated = await DiningSpotService.updateSpot(id, input);
-      revalidatePath("/pos/dining-spots");
-      revalidatePath("/pos");
+      revalidateLocalizedPath("/pos/dining-spots");
+      revalidateLocalizedPath("/pos");
       return { success: true, data: SuperJSON.serialize(updated) };
     } catch (error) {
       return {
@@ -139,8 +140,8 @@ export const deleteDiningSpot = authorizedAction("pos.access", async (id: string
   try {
     await assertRestaurantFeaturesEnabled();
     await DiningSpotService.deleteSpot(id);
-    revalidatePath("/pos/dining-spots");
-    revalidatePath("/pos");
+    revalidateLocalizedPath("/pos/dining-spots");
+    revalidateLocalizedPath("/pos");
     return { success: true };
   } catch (error) {
     return {

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -91,7 +92,7 @@ export const createProductionIssue = authorizedAction(
     async (data: ProductionIssueInput) => {
         try {
             const result = await ProductionIssueService.create(data);
-            revalidatePath("/production/issues");
+            revalidateLocalizedPath("/production/issues");
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to create Production Issue:", error);
@@ -105,8 +106,8 @@ export const issueMaterials = authorizedAction(
     async (id: string) => {
         try {
             const result = await ProductionIssueService.issueMaterials(id);
-            revalidatePath("/production/issues");
-            revalidatePath(`/production/issues/${id}`);
+            revalidateLocalizedPath("/production/issues");
+            revalidateLocalizedPath(`/production/issues/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to confirm Production Issue:", error);
@@ -120,8 +121,8 @@ export const cancelProductionIssue = authorizedAction(
     async (id: string) => {
         try {
             const result = await ProductionIssueService.cancel(id);
-            revalidatePath("/production/issues");
-            revalidatePath(`/production/issues/${id}`);
+            revalidateLocalizedPath("/production/issues");
+            revalidateLocalizedPath(`/production/issues/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to cancel Production Issue:", error);

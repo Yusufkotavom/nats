@@ -145,8 +145,8 @@ describe("JournalService", () => {
                         update: vi.fn().mockResolvedValue({ ...mockEntry, status: "posted" }),
                     },
                     $executeRaw: vi.fn(),
+                    $queryRaw: vi.fn().mockResolvedValue([]),
                     journalEntryLine: {
-                        findFirst: vi.fn(), // for initial balance check if needed
                         update: vi.fn(),
                     },
                 };

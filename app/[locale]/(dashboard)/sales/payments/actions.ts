@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPaths } from "@/lib/revalidate-localized-path";
 import {
   Prisma,
   SalesInvoiceStatus,
@@ -35,10 +35,17 @@ export async function getSalesPayments(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      payments: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.SalesPaymentWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -84,9 +91,12 @@ export async function getSalesPayment(id: string) {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const payment = await prisma.salesPayment.findUnique({
-    where: { id },
+  const payment = await prisma.salesPayment.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       salesInvoice: true,
@@ -109,9 +119,13 @@ export async function getUnpaidSalesInvoices() {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const invoices = await prisma.salesInvoice.findMany({
     where: {
+      companyId: session.activeCompanyId,
       status: { in: ["ISSUED", "PARTIALLY_PAID", "OVERDUE"] },
     },
     include: {
@@ -129,12 +143,48 @@ export async function getCashAccounts() {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const accounts = await prisma.cashAccount.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      glAccount: {
+        companyId: session.activeCompanyId,
+      },
+    },
     orderBy: { name: "asc" },
   });
-  return SuperJSON.serialize(accounts);
+
+  let profile: {
+    defaultCashAccountId: string | null;
+    defaultCardAccountId: string | null;
+    defaultQrisAccountId: string | null;
+  } | null = null;
+  try {
+    profile = await prisma.companyProfile.findUnique({
+      where: { companyId: session.activeCompanyId },
+      select: {
+        defaultCashAccountId: true,
+        defaultCardAccountId: true,
+        defaultQrisAccountId: true,
+      },
+    });
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientValidationError) || !error.message.includes("defaultCashAccountId")) {
+      throw error;
+    }
+  }
+
+  return SuperJSON.serialize({
+    accounts,
+    defaults: {
+      CASH: profile?.defaultCashAccountId ?? null,
+      CARD: profile?.defaultCardAccountId ?? null,
+      QRIS: profile?.defaultQrisAccountId ?? null,
+    },
+  });
 }
 
 import { salesPaymentSchema } from "@/lib/validation/schemas";
@@ -152,11 +202,11 @@ export const createSalesPayment = authorizedAction(
 
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const result = await SalesPaymentService.create(data, session.userId);
+      const result = await SalesPaymentService.create(data, session.userId, session.activeCompanyId);
 
-      revalidatePath("/sales/payments");
-      revalidatePath("/sales/invoices");
+      revalidateLocalizedPaths(["/sales/payments", "/sales/invoices"]);
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Payment:", error);
@@ -174,9 +224,10 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const payment = await prisma.salesPayment.findUnique({
-        where: { id },
+      const payment = await prisma.salesPayment.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: {
           salesInvoice: true,
           cashAccount: true,
@@ -217,9 +268,11 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
 
       const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
-      revalidatePath("/sales/payments");
-      revalidatePath("/sales/invoices");
-      revalidatePath(`/sales/payments/${id}`);
+      revalidateLocalizedPaths([
+        "/sales/payments",
+        "/sales/invoices",
+        `/sales/payments/${id}`,
+      ]);
       return { success: true, data: { outboxId: outbox.id, ...processed } };
     } catch (error) {
       console.error("Failed to post Payment:", error);
@@ -237,9 +290,10 @@ export const deleteSalesPayment = authorizedAction(
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const payment = await prisma.salesPayment.findUnique({
-        where: { id },
+      const payment = await prisma.salesPayment.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: {
           salesInvoice: {
             include: { payments: true },
@@ -283,8 +337,7 @@ export const deleteSalesPayment = authorizedAction(
         });
       });
 
-      revalidatePath("/sales/payments");
-      revalidatePath("/sales/invoices");
+      revalidateLocalizedPaths(["/sales/payments", "/sales/invoices"]);
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Payment:", error);
@@ -308,9 +361,10 @@ export const updateSalesPayment = authorizedAction(
 
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const existingPayment = await prisma.salesPayment.findUnique({
-        where: { id },
+      const existingPayment = await prisma.salesPayment.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: { salesInvoice: { include: { payments: true } } },
       });
 
@@ -368,9 +422,11 @@ export const updateSalesPayment = authorizedAction(
         });
       });
 
-      revalidatePath("/sales/payments");
-      revalidatePath("/sales/invoices");
-      revalidatePath(`/sales/payments/${id}`);
+      revalidateLocalizedPaths([
+        "/sales/payments",
+        "/sales/invoices",
+        `/sales/payments/${id}`,
+      ]);
       return { success: true };
     } catch (error) {
       console.error("Failed to update Payment:", error);

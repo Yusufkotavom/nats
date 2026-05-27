@@ -8,6 +8,7 @@ import { CashTransactionFormData } from "../types";
 import { SuperJSON } from "@/lib/superjson";
 import { Decimal } from "decimal.js";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
+import { verifySession } from "@/lib/auth/auth";
 
 interface PageProps {
   params: Promise<{
@@ -17,18 +18,25 @@ interface PageProps {
 
 export default async function EditTransactionPage({ params }: PageProps) {
   const { transactionId } = await params;
+  const session = await verifySession();
+  if (!session.activeCompanyId) {
+    throw new Error("No active company selected");
+  }
 
   const [cashAccounts, glAccounts, transactionResult, contacts, departments, projects] = await Promise.all([
     prisma.cashAccount.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        glAccount: { companyId: session.activeCompanyId },
+      },
     }),
     prisma.account.findMany({
-      where: { isActive: true },
+      where: { isActive: true, companyId: session.activeCompanyId },
       orderBy: { code: "asc" },
     }),
     getCashTransaction(transactionId),
     prisma.contact.findMany({
-      where: { isActive: true },
+      where: { isActive: true, companyId: session.activeCompanyId },
       orderBy: { name: "asc" },
     }),
     getDepartments(),

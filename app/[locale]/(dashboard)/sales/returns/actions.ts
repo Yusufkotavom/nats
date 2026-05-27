@@ -5,6 +5,7 @@ import { InventoryService } from "@/modules/inventory/services/inventory.service
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesReturnInput } from "./types";
@@ -28,10 +29,17 @@ export async function getSalesReturns(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      returns: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.SalesReturnWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -86,9 +94,12 @@ export async function getSalesReturn(id: string) {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const salesReturn = await prisma.salesReturn.findUnique({
-    where: { id },
+  const salesReturn = await prisma.salesReturn.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       salesOrder: true,
@@ -117,9 +128,15 @@ export async function getSalesOrdersForReturn() {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const orders = await prisma.salesOrder.findMany({
-    where: { status: { in: ["CONFIRMED", "SHIPPED", "PARTIALLY_SHIPPED", "CLOSED"] } },
+    where: {
+      companyId: session.activeCompanyId,
+      status: { in: ["CONFIRMED", "SHIPPED", "PARTIALLY_SHIPPED", "CLOSED"] },
+    },
     orderBy: { createdAt: "desc" },
     include: {
       contact: true,
@@ -143,9 +160,15 @@ export async function getSalesInvoicesForReturn() {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const invoices = await prisma.salesInvoice.findMany({
-    where: { status: { in: ["ISSUED", "PAID", "PARTIALLY_PAID"] } },
+    where: {
+      companyId: session.activeCompanyId,
+      status: { in: ["ISSUED", "PAID", "PARTIALLY_PAID"] },
+    },
     orderBy: { createdAt: "desc" },
     include: {
       contact: true,
@@ -171,7 +194,7 @@ export const createSalesReturn = authorizedAction(
 
       const result = await SalesReturnService.create(data, session.userId);
 
-      revalidatePath("/sales/returns");
+      revalidateLocalizedPath("/sales/returns");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Return:", error);
@@ -185,8 +208,11 @@ export const updateSalesReturn = authorizedAction(
   "sales.edit",
   async (id: string, data: SalesReturnInput) => {
     try {
-      const currentReturn = await prisma.salesReturn.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentReturn = await prisma.salesReturn.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentReturn) throw new Error("Return not found");
@@ -202,8 +228,8 @@ export const updateSalesReturn = authorizedAction(
       }
 
       if (data.returnNumber !== currentReturn.returnNumber) {
-        const existing = await prisma.salesReturn.findUnique({
-          where: { returnNumber: data.returnNumber },
+        const existing = await prisma.salesReturn.findFirst({
+          where: { returnNumber: data.returnNumber, companyId: session.activeCompanyId },
         });
         if (existing && existing.id !== id) {
           return { success: false, error: "Return number already exists" };
@@ -274,7 +300,7 @@ export const updateSalesReturn = authorizedAction(
         return updatedReturn;
       });
 
-      revalidatePath("/sales/returns");
+      revalidateLocalizedPath("/sales/returns");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Return:", error);
@@ -287,8 +313,11 @@ export const deleteSalesReturn = authorizedAction(
   "sales.delete",
   async (id: string) => {
     try {
-      const currentReturn = await prisma.salesReturn.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentReturn = await prisma.salesReturn.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentReturn) throw new Error("Return not found");
@@ -301,7 +330,7 @@ export const deleteSalesReturn = authorizedAction(
         where: { id },
       });
 
-      revalidatePath("/sales/returns");
+      revalidateLocalizedPath("/sales/returns");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Return:", error);

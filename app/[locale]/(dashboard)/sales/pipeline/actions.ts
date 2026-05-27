@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { confirmSalesOrder, closeSalesOrder } from "../orders/actions";
 import { createSalesInvoice, postSalesInvoice } from "../invoices/actions";
 import { createSalesPayment, postSalesPayment } from "../payments/actions";
@@ -47,6 +48,9 @@ function assertAccess(session: Awaited<ReturnType<typeof getSession>>) {
   if (!session?.userId || !hasPermission(session.permissions, "sales.edit")) {
     throw new Error("Unauthorized");
   }
+  if (!session.activeCompanyId) {
+    throw new Error("No active company selected");
+  }
 }
 
 const SHIPMENT_SKIPPED_MARKER = "[PIPELINE_SHIPMENT_SKIPPED]";
@@ -54,9 +58,10 @@ const SHIPMENT_SKIPPED_MARKER = "[PIPELINE_SHIPMENT_SKIPPED]";
 export async function getSalesPipelineState(orderId: string): Promise<SalesPipelineState> {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
-  const order = await prisma.salesOrder.findUnique({
-    where: { id: orderId },
+  const order = await prisma.salesOrder.findFirst({
+    where: { id: orderId, companyId },
     include: {
       items: true,
       shipments: {
@@ -72,7 +77,7 @@ export async function getSalesPipelineState(orderId: string): Promise<SalesPipel
   if (!order) throw new Error("Sales order not found");
 
   const invoice = await prisma.salesInvoice.findFirst({
-    where: { salesOrderId: order.id },
+    where: { salesOrderId: order.id, companyId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -85,7 +90,7 @@ export async function getSalesPipelineState(orderId: string): Promise<SalesPipel
 
   const payment = invoice
     ? await prisma.salesPayment.findFirst({
-        where: { salesInvoiceId: invoice.id },
+        where: { salesInvoiceId: invoice.id, companyId },
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
@@ -97,7 +102,7 @@ export async function getSalesPipelineState(orderId: string): Promise<SalesPipel
     : null;
 
   const cashAccount = await prisma.cashAccount.findFirst({
-    where: { isActive: true },
+    where: { isActive: true, companyId },
     orderBy: { createdAt: "asc" },
     select: { id: true },
   });
@@ -160,9 +165,10 @@ export async function runSalesPipelineAction(
 ) {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
-  const current = await prisma.salesOrder.findUnique({
-    where: { id: orderId },
+  const current = await prisma.salesOrder.findFirst({
+    where: { id: orderId, companyId },
     include: {
       items: true,
       shipments: true,
@@ -195,7 +201,7 @@ export async function runSalesPipelineAction(
 
   if (action === "complete_shipment") {
     const shipment = await prisma.salesShipment.findFirst({
-      where: { salesOrderId: current.id },
+      where: { salesOrderId: current.id, companyId },
       orderBy: { createdAt: "desc" },
       include: {
         items: true,
@@ -235,7 +241,7 @@ export async function runSalesPipelineAction(
 
   if (action === "create_invoice") {
     const existingInvoice = await prisma.salesInvoice.findFirst({
-      where: { salesOrderId: current.id },
+      where: { salesOrderId: current.id, companyId },
       select: { id: true },
     });
     if (!existingInvoice) {
@@ -263,7 +269,7 @@ export async function runSalesPipelineAction(
 
   if (action === "post_invoice") {
     const invoice = await prisma.salesInvoice.findFirst({
-      where: { salesOrderId: current.id },
+      where: { salesOrderId: current.id, companyId },
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });
@@ -274,14 +280,14 @@ export async function runSalesPipelineAction(
 
   if (action === "create_payment") {
     const invoice = await prisma.salesInvoice.findFirst({
-      where: { salesOrderId: current.id },
+      where: { salesOrderId: current.id, companyId },
       orderBy: { createdAt: "desc" },
       select: { id: true, balanceDue: true },
     });
     if (!invoice) throw new Error("Invoice not found");
 
     const cashAccount = await prisma.cashAccount.findFirst({
-      where: { isActive: true },
+      where: { isActive: true, companyId },
       orderBy: { createdAt: "asc" },
       select: { id: true },
     });
@@ -304,13 +310,13 @@ export async function runSalesPipelineAction(
 
   if (action === "post_payment") {
     const invoice = await prisma.salesInvoice.findFirst({
-      where: { salesOrderId: current.id },
+      where: { salesOrderId: current.id, companyId },
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });
     if (!invoice) throw new Error("Invoice not found");
     const payment = await prisma.salesPayment.findFirst({
-      where: { salesInvoiceId: invoice.id, journalEntryId: null },
+      where: { salesInvoiceId: invoice.id, companyId, journalEntryId: null },
       orderBy: { createdAt: "desc" },
       select: { id: true },
     });
@@ -324,7 +330,7 @@ export async function runSalesPipelineAction(
     if (!result.success) throw new Error(result.error || "Failed to close sales order");
   }
 
-  revalidatePath("/sales/orders");
-  revalidatePath(`/sales/pipeline/${orderId}`);
+  revalidateLocalizedPath("/sales/orders");
+  revalidateLocalizedPath(`/sales/pipeline/${orderId}`);
   return { success: true };
 }

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { budgetSchema } from "./schemas";
 import { z } from "zod";
 import { getSession } from "@/lib/auth/auth";
@@ -179,9 +180,9 @@ export async function createBudget(data: BudgetInput): Promise<ActionResponse> {
       },
     });
 
-    revalidatePath("/budgeting");
-    revalidatePath("/budgeting/budgets");
-    revalidatePath("/budgeting/saving-targets");
+    revalidateLocalizedPath("/budgeting");
+    revalidateLocalizedPath("/budgeting/budgets");
+    revalidateLocalizedPath("/budgeting/saving-targets");
     return { success: true, data: SuperJSON.serialize(budget) };
   } catch (error) {
     console.error(error);
@@ -223,10 +224,10 @@ export async function updateBudget(
       });
     }
 
-    revalidatePath(`/budgeting/budgets/${id}`);
-    revalidatePath("/budgeting");
-    revalidatePath("/budgeting/budgets");
-    revalidatePath("/budgeting/saving-targets");
+    revalidateLocalizedPath(`/budgeting/budgets/${id}`);
+    revalidateLocalizedPath("/budgeting");
+    revalidateLocalizedPath("/budgeting/budgets");
+    revalidateLocalizedPath("/budgeting/saving-targets");
     return { success: true, data: null };
   } catch (error) {
     return { success: false, error: (error as Error).message };
@@ -255,7 +256,7 @@ export async function submitBudgetForApproval(id: string): Promise<ActionRespons
       },
     });
 
-    revalidatePath(`/budgeting/budgets/${id}`);
+    revalidateLocalizedPath(`/budgeting/budgets/${id}`);
     return { success: true, data: null };
   } catch (error) {
     return { success: false, error: (error as Error).message };
@@ -314,7 +315,7 @@ export async function approveBudgetAction(
       });
     }
 
-    revalidatePath(`/budgeting/budgets/${id}`);
+    revalidateLocalizedPath(`/budgeting/budgets/${id}`);
     return { success: true, data: null };
   } catch (error) {
     return { success: false, error: (error as Error).message };

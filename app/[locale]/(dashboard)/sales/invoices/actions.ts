@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import {
   Prisma,
   SalesInvoiceStatus,
@@ -40,10 +41,17 @@ export async function getSalesInvoices(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      invoices: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.SalesInvoiceWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (status && status !== "ALL") {
@@ -96,9 +104,12 @@ export async function getSalesInvoice(id: string) {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const invoice = await prisma.salesInvoice.findUnique({
-    where: { id },
+  const invoice = await prisma.salesInvoice.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       salesOrder: true,
@@ -117,9 +128,13 @@ export async function getSalesOrdersForSelect() {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return SuperJSON.serialize([]);
   }
+  if (!session.activeCompanyId) {
+    return SuperJSON.serialize([]);
+  }
 
   const orders = await prisma.salesOrder.findMany({
     where: {
+      companyId: session.activeCompanyId,
       status: { in: ["CONFIRMED", "SHIPPED", "PARTIALLY_SHIPPED", "CLOSED"] },
     },
     orderBy: { createdAt: "desc" },
@@ -149,11 +164,11 @@ export const createSalesInvoice = authorizedAction(
       const data = parseResult.data;
 
       const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
 
-      const result = await SalesInvoiceService.create(data, session.userId);
+      const result = await SalesInvoiceService.create(data, session.userId, session.activeCompanyId);
 
-      revalidatePath("/sales/invoices");
+      revalidateLocalizedPath("/sales/invoices");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Invoice:", error);
@@ -172,10 +187,12 @@ export const updateSalesInvoice = authorizedAction(
         return { success: false, error: parseResult.error.message };
       }
       const data = parseResult.data;
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
 
-      const result = await SalesInvoiceService.update(id, data);
+      const result = await SalesInvoiceService.update(id, data, session.activeCompanyId);
 
-      revalidatePath("/sales/invoices");
+      revalidateLocalizedPath("/sales/invoices");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Invoice:", error);
@@ -189,9 +206,11 @@ export const deleteSalesInvoice = authorizedAction(
   "sales.delete",
   async (id: string) => {
     try {
-      await SalesInvoiceService.delete(id);
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+      await SalesInvoiceService.delete(id, session.activeCompanyId);
 
-      revalidatePath("/sales/invoices");
+      revalidateLocalizedPath("/sales/invoices");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Invoice:", error);
@@ -207,9 +226,10 @@ export const postSalesInvoice = authorizedAction<PostSalesInvoiceResult, [string
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const invoice = await prisma.salesInvoice.findUnique({
-        where: { id },
+      const invoice = await prisma.salesInvoice.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: { items: true },
       });
 
@@ -254,8 +274,8 @@ export const postSalesInvoice = authorizedAction<PostSalesInvoiceResult, [string
 
       const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
-      revalidatePath("/sales/invoices");
-      revalidatePath(`/sales/invoices/${id}`);
+      revalidateLocalizedPath("/sales/invoices");
+      revalidateLocalizedPath(`/sales/invoices/${id}`);
       return { success: true, data: { outboxId: outbox.id, ...processed } };
     } catch (error) {
       console.error("Failed to post Invoice:", error);

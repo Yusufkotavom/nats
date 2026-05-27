@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import {
   clearImpersonationContext,
   getSession,
@@ -103,7 +104,7 @@ export async function createCompanyAsPlatformAdmin(input: {
     }
   });
 
-  revalidatePath("/admin/companies");
+  revalidateLocalizedPath("/admin/companies");
   return { success: true };
 }
 
@@ -116,7 +117,7 @@ export async function setCompanyStatusAsPlatformAdmin(
     where: { id: companyId },
     data: { status },
   });
-  revalidatePath("/admin/companies");
+  revalidateLocalizedPath("/admin/companies");
   return { success: true };
 }
 

@@ -5,6 +5,7 @@ import { InventoryService } from "@/modules/inventory/services/inventory.service
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReturnInput } from "./types";
@@ -29,10 +30,17 @@ export async function getPurchaseReturns(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      returns: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseReturnWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -88,9 +96,12 @@ export async function getPurchaseReturn(id: string) {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const purchaseReturn = await prisma.purchaseReturn.findUnique({
-    where: { id },
+  const purchaseReturn = await prisma.purchaseReturn.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       purchaseOrder: true,
@@ -121,9 +132,12 @@ export async function getPurchaseOrdersForReturn() {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const orders = await prisma.purchaseOrder.findMany({
-    where: { status: { in: ["ISSUED", "PARTIALLY_RECEIVED", "CLOSED"] } },
+    where: { companyId: session.activeCompanyId, status: { in: ["ISSUED", "PARTIALLY_RECEIVED", "CLOSED"] } },
     orderBy: { createdAt: "desc" },
     include: {
       contact: true,
@@ -147,9 +161,12 @@ export async function getPurchaseInvoicesForReturn() {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const invoices = await prisma.purchaseInvoice.findMany({
-    where: { status: { in: ["BILLED", "PAID", "PARTIALLY_PAID"] } },
+    where: { companyId: session.activeCompanyId, status: { in: ["BILLED", "PAID", "PARTIALLY_PAID"] } },
     orderBy: { createdAt: "desc" },
     include: {
       contact: true,
@@ -186,7 +203,7 @@ export const createPurchaseReturn = authorizedAction(
 
       const result = await PurchaseReturnService.create(data, session.userId);
 
-      revalidatePath("/purchase/returns");
+      revalidateLocalizedPath("/purchase/returns");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Return:", error);
@@ -202,8 +219,11 @@ export const updatePurchaseReturn = authorizedAction(
   "purchase.edit",
   async (id: string, data: PurchaseReturnInput) => {
     try {
-      const currentReturn = await prisma.purchaseReturn.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentReturn = await prisma.purchaseReturn.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentReturn) throw new Error("Return not found");
@@ -219,8 +239,8 @@ export const updatePurchaseReturn = authorizedAction(
       }
 
       if (data.returnNumber !== currentReturn.returnNumber) {
-        const existing = await prisma.purchaseReturn.findUnique({
-          where: { returnNumber: data.returnNumber },
+        const existing = await prisma.purchaseReturn.findFirst({
+          where: { returnNumber: data.returnNumber, companyId: session.activeCompanyId },
         });
         if (existing && existing.id !== id) {
           return { success: false, error: "Return number already exists" };
@@ -289,7 +309,7 @@ export const updatePurchaseReturn = authorizedAction(
         return updatedReturn;
       });
 
-      revalidatePath("/purchase/returns");
+      revalidateLocalizedPath("/purchase/returns");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Return:", error);
@@ -302,8 +322,11 @@ export const deletePurchaseReturn = authorizedAction(
   "purchase.delete",
   async (id: string) => {
     try {
-      const currentReturn = await prisma.purchaseReturn.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentReturn = await prisma.purchaseReturn.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentReturn) throw new Error("Return not found");
@@ -316,7 +339,7 @@ export const deletePurchaseReturn = authorizedAction(
         where: { id },
       });
 
-      revalidatePath("/purchase/returns");
+      revalidateLocalizedPath("/purchase/returns");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Return:", error);

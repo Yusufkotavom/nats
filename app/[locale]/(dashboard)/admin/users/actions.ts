@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -121,7 +122,7 @@ export const createUser = authorizedAction(
         });
         return createdUser;
       });
-      revalidatePath("/admin/users");
+      revalidateLocalizedPath("/admin/users");
       return { success: true, data: user };
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -176,7 +177,7 @@ export const updateUser = authorizedAction(
         where: { id },
         data: updateData,
       });
-      revalidatePath("/admin/users");
+      revalidateLocalizedPath("/admin/users");
       return { success: true, data: user };
     } catch (error) {
       console.error("Failed to update user:", error);
@@ -203,7 +204,7 @@ export const deleteUser = authorizedAction(
           });
         }
       });
-      revalidatePath("/admin/users");
+      revalidateLocalizedPath("/admin/users");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete user:", error);

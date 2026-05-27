@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { SuperJSON } from "@/lib/superjson";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { getSession } from "@/lib/auth/auth";
@@ -65,7 +66,7 @@ export const createWarehouse = authorizedAction(
       const warehouse = await prisma.$transaction(async (tx) => {
         return await WarehouseService.createWarehouse(tx, data, session.activeCompanyId!);
       });
-      revalidatePath("/inventory/warehouses");
+      revalidateLocalizedPath("/inventory/warehouses");
       return { success: true, data: warehouse };
     } catch (error) {
       console.error("Failed to create warehouse:", error);
@@ -86,7 +87,7 @@ export const updateWarehouse = authorizedAction(
       const warehouse = await prisma.$transaction(async (tx) => {
         return await WarehouseService.updateWarehouse(tx, id, data, session.activeCompanyId!);
       });
-      revalidatePath("/inventory/warehouses");
+      revalidateLocalizedPath("/inventory/warehouses");
       return { success: true, data: warehouse };
     } catch (error) {
       console.error("Failed to update warehouse:", error);
@@ -107,7 +108,7 @@ export const deleteWarehouse = authorizedAction(
       await prisma.$transaction(async (tx) => {
         await WarehouseService.deleteWarehouse(tx, id, session.activeCompanyId!);
       });
-      revalidatePath("/inventory/warehouses");
+      revalidateLocalizedPath("/inventory/warehouses");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete warehouse:", error);

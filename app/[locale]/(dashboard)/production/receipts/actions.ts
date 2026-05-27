@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -91,7 +92,7 @@ export const createProductionReceipt = authorizedAction(
     async (data: ProductionReceiptInput) => {
         try {
             const result = await ProductionReceiptService.create(data);
-            revalidatePath("/production/receipts");
+            revalidateLocalizedPath("/production/receipts");
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to create Production Receipt:", error);
@@ -105,8 +106,8 @@ export const receiveGoods = authorizedAction(
     async (id: string) => {
         try {
             const result = await ProductionReceiptService.receiveGoods(id);
-            revalidatePath("/production/receipts");
-            revalidatePath(`/production/receipts/${id}`);
+            revalidateLocalizedPath("/production/receipts");
+            revalidateLocalizedPath(`/production/receipts/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to receive Production Goods:", error);
@@ -120,8 +121,8 @@ export const cancelProductionReceipt = authorizedAction(
     async (id: string) => {
         try {
             const result = await ProductionReceiptService.cancel(id);
-            revalidatePath("/production/receipts");
-            revalidatePath(`/production/receipts/${id}`);
+            revalidateLocalizedPath("/production/receipts");
+            revalidateLocalizedPath(`/production/receipts/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to cancel Production Receipt:", error);

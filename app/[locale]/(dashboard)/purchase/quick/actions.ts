@@ -7,6 +7,7 @@ import { hasPermission } from "@/lib/permissions/utils";
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { SuperJSONResult } from "superjson";
 import { createPurchaseReceive, updatePurchaseReceive } from "../receives/actions";
 import { createPurchaseInvoice, postPurchaseInvoice } from "../invoices/actions";
@@ -32,29 +33,44 @@ export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
       projects: [],
     });
   }
+  if (!session.activeCompanyId) {
+    return SuperJSON.serialize<QuickPurchaseFormData>({
+      vendors: [],
+      products: [],
+      cashAccounts: [],
+      departments: [],
+      projects: [],
+    });
+  }
 
   const [vendors, products, cashAccounts, departments, projects] = await Promise.all([
     prisma.contact.findMany({
-      where: { type: "VENDOR", isActive: true },
+      where: { type: "VENDOR", isActive: true, companyId: session.activeCompanyId },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.product.findMany({
-      where: { isActive: true },
+      where: { isActive: true, companyId: session.activeCompanyId },
       orderBy: { name: "asc" },
       select: { id: true, name: true, sku: true, cost: true },
     }),
     prisma.cashAccount.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        glAccount: {
+          companyId: session.activeCompanyId,
+        },
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.department.findMany({
-      where: { isActive: true },
+      where: { isActive: true, companyId: session.activeCompanyId },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.project.findMany({
+      where: { companyId: session.activeCompanyId },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
@@ -73,6 +89,9 @@ export const createQuickPurchase = authorizedAction(
   "purchase.create",
   async (data: QuickPurchaseInput) => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
       if (!data.contactId) throw new Error("Vendor is required");
       if (!data.items || data.items.length === 0) throw new Error("At least one item is required");
       if ((data.mode === "CASH_DAILY" || data.mode === "PREORDER_DP") && !data.cashAccountId) {
@@ -81,7 +100,7 @@ export const createQuickPurchase = authorizedAction(
 
       const productIds = data.items.map((i) => i.productId);
       const products = await prisma.product.findMany({
-        where: { id: { in: productIds } },
+        where: { id: { in: productIds }, companyId: session.activeCompanyId },
         select: { id: true, name: true },
       });
       const productMap = new Map(products.map((p) => [p.id, p.name]));
@@ -215,10 +234,10 @@ export const createQuickPurchase = authorizedAction(
         remainingPayableAmount,
       };
 
-      revalidatePath("/purchase/receives");
-      revalidatePath("/purchase/invoices");
-      revalidatePath("/purchase/payments");
-      revalidatePath("/purchase/quick");
+      revalidateLocalizedPath("/purchase/receives");
+      revalidateLocalizedPath("/purchase/invoices");
+      revalidateLocalizedPath("/purchase/payments");
+      revalidateLocalizedPath("/purchase/quick");
 
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {

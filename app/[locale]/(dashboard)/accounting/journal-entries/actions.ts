@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { CreateJournalEntryData } from "../types";
@@ -99,7 +100,7 @@ export const createJournalEntry = authorizedAction(
 
       const entry = await JournalService.createJournalEntry(data, session.userId);
 
-      revalidatePath("/accounting/journal-entries");
+      revalidateLocalizedPath("/accounting/journal-entries");
       return { success: true, data: SuperJSON.serialize(entry) };
     } catch (error: any) {
       console.error("Failed to create journal entry:", error);
@@ -128,8 +129,8 @@ export async function updateJournalEntry(
 
     await JournalService.updateJournalEntry(id, validatedData);
 
-    revalidatePath("/accounting/journal-entries");
-    revalidatePath(`/accounting/journal-entries/${id}`);
+    revalidateLocalizedPath("/accounting/journal-entries");
+    revalidateLocalizedPath(`/accounting/journal-entries/${id}`);
     return { success: true };
   } catch (error: any) {
     console.error("Failed to update journal entry:", error);
@@ -148,7 +149,7 @@ export async function deleteJournalEntry(id: string) {
   try {
     await JournalService.deleteJournalEntry(id);
 
-    revalidatePath("/accounting/journal-entries");
+    revalidateLocalizedPath("/accounting/journal-entries");
     return { success: true };
   } catch (error: any) {
     console.error("Failed to delete journal entry:", error);
@@ -163,8 +164,8 @@ export async function postJournalEntry(id: string) {
   try {
     await JournalService.postJournalEntry(id);
 
-    revalidatePath("/accounting/journal-entries");
-    revalidatePath(`/accounting/journal-entries/${id}`);
+    revalidateLocalizedPath("/accounting/journal-entries");
+    revalidateLocalizedPath(`/accounting/journal-entries/${id}`);
 
     return { success: true };
   } catch (error: any) {

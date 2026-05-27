@@ -85,10 +85,16 @@ model CompanyProfile {
   serviceTemplatePickedUp  String?
   serviceWarrantyDuration  Int      @default(0)
   serviceWarrantyUnit      String   @default("DAY") // DAY | MONTH
+  defaultCashAccountId     String?
+  defaultCardAccountId     String?
+  defaultQrisAccountId     String?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  defaultCashAccount CashAccount? @relation("DefaultCashPaymentAccount", fields: [defaultCashAccountId], references: [id], onDelete: SetNull)
+  defaultCardAccount CashAccount? @relation("DefaultCardPaymentAccount", fields: [defaultCardAccountId], references: [id], onDelete: SetNull)
+  defaultQrisAccount CashAccount? @relation("DefaultQrisPaymentAccount", fields: [defaultQrisAccountId], references: [id], onDelete: SetNull)
 }
 
 model AuditLog {

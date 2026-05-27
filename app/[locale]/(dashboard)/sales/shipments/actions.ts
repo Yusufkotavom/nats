@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesShipmentInput } from "./types";
@@ -27,10 +28,17 @@ export async function getSalesShipments(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      shipments: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.SalesShipmentWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -79,9 +87,12 @@ export async function getSalesShipment(id: string) {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const shipment = await prisma.salesShipment.findUnique({
-    where: { id },
+  const shipment = await prisma.salesShipment.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       salesOrder: true,
@@ -106,9 +117,12 @@ export async function getProducts() {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where: { isActive: true, companyId: session.activeCompanyId },
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -134,9 +148,13 @@ export async function getSalesOrdersForSelect() {
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const orders = await prisma.salesOrder.findMany({
     where: {
+      companyId: session.activeCompanyId,
       status: { in: ["CONFIRMED", "PARTIALLY_SHIPPED"] },
     },
     orderBy: { createdAt: "desc" },
@@ -163,7 +181,7 @@ export const createSalesShipment = authorizedAction(
 
       const result = await SalesShipmentService.create(data, session.userId);
 
-      revalidatePath("/sales/shipments");
+      revalidateLocalizedPath("/sales/shipments");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Shipment:", error);
@@ -182,8 +200,11 @@ export const updateSalesShipment = authorizedAction(
     },
   ) => {
     try {
-      const currentShipment = await prisma.salesShipment.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentShipment = await prisma.salesShipment.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: { items: true },
       });
 
@@ -352,8 +373,8 @@ export const updateSalesShipment = authorizedAction(
         return updatedShipment;
       });
 
-      revalidatePath("/sales/shipments");
-      revalidatePath("/sales/orders");
+      revalidateLocalizedPath("/sales/shipments");
+      revalidateLocalizedPath("/sales/orders");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Shipment:", error);
@@ -369,8 +390,11 @@ export const deleteSalesShipment = authorizedAction(
   "sales.delete",
   async (id: string) => {
     try {
-      const currentShipment = await prisma.salesShipment.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentShipment = await prisma.salesShipment.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentShipment) throw new Error("Shipment not found");
@@ -383,7 +407,7 @@ export const deleteSalesShipment = authorizedAction(
         where: { id },
       });
 
-      revalidatePath("/sales/shipments");
+      revalidateLocalizedPath("/sales/shipments");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Shipment:", error);

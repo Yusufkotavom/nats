@@ -7,6 +7,7 @@ import {
   UpdateCashAccountFormData,
 } from "./types";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { SuperJSON } from "@/lib/superjson";
 import {
   CashAccountType,
@@ -43,8 +44,12 @@ type CashTransferOutboxResult = {
 };
 
 export async function syncCashAccounts() {
-  const result = await CashAccountSyncService.sync();
-  revalidatePath("/accounting/cash-bank");
+  const session = await getSession();
+  if (!session?.activeCompanyId) {
+    throw new Error("No active company selected");
+  }
+  const result = await CashAccountSyncService.sync(session.activeCompanyId);
+  revalidateLocalizedPath("/accounting/cash-bank");
   return result;
 }
 
@@ -84,7 +89,7 @@ export async function uploadTransferAttachment(formData: FormData) {
 
 export async function getDashboardStats() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "cash_bank.view")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "cash_bank.view")) {
     return {
       accounts: [],
       summary: {
@@ -98,7 +103,15 @@ export async function getDashboardStats() {
   await syncCashAccounts();
   const accounts = await prisma.cashAccount.findMany({
     include: { glAccount: true },
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      glAccount: {
+        companyId: session.activeCompanyId,
+        code: {
+          startsWith: "111",
+        },
+      },
+    },
   });
 
   const glAccountIds = accounts.map((a) => a.glAccountId);
@@ -173,12 +186,20 @@ export async function getDashboardStats() {
 
 export async function getCashAccounts() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "cash_bank.view")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "cash_bank.view")) {
     return [];
   }
   const accounts = await prisma.cashAccount.findMany({
     include: {
       glAccount: true,
+    },
+    where: {
+      glAccount: {
+        companyId: session.activeCompanyId,
+        code: {
+          startsWith: "111",
+        },
+      },
     },
     orderBy: {
       name: "asc",
@@ -189,11 +210,19 @@ export async function getCashAccounts() {
 
 export async function getCashAccount(id: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "cash_bank.view")) {
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "cash_bank.view")) {
     return null;
   }
-  const account = await prisma.cashAccount.findUnique({
-    where: { id },
+  const account = await prisma.cashAccount.findFirst({
+    where: {
+      id,
+      glAccount: {
+        companyId: session.activeCompanyId,
+        code: {
+          startsWith: "111",
+        },
+      },
+    },
     include: {
       glAccount: true,
     },
@@ -207,7 +236,7 @@ export async function createCashAccount(data: CashAccountFormData) {
     throw new Error("Unauthorized");
   }
   const account = await CashAccountService.createAccount(data);
-  revalidatePath("/accounting/cash-bank");
+  revalidateLocalizedPath("/accounting/cash-bank");
   return account;
 }
 
@@ -224,7 +253,7 @@ export async function updateCashAccount(
       where: { id },
       data,
     });
-    revalidatePath("/accounting/cash-bank");
+    revalidateLocalizedPath("/accounting/cash-bank");
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -238,7 +267,7 @@ export async function deleteCashAccount(id: string) {
     throw new Error("Unauthorized");
   }
   await CashAccountService.deleteAccount(id);
-  revalidatePath("/accounting/cash-bank");
+  revalidateLocalizedPath("/accounting/cash-bank");
 }
 
 // --- Transfer Actions ---
@@ -262,8 +291,8 @@ export async function createCashTransfer(
 
   const transfer = await CashTransferService.createTransfer(validatedData);
 
-  revalidatePath("/accounting/cash-bank");
-  revalidatePath("/accounting/transfer");
+  revalidateLocalizedPath("/accounting/cash-bank");
+  revalidateLocalizedPath("/accounting/transfer");
   return transfer;
 }
 
@@ -287,8 +316,8 @@ export async function updateCashTransfer(
     validatedData,
   );
 
-  revalidatePath("/accounting/cash-bank");
-  revalidatePath("/accounting/transfer");
+  revalidateLocalizedPath("/accounting/cash-bank");
+  revalidateLocalizedPath("/accounting/transfer");
   return updatedTransfer;
 }
 
@@ -310,8 +339,8 @@ export async function approveCashTransfer(
 
     const processed = await maybeProcessIntegrationOutboxEvent(result.outboxId);
 
-    revalidatePath("/accounting/cash-bank");
-    revalidatePath("/accounting/transfer");
+    revalidateLocalizedPath("/accounting/cash-bank");
+    revalidateLocalizedPath("/accounting/transfer");
     return {
       success: true,
       data: { transferId: id, outboxId: result.outboxId, processed: processed.processed },
@@ -327,8 +356,8 @@ export async function approveCashTransfer(
 export async function deleteCashTransfer(id: string) {
   await CashTransferService.deleteTransfer(id);
 
-  revalidatePath("/accounting/cash-bank");
-  revalidatePath("/accounting/transfer");
+  revalidateLocalizedPath("/accounting/cash-bank");
+  revalidateLocalizedPath("/accounting/transfer");
 }
 
 export async function getTransfers(search: string = "") {

@@ -25,6 +25,9 @@ model CashAccount {
   transactions     CashTransaction[]
   purchasePayments PurchasePayment[]
   salesPayments    SalesPayment[]
+  defaultForCashPaymentProfiles CompanyProfile[] @relation("DefaultCashPaymentAccount")
+  defaultForCardPaymentProfiles CompanyProfile[] @relation("DefaultCardPaymentAccount")
+  defaultForQrisPaymentProfiles CompanyProfile[] @relation("DefaultQrisPaymentAccount")
 }
 
 enum CashAccountType {

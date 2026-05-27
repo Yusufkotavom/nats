@@ -3,11 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { AccountType, CashAccountType } from "@/prisma/generated/prisma/enums";
 
 export class CashAccountSyncService {
-    static async sync() {
+    static async sync(companyId: string) {
         const cashGLAccounts = await prisma.account.findMany({
             where: {
+                companyId,
                 type: AccountType.asset,
                 isPosting: true,
+                code: {
+                    startsWith: "111",
+                },
                 children: {
                     none: {},
                 },
@@ -17,7 +21,13 @@ export class CashAccountSyncService {
             },
         });
 
-        const existingCashAccounts = await prisma.cashAccount.findMany();
+        const existingCashAccounts = await prisma.cashAccount.findMany({
+            where: {
+                glAccount: {
+                    companyId,
+                },
+            },
+        });
         const existingGLAccountIds = new Set(
             existingCashAccounts.map((ca) => ca.glAccountId)
         );

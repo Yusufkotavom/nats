@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { ProductFormData, ProductInput } from "../types";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";
@@ -45,7 +46,7 @@ export const createCategory = authorizedAction(
           companyId: session.activeCompanyId,
         },
       });
-      revalidatePath("/inventory/products");
+      revalidateLocalizedPath("/inventory/products");
       return { success: true, data: category };
     } catch (error) {
       console.error("Failed to create category:", error);
@@ -203,7 +204,7 @@ export const createProduct = authorizedAction(
         return await ProductService.createProduct(tx, data, session.activeCompanyId!);
       });
 
-      revalidatePath("/inventory/products");
+      revalidateLocalizedPath("/inventory/products");
       return {
         success: true,
         data: SuperJSON.serialize(product),
@@ -228,7 +229,7 @@ export const updateProduct = authorizedAction(
         return await ProductService.updateProduct(tx, id, data, session.activeCompanyId!);
       });
 
-      revalidatePath("/inventory/products");
+      revalidateLocalizedPath("/inventory/products");
       return {
         success: true,
         data: SuperJSON.serialize(product),
@@ -252,7 +253,7 @@ export const deleteProduct = authorizedAction(
       await prisma.$transaction(async (tx) => {
         await ProductService.deleteProduct(tx, id, session.activeCompanyId!);
       });
-      revalidatePath("/inventory/products");
+      revalidateLocalizedPath("/inventory/products");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete product:", error);

@@ -131,8 +131,10 @@ Sebelum mulai, siapkan:
 
 ### 4.3 Product Categories
 1. **Navigasi**: Inventory → Master Data → Categories
-2. **Catatan setup wizard**: saat pertama kali menjalankan setup awal, sistem otomatis menyiapkan kategori baseline: `General`, `Menu Makanan`, `Menu Minuman`, `Menu Snack`, `Menu Dessert`, `Bahan Baku`, `ATK & Percetakan`, `Aksesoris HP`, dan `Jasa Service`.
-3. Pada langkah **Warehouse & Basics**, sistem juga otomatis menambahkan sample produk/jasa awal lintas skenario (restoran, percetakan/ATK, konter HP + service) agar user bisa langsung test transaksi tanpa input master dari nol.
+2. **Catatan setup wizard**: default langkah **Warehouse & Basics** sekarang disederhanakan menjadi:
+   - unit default: `PCS`
+   - kategori default: `Product` dan `Service`
+3. Sistem tetap menambahkan sample produk/jasa awal agar user bisa langsung test transaksi tanpa input master dari nol.
 4. Lengkapi/ubah kategori sesuai kebutuhan operasional Anda.
 5. **Buat kategori utama**:
 
@@ -170,6 +172,15 @@ Sebelum mulai, siapkan:
 - Code: SUPPLIES
 - Name: Perlengkapan
 - Description: Kemasan, tissue, sedotan
+
+### 4.4 Mapping Default Metode Pembayaran
+1. **Navigasi**: Admin → Settings → POS
+2. Di bagian **Default Payment Account Mapping**, set akun default:
+   - `CASH` → akun kas utama/petty cash
+   - `CARD` → akun bank/e-wallet penerimaan kartu
+   - `QRIS` → akun bank/e-wallet penerimaan QRIS
+3. Sumber akun berasal dari modul **Cash & Bank** (akun aktif milik company aktif).
+4. Setelah disimpan, form pembayaran di POS/Service/Sales/Purchase akan auto-filter dan auto-select akun sesuai method.
 
 ## 🥘 Langkah 5: Input Master Produk
 

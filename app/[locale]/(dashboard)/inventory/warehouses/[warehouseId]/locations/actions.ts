@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { LocationType } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
@@ -87,7 +88,7 @@ export const createLocation = authorizedAction(
       const location = await prisma.location.create({
         data,
       });
-      revalidatePath(`/inventory/warehouses/${data.warehouseId}/locations`);
+      revalidateLocalizedPath(`/inventory/warehouses/${data.warehouseId}/locations`);
       return { success: true, data: location };
     } catch (error) {
       console.error("Failed to create location:", error);
@@ -120,7 +121,7 @@ export const updateLocation = authorizedAction(
         where: { id: existing.id },
         data,
       });
-      revalidatePath(`/inventory/warehouses/${location.warehouseId}/locations`);
+      revalidateLocalizedPath(`/inventory/warehouses/${location.warehouseId}/locations`);
       return { success: true, data: location };
     } catch (error) {
       console.error("Failed to update location:", error);
@@ -152,7 +153,7 @@ export const deleteLocation = authorizedAction(
       const location = await prisma.location.delete({
         where: { id: existing.id },
       });
-      revalidatePath(`/inventory/warehouses/${location.warehouseId}/locations`);
+      revalidateLocalizedPath(`/inventory/warehouses/${location.warehouseId}/locations`);
       return { success: true };
     } catch (error) {
       console.error("Failed to delete location:", error);

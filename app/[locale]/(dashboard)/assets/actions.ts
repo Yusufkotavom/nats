@@ -8,6 +8,7 @@ import { CategoryService } from "@/modules/fixed-assets/services/category.servic
 import { AssetStatus, DepreciationMethod } from "@/prisma/generated/prisma/client";
 import { Decimal } from "decimal.js";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { getSession } from "@/lib/auth/auth";
 
 // --- Types ---
@@ -81,7 +82,7 @@ export async function createAsset(data: AssetFormData) {
       });
     }
 
-    revalidatePath("/assets");
+    revalidateLocalizedPath("/assets");
     return { success: true, data: SuperJSON.serialize(asset) };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -122,8 +123,8 @@ export async function updateAsset(id: string, data: Partial<AssetFormData>) {
       }
     }
 
-    revalidatePath("/assets");
-    revalidatePath(`/assets/${id}`);
+    revalidateLocalizedPath("/assets");
+    revalidateLocalizedPath(`/assets/${id}`);
     return { success: true, data: SuperJSON.serialize(asset) };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -136,7 +137,7 @@ export async function activateAsset(id: string) {
     if (!session?.userId) throw new Error("Unauthorized");
 
     await AssetService.activateAsset(id, session.userId);
-    revalidatePath(`/assets/${id}`);
+    revalidateLocalizedPath(`/assets/${id}`);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -162,7 +163,7 @@ export async function disposeAsset(
       userId: session.userId,
     });
 
-    revalidatePath(`/assets/${id}`);
+    revalidateLocalizedPath(`/assets/${id}`);
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -179,7 +180,7 @@ export async function getAssetCategories() {
 export async function createAssetCategory(data: AssetCategoryFormData) {
   try {
     const category = await CategoryService.createCategory(data);
-    revalidatePath("/assets/categories");
+    revalidateLocalizedPath("/assets/categories");
     return { success: true, data: SuperJSON.serialize(category) };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -203,7 +204,7 @@ export async function postDepreciationRun(scheduleIds: string[], userId: string)
       await DepreciationService.postDepreciation(id, session.userId);
       count++;
     }
-    revalidatePath("/assets/depreciation");
+    revalidateLocalizedPath("/assets/depreciation");
     return { success: true, count };
   } catch (error: any) {
     return { success: false, error: error.message };

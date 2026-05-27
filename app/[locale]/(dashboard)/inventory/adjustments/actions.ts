@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { z } from "zod";
 import { MovementType } from "@/prisma/generated/prisma/client";
 import { InventoryService } from "@/modules/inventory/services/inventory.service";
@@ -282,11 +283,11 @@ export const postStockAdjustment = authorizedAction(
         };
       }, { timeout: INVENTORY_ADJUSTMENT_TX_TIMEOUT_MS });
 
-      revalidatePath("/inventory/adjustments");
-      revalidatePath("/inventory/movements");
-      revalidatePath("/inventory/warehouses");
-      revalidatePath("/inventory/products");
-      revalidatePath("/accounting/journal-entries");
+      revalidateLocalizedPath("/inventory/adjustments");
+      revalidateLocalizedPath("/inventory/movements");
+      revalidateLocalizedPath("/inventory/warehouses");
+      revalidateLocalizedPath("/inventory/products");
+      revalidateLocalizedPath("/accounting/journal-entries");
 
       return {
         success: true,

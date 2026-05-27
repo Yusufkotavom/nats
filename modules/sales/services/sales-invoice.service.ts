@@ -11,17 +11,18 @@ type CreateSalesInvoiceInput = Omit<SalesInvoiceInput, "invoiceNumber"> & {
 };
 
 export class SalesInvoiceService {
-    static async create(data: CreateSalesInvoiceInput, userId: string) {
+    static async create(data: CreateSalesInvoiceInput, userId: string, companyId: string) {
         const invoiceNumber = data.invoiceNumber || (await this.generateInvoiceNumber());
 
-        await this.assertUniqueInvoiceNumber(invoiceNumber);
+        await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
 
-        const taxRates = await prisma.taxRate.findMany();
+        const taxRates = await prisma.taxRate.findMany({ where: { companyId } });
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
 
         return await prisma.$transaction(async (tx) => {
             const result = await tx.salesInvoice.create({
                 data: {
+                    companyId,
                     invoiceNumber,
                     contactId: data.contactId,
                     salesOrderId: data.salesOrderId,
@@ -65,10 +66,10 @@ export class SalesInvoiceService {
         });
     }
 
-    static async update(id: string, data: CreateSalesInvoiceInput) {
+    static async update(id: string, data: CreateSalesInvoiceInput, companyId: string) {
         // 1. Validation: Check if invoice exists and is editable
-        const currentInvoice = await prisma.salesInvoice.findUnique({
-            where: { id },
+        const currentInvoice = await prisma.salesInvoice.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentInvoice) {
@@ -81,11 +82,11 @@ export class SalesInvoiceService {
 
         // 2. Invoice Number Uniqueness Check (if changed)
         if (data.invoiceNumber && data.invoiceNumber !== currentInvoice.invoiceNumber) {
-            await this.assertUniqueInvoiceNumber(data.invoiceNumber, id);
+            await this.assertUniqueInvoiceNumber(data.invoiceNumber, companyId, id);
         }
 
         // 3. Calculate Totals
-        const taxRates = await prisma.taxRate.findMany();
+        const taxRates = await prisma.taxRate.findMany({ where: { companyId } });
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
 
         // 4. Update Transaction
@@ -128,9 +129,9 @@ export class SalesInvoiceService {
         });
     }
 
-    static async delete(id: string) {
-        const currentInvoice = await prisma.salesInvoice.findUnique({
-            where: { id },
+    static async delete(id: string, companyId: string) {
+        const currentInvoice = await prisma.salesInvoice.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentInvoice) {
@@ -150,9 +151,13 @@ export class SalesInvoiceService {
         return await generateDocumentNumber("SALES_INVOICE", "Sales Invoice", "INV-");
     }
 
-    private static async assertUniqueInvoiceNumber(invoiceNumber: string, excludeId?: string): Promise<void> {
-        const existing = await prisma.salesInvoice.findUnique({
-            where: { invoiceNumber },
+    private static async assertUniqueInvoiceNumber(
+        invoiceNumber: string,
+        companyId: string,
+        excludeId?: string,
+    ): Promise<void> {
+        const existing = await prisma.salesInvoice.findFirst({
+            where: { invoiceNumber, companyId },
         });
 
         if (existing && existing.id !== excludeId) {

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
@@ -77,7 +78,7 @@ export const createRole = authorizedAction(
       },
     });
 
-    revalidatePath("/admin/roles");
+    revalidateLocalizedPath("/admin/roles");
     return { success: true };
   }
 );
@@ -121,7 +122,7 @@ export const updateRole = authorizedAction(
       },
     });
 
-    revalidatePath("/admin/roles");
+    revalidateLocalizedPath("/admin/roles");
     return { success: true };
   }
 );
@@ -144,7 +145,7 @@ export const updateRolePermissions = authorizedAction(
       },
     });
 
-    revalidatePath("/admin/roles");
+    revalidateLocalizedPath("/admin/roles");
     return { success: true };
   }
 );
@@ -177,7 +178,7 @@ export const toggleRoleStatus = authorizedAction(
       data: { isActive: !role.isActive },
     });
 
-    revalidatePath("/admin/roles");
+    revalidateLocalizedPath("/admin/roles");
     return { success: true };
   }
 );
@@ -218,7 +219,7 @@ export const deleteRole = authorizedAction(
       where: { id },
     });
 
-    revalidatePath("/admin/roles");
+    revalidateLocalizedPath("/admin/roles");
     return { success: true };
   }
 );

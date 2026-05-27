@@ -5,6 +5,7 @@ import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.serv
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReceiveInput } from "./types";
@@ -31,10 +32,17 @@ export async function getPurchaseReceives(
       totalPages: 0,
     };
   }
+  if (!session.activeCompanyId) {
+    return {
+      receives: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 
   const skip = (page - 1) * limit;
   const where: Prisma.PurchaseReceiveWhereInput = {
-    AND: [],
+    AND: [{ companyId: session.activeCompanyId }],
   };
 
   if (search) {
@@ -82,9 +90,12 @@ export async function getPurchaseReceive(id: string) {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return null;
   }
+  if (!session.activeCompanyId) {
+    return null;
+  }
 
-  const receive = await prisma.purchaseReceive.findUnique({
-    where: { id },
+  const receive = await prisma.purchaseReceive.findFirst({
+    where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
       purchaseOrder: true,
@@ -109,9 +120,12 @@ export async function getProducts() {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where: { isActive: true, companyId: session.activeCompanyId },
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -137,9 +151,13 @@ export async function getPurchaseOrdersForSelect() {
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
     return [];
   }
+  if (!session.activeCompanyId) {
+    return [];
+  }
 
   const orders = await prisma.purchaseOrder.findMany({
     where: {
+      companyId: session.activeCompanyId,
       status: { in: ["ISSUED", "PARTIALLY_RECEIVED"] },
     },
     orderBy: { createdAt: "desc" },
@@ -160,7 +178,7 @@ export const createPurchaseReceive = authorizedAction(
 
       const result = await PurchaseReceiveService.create(data, session.userId);
 
-      revalidatePath("/purchase/receives");
+      revalidateLocalizedPath("/purchase/receives");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to create Receive:", error);
@@ -180,9 +198,10 @@ export const updatePurchaseReceive = authorizedAction(
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const currentReceive = await prisma.purchaseReceive.findUnique({
-        where: { id },
+      const currentReceive = await prisma.purchaseReceive.findFirst({
+        where: { id, companyId: session.activeCompanyId },
         include: { items: true },
       });
 
@@ -349,8 +368,8 @@ export const updatePurchaseReceive = authorizedAction(
         return updatedReceive;
       });
 
-      revalidatePath("/purchase/receives");
-      revalidatePath("/purchase/orders");
+      revalidateLocalizedPath("/purchase/receives");
+      revalidateLocalizedPath("/purchase/orders");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Receive:", error);
@@ -369,8 +388,11 @@ export const deletePurchaseReceive = authorizedAction(
   "purchase.delete",
   async (id: string) => {
     try {
-      const currentReceive = await prisma.purchaseReceive.findUnique({
-        where: { id },
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+
+      const currentReceive = await prisma.purchaseReceive.findFirst({
+        where: { id, companyId: session.activeCompanyId },
       });
 
       if (!currentReceive) throw new Error("Receive not found");
@@ -383,7 +405,7 @@ export const deletePurchaseReceive = authorizedAction(
         where: { id },
       });
 
-      revalidatePath("/purchase/receives");
+      revalidateLocalizedPath("/purchase/receives");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Receive:", error);

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
@@ -92,7 +93,7 @@ export const createBOM = authorizedAction(
     async (data: BillOfMaterialInput) => {
         try {
             const result = await BillOfMaterialService.create(data);
-            revalidatePath("/production/boms");
+            revalidateLocalizedPath("/production/boms");
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to create BOM:", error);
@@ -106,8 +107,8 @@ export const updateBOM = authorizedAction(
     async (id: string, data: BillOfMaterialInput) => {
         try {
             const result = await BillOfMaterialService.update(id, data);
-            revalidatePath("/production/boms");
-            revalidatePath(`/production/boms/${id}`);
+            revalidateLocalizedPath("/production/boms");
+            revalidateLocalizedPath(`/production/boms/${id}`);
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error) {
             console.error("Failed to update BOM:", error);
@@ -121,7 +122,7 @@ export const deleteBOM = authorizedAction(
     async (id: string) => {
         try {
             await BillOfMaterialService.delete(id);
-            revalidatePath("/production/boms");
+            revalidateLocalizedPath("/production/boms");
             return { success: true };
         } catch (error) {
             console.error("Failed to delete BOM:", error);

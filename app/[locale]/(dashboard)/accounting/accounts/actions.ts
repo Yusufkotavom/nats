@@ -8,6 +8,7 @@
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { AccountService } from "@/modules/accounting/services/account.service";
@@ -71,7 +72,7 @@ export const createAccount = authorizedAction(
 
       const account = await AccountService.createAccount(data, session.userId);
 
-      revalidatePath("/accounting/accounts");
+      revalidateLocalizedPath("/accounting/accounts");
       return { success: true, data: account };
     } catch (error: any) {
       console.error(error);
@@ -110,7 +111,7 @@ export async function getNextAccountCode(
 export async function updateAccount(id: string, data: { name: string }) {
   try {
     await AccountService.updateAccount(id, data);
-    revalidatePath("/accounting/accounts");
+    revalidateLocalizedPath("/accounting/accounts");
     return { success: true };
   } catch (error) {
     console.error(error);
@@ -129,7 +130,7 @@ export async function deleteAccount(id: string) {
 
   try {
     await AccountService.deleteAccount(id);
-    revalidatePath("/accounting/accounts");
+    revalidateLocalizedPath("/accounting/accounts");
     return { success: true };
   } catch (error: any) {
     console.error(error);

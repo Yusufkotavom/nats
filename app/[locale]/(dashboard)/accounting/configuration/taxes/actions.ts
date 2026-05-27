@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { TaxRate } from "@/prisma/generated/prisma/client"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { getSession } from "@/lib/auth/auth"
 
 const taxRateSchema = z.object({
   code: z.string().min(1, "Code is required"),
@@ -29,7 +30,7 @@ export async function createTaxRate(data: TaxRateFormData) {
     await prisma.taxRate.create({
       data: validated,
     })
-    revalidatePath("/accounting/configuration/taxes")
+    revalidateLocalizedPath("/accounting/configuration/taxes")
     return { success: true }
   } catch (error) {
     console.error(error)
@@ -44,7 +45,7 @@ export async function updateTaxRate(id: string, data: TaxRateFormData) {
       where: { id },
       data: validated,
     })
-    revalidatePath("/accounting/configuration/taxes")
+    revalidateLocalizedPath("/accounting/configuration/taxes")
     return { success: true }
   } catch (error) {
     console.error(error)

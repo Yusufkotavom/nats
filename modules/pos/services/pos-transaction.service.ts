@@ -10,6 +10,7 @@ import { CalculationService } from "@/lib/utils/calculation-service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
 import { JournalService } from "@/modules/accounting/services/journal.service";
 import { resolveStockConsumptionItems } from "@/modules/inventory/services/bom-consumption.service";
+import { PaymentAccountResolverService } from "@/modules/cash-bank/services/payment-account-resolver.service";
 
 const POS_ORDER_NUMBER_PREFIX = "SO-POS";
 const POS_INVOICE_NUMBER_PREFIX = "INV-POS";
@@ -157,6 +158,7 @@ export class POSTransactionService {
                 invoiceNumber: salesInvoice.invoiceNumber,
                 salesInvoiceId: salesInvoice.id,
                 sessionId,
+                companyId: session.companyId || undefined,
                 paymentMethod,
                 paymentAmount: finalTotalAmount,
             });
@@ -438,6 +440,7 @@ export class POSTransactionService {
                 invoiceNumber: invoice.invoiceNumber,
                 salesInvoiceId: invoice.id,
                 sessionId,
+                companyId: session.companyId || undefined,
                 paymentMethod,
                 paymentAmount,
             });
@@ -680,14 +683,24 @@ export class POSTransactionService {
             invoiceNumber: string;
             salesInvoiceId: string;
             sessionId: string;
+            companyId?: string;
             paymentMethod: "CASH" | "CARD" | "QRIS";
             paymentAmount: Decimal;
         },
     ) {
         const paymentNumber = `${POS_PAYMENT_NUMBER_PREFIX}-${Date.now()}`;
-        const cashAccount = await tx.cashAccount.findFirst({
-            where: { type: params.paymentMethod === "CASH" ? "CASH" : "BANK" },
-        });
+        const cashAccount = params.companyId
+            ? await PaymentAccountResolverService.resolveAccount(tx, {
+                companyId: params.companyId,
+                method: params.paymentMethod,
+            })
+            : await tx.cashAccount.findFirst({
+                where: {
+                    isActive: true,
+                    type: { in: params.paymentMethod === "CASH" ? ["CASH", "PETTY_CASH"] : ["BANK", "EWALLET"] },
+                },
+                orderBy: [{ name: "asc" }],
+            });
 
         if (!cashAccount) throw new Error("No Cash/Bank account configured");
 

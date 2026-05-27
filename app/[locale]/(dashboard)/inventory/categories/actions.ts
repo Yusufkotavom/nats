@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
@@ -75,7 +76,7 @@ export const createCategory = authorizedAction(
           companyId: session.activeCompanyId,
         },
       });
-      revalidatePath("/inventory/categories");
+      revalidateLocalizedPath("/inventory/categories");
       return { success: true, data: category };
     } catch (error) {
       console.error("Failed to create category:", error);
@@ -105,7 +106,7 @@ export const updateCategory = authorizedAction(
         where: { id: existing.id },
         data,
       });
-      revalidatePath("/inventory/categories");
+      revalidateLocalizedPath("/inventory/categories");
       return { success: true, data: category };
     } catch (error) {
       console.error("Failed to update category:", error);
@@ -130,7 +131,7 @@ export const deleteCategory = authorizedAction(
         return { success: false, error: "Category not found in active company" };
       }
 
-      revalidatePath("/inventory/categories");
+      revalidateLocalizedPath("/inventory/categories");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete category:", error);

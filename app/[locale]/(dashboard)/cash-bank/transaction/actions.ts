@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { CashTransactionFormData } from "./types";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { verifySession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
@@ -40,8 +41,8 @@ export async function createCashTransaction(
 
     const processed = await maybeProcessIntegrationOutboxEvent(result.outboxId);
 
-    revalidatePath("/cash-bank/transaction");
-    revalidatePath("/accounting/journal-entries");
+    revalidateLocalizedPath("/cash-bank/transaction");
+    revalidateLocalizedPath("/accounting/journal-entries");
     return {
       success: true,
       data: {
@@ -152,8 +153,8 @@ export async function updateCashTransaction(
     validatedData,
   );
 
-  revalidatePath("/cash-bank/transaction");
-  revalidatePath("/accounting/journal-entries");
+  revalidateLocalizedPath("/cash-bank/transaction");
+  revalidateLocalizedPath("/accounting/journal-entries");
   return SuperJSON.serialize(result);
 }
 
@@ -175,9 +176,9 @@ export async function approveCashTransaction(id: string) {
 
     const processed = await maybeProcessIntegrationOutboxEvent(result.outboxId);
 
-    revalidatePath("/cash-bank/transaction");
-    revalidatePath("/accounting/journal-entries");
-    revalidatePath("/cash-bank");
+    revalidateLocalizedPath("/cash-bank/transaction");
+    revalidateLocalizedPath("/accounting/journal-entries");
+    revalidateLocalizedPath("/cash-bank");
     return {
       success: true,
       data: { transactionId: id, outboxId: result.outboxId, processed: processed.processed },
@@ -193,6 +194,6 @@ export async function approveCashTransaction(id: string) {
 export async function deleteCashTransaction(id: string) {
   await CashTransactionService.deleteTransaction(id);
 
-  revalidatePath("/cash-bank/transaction");
-  revalidatePath("/accounting/journal-entries");
+  revalidateLocalizedPath("/cash-bank/transaction");
+  revalidateLocalizedPath("/accounting/journal-entries");
 }

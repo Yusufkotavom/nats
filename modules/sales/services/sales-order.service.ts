@@ -7,7 +7,7 @@ import { generateDocumentNumber } from "@/lib/document-numbering";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class SalesOrderService {
-  static async create(data: SalesOrderInput, userId: string) {
+  static async create(data: SalesOrderInput, userId: string, companyId: string) {
     const orderNumber = `DRAFT-${Date.now()}`;
 
     const { itemsData, totals } = this.calculateItemsAndTotals(data);
@@ -15,6 +15,7 @@ export class SalesOrderService {
     return await prisma.$transaction(async (tx) => {
       const result = await tx.salesOrder.create({
         data: {
+          companyId,
           orderNumber,
           contactId: data.contactId,
           orderDate: data.orderDate,

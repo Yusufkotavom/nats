@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 
 export type BeginningBalanceItem = {
   accountId: string;
@@ -201,8 +202,8 @@ export const saveBeginningBalances = authorizedAction(
         },
       });
 
-      revalidatePath("/accounting/configuration/beginning-balance");
-      revalidatePath("/accounting/ledger");
+      revalidateLocalizedPath("/accounting/configuration/beginning-balance");
+      revalidateLocalizedPath("/accounting/ledger");
 
       return { success: true, message: "Beginning balances updated successfully" };
     } catch (error) {

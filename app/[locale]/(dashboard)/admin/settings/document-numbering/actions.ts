@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";
 
@@ -76,7 +77,7 @@ export const updateDocumentNumberingSetting = authorizedAction(
                 },
             });
 
-            revalidatePath("/admin/settings/document-numbering");
+            revalidateLocalizedPath("/admin/settings/document-numbering");
             return { success: true, data: SuperJSON.serialize(result) };
         } catch (error: any) {
             console.error("Failed to update numbering setting:", error);
