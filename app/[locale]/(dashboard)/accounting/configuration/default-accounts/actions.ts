@@ -20,12 +20,12 @@ export type DefaultAccountWithAccount = {
 
 export async function getDefaultAccounts() {
   const session = await getSession()
-  if (!session || !hasPermission(session.permissions, "default_accounts.view")) {
+  if (!session || !hasPermission(session.permissions, "default_accounts.view") || !session.activeCompanyId) {
     return []
   }
 
   const defaultAccounts = await prisma.defaultAccount.findMany({
-    where: { isActive: true },
+    where: { isActive: true, companyId: session.activeCompanyId },
     include: { account: true },
   })
   return defaultAccounts
@@ -33,12 +33,12 @@ export async function getDefaultAccounts() {
 
 export async function getAccounts() {
   const session = await getSession()
-  if (!session || !hasPermission(session.permissions, "accounts.view")) {
+  if (!session || !hasPermission(session.permissions, "accounts.view") || !session.activeCompanyId) {
     return []
   }
 
   const accounts = await prisma.account.findMany({
-    where: { isActive: true },
+    where: { isActive: true, companyId: session.activeCompanyId },
     select: {
       id: true,
       code: true,
@@ -52,7 +52,7 @@ export async function getAccounts() {
 
 export async function updateDefaultAccount(purpose: DefaultAccountPurpose, accountId: string) {
   const session = await getSession()
-  if (!session || !hasPermission(session.permissions, "default_accounts.manage")) {
+  if (!session || !hasPermission(session.permissions, "default_accounts.manage") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" }
   }
 
@@ -60,6 +60,7 @@ export async function updateDefaultAccount(purpose: DefaultAccountPurpose, accou
     // Find current active default account for this purpose
     const current = await prisma.defaultAccount.findFirst({
       where: {
+        companyId: session.activeCompanyId,
         purpose,
         isActive: true,
       },
@@ -83,6 +84,7 @@ export async function updateDefaultAccount(purpose: DefaultAccountPurpose, accou
       // Create new
       await tx.defaultAccount.create({
         data: {
+          companyId: session.activeCompanyId,
           purpose,
           accountId,
           isActive: true,
@@ -102,6 +104,10 @@ export const saveDefaultAccounts = authorizedAction(
   "default_accounts.manage",
   async (updates: { purpose: DefaultAccountPurpose; accountId: string }[]) => {
     try {
+      const session = await getSession()
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" }
+      }
       await prisma.$transaction(async (tx) => {
         for (const update of updates) {
           const { purpose, accountId } = update
@@ -109,6 +115,7 @@ export const saveDefaultAccounts = authorizedAction(
           // Find current active default account for this purpose
           const current = await tx.defaultAccount.findFirst({
             where: {
+              companyId: session.activeCompanyId,
               purpose,
               isActive: true,
             },
@@ -130,6 +137,7 @@ export const saveDefaultAccounts = authorizedAction(
           // Create new
           await tx.defaultAccount.create({
             data: {
+              companyId: session.activeCompanyId,
               purpose,
               accountId,
               isActive: true,

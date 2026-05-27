@@ -6,7 +6,7 @@ export default function PaymentMethodPage() {
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">Payment Methods</h1>
         <p className="text-sm text-muted-foreground">
-          Single source of truth payment methods. Semua method dimapping ke akun Cash/Bank.
+          Single source of truth payment mapping. Hanya method CASH dan BANK.
         </p>
       </div>
       <PaymentMethodView />

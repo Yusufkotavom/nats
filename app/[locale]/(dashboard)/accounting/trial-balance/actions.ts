@@ -8,6 +8,7 @@ import {
 } from "../types";
 
 import { authorizedAction } from "@/lib/permissions/protected-action";
+import { getSession } from "@/lib/auth/auth";
 
 /**
  * Fetch Trial Balance report.
@@ -27,11 +28,17 @@ export const getTrialBalance = authorizedAction(
     data?: TrialBalanceResult;
     error?: string;
   }> => {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      return { success: false, error: "No active company selected" };
+    }
+
     const targetDate = new Date(date);
 
     // 1. Get ALL active accounts
     const accounts = await prisma.account.findMany({
       where: {
+        companyId: session.activeCompanyId,
         isActive: true,
       },
       orderBy: {
@@ -43,6 +50,9 @@ export const getTrialBalance = authorizedAction(
     const balances = await prisma.journalEntryLine.groupBy({
       by: ["accountId"],
       where: {
+        account: {
+          companyId: session.activeCompanyId,
+        },
         journalEntry: {
           status: "posted",
           transactionDate: {

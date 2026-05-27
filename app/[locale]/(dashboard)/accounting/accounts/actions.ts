@@ -33,9 +33,22 @@ export async function getAccounts(page?: number, pageSize?: number) {
       },
     };
   }
+  if (!session.activeCompanyId) {
+    if (!page || !pageSize) return [];
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page: page || 1,
+        pageSize: pageSize || 10,
+        totalPages: 0,
+        hasMore: false,
+      },
+    };
+  }
 
   try {
-    return await AccountService.getAccounts(page, pageSize);
+    return await AccountService.getAccounts(session.activeCompanyId, page, pageSize);
   } catch (error) {
     console.error("Failed to fetch accounts:", error);
     if (!page || !pageSize) return [];
@@ -66,11 +79,11 @@ export const createAccount = authorizedAction(
   }) => {
     try {
       const session = await getSession();
-      if (!session?.userId) {
+      if (!session?.userId || !session.activeCompanyId) {
         return { success: false, error: "User not authenticated" };
       }
 
-      const account = await AccountService.createAccount(data, session.userId);
+      const account = await AccountService.createAccount(data, session.userId, session.activeCompanyId);
 
       revalidateLocalizedPath("/accounting/accounts");
       return { success: true, data: account };
@@ -95,9 +108,12 @@ export async function getNextAccountCode(
   if (!session || !hasPermission(session.permissions, "accounts.create")) {
     return { success: false, error: "Unauthorized" };
   }
+  if (!session.activeCompanyId) {
+    return { success: false, error: "No active company selected" };
+  }
 
   try {
-    const code = await AccountService.getNextAccountCode(parentId, type);
+    const code = await AccountService.getNextAccountCode(session.activeCompanyId, parentId, type);
     return { success: true, code };
   } catch (error: any) {
     console.error(error);
@@ -109,8 +125,12 @@ export async function getNextAccountCode(
  * Update an existing account's name.
  */
 export async function updateAccount(id: string, data: { name: string }) {
+  const session = await getSession();
+  if (!session || !hasPermission(session.permissions, "accounts.edit") || !session.activeCompanyId) {
+    return { success: false, error: "Unauthorized" };
+  }
   try {
-    await AccountService.updateAccount(id, data);
+    await AccountService.updateAccount(id, data, session.activeCompanyId);
     revalidateLocalizedPath("/accounting/accounts");
     return { success: true };
   } catch (error) {
@@ -124,12 +144,12 @@ export async function updateAccount(id: string, data: { name: string }) {
  */
 export async function deleteAccount(id: string) {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "accounts.delete")) {
+  if (!session || !hasPermission(session.permissions, "accounts.delete") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
-    await AccountService.deleteAccount(id);
+    await AccountService.deleteAccount(id, session.activeCompanyId);
     revalidateLocalizedPath("/accounting/accounts");
     return { success: true };
   } catch (error: any) {

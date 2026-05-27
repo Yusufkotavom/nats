@@ -103,6 +103,7 @@ type AccountNode = Account & {
 // --- Helper Functions ---
 
 async function getAccountBalances(
+  companyId: string,
   startDate: Date | null,
   endDate: Date,
   accountTypes?: AccountType[]
@@ -110,6 +111,7 @@ async function getAccountBalances(
   const whereClause = accountTypes ? { type: { in: accountTypes } } : {};
   const accounts = await prisma.account.findMany({
     where: {
+      companyId,
       isActive: true,
       ...whereClause,
     },
@@ -126,6 +128,9 @@ async function getAccountBalances(
   const balances = await prisma.journalEntryLine.groupBy({
     by: ["accountId"],
     where: {
+      account: {
+        companyId,
+      },
       journalEntry: {
         status: "posted",
         transactionDate: dateFilter,
@@ -312,7 +317,11 @@ export async function getProfitAndLoss(
       comparativeEndDate?: string
     ) => {
       try {
+        if (!session?.activeCompanyId) {
+          return { success: false, error: "No active company selected" };
+        }
         const data = await _getProfitAndLoss(
+          session.activeCompanyId,
           startDate,
           endDate,
           comparativeStartDate,
@@ -354,6 +363,7 @@ export async function getProfitAndLoss(
 }
 
 async function _getProfitAndLoss(
+  companyId: string,
   startDate: string,
   endDate: string,
   comparativeStartDate?: string,
@@ -362,7 +372,7 @@ async function _getProfitAndLoss(
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  const { accounts, balanceMap } = await getAccountBalances(start, end, [
+  const { accounts, balanceMap } = await getAccountBalances(companyId, start, end, [
     "revenue",
     "expense",
   ]);
@@ -374,7 +384,7 @@ async function _getProfitAndLoss(
   if (comparativeStartDate && comparativeEndDate) {
     const prevStart = new Date(comparativeStartDate);
     const prevEnd = new Date(comparativeEndDate);
-    const prevResult = await getAccountBalances(prevStart, prevEnd, [
+    const prevResult = await getAccountBalances(companyId, prevStart, prevEnd, [
       "revenue",
       "expense",
     ]);
@@ -437,7 +447,14 @@ export async function getBalanceSheet(date: string, comparativeDate?: string) {
     "reports.view",
     async (date: string, comparativeDate?: string) => {
       try {
-        const data = await _getBalanceSheet(date, comparativeDate);
+        if (!session?.activeCompanyId) {
+          return { success: false, error: "No active company selected" };
+        }
+        const data = await _getBalanceSheet(
+          session.activeCompanyId,
+          date,
+          comparativeDate
+        );
         if (session) {
           await logReportGeneration(
             session.userId,
@@ -469,13 +486,14 @@ export async function getBalanceSheet(date: string, comparativeDate?: string) {
 }
 
 async function _getBalanceSheet(
+  companyId: string,
   date: string,
   comparativeDate?: string
 ): Promise<BalanceSheetReport> {
   const asOf = new Date(date);
 
   // 1. Get Asset, Liability, Equity balances (Cumulative)
-  const { accounts, balanceMap } = await getAccountBalances(null, asOf, [
+  const { accounts, balanceMap } = await getAccountBalances(companyId, null, asOf, [
     "asset",
     "liability",
     "equity",
@@ -487,7 +505,7 @@ async function _getBalanceSheet(
   > | null = null;
   if (comparativeDate) {
     const prevAsOf = new Date(comparativeDate);
-    const prevResult = await getAccountBalances(null, prevAsOf, [
+    const prevResult = await getAccountBalances(companyId, null, prevAsOf, [
       "asset",
       "liability",
       "equity",
@@ -497,13 +515,13 @@ async function _getBalanceSheet(
 
   // 2. Calculate Retained Earnings
   const { accounts: plAccounts, balanceMap: plBalanceMap } =
-    await getAccountBalances(null, asOf, ["revenue", "expense"]);
+    await getAccountBalances(companyId, null, asOf, ["revenue", "expense"]);
 
   let prevPlBalanceMap: Map<string, { debit: number; credit: number }> | null =
     null;
   if (comparativeDate) {
     const prevAsOf = new Date(comparativeDate);
-    const prevPlResult = await getAccountBalances(null, prevAsOf, [
+    const prevPlResult = await getAccountBalances(companyId, null, prevAsOf, [
       "revenue",
       "expense",
     ]);
@@ -631,7 +649,11 @@ export async function getCashFlowStatement(
       comparativeEndDate?: string
     ) => {
       try {
+        if (!session?.activeCompanyId) {
+          return { success: false, error: "No active company selected" };
+        }
         const data = await _getCashFlowStatement(
+          session.activeCompanyId,
           startDate,
           endDate,
           comparativeStartDate,
@@ -671,17 +693,19 @@ export async function getCashFlowStatement(
 }
 
 async function _getCashFlowStatement(
+  companyId: string,
   startDate: string,
   endDate: string,
   comparativeStartDate?: string,
   comparativeEndDate?: string
 ): Promise<CashFlowReport> {
   // Base Report
-  const current = await calculateCashFlowForPeriod(startDate, endDate);
+  const current = await calculateCashFlowForPeriod(companyId, startDate, endDate);
 
   let previous: Partial<CashFlowReport> = {};
   if (comparativeStartDate && comparativeEndDate) {
     previous = await calculateCashFlowForPeriod(
+      companyId,
       comparativeStartDate,
       comparativeEndDate
     );
@@ -736,6 +760,7 @@ async function _getCashFlowStatement(
 }
 
 async function calculateCashFlowForPeriod(
+  companyId: string,
   startDate: string,
   endDate: string
 ): Promise<CashFlowReport> {
@@ -744,7 +769,7 @@ async function calculateCashFlowForPeriod(
   const end = new Date(endDate);
 
   // Operating Activities
-  const pl = await _getProfitAndLoss(startDate, endDate);
+  const pl = await _getProfitAndLoss(companyId, startDate, endDate);
   const netIncome = pl.netIncome;
 
   const operatingActivities: ReportAccountLine[] = [
@@ -783,9 +808,10 @@ async function calculateCashFlowForPeriod(
 
   // Changes in Working Capital
   const balanceSheetStart = await _getBalanceSheet(
+    companyId,
     new Date(start.getTime() - 86400000).toISOString().split("T")[0]
   );
-  const balanceSheetEnd = await _getBalanceSheet(endDate);
+  const balanceSheetEnd = await _getBalanceSheet(companyId, endDate);
 
   let changeInReceivables = 0;
   let changeInPayables = 0;
@@ -1025,7 +1051,11 @@ export async function getStatementOfChangesInEquity(
       comparativeEndDate?: string
     ) => {
       try {
+        if (!session?.activeCompanyId) {
+          return { success: false, error: "No active company selected" };
+        }
         const data = await _getStatementOfChangesInEquity(
+          session.activeCompanyId,
           startDate,
           endDate,
           comparativeStartDate,
@@ -1082,12 +1112,19 @@ export async function getFinancialRatios(date: string): Promise<{ success: boole
 
   return authorizedAction("reports.view", async (date: string) => {
     try {
-      const bs = await _getBalanceSheet(date);
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
+      const bs = await _getBalanceSheet(session.activeCompanyId, date);
       // Need P&L for a period. Ratios usually use TTM (Trailing Twelve Months) or YTD.
       // Let's use YTD for simplicity or allow passing a period. 
       // For now, let's assume YTD (Jan 1 to date)
       const yearStart = new Date(date).getFullYear();
-      const pl = await _getProfitAndLoss(`${yearStart}-01-01`, date);
+      const pl = await _getProfitAndLoss(
+        session.activeCompanyId,
+        `${yearStart}-01-01`,
+        date
+      );
 
       // Flatten helpers
       const flatten = (nodes: ReportAccountLine[]): ReportAccountLine[] => {
@@ -1167,11 +1204,15 @@ export async function getFinancialRatios(date: string): Promise<{ success: boole
 export async function validateJournalEntries(startDate: string, endDate: string) {
   const session = await getSession();
   return authorizedAction("reports.view", async (startDate: string, endDate: string) => {
+    if (!session?.activeCompanyId) {
+      return { success: false, error: "No active company selected" };
+    }
     // 1. Find entries where sum(debit) != sum(credit)
     // This requires grouping by journalEntryId and summing
 
     const entries = await prisma.journalEntry.findMany({
       where: {
+        companyId: session.activeCompanyId,
         transactionDate: {
           gte: new Date(startDate),
           lte: new Date(endDate),
@@ -1214,6 +1255,7 @@ export async function validateJournalEntries(startDate: string, endDate: string)
 
 
 async function _getStatementOfChangesInEquity(
+  companyId: string,
   startDate: string,
   endDate: string,
   comparativeStartDate?: string,
@@ -1224,13 +1266,13 @@ async function _getStatementOfChangesInEquity(
     .toISOString()
     .split("T")[0];
 
-  const bsStart = await _getBalanceSheet(dayBeforeStart);
-  const pl = await _getProfitAndLoss(startDate, endDate);
-  const bsEnd = await _getBalanceSheet(endDate);
+  const bsStart = await _getBalanceSheet(companyId, dayBeforeStart);
+  const pl = await _getProfitAndLoss(companyId, startDate, endDate);
+  const bsEnd = await _getBalanceSheet(companyId, endDate);
 
   let bsPrevEnd: BalanceSheetReport | null = null;
   if (comparativeEndDate) {
-    bsPrevEnd = await _getBalanceSheet(comparativeEndDate);
+    bsPrevEnd = await _getBalanceSheet(companyId, comparativeEndDate);
   }
 
   function flatten(nodes: ReportAccountLine[]): ReportAccountLine[] {

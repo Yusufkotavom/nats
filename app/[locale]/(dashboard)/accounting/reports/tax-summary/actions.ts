@@ -21,9 +21,14 @@ export async function getTaxSummaryReport(startDate: Date, endDate: Date) {
   if (!session || !hasPermission(session.permissions, "reports.view")) {
     throw new Error("Unauthorized")
   }
+  if (!session.activeCompanyId) {
+    throw new Error("No active company selected")
+  }
 
   // Fetch Tax Rates
-  const taxRates = await prisma.taxRate.findMany()
+  const taxRates = await prisma.taxRate.findMany({
+    where: { companyId: session.activeCompanyId }
+  })
   
   // Initialize summary map
   const summary = new Map<string, TaxSummaryEntry>()
@@ -52,6 +57,7 @@ export async function getTaxSummaryReport(startDate: Date, endDate: Date) {
   const purchaseItems = await prisma.purchaseInvoiceItem.findMany({
     where: {
       purchaseInvoice: {
+        companyId: session.activeCompanyId,
         invoiceDate: {
           gte: startDate,
           lte: endDate,
@@ -84,6 +90,7 @@ export async function getTaxSummaryReport(startDate: Date, endDate: Date) {
   const salesItems = await prisma.salesInvoiceItem.findMany({
     where: {
       salesInvoice: {
+        companyId: session.activeCompanyId,
         invoiceDate: {
           gte: startDate,
           lte: endDate,

@@ -13,7 +13,10 @@ vi.mock("@/lib/permissions/protected-action", () => ({
 
 // Mock getCurrentUser/getSession
 vi.mock("@/lib/auth/auth", () => ({
-  getSession: vi.fn().mockResolvedValue({ userId: "user-1" }),
+  getSession: vi.fn().mockResolvedValue({
+    userId: "user-1",
+    activeCompanyId: "cmp-1",
+  }),
 }));
 
 const { prismaMock } = vi.hoisted(() => ({
@@ -59,11 +62,26 @@ describe("Financial Reports Actions", () => {
       const result = await getProfitAndLoss("2023-01-01", "2023-12-31");
 
       expect(result.success).toBe(true);
+      expect(prismaMock.account.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ companyId: "cmp-1" }),
+        })
+      );
       if (result.success && result.data) {
         expect(result.data.totalRevenue).toBe(1000);
         expect(result.data.totalExpenses).toBe(600);
         expect(result.data.netIncome).toBe(400); // 1000 - 600
       }
+    });
+
+    it("should fail when active company is missing", async () => {
+      const { getSession } = await import("@/lib/auth/auth");
+      vi.mocked(getSession).mockResolvedValueOnce({ userId: "user-1" } as any);
+
+      const result = await getProfitAndLoss("2023-01-01", "2023-12-31");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("No active company selected");
     });
   });
 

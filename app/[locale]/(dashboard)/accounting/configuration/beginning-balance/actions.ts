@@ -20,8 +20,13 @@ export const getBeginningBalances = authorizedAction(
   "ledger.view",
   async (): Promise<{ success: boolean; data?: BeginningBalanceItem[]; error?: string }> => {
     try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) {
+        return { success: false, error: "No active company selected" };
+      }
       const accounts = await prisma.account.findMany({
         where: {
+          companyId: session.activeCompanyId,
           isPosting: true,
           isActive: true,
         },
@@ -40,6 +45,7 @@ export const getBeginningBalances = authorizedAction(
       const aggregates = await prisma.journalEntryLine.groupBy({
         by: ["accountId"],
         where: {
+          account: { companyId: session.activeCompanyId },
           journalEntry: {
             status: "posted",
           },
@@ -90,7 +96,7 @@ export const saveBeginningBalances = authorizedAction(
   async (inputs: BeginningBalanceInput[]) => {
     try {
       const session = await getSession();
-      if (!session?.userId) {
+      if (!session?.userId || !session.activeCompanyId) {
         return { success: false, error: "Unauthorized" };
       }
 
@@ -109,6 +115,7 @@ export const saveBeginningBalances = authorizedAction(
       const aggregates = await prisma.journalEntryLine.groupBy({
         by: ["accountId"],
         where: {
+          account: { companyId: session.activeCompanyId },
           journalEntry: {
             status: "posted",
           },
@@ -190,6 +197,7 @@ export const saveBeginningBalances = authorizedAction(
 
       await prisma.journalEntry.create({
         data: {
+          companyId: session.activeCompanyId,
           entryNumber,
           transactionDate: new Date(),
           description: "Beginning Balance Adjustment",

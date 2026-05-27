@@ -3,14 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { AccountType } from "@/prisma/generated/prisma/enums";
 import { getPaginationMetadata } from "@/lib/pagination";
 import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
+import { Prisma } from "@/prisma/generated/prisma/client";
 
 export class AccountService {
     /**
      * Fetch accounts for list or tree display.
      */
-    static async getAccounts(page?: number, pageSize?: number) {
+    static async getAccounts(companyId: string, page?: number, pageSize?: number) {
         if (!page || !pageSize) {
             return await prisma.account.findMany({
+                where: { companyId },
                 orderBy: {
                     code: "asc",
                 },
@@ -27,6 +29,7 @@ export class AccountService {
         const skip = (page - 1) * pageSize;
         const [data, total] = await Promise.all([
             prisma.account.findMany({
+                where: { companyId },
                 orderBy: {
                     code: "asc",
                 },
@@ -40,7 +43,7 @@ export class AccountService {
                 skip,
                 take: pageSize,
             }),
-            prisma.account.count(),
+            prisma.account.count({ where: { companyId } }),
         ]);
 
         return {
@@ -59,14 +62,15 @@ export class AccountService {
             type: AccountType;
             parentId?: string;
         },
-        userId: string
+        userId: string,
+        companyId: string,
     ) {
         return prisma.$transaction(async (tx) => {
             let level = 0;
 
             if (data.parentId) {
-                const parent = await tx.account.findUnique({
-                    where: { id: data.parentId },
+                const parent = await tx.account.findFirst({
+                    where: { id: data.parentId, companyId },
                     include: {
                         _count: {
                             select: { journalEntryLines: true },
@@ -98,6 +102,7 @@ export class AccountService {
 
             const account = await tx.account.create({
                 data: {
+                    companyId,
                     code: data.code,
                     name: data.name,
                     type: data.type,
@@ -129,7 +134,7 @@ export class AccountService {
     /**
      * Generate the next available account code based on parent and type.
      */
-    static async getNextAccountCode(parentId: string | null, type: AccountType) {
+    static async getNextAccountCode(companyId: string, parentId: string | null, type: AccountType) {
         if (!parentId) {
             // Root level logic
             const prefixMap: Record<AccountType, string> = {
@@ -144,6 +149,7 @@ export class AccountService {
             // Find existing root accounts of this type
             const accounts = await prisma.account.findMany({
                 where: {
+                    companyId,
                     type,
                     parentId: null,
                     code: { startsWith: prefix },
@@ -162,8 +168,8 @@ export class AccountService {
         }
 
         // Child level logic
-        const parent = await prisma.account.findUnique({
-            where: { id: parentId },
+        const parent = await prisma.account.findFirst({
+            where: { id: parentId, companyId },
             include: { children: true },
         });
 
@@ -181,7 +187,7 @@ export class AccountService {
 
         // Find max code among children
         const children = await prisma.account.findMany({
-            where: { parentId },
+            where: { parentId, companyId },
             orderBy: { code: "desc" },
             take: 1,
         });
@@ -200,7 +206,14 @@ export class AccountService {
     /**
      * Update an existing account's name.
      */
-    static async updateAccount(id: string, data: { name: string }) {
+    static async updateAccount(id: string, data: { name: string }, companyId: string) {
+        const existing = await prisma.account.findFirst({
+            where: { id, companyId },
+            select: { id: true },
+        });
+        if (!existing) {
+            throw new Error("Account not found");
+        }
         return prisma.account.update({
             where: { id },
             data: { name: data.name },
@@ -210,17 +223,52 @@ export class AccountService {
     /**
      * Delete an account if it is not referenced by any journal entry.
      */
-    static async deleteAccount(id: string) {
+    static async deleteAccount(id: string, companyId: string) {
+        const existing = await prisma.account.findFirst({
+            where: { id, companyId },
+            select: { id: true },
+        });
+        if (!existing) {
+            throw new Error("Account not found");
+        }
+        const childCount = await prisma.account.count({
+            where: { parentId: id, companyId },
+        });
+        if (childCount > 0) {
+            throw new Error("Cannot delete: account has child accounts");
+        }
+        const defaultMappingCount = await prisma.defaultAccount.count({
+            where: { accountId: id, companyId },
+        });
+        if (defaultMappingCount > 0) {
+            throw new Error("Cannot delete: account is used in default account mapping");
+        }
+        const linkedCashAccountCount = await prisma.cashAccount.count({
+            where: { glAccountId: id },
+        });
+        if (linkedCashAccountCount > 0) {
+            throw new Error("Cannot delete: account is linked to Cash/Bank account");
+        }
         const usageCount = await prisma.journalEntryLine.count({
-            where: { accountId: id },
+            where: { accountId: id, account: { companyId } },
         });
         if (usageCount > 0) {
             throw new Error(
                 "Cannot delete: account is referenced in one or more transactions"
             );
         }
-        return prisma.account.delete({
-            where: { id },
-        });
+        try {
+            return await prisma.account.delete({
+                where: { id },
+            });
+        } catch (error) {
+            if (
+                error instanceof Prisma.PrismaClientKnownRequestError &&
+                error.code === "P2003"
+            ) {
+                throw new Error("Cannot delete: account is still referenced by related data");
+            }
+            throw error;
+        }
     }
 }

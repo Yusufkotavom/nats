@@ -66,6 +66,7 @@ Baseline SaaS multi-company sekarang ditambahkan di layer auth + data model tanp
 - Unik nama `Category` dan `Warehouse` dipindah dari global ke per-company melalui komposit `(companyId, name)`.
 - Setup wizard (`saveInitialWarehouse`) sekarang membuat kategori/warehouse baseline dengan `companyId` company aktif.
 - Surface `purchase` (`orders/invoices/receives/returns/payments`), `pos` invoice/held-order, serta `accounting` tax+ledger juga wajib tenant-scoped (`companyId = activeCompanyId`) pada query list/detail/mutasi.
+- Surface `accounting reports` (`profit-loss`, `balance-sheet`, `cash-flow`, `equity`, `trial-balance`, `tax-summary`, dan `validation report`) kini juga wajib tenant-scoped lewat `activeCompanyId` di seluruh query account, journal line aggregation, invoice-item tax summary, dan validasi jurnal.
 
 7. Toggle dimensi transaksi per company:
 - `CompanyProfile` menyimpan flag `enableDepartmentDimension` dan `enableProjectDimension`.
