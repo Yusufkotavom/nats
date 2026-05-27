@@ -5,11 +5,12 @@ import { MovementType, Prisma } from "@/prisma/generated/prisma/client";
 import { resolveStockConsumptionItems } from "@/modules/inventory/services/bom-consumption.service";
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
 import { JournalService } from "@/modules/accounting/services/journal.service";
+import { PaymentAccountResolverService } from "@/modules/cash-bank/services/payment-account-resolver.service";
 
 const DEFAULT_WALK_IN_CUSTOMER_NAME = "Walk-in Customer";
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-export type ServicePaymentMethod = "CASH" | "CARD" | "QRIS";
+export type ServicePaymentMethod = "CASH" | "BANK";
 export type ServiceWorkflowStatus =
   | "NEW"
   | "PROCESSING"
@@ -140,7 +141,7 @@ export class POSServiceWorkflowService {
       const salesOrderNumber = `SO-POS-SVC-${nowKey}`;
       const invoiceNumber = `INV-POS-SVC-${nowKey}`;
 
-      const contactId = await this.resolveCustomer(tx, input.customerId);
+      const contactId = await this.resolveCustomer(tx, session.companyId, input.customerId);
       const serviceItems = await Promise.all(
         input.items.map(async (item) => {
           const product = productMap.get(item.productId)!;
@@ -175,6 +176,7 @@ export class POSServiceWorkflowService {
 
       const salesOrder = await tx.salesOrder.create({
         data: {
+          companyId: session.companyId,
           orderNumber: salesOrderNumber,
           contactId,
           status: "CONFIRMED",
@@ -216,6 +218,7 @@ export class POSServiceWorkflowService {
 
       const salesInvoice = await tx.salesInvoice.create({
         data: {
+          companyId: session.companyId,
           invoiceNumber,
           contactId,
           salesOrderId: salesOrder.id,
@@ -253,6 +256,7 @@ export class POSServiceWorkflowService {
           invoiceNumber,
           salesInvoiceId: salesInvoice.id,
           sessionId: input.sessionId,
+          companyId: session.companyId,
           paymentMethod: input.paymentMethod,
           paymentAmount: downPayment,
         });
@@ -260,6 +264,7 @@ export class POSServiceWorkflowService {
 
       const serviceOrder = await tx.pOSServiceOrder.create({
         data: {
+          companyId: session.companyId,
           orderNumber,
           status: "NEW",
           posSessionId: input.sessionId,
@@ -347,7 +352,7 @@ export class POSServiceWorkflowService {
 
   static async settle(
     orderId: string,
-    paymentMethod: ServicePaymentMethod,
+    cashAccountId?: string,
     amount?: number,
   ) {
     return prisma.$transaction(async (tx) => {
@@ -376,7 +381,9 @@ export class POSServiceWorkflowService {
         invoiceNumber: invoice.invoiceNumber,
         salesInvoiceId: invoice.id,
         sessionId: order.posSessionId,
-        paymentMethod,
+        companyId: order.companyId || undefined,
+        paymentMethod: "CASH",
+        cashAccountId,
         paymentAmount,
       });
 
@@ -541,24 +548,46 @@ export class POSServiceWorkflowService {
       invoiceNumber: string;
       salesInvoiceId: string;
       sessionId: string;
+      companyId?: string;
       paymentMethod: ServicePaymentMethod;
+      cashAccountId?: string;
       paymentAmount: Decimal;
     },
   ) {
     const paymentNumber = `PAY-POS-SVC-${uniqueSuffix()}`;
-    const cashAccount = await tx.cashAccount.findFirst({
-      where: { type: params.paymentMethod === "CASH" ? "CASH" : "BANK" },
-    });
+    const cashAccount = params.cashAccountId
+      ? await tx.cashAccount.findFirst({
+          where: {
+            id: params.cashAccountId,
+            isActive: true,
+            glAccount: params.companyId ? { companyId: params.companyId } : undefined,
+          },
+        })
+      : params.companyId
+      ? await PaymentAccountResolverService.resolveAccount(tx, {
+          companyId: params.companyId,
+          method: params.paymentMethod,
+        })
+      : await tx.cashAccount.findFirst({
+          where: {
+            isActive: true,
+            type: { in: params.paymentMethod === "CASH" ? ["CASH", "PETTY_CASH"] : ["BANK", "EWALLET"] },
+          },
+          orderBy: [{ name: "asc" }],
+        });
 
     if (!cashAccount) throw new Error("No Cash/Bank account configured");
+    const paymentMethod: ServicePaymentMethod =
+      cashAccount.type === "CASH" || cashAccount.type === "PETTY_CASH" ? "CASH" : "BANK";
 
     return tx.salesPayment.create({
       data: {
+        companyId: params.companyId,
         paymentNumber,
         contactId: params.contactId,
         amount: params.paymentAmount,
         paymentDate: new Date(),
-        method: params.paymentMethod,
+        method: paymentMethod,
         reference: params.invoiceNumber,
         cashAccountId: cashAccount.id,
         posSessionId: params.sessionId,
@@ -569,18 +598,28 @@ export class POSServiceWorkflowService {
 
   private static async resolveCustomer(
     tx: Prisma.TransactionClient,
+    companyId: string,
     customerId?: string,
   ): Promise<string> {
-    if (customerId) return customerId;
+    if (customerId) {
+      const customer = await tx.contact.findFirst({
+        where: { id: customerId, companyId, type: "CUSTOMER" },
+        select: { id: true },
+      });
+      if (!customer) {
+        throw new Error("Customer not found in active company");
+      }
+      return customer.id;
+    }
 
     const walkIn = await tx.contact.findFirst({
-      where: { name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
+      where: { companyId, name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
     });
 
     if (walkIn) return walkIn.id;
 
     const newWalkIn = await tx.contact.create({
-      data: { name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
+      data: { companyId, name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
     });
     return newWalkIn.id;
   }

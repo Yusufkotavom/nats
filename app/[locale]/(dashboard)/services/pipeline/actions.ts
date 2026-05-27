@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { settleServiceOrder, updateServiceOrderStatus } from "../actions";
 
 type ServicePipelineState = {
@@ -30,17 +31,27 @@ type ServicePipelineState = {
 };
 
 function assertAccess(session: Awaited<ReturnType<typeof getSession>>) {
-  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+  const canAccessServices =
+    !!session?.permissions &&
+    (hasPermission(session.permissions, "pos.access") ||
+      hasPermission(session.permissions, "sales.view") ||
+      hasPermission(session.permissions, "sales.create"));
+
+  if (!session?.userId || !canAccessServices) {
     throw new Error("Unauthorized");
+  }
+  if (!session.activeCompanyId) {
+    throw new Error("No active company selected");
   }
 }
 
 export async function getServicePipelineState(orderId: string): Promise<ServicePipelineState> {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
-  const order = await prisma.pOSServiceOrder.findUnique({
-    where: { id: orderId },
+  const order = await prisma.pOSServiceOrder.findFirst({
+    where: { id: orderId, companyId },
     include: {
       salesInvoice: { select: { id: true, invoiceNumber: true, status: true } },
     },
@@ -48,14 +59,14 @@ export async function getServicePipelineState(orderId: string): Promise<ServiceP
   if (!order) throw new Error("Service order not found");
 
   const contact = order.contactId
-    ? await prisma.contact.findUnique({
-        where: { id: order.contactId },
+    ? await prisma.contact.findFirst({
+        where: { id: order.contactId, companyId },
         select: { name: true },
       })
     : null;
 
   const payment = await prisma.salesPayment.findFirst({
-    where: { salesInvoiceId: order.salesInvoiceId },
+    where: { salesInvoiceId: order.salesInvoiceId, companyId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -98,6 +109,7 @@ export async function runServicePipelineAction(
 ) {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
   if (action === "move_processing") {
     await updateServiceOrderStatus(orderId, "PROCESSING");
@@ -107,11 +119,11 @@ export async function runServicePipelineAction(
     await updateServiceOrderStatus(orderId, "DONE");
   }
   if (action === "settle_payment") {
-    await settleServiceOrder(orderId, "CASH");
+    await settleServiceOrder(orderId);
   }
   if (action === "close_order") {
-    const current = await prisma.pOSServiceOrder.findUnique({
-      where: { id: orderId },
+    const current = await prisma.pOSServiceOrder.findFirst({
+      where: { id: orderId, companyId },
       select: { status: true },
     });
     if (!current) throw new Error("Service order not found");
@@ -121,7 +133,7 @@ export async function runServicePipelineAction(
     await updateServiceOrderStatus(orderId, "CLOSED");
   }
 
-  revalidatePath("/services/orders");
-  revalidatePath(`/services/pipeline/${orderId}`);
+  revalidateLocalizedPath("/services/orders");
+  revalidateLocalizedPath(`/services/pipeline/${orderId}`);
   return { success: true };
 }

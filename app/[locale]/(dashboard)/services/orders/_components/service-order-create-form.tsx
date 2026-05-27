@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SuperJSON } from "@/lib/superjson";
-import { createPOSQuickContact, createPOSServiceOrder } from "../../../../pos/actions";
 import {
   Dialog,
   DialogContent,
@@ -36,15 +35,34 @@ type ServiceLine = {
 };
 
 export function ServiceOrderCreateForm({
-  sessionId,
   products,
   contacts,
+  createOrderAction,
+  createQuickContactAction,
   compact = false,
   onSuccess,
 }: {
-  sessionId: string;
   products: Array<{ id: string; name: string; price: number; isService?: boolean }>;
   contacts: Array<{ id: string; name: string }>;
+  createOrderAction: (input: {
+    customerId?: string;
+    notes?: string;
+    targetDate?: Date;
+    downPaymentAmount?: number;
+    paymentMethod?: "CASH" | "BANK";
+    items: Array<{
+      productId: string;
+      quantity: number;
+      price?: number;
+      discount?: number;
+      notes?: string;
+    }>;
+  }) => Promise<unknown>;
+  createQuickContactAction: (input: {
+    name: string;
+    phone?: string;
+    email?: string;
+  }) => Promise<unknown>;
   compact?: boolean;
   onSuccess?: () => void;
 }) {
@@ -109,8 +127,7 @@ export function ServiceOrderCreateForm({
 
     setSaving(true);
     try {
-      await createPOSServiceOrder({
-        sessionId,
+      await createOrderAction({
         customerId: customerId === "walk-in" ? undefined : customerId,
         notes: notes.trim() || undefined,
         targetDate: targetDate ? new Date(`${targetDate}T00:00:00`) : undefined,
@@ -147,7 +164,7 @@ export function ServiceOrderCreateForm({
       return;
     }
     try {
-      const raw = await createPOSQuickContact({
+      const raw = await createQuickContactAction({
         name: quickName.trim(),
         phone: quickPhone.trim() || undefined,
         email: quickEmail.trim() || undefined,
@@ -214,12 +231,13 @@ export function ServiceOrderCreateForm({
           <Label>Ordered Items</Label>
           <Button type="button" variant="outline" onClick={handleAddItem}>Tambah Item</Button>
         </div>
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
               <TableHead className="w-[110px] text-right">Quantity</TableHead>
-              <TableHead className="w-[160px] text-right">Price</TableHead>
+              <TableHead className="w-[240px] text-right">Price</TableHead>
               <TableHead className="w-[170px] text-right">Total</TableHead>
               <TableHead className="w-[56px]" />
             </TableRow>
@@ -234,63 +252,69 @@ export function ServiceOrderCreateForm({
                 const rowTotal = (line.quantity || 0) * (line.price || 0);
                 const selected = products.find((p) => p.id === line.productId);
                 return (
-                  <TableRow key={line.id}>
-                    <TableCell>
-                      <Select
-                        value={line.productId}
-                        onValueChange={(value) => handleLineChange(line.id, { productId: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih produk/service" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name}{product.isService ? " (Service)" : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        className="mt-2"
-                        placeholder="Catatan item (opsional)"
-                        value={line.notes}
-                        onChange={(event) => handleLineChange(line.id, { notes: event.target.value })}
-                      />
-                      {selected?.isService ? null : (
-                        <p className="mt-1 text-xs text-muted-foreground">Item tambahan non-service</p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={1}
-                        className="text-right"
-                        value={line.quantity}
-                        onChange={(event) => handleLineChange(line.id, { quantity: Number(event.target.value) || 1 })}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="text-right"
-                        value={line.price}
-                        onChange={(event) => handleLineChange(line.id, { price: Number(event.target.value) || 0 })}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right font-medium">{rowTotal.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(line.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  <Fragment key={line.id}>
+                    <TableRow>
+                      <TableCell>
+                        <Select
+                          value={line.productId}
+                          onValueChange={(value) => handleLineChange(line.id, { productId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih produk/service" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name}{product.isService ? " (Service)" : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {selected?.isService ? null : (
+                          <p className="mt-1 text-xs text-muted-foreground">Item tambahan non-service</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={1}
+                          className="text-right"
+                          value={line.quantity}
+                          onChange={(event) => handleLineChange(line.id, { quantity: Number(event.target.value) || 1 })}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min={0}
+                          className="min-w-[200px] text-right"
+                          value={line.price}
+                          onChange={(event) => handleLineChange(line.id, { price: Number(event.target.value) || 0 })}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{rowTotal.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(line.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Input
+                          placeholder="Catatan item (opsional)"
+                          value={line.notes}
+                          onChange={(event) => handleLineChange(line.id, { notes: event.target.value })}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </Fragment>
                 );
               })
             )}
           </TableBody>
         </Table>
+        </div>
         <div className="text-right text-sm font-semibold">Grand Total: {grandTotal.toLocaleString()}</div>
       </div>
 
@@ -305,9 +329,14 @@ export function ServiceOrderCreateForm({
         </div>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid gap-2 rounded-md border p-3">
         <Label>Catatan</Label>
-        <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+        <Textarea
+          className="min-h-[96px]"
+          placeholder="Catatan order (opsional)"
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+        />
       </div>
 
       <div className="flex justify-end gap-2">

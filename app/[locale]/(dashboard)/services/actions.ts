@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { SuperJSON } from "@/lib/superjson";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalizedPath, revalidateLocalizedPaths } from "@/lib/revalidate-localized-path";
+import { ContactType } from "@/prisma/generated/prisma/client";
 import {
   POSServiceWorkflowService,
-  type ServicePaymentMethod,
   type ServiceWorkflowStatus,
 } from "@/modules/services/services/pos-service-workflow.service";
 import type {
@@ -25,9 +25,155 @@ type PagingResult<T> = {
 };
 
 function assertAccess(session: Awaited<ReturnType<typeof getSession>>) {
-  if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
+  const canAccessServices =
+    !!session?.permissions &&
+    (hasPermission(session.permissions, "pos.access") ||
+      hasPermission(session.permissions, "sales.view") ||
+      hasPermission(session.permissions, "sales.create"));
+
+  if (!session?.userId || !canAccessServices) {
     throw new Error("Unauthorized");
   }
+  if (!session.activeCompanyId) {
+    throw new Error("No active company selected");
+  }
+}
+
+async function ensureServiceSession(companyId: string, userId: string) {
+  const existing = await prisma.pOSSession.findFirst({
+    where: {
+      companyId,
+      cashierId: userId,
+      status: "OPEN",
+    },
+    select: { id: true },
+    orderBy: { startTime: "desc" },
+  });
+
+  if (existing) return existing.id;
+
+  const session = await prisma.pOSSession.create({
+    data: {
+      companyId,
+      cashierId: userId,
+      sessionNumber: `SRV-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      status: "OPEN",
+      openingCash: 0,
+      notes: "Auto session for Services module",
+    },
+    select: { id: true },
+  });
+
+  return session.id;
+}
+
+export async function getServiceCreateMeta() {
+  const session = await getSession();
+  assertAccess(session);
+  const companyId = session.activeCompanyId!;
+  const userId = session.userId!;
+
+  const sessionId = await ensureServiceSession(companyId, userId);
+
+  const [products, contacts] = await Promise.all([
+    prisma.product.findMany({
+      where: { companyId, isActive: true },
+      select: { id: true, name: true, price: true, isService: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.contact.findMany({
+      where: { companyId, type: ContactType.CUSTOMER, isActive: true },
+      select: { id: true, name: true, phone: true, email: true },
+      orderBy: { name: "asc" },
+      take: 100,
+    }),
+  ]);
+
+  return SuperJSON.serialize({
+    session: { id: sessionId },
+    products: products.map((item) => ({
+      ...item,
+      price: Number(item.price),
+    })),
+    contacts,
+  });
+}
+
+export async function createServiceQuickContact(input: {
+  name: string;
+  phone?: string;
+  email?: string;
+}) {
+  const session = await getSession();
+  assertAccess(session);
+  const companyId = session.activeCompanyId!;
+
+  const name = input.name.trim();
+  const phone = input.phone?.trim() || null;
+  const email = input.email?.trim() || null;
+
+  if (!name) {
+    throw new Error("Nama kontak wajib diisi");
+  }
+
+  const contact = await prisma.contact.create({
+    data: {
+      companyId,
+      type: ContactType.CUSTOMER,
+      name,
+      phone,
+      email,
+      isActive: true,
+      taxExempt: false,
+    },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+    },
+  });
+
+  revalidateLocalizedPath("/services");
+  revalidateLocalizedPath("/general/contacts");
+  return SuperJSON.serialize(contact);
+}
+
+export async function createServiceOrder(input: {
+  customerId?: string;
+  notes?: string;
+  targetDate?: Date;
+  downPaymentAmount?: number;
+  paymentMethod?: ServicePaymentMethod;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    price?: number;
+    discount?: number;
+    notes?: string;
+  }>;
+}) {
+  const session = await getSession();
+  assertAccess(session);
+  const companyId = session.activeCompanyId!;
+  const userId = session.userId!;
+  const sessionId = await ensureServiceSession(companyId, userId);
+
+  const order = await POSServiceWorkflowService.create(
+    {
+      ...input,
+      sessionId,
+    },
+    userId,
+  );
+
+  revalidateLocalizedPaths([
+    "/services",
+    "/services/orders",
+    "/services/invoices",
+    "/services/payments",
+  ]);
+  return SuperJSON.serialize(order);
 }
 
 export async function getServiceOrders(
@@ -38,8 +184,10 @@ export async function getServiceOrders(
 ): Promise<PagingResult<ServiceOrderListItem>> {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
   const where = {
+    companyId,
     ...(status !== "ALL" ? { status } : {}),
     ...(search
       ? {
@@ -67,13 +215,16 @@ export async function getServiceOrders(
     prisma.pOSServiceOrder.count({ where }),
   ]);
   const contacts = await prisma.contact.findMany({
-    where: { id: { in: orders.map((o) => o.contactId).filter(Boolean) as string[] } },
+    where: {
+      companyId,
+      id: { in: orders.map((o) => o.contactId).filter(Boolean) as string[] },
+    },
     select: { id: true, name: true, phone: true },
   });
   const contactMap = new Map(contacts.map((c) => [c.id, c]));
 
   const invoices = await prisma.salesInvoice.findMany({
-    where: { id: { in: orders.map((o) => o.salesInvoiceId) } },
+    where: { companyId, id: { in: orders.map((o) => o.salesInvoiceId) } },
     select: { id: true, invoiceNumber: true },
   });
   const invoiceMap = new Map(invoices.map((i) => [i.id, i.invoiceNumber]));
@@ -109,8 +260,10 @@ export async function getServiceInvoices(
 ): Promise<PagingResult<ServiceInvoiceListItem>> {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
   const where = {
+    companyId,
     ...(search
       ? {
           OR: [
@@ -131,13 +284,16 @@ export async function getServiceInvoices(
     prisma.pOSServiceOrder.count({ where }),
   ]);
   const contacts = await prisma.contact.findMany({
-    where: { id: { in: orders.map((o) => o.contactId).filter(Boolean) as string[] } },
+    where: {
+      companyId,
+      id: { in: orders.map((o) => o.contactId).filter(Boolean) as string[] },
+    },
     select: { id: true, name: true },
   });
   const contactMap = new Map(contacts.map((c) => [c.id, c]));
 
   const invoices = await prisma.salesInvoice.findMany({
-    where: { id: { in: orders.map((o) => o.salesInvoiceId) } },
+    where: { companyId, id: { in: orders.map((o) => o.salesInvoiceId) } },
     select: {
       id: true,
       invoiceNumber: true,
@@ -182,8 +338,21 @@ export async function getServicePayments(
 ): Promise<PagingResult<ServicePaymentListItem>> {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
+
+  const serviceInvoiceIds = (
+    await prisma.pOSServiceOrder.findMany({
+      where: { companyId },
+      select: { salesInvoiceId: true },
+    })
+  ).map((order) => order.salesInvoiceId);
+
+  if (!serviceInvoiceIds.length) {
+    return { data: [], total: 0, totalPages: 0 };
+  }
 
   const where = {
+    salesInvoiceId: { in: serviceInvoiceIds },
     ...(search
       ? {
           OR: [
@@ -210,7 +379,10 @@ export async function getServicePayments(
   ]);
 
   const serviceOrders = await prisma.pOSServiceOrder.findMany({
-    where: { salesInvoiceId: { in: payments.map((payment) => payment.salesInvoiceId).filter(Boolean) as string[] } },
+    where: {
+      companyId,
+      salesInvoiceId: { in: payments.map((payment) => payment.salesInvoiceId).filter(Boolean) as string[] },
+    },
     select: { salesInvoiceId: true, orderNumber: true },
   });
   const orderMap = new Map(serviceOrders.map((o) => [o.salesInvoiceId, o.orderNumber]));
@@ -245,7 +417,9 @@ export async function getServiceAfterSales(
 ): Promise<PagingResult<ServiceAfterSalesCaseListItem>> {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
   const where = {
+    companyId,
     ...(status !== "ALL" ? { status } : {}),
     ...(startDate || endDate
       ? {
@@ -281,6 +455,7 @@ export async function getServiceAfterSales(
 
   const serviceOrders = await prisma.pOSServiceOrder.findMany({
     where: {
+      companyId,
       OR: [
         { salesOrderId: { in: cases.map((c) => c.salesOrderId).filter(Boolean) as string[] } },
         { salesInvoiceId: { in: cases.map((c) => c.salesInvoiceId).filter(Boolean) as string[] } },
@@ -295,7 +470,7 @@ export async function getServiceAfterSales(
   const orderBySalesOrder = new Map(serviceOrders.map((o) => [o.salesOrderId, o.orderNumber]));
   const orderByInvoice = new Map(serviceOrders.map((o) => [o.salesInvoiceId, o.orderNumber]));
   const invoices = await prisma.salesInvoice.findMany({
-    where: { id: { in: cases.map((c) => c.salesInvoiceId).filter(Boolean) as string[] } },
+    where: { companyId, id: { in: cases.map((c) => c.salesInvoiceId).filter(Boolean) as string[] } },
     select: { id: true, invoiceNumber: true },
   });
   const invoiceMap = new Map(invoices.map((i) => [i.id, i.invoiceNumber]));
@@ -330,9 +505,10 @@ export async function createServiceAfterSalesCase(input: {
 }) {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
-  const order = await prisma.pOSServiceOrder.findUnique({
-    where: { id: input.serviceOrderId },
+  const order = await prisma.pOSServiceOrder.findFirst({
+    where: { id: input.serviceOrderId, companyId },
     include: {
       items: true,
     },
@@ -341,8 +517,8 @@ export async function createServiceAfterSalesCase(input: {
   if (!order.contactId) throw new Error("Service order has no customer");
   if (!order.salesOrderId) throw new Error("Service order has no sales order");
 
-  const salesInvoice = await prisma.salesInvoice.findUnique({
-    where: { id: order.salesInvoiceId },
+  const salesInvoice = await prisma.salesInvoice.findFirst({
+    where: { id: order.salesInvoiceId, companyId },
     select: { id: true },
   });
 
@@ -364,7 +540,7 @@ export async function createServiceAfterSalesCase(input: {
     session!.userId,
   );
 
-  revalidatePath("/services/returns-warranty");
+  revalidateLocalizedPath("/services/returns-warranty");
   return SuperJSON.serialize(created);
 }
 
@@ -376,21 +552,45 @@ export async function updateServiceOrderStatus(
   assertAccess(session);
 
   const result = await POSServiceWorkflowService.transitionStatus(orderId, status, session!.userId);
-  revalidatePath("/services");
+  revalidateLocalizedPath("/services");
   return SuperJSON.serialize(result);
 }
 
 export async function settleServiceOrder(
   orderId: string,
-  paymentMethod: ServicePaymentMethod,
+  cashAccountId?: string,
   amount?: number,
 ) {
   const session = await getSession();
   assertAccess(session);
 
-  const result = await POSServiceWorkflowService.settle(orderId, paymentMethod, amount);
-  revalidatePath("/services");
+  const result = await POSServiceWorkflowService.settle(orderId, cashAccountId, amount);
+  revalidateLocalizedPath("/services");
   return SuperJSON.serialize(result);
+}
+
+export async function getServiceCashAccounts() {
+  const session = await getSession();
+  assertAccess(session);
+  const companyId = session.activeCompanyId!;
+
+  const accounts = await prisma.cashAccount.findMany({
+    where: {
+      isActive: true,
+      glAccount: { companyId },
+      type: { in: ["CASH", "PETTY_CASH", "BANK", "EWALLET"] },
+    },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      bankName: true,
+      accountNumber: true,
+    },
+  });
+
+  return SuperJSON.serialize(accounts);
 }
 
 export async function updateServiceOrderPricing(input: {
@@ -474,16 +674,17 @@ export async function updateServiceOrderPricing(input: {
     return updatedOrder;
   });
 
-  revalidatePath("/services");
+  revalidateLocalizedPath("/services");
   return SuperJSON.serialize(result);
 }
 
 export async function getServiceOrderForEdit(orderId: string) {
   const session = await getSession();
   assertAccess(session);
+  const companyId = session.activeCompanyId!;
 
-  const order = await prisma.pOSServiceOrder.findUnique({
-    where: { id: orderId },
+  const order = await prisma.pOSServiceOrder.findFirst({
+    where: { id: orderId, companyId },
     include: {
       items: {
         orderBy: { createdAt: "asc" },
@@ -492,10 +693,57 @@ export async function getServiceOrderForEdit(orderId: string) {
   });
   if (!order) throw new Error("Service order tidak ditemukan");
 
+  const [salesOrder, salesInvoice] = await Promise.all([
+    prisma.salesOrder.findFirst({
+      where: { id: order.salesOrderId, companyId },
+      select: { id: true, orderNumber: true, status: true },
+    }),
+    prisma.salesInvoice.findFirst({
+      where: { id: order.salesInvoiceId, companyId },
+      select: { id: true, invoiceNumber: true, status: true },
+    }),
+  ]);
+
+  const latestPayment = await prisma.salesPayment.findFirst({
+    where: {
+      companyId,
+      salesInvoiceId: order.salesInvoiceId,
+    },
+    orderBy: { paymentDate: "desc" },
+    select: {
+      id: true,
+      paymentNumber: true,
+      paymentDate: true,
+      method: true,
+      amount: true,
+    },
+  });
+
   return SuperJSON.serialize({
     id: order.id,
+    orderNumber: order.orderNumber,
     status: order.status,
     notes: order.notes || "",
+    salesOrderId: order.salesOrderId,
+    salesOrderNumber: salesOrder?.orderNumber || null,
+    salesOrderStatus: salesOrder?.status || null,
+    salesInvoiceId: order.salesInvoiceId,
+    invoiceNumber: salesInvoice?.invoiceNumber || null,
+    invoiceStatus: salesInvoice?.status || null,
+    subtotal: Number(order.subtotal),
+    totalAmount: Number(order.totalAmount),
+    dpAmount: Number(order.dpAmount),
+    paidAmount: Number(order.paidAmount),
+    remainingAmount: Number(order.remainingAmount),
+    latestPayment: latestPayment
+      ? {
+          id: latestPayment.id,
+          paymentNumber: latestPayment.paymentNumber,
+          paymentDate: latestPayment.paymentDate,
+          method: latestPayment.method,
+          amount: Number(latestPayment.amount),
+        }
+      : null,
     items: order.items.map((item) => ({
       id: item.id,
       productId: item.productId,
@@ -634,7 +882,7 @@ export async function updateServiceOrder(input: {
       ? await POSServiceWorkflowService.transitionStatus(result.id, input.status, session!.userId)
       : result;
 
-  revalidatePath("/services");
+  revalidateLocalizedPath("/services");
   return SuperJSON.serialize(updatedOrder);
 }
 

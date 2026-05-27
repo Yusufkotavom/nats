@@ -15,6 +15,7 @@ export const cashBankPlugin: ModulePlugin = {
             { title: "CashBank.dashboard", url: "/cash-bank" },
             { title: "CashBank.transactions", url: "/cash-bank/transaction" },
             { title: "CashBank.transfers", url: "/cash-bank/transfer" },
+            { title: "Payment Methods", url: "/payment-method" },
           ],
         },
       ],
@@ -43,4 +44,3 @@ export const cashBankPlugin: ModulePlugin = {
     },
   ],
 };
-

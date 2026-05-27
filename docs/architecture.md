@@ -65,6 +65,7 @@ Baseline SaaS multi-company sekarang ditambahkan di layer auth + data model tanp
 - Service `WarehouseService` sekarang menolak update/delete lintas tenant (record harus berasal dari company aktif).
 - Unik nama `Category` dan `Warehouse` dipindah dari global ke per-company melalui komposit `(companyId, name)`.
 - Setup wizard (`saveInitialWarehouse`) sekarang membuat kategori/warehouse baseline dengan `companyId` company aktif.
+- Surface `purchase` (`orders/invoices/receives/returns/payments`), `pos` invoice/held-order, serta `accounting` tax+ledger juga wajib tenant-scoped (`companyId = activeCompanyId`) pada query list/detail/mutasi.
 
 7. Toggle dimensi transaksi per company:
 - `CompanyProfile` menyimpan flag `enableDepartmentDimension` dan `enableProjectDimension`.
@@ -154,6 +155,7 @@ Kontrak alur:
 - route `/services/pipeline/[orderId]` bertindak sebagai jembatan cepat lintas dokumen service dengan top bar stage `Service Order → Invoice → Payment`,
 - top bar memakai resolver relasi ringan di `app/[locale]/(dashboard)/services/_lib/pipeline-bridge.ts`,
 - tiap stage tetap membuka dokumen existing sebagai source of truth (invoice/payment memakai dokumen sales yang terhubung).
+- seluruh lookup order/invoice/payment pada route service pipeline wajib ter-scope `activeCompanyId` (`companyId` filter) untuk mencegah kebocoran dokumen lintas tenant.
 
 ### Contact Assist Layer untuk POS Sales/Service (2026-05-15)
 
@@ -214,8 +216,22 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
 
 - Route terpisah `/services` dijalankan dari `app/[locale]/(dashboard)/services/page.tsx` agar tetap berada dalam dashboard shell (sidebar + session provider) sambil memisahkan UI jasa dari kasir produk.
 - Route ini sekarang memakai pattern modular CRUD dashboard (style setara `sales`) melalui adapter action khusus di `app/[locale]/(dashboard)/services/actions.ts`, namun tetap reuse domain service yang sama (`modules/services/services/pos-service-workflow.service.ts`) untuk workflow inti.
+- Pembuatan Service Order di `/services` kini tidak lagi mensyaratkan user membuka sesi POS manual; action service melakukan `ensureServiceSession` internal per user-company agar modul service benar-benar standalone dari surface kasir POS.
 - Root `/services` melakukan redirect ke `/services/orders`, dengan route operasional terpisah: `/services/orders`, `/services/invoices`, `/services/payments`, dan `/services/returns-warranty`.
 - Navigasi sidebar `Services` sekarang berdiri sebagai modul sendiri di section `Operations` (tidak lagi nested di group `POS`).
+
+### Payment Method -> Cash/Bank Mapping (2026-05-26)
+
+- `CompanyProfile` menyimpan default mapping akun pembayaran per method:
+  - `defaultCashAccountId` untuk `CASH`
+  - `defaultCardAccountId` untuk `CARD`
+  - `defaultQrisAccountId` untuk `QRIS`
+- Source of truth akun tetap di `CashAccount` (hasil setup Cash & Bank) dan selalu tenant-scoped via `glAccount.companyId`.
+- Resolver terpusat `modules/cash-bank/services/payment-account-resolver.service.ts` dipakai lintas modul POS/Service untuk memilih akun:
+  1. akun request manual jika valid,
+  2. default mapping company,
+  3. fallback akun aktif pertama sesuai tipe method.
+- Form payment `Sales` dan `Purchase` memakai daftar akun yang sama dari Cash & Bank, auto-filter berdasarkan method (`CASH` -> cash/petty-cash, `CARD/QRIS` -> bank/e-wallet), lalu auto-select default mapping jika tersedia.
 - Pada `/services/orders`, create order mendukung dua mode input:
   - popup cepat (dengan quick add customer + autofill harga produk),
   - form page penuh `/services/orders/new` untuk pengalaman setara modul transaksi `sales`.
@@ -228,6 +244,16 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
   - template pesan per event dengan token variabel,
   - durasi garansi default (`DAY`/`MONTH`) untuk notifikasi saat barang diambil.
 - Tujuan: memisahkan surface bisnis jasa agar mudah di-extend ke workflow lanjutan (assignment, SLA, pipeline) tanpa memecah kontrak data/transaksi existing.
+
+### Payment Methods Single Source (`/payment-method`) (2026-05-27)
+
+- Ditambahkan route dashboard `/payment-method` sebagai single source of truth untuk daftar payment method operasional.
+- Surface ini menampilkan metode berbasis `CashAccount` tenant aktif (`CASH/PETTY_CASH/BANK/EWALLET`) dan relasi GL account.
+- Add payment method baru (`type: CASH|BANK`) tidak membuat daftar terpisah; sistem:
+  1. mencari default account utama dari `DefaultAccount` (`CASH_ON_HAND` atau `BANK`),
+  2. membuat akun GL child (nested) di bawah akun utama tersebut,
+  3. membuat `CashAccount` baru yang memetakan ke akun child itu.
+- Dengan pola ini, seluruh modul payment tetap memakai sumber akun tunggal dari `Cash & Bank` dan user tidak perlu mengelola mapping akun di banyak tempat.
 
 ## Budgeting: Budget Operasional + Saving Target (2026-05-13)
 

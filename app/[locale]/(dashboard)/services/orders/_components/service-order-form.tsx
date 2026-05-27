@@ -12,13 +12,32 @@ import { useRouter } from "next/navigation";
 import { ServiceOrderCreateForm } from "./service-order-create-form";
 
 export function ServiceOrderForm({
-  sessionId,
   products,
   contacts,
+  createOrderAction,
+  createQuickContactAction,
 }: {
-  sessionId: string;
   products: Array<{ id: string; name: string; price: number; isService?: boolean }>;
   contacts: Array<{ id: string; name: string }>;
+  createOrderAction: (input: {
+    customerId?: string;
+    notes?: string;
+    targetDate?: Date;
+    downPaymentAmount?: number;
+    paymentMethod?: "CASH" | "BANK";
+    items: Array<{
+      productId: string;
+      quantity: number;
+      price?: number;
+      discount?: number;
+      notes?: string;
+    }>;
+  }) => Promise<unknown>;
+  createQuickContactAction: (input: {
+    name: string;
+    phone?: string;
+    email?: string;
+  }) => Promise<unknown>;
 }) {
   const router = useRouter();
 
@@ -32,9 +51,10 @@ export function ServiceOrderForm({
       </PageFormHeader>
       <PageFormContent>
         <ServiceOrderCreateForm
-          sessionId={sessionId}
           products={products}
           contacts={contacts}
+          createOrderAction={createOrderAction}
+          createQuickContactAction={createQuickContactAction}
         />
       </PageFormContent>
     </PageFormLayout>

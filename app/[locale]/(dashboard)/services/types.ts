@@ -6,7 +6,7 @@ export type ServiceOrderStatus =
   | "CLOSED"
   | "CANCELLED";
 
-export type ServicePaymentMethod = "CASH" | "CARD" | "QRIS";
+export type ServicePaymentMethod = "CASH" | "BANK";
 
 export type ServiceOrderListItem = {
   id: string;

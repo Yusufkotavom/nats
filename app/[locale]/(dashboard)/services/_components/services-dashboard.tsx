@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createServiceOrder,
   createServiceAfterSalesCase,
+  createServiceQuickContact,
+  getServiceCreateMeta,
+  getServiceCashAccounts,
   getServiceOrderForEdit,
   getServiceAfterSales,
   getServiceInvoices,
@@ -57,7 +61,6 @@ import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
-import { getOpenPOSSession, getPOSContacts, getPOSServiceProducts } from "../../../pos/actions";
 import { SuperJSON } from "@/lib/superjson";
 import { ServiceOrderCreateForm } from "../orders/_components/service-order-create-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -160,6 +163,28 @@ export function ServicesDashboard({
   const [editNotesValue, setEditNotesValue] = useState("");
   const [editStatusValue, setEditStatusValue] = useState<ServiceOrderStatus>("NEW");
   const [editStatusOptions, setEditStatusOptions] = useState<ServiceOrderStatus[]>(["NEW"]);
+  const [editOrderMeta, setEditOrderMeta] = useState<{
+    orderNumber: string;
+    salesOrderId: string | null;
+    salesOrderNumber: string | null;
+    salesInvoiceId: string | null;
+    invoiceNumber: string | null;
+    subtotal: number;
+    totalAmount: number;
+    dpAmount: number;
+    paidAmount: number;
+    remainingAmount: number;
+    latestPayment: {
+      id: string;
+      paymentNumber: string;
+      paymentDate: Date;
+      method: string;
+      amount: number;
+    } | null;
+  } | null>(null);
+  const [settleCashAccountId, setSettleCashAccountId] = useState<string>("");
+  const [settleAmount, setSettleAmount] = useState<number>(0);
+  const [editInitialSnapshot, setEditInitialSnapshot] = useState("");
 
   const { toast } = useToast();
   const t = useTranslations("Services");
@@ -197,16 +222,12 @@ export function ServicesDashboard({
   const createMetaQuery = useQuery({
     queryKey: ["services-create-meta"],
     queryFn: async () => {
-      const [sessionRaw, productsRaw, contactsRaw] = await Promise.all([
-        getOpenPOSSession(),
-        getPOSServiceProducts(),
-        getPOSContacts(),
-      ]);
-      return {
-        session: sessionRaw ? SuperJSON.deserialize<{ id: string }>(sessionRaw) : null,
-        products: SuperJSON.deserialize<Array<{ id: string; name: string; price: number; isService?: boolean }>>(productsRaw),
-        contacts: SuperJSON.deserialize<Array<{ id: string; name: string }>>(contactsRaw),
-      };
+      const raw = await getServiceCreateMeta();
+      return SuperJSON.deserialize<{
+        session: { id: string };
+        products: Array<{ id: string; name: string; price: number; isService?: boolean }>;
+        contacts: Array<{ id: string; name: string }>;
+      }>(raw);
     },
   });
   const notifySettingsQuery = useQuery({
@@ -221,6 +242,19 @@ export function ServicesDashboard({
         serviceWarrantyDuration: number;
         serviceWarrantyUnit: "DAY" | "MONTH";
       }>(raw);
+    },
+  });
+  const serviceCashAccountsQuery = useQuery({
+    queryKey: ["services-cash-accounts"],
+    queryFn: async () => {
+      const raw = await getServiceCashAccounts();
+      return SuperJSON.deserialize<Array<{
+        id: string;
+        name: string;
+        type: "CASH" | "PETTY_CASH" | "BANK" | "EWALLET";
+        bankName: string | null;
+        accountNumber: string | null;
+      }>>(raw);
     },
   });
 
@@ -321,7 +355,9 @@ export function ServicesDashboard({
   const onSettle = async (order: ServiceOrderListItem) => {
     setPendingActionId(order.id);
     try {
-      await settleServiceOrder(order.id, "CASH", Number(order.remainingAmount));
+      const defaultAccountId = settleCashAccountId || serviceCashAccountsQuery.data?.[0]?.id;
+      if (!defaultAccountId) throw new Error("Akun Cash/Bank belum tersedia");
+      await settleServiceOrder(order.id, defaultAccountId, Number(order.remainingAmount));
       await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
@@ -340,8 +376,25 @@ export function ServicesDashboard({
       const raw = await getServiceOrderForEdit(order.id);
       const detail = SuperJSON.deserialize<{
         id: string;
+        orderNumber: string;
         status: ServiceOrderStatus;
         notes: string;
+        salesOrderId: string | null;
+        salesOrderNumber: string | null;
+        salesInvoiceId: string | null;
+        invoiceNumber: string | null;
+        subtotal: number;
+        totalAmount: number;
+        dpAmount: number;
+        paidAmount: number;
+        remainingAmount: number;
+        latestPayment: {
+          id: string;
+          paymentNumber: string;
+          paymentDate: Date;
+          method: string;
+          amount: number;
+        } | null;
         items: Array<{
           id: string;
           productId: string;
@@ -354,6 +407,33 @@ export function ServicesDashboard({
       setEditNotesValue(detail.notes || "");
       setEditStatusValue(detail.status);
       setEditStatusOptions([detail.status, ...nextStatusOptions(detail.status)]);
+      setEditOrderMeta({
+        orderNumber: detail.orderNumber,
+        salesOrderId: detail.salesOrderId,
+        salesOrderNumber: detail.salesOrderNumber,
+        salesInvoiceId: detail.salesInvoiceId,
+        invoiceNumber: detail.invoiceNumber,
+        subtotal: detail.subtotal,
+        totalAmount: detail.totalAmount,
+        dpAmount: detail.dpAmount,
+        paidAmount: detail.paidAmount,
+        remainingAmount: detail.remainingAmount,
+        latestPayment: detail.latestPayment,
+      });
+      setSettleAmount(detail.remainingAmount);
+      if (!settleCashAccountId && serviceCashAccountsQuery.data?.length) {
+        setSettleCashAccountId(serviceCashAccountsQuery.data[0].id);
+      }
+      setEditInitialSnapshot(JSON.stringify({
+        status: detail.status,
+        notes: detail.notes || "",
+        items: detail.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          notes: item.notes || "",
+        })),
+      }));
       setEditOrderOpen(true);
     } catch (error) {
       toast({ title: "Gagal load detail order", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
@@ -381,6 +461,7 @@ export function ServicesDashboard({
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
       toast({ title: "Service order berhasil diperbarui" });
+      setEditInitialSnapshot("");
       setEditOrderOpen(false);
     } catch (error) {
       toast({ title: "Gagal update service order", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
@@ -388,6 +469,101 @@ export function ServicesDashboard({
       setPendingActionId(null);
     }
   };
+
+  const hasEditChanges =
+    editOrderOpen &&
+    editInitialSnapshot.length > 0 &&
+    editInitialSnapshot !==
+      JSON.stringify({
+        status: editStatusValue,
+        notes: editNotesValue || "",
+        items: editItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          notes: item.notes || "",
+        })),
+      });
+
+  const closeEditDialog = (force = false) => {
+    if (!force && hasEditChanges) {
+      const confirmed = window.confirm("Perubahan belum disimpan. Tutup popup dan buang perubahan?");
+      if (!confirmed) return;
+    }
+    setEditOrderOpen(false);
+    setEditInitialSnapshot("");
+  };
+
+  const onSettleFromEdit = async () => {
+    if (!editOrderId || !editOrderMeta || editOrderMeta.remainingAmount <= 0) return;
+    setPendingActionId(editOrderId);
+    try {
+      const selectedAccountId = settleCashAccountId || serviceCashAccountsQuery.data?.[0]?.id;
+      if (!selectedAccountId) throw new Error("Pilih akun Cash/Bank terlebih dahulu");
+      await settleServiceOrder(editOrderId, selectedAccountId, settleAmount > 0 ? settleAmount : editOrderMeta.remainingAmount);
+      await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
+      await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
+      const raw = await getServiceOrderForEdit(editOrderId);
+      const refreshed = SuperJSON.deserialize<{
+        paidAmount: number;
+        remainingAmount: number;
+        latestPayment: {
+          id: string;
+          paymentNumber: string;
+          paymentDate: Date;
+          method: string;
+          amount: number;
+        } | null;
+      }>(raw);
+      setEditOrderMeta((prev) =>
+        prev
+          ? {
+              ...prev,
+              paidAmount: refreshed.paidAmount,
+              remainingAmount: refreshed.remainingAmount,
+              latestPayment: refreshed.latestPayment,
+            }
+          : prev,
+      );
+      setSettleAmount(refreshed.remainingAmount);
+      toast({ title: "Pembayaran service berhasil dicatat" });
+    } catch (error) {
+      toast({ title: "Gagal mencatat pembayaran", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setPendingActionId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!settleCashAccountId && serviceCashAccountsQuery.data?.length) {
+      setSettleCashAccountId(serviceCashAccountsQuery.data[0].id);
+    }
+  }, [serviceCashAccountsQuery.data, settleCashAccountId]);
+
+  useEffect(() => {
+    if (!editOrderOpen || !hasEditChanges) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const link = target?.closest("a[href]");
+      if (!link) return;
+      const confirmed = window.confirm("Perubahan belum disimpan. Tetap pindah halaman?");
+      if (!confirmed) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleDocumentClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleDocumentClick, true);
+    };
+  }, [editOrderOpen, hasEditChanges]);
 
   const addEditItem = () => {
     setEditItems((prev) => [
@@ -565,16 +741,17 @@ export function ServicesDashboard({
                 <DialogTrigger asChild>
                   <Button>Buat Service Order</Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>Buat Service Order</DialogTitle>
                   </DialogHeader>
                   {createMetaQuery.data?.session?.id ? (
                     <ServiceOrderCreateForm
                       compact
-                      sessionId={createMetaQuery.data.session.id}
                       products={createMetaQuery.data.products}
                       contacts={createMetaQuery.data.contacts}
+                      createOrderAction={createServiceOrder}
+                      createQuickContactAction={createServiceQuickContact}
                       onSuccess={async () => {
                         setCreateOpen(false);
                         await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
@@ -582,7 +759,7 @@ export function ServicesDashboard({
                       }}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">Tidak ada sesi POS aktif.</p>
+                    <p className="text-sm text-muted-foreground">Gagal memuat data pembuatan service order.</p>
                   )}
                 </DialogContent>
               </Dialog>
@@ -709,12 +886,107 @@ export function ServicesDashboard({
         input={previewInput}
         title={previewTitle}
       />
-      <Dialog open={editOrderOpen} onOpenChange={setEditOrderOpen}>
-        <DialogContent className="sm:max-w-3xl">
+      <Dialog
+        open={editOrderOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setEditOrderOpen(true);
+            return;
+          }
+          closeEditDialog();
+        }}
+      >
+        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Edit Service Order</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
+            {editOrderMeta ? (
+              <div className="grid gap-2 rounded-md border p-3">
+                <div className="text-sm font-medium">Ringkasan Order</div>
+                <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                  <div>
+                    <div className="text-muted-foreground">Order</div>
+                    <div>{editOrderMeta.orderNumber}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Invoice</div>
+                    <div>{editOrderMeta.invoiceNumber || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">DP</div>
+                    <div>{formatCurrency(editOrderMeta.dpAmount)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Sisa Bayar</div>
+                    <div>{formatCurrency(editOrderMeta.remainingAmount)}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                  <div>
+                    <div className="text-muted-foreground">Total</div>
+                    <div>{formatCurrency(editOrderMeta.totalAmount)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Sudah Dibayar</div>
+                    <div>{formatCurrency(editOrderMeta.paidAmount)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Last Payment</div>
+                    <div>{editOrderMeta.latestPayment?.paymentNumber || "-"}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Tgl Bayar</div>
+                    <div>{editOrderMeta.latestPayment?.paymentDate ? formatDate(editOrderMeta.latestPayment.paymentDate) : "-"}</div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <div className="grid gap-2 rounded-md border p-3">
+              <div className="text-sm font-medium">Quick Actions</div>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[280px]">
+                  <Label>Cash/Bank Account</Label>
+                  <Select value={settleCashAccountId} onValueChange={setSettleCashAccountId}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(serviceCashAccountsQuery.data || []).map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name} ({account.type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-[180px]">
+                  <Label>Amount</Label>
+                  <Input type="number" min={0} value={settleAmount} onChange={(event) => setSettleAmount(Number(event.target.value) || 0)} />
+                </div>
+                <Button
+                  variant="default"
+                  onClick={onSettleFromEdit}
+                  disabled={!editOrderMeta || editOrderMeta.remainingAmount <= 0 || pendingActionId === editOrderId}
+                >
+                  Bayar
+                </Button>
+                {editOrderMeta?.salesOrderId ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => openPrint("SERVICE_WORK_ORDER", { orderId: editOrderMeta.salesOrderId as string }, `Print ${editOrderMeta.orderNumber}`)}
+                  >
+                    Print Order
+                  </Button>
+                ) : null}
+                {editOrderMeta?.salesInvoiceId ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => openPrint("SERVICE_INVOICE", { invoiceId: editOrderMeta.salesInvoiceId as string }, `Print ${editOrderMeta.invoiceNumber || editOrderMeta.orderNumber}`)}
+                  >
+                    Print Invoice
+                  </Button>
+                ) : null}
+              </div>
+            </div>
             <div className="grid gap-2">
               <Label>Status</Label>
               <Select value={editStatusValue} onValueChange={(value) => setEditStatusValue(value as ServiceOrderStatus)}>
@@ -733,12 +1005,13 @@ export function ServicesDashboard({
                 <Label>Ordered Items</Label>
                 <Button type="button" variant="outline" onClick={addEditItem}>Tambah Item</Button>
               </div>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead className="w-[110px]">Quantity</TableHead>
-                    <TableHead className="w-[160px]">Price</TableHead>
+                    <TableHead className="w-[220px]">Price</TableHead>
                     <TableHead className="w-[56px]" />
                   </TableRow>
                 </TableHeader>
@@ -784,13 +1057,14 @@ export function ServicesDashboard({
                   )}
                 </TableBody>
               </Table>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label>Catatan</Label>
               <Textarea value={editNotesValue} onChange={(event) => setEditNotesValue(event.target.value)} />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditOrderOpen(false)}>Batal</Button>
+              <Button variant="outline" onClick={() => closeEditDialog()}>Batal</Button>
               <Button onClick={onSaveOrderEdit} disabled={!editOrderId || pendingActionId === editOrderId}>
                 Simpan
               </Button>
