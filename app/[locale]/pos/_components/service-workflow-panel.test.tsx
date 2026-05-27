@@ -7,11 +7,17 @@ import { ServiceWorkflowPanel } from "./service-workflow-panel";
 const actionsMock = vi.hoisted(() => ({
   getPOSServiceOrders: vi.fn(),
   getPOSContacts: vi.fn(),
+  getPOSServiceNotifySettings: vi.fn(),
+  getPOSPaymentMethods: vi.fn(),
 }));
 
 vi.mock("../actions", () => ({
   getPOSServiceOrders: (...args: unknown[]) => actionsMock.getPOSServiceOrders(...args),
   getPOSContacts: (...args: unknown[]) => actionsMock.getPOSContacts(...args),
+  getPOSServiceNotifySettings: (...args: unknown[]) =>
+    actionsMock.getPOSServiceNotifySettings(...args),
+  getPOSPaymentMethods: (...args: unknown[]) =>
+    actionsMock.getPOSPaymentMethods(...args),
   createPOSServiceOrder: vi.fn(),
   settlePOSServiceOrder: vi.fn(),
   updatePOSServiceOrderStatus: vi.fn(),
@@ -53,6 +59,21 @@ describe("ServiceWorkflowPanel responsive layout", () => {
     vi.clearAllMocks();
     actionsMock.getPOSServiceOrders.mockResolvedValue(SuperJSON.serialize([]));
     actionsMock.getPOSContacts.mockResolvedValue(SuperJSON.serialize([]));
+    actionsMock.getPOSServiceNotifySettings.mockResolvedValue(
+      SuperJSON.serialize({
+        serviceNotifyOnCreated: true,
+        serviceNotifyOnReady: true,
+        serviceNotifyOnCostDone: true,
+        serviceNotifyOnPickedUp: true,
+        serviceTemplateCreated: "",
+        serviceTemplateReady: "",
+        serviceTemplateCostDone: "",
+        serviceTemplatePickedUp: "",
+        serviceWarrantyDuration: 0,
+        serviceWarrantyUnit: "DAY",
+      }),
+    );
+    actionsMock.getPOSPaymentMethods.mockResolvedValue(SuperJSON.serialize([]));
   });
 
   it("uses mobile-first stacked layout for form fields and desktop-only queue max-height", async () => {

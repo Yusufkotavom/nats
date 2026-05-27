@@ -232,7 +232,8 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
   1. akun request manual jika valid,
   2. default mapping company,
   3. fallback akun aktif pertama sesuai tipe method.
-- Form payment `Sales` dan `Purchase` memakai daftar akun yang sama dari Cash & Bank, auto-filter berdasarkan method (`CASH` -> cash/petty-cash, `CARD/QRIS` -> bank/e-wallet), lalu auto-select default mapping jika tersedia.
+- Form payment `Sales` dan `Purchase` sekarang memilih langsung dari katalog `Payment Method` (default `CASH/BANK` + akun method tambahan hasil add), lalu akun kas/bank (`cashAccountId`) ditetapkan otomatis dari pilihan tersebut tanpa field `Deposit To` manual.
+- POS checkout dan POS service (DP + pelunasan) juga memakai katalog method yang sama; pilihan method pada UI meneruskan `cashAccountId` ke backend agar jurnal payment konsisten dengan mapping payment method.
 - Pada `/services/orders`, create order mendukung dua mode input:
   - popup cepat (dengan quick add customer + autofill harga produk),
   - form page penuh `/services/orders/new` untuk pengalaman setara modul transaksi `sales`.

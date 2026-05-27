@@ -5,6 +5,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
+import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
 
 type MethodKey = "CASH" | "BANK";
 
@@ -50,41 +51,18 @@ async function generateChildCode(companyId: string, parentCode: string) {
 }
 
 async function getAccountOptions(companyId: string, method: MethodKey) {
-  const parentAccountId = await getDefaultParentAccountId(companyId, method);
-  const allowedTypes =
-    method === "CASH" ? (["CASH", "PETTY_CASH"] as const) : (["BANK", "EWALLET"] as const);
-
-  const accounts = await prisma.cashAccount.findMany({
-    where: {
-      isActive: true,
-      type: { in: allowedTypes as unknown as Array<"CASH" | "BANK" | "PETTY_CASH" | "EWALLET"> },
-      glAccount: {
-        companyId,
-        parentId: parentAccountId,
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      bankName: true,
-      accountNumber: true,
-      glAccount: {
-        select: { code: true, name: true },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
-
-  return accounts.map((a) => ({
-    id: a.id,
-    name: a.name,
-    type: a.type,
-    bankName: a.bankName,
-    accountNumber: a.accountNumber,
-    glCode: a.glAccount.code,
-    glName: a.glAccount.name,
-  }));
+  const options = await PaymentMethodCatalogService.list(companyId);
+  return options
+    .filter((option) => option.method === method)
+    .map((option) => ({
+      id: option.id,
+      name: option.name,
+      type: option.accountType,
+      bankName: option.bankName,
+      accountNumber: option.accountNumber,
+      glCode: option.glCode,
+      glName: option.glName,
+    }));
 }
 
 export async function getPaymentMethodMappings() {

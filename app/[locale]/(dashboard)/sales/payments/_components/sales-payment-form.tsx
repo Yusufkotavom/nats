@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -30,17 +30,16 @@ import { useTranslations } from "next-intl";
 import {
   SalesInvoice,
   Contact,
-  CashAccount,
 } from "@/prisma/generated/prisma/client";
 import { SalesPaymentInput, SalesPaymentWithDetails } from "../types";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/[locale]/(dashboard)/general/files/actions";
-import { useFormatDate, useFormatCurrency } from "@/hooks";
+import { useFormatCurrency } from "@/hooks";
 
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SuperJSONResult } from "superjson";
-import { UNIFIED_PAYMENT_METHODS } from "@/lib/payments/payment-methods";
+import { UnifiedPaymentMethod } from "@/lib/payments/payment-methods";
 
 interface SalesPaymentFormProps {
   initialData?: SalesPaymentWithDetails;
@@ -48,6 +47,18 @@ interface SalesPaymentFormProps {
   departments?: Department[];
   projects?: Project[];
 }
+
+type PaymentMethodOption = {
+  id: string;
+  name: string;
+  method: "CASH" | "BANK";
+  accountType: "CASH" | "BANK" | "PETTY_CASH" | "EWALLET";
+  bankName: string | null;
+  accountNumber: string | null;
+  glCode: string;
+  glName: string;
+  isDefault: boolean;
+};
 
 export function SalesPaymentForm({
   initialData,
@@ -60,7 +71,6 @@ export function SalesPaymentForm({
   const t = useTranslations("Sales");
   const tCommon = useTranslations("Common");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const formatDate = useFormatDate();
   const formatCurrency = useFormatCurrency();
 
   const [formData, setFormData] = useState<SalesPaymentInput>({
@@ -113,23 +123,16 @@ export function SalesPaymentForm({
     queryFn: async () => {
       const data = await getCashAccounts();
       return SuperJSON.deserialize<{
-        accounts: CashAccount[];
-        defaults: {
-          CASH: string | null;
-          CARD: string | null;
-          QRIS: string | null;
-        };
+        methods: PaymentMethodOption[];
       }>(data as SuperJSONResult);
     },
     enabled: !readonly,
   });
 
-  const filteredCashAccounts = (cashAccountsData?.accounts || []).filter((account) => {
-    if ((formData.method || "CASH") === "CASH") {
-      return account.type === "CASH" || account.type === "PETTY_CASH";
-    }
-    return account.type === "BANK" || account.type === "EWALLET";
-  });
+  const paymentMethods = useMemo(
+    () => cashAccountsData?.methods || [],
+    [cashAccountsData?.methods],
+  );
 
   useEffect(() => {
     if (!initialData && formData.salesInvoiceId && invoicesData) {
@@ -155,18 +158,17 @@ export function SalesPaymentForm({
 
   useEffect(() => {
     if (readonly || initialData || !cashAccountsData) return;
-    const selectedMethod = (formData.method || "CASH") as "CASH" | "CARD" | "QRIS";
-    const allowedIds = new Set(filteredCashAccounts.map((account) => account.id));
-    const isCurrentValid = formData.cashAccountId && allowedIds.has(formData.cashAccountId);
-    if (isCurrentValid) return;
-
-    const defaultId = cashAccountsData.defaults[selectedMethod];
-    const fallbackId = filteredCashAccounts[0]?.id || "";
-    const nextId = defaultId && allowedIds.has(defaultId) ? defaultId : fallbackId;
-    if (nextId && nextId !== formData.cashAccountId) {
-      setFormData((prev) => ({ ...prev, cashAccountId: nextId }));
+    if (formData.cashAccountId) return;
+    const defaultMethod = paymentMethods.find((method) => method.isDefault);
+    const nextMethod = defaultMethod || paymentMethods[0];
+    if (nextMethod) {
+      setFormData((prev) => ({
+        ...prev,
+        cashAccountId: nextMethod.id,
+        method: nextMethod.method as UnifiedPaymentMethod,
+      }));
     }
-  }, [cashAccountsData, filteredCashAccounts, formData.method, formData.cashAccountId, readonly, initialData]);
+  }, [cashAccountsData, paymentMethods, formData.cashAccountId, readonly, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,7 +205,7 @@ export function SalesPaymentForm({
           description: result.error,
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         variant: "destructive",
         title: "Error",
@@ -311,39 +313,42 @@ export function SalesPaymentForm({
 
           <CustomSelect
             label={t("payment_method")}
-            value={formData.method || ""}
+            value={formData.cashAccountId}
             onValueChange={(val) =>
-              setFormData((prev) => ({ ...prev, method: val }))
+              setFormData((prev) => {
+                const selected = paymentMethods.find((method) => method.id === val);
+                return {
+                  ...prev,
+                  cashAccountId: val,
+                  method: (selected?.method || "CASH") as UnifiedPaymentMethod,
+                };
+              })
             }
             placeholder={t("placeholder_select_method")}
             disabled={readonly}
           >
-            {UNIFIED_PAYMENT_METHODS.map((method) => (
-              <SelectItem key={method} value={method}>
-                {t(`method_${method.toLowerCase()}`)}
-              </SelectItem>
-            ))}
-          </CustomSelect>
-
-          <CustomSelect
-            label={t("deposit_to")}
-            value={formData.cashAccountId}
-            onValueChange={(val) =>
-              setFormData((prev) => ({ ...prev, cashAccountId: val }))
-            }
-            placeholder={t("placeholder_select_account")}
-            disabled={readonly}
-          >
             {readonly && initialData?.cashAccount ? (
-              <SelectItem value={initialData.cashAccount.id}>{initialData.cashAccount.name}</SelectItem>
+              <SelectItem value={initialData.cashAccount.id}>
+                {initialData.cashAccount.name}
+              </SelectItem>
             ) : (
-              filteredCashAccounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.name} ({account.accountNumber})
+              paymentMethods.map((method) => (
+                <SelectItem key={method.id} value={method.id}>
+                  [{method.method}] {method.name}
                 </SelectItem>
               ))
             )}
           </CustomSelect>
+
+          <CustomInput
+            label={t("deposit_to")}
+            value={
+              paymentMethods.find((method) => method.id === formData.cashAccountId)
+                ? `${paymentMethods.find((method) => method.id === formData.cashAccountId)?.glCode} - ${paymentMethods.find((method) => method.id === formData.cashAccountId)?.glName}`
+                : "-"
+            }
+            disabled
+          />
 
           <CustomInput
             label={t("amount")}

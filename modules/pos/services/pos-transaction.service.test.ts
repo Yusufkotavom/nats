@@ -510,6 +510,7 @@ describe("POSTransactionService", () => {
                     0,
                     zeroFeeBreakdown,
                     undefined,
+                    undefined,
                     "spot-1",
                 ),
             ).rejects.toThrow("Dining spot is not ready for billing");
@@ -582,8 +583,9 @@ describe("POSTransactionService", () => {
                 mockAmountPaid,
                 0,
                 zeroFeeBreakdown,
-                undefined,
-                "spot-1",
+                    undefined,
+                    undefined,
+                    "spot-1",
             );
 
             expect(prismaMock.diningSpot.update).toHaveBeenCalledWith({

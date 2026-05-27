@@ -1,10 +1,11 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
 
 type DbClient = Prisma.TransactionClient;
-type PaymentMethod = "CASH" | "CARD" | "QRIS";
+type PaymentMethod = "CASH" | "BANK" | "CARD" | "QRIS";
 
 const METHOD_ACCOUNT_TYPES: Record<PaymentMethod, Array<"CASH" | "BANK" | "PETTY_CASH" | "EWALLET">> = {
   CASH: ["CASH", "PETTY_CASH"],
+  BANK: ["BANK", "EWALLET"],
   CARD: ["BANK", "EWALLET"],
   QRIS: ["BANK", "EWALLET"],
 };
@@ -62,6 +63,7 @@ export class PaymentAccountResolverService {
 
     if (!profile) return null;
     if (method === "CASH") return profile.defaultCashAccountId;
+    if (method === "BANK") return profile.defaultCardAccountId || profile.defaultQrisAccountId;
     if (method === "CARD") return profile.defaultCardAccountId;
     return profile.defaultQrisAccountId;
   }

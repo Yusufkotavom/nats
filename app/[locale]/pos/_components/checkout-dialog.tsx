@@ -13,7 +13,7 @@ import {
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
-import { Loader2, CreditCard, Banknote, QrCode, Keyboard } from 'lucide-react';
+import { Loader2, Keyboard } from 'lucide-react';
 import { NumPad } from './numpad';
 import { useTranslations } from 'next-intl';
 import {
@@ -30,10 +30,16 @@ interface CheckoutDialogProps {
   onOpenChange: (open: boolean) => void;
   totalAmount: number;
   onConfirm: (
-    paymentMethod: 'CASH' | 'CARD' | 'QRIS',
+    paymentMethod: 'CASH' | 'BANK' | 'CARD' | 'QRIS',
     amountPaid: number,
     customerId?: string,
+    cashAccountId?: string,
   ) => Promise<void>;
+  paymentMethods: Array<{
+    id: string;
+    name: string;
+    method: "CASH" | "BANK";
+  }>;
   contacts: POSContactOption[];
   selectedContactId?: string;
   onSelectedContactChange: (contactId?: string) => void;
@@ -53,7 +59,8 @@ export function CheckoutDialog({
   onQuickInformContact,
 }: CheckoutDialogProps) {
   const t = useTranslations('POS');
-  const [method, setMethod] = useState<'CASH' | 'CARD' | 'QRIS'>('CASH');
+  const [method, setMethod] = useState<'CASH' | 'BANK' | 'CARD' | 'QRIS'>('CASH');
+  const [cashAccountId, setCashAccountId] = useState<string>("");
   // Use string state to support keypad input (e.g., "10.")
   const [amountPaidStr, setAmountPaidStr] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -65,6 +72,11 @@ export function CheckoutDialog({
     if (open) {
       setAmountPaidStr('');
       setShowKeypad(false);
+      const defaultMethod = paymentMethods[0];
+      if (defaultMethod) {
+        setMethod(defaultMethod.method);
+        setCashAccountId(defaultMethod.id);
+      }
     }
   }, [open, totalAmount]);
 
@@ -80,6 +92,7 @@ export function CheckoutDialog({
         method,
         method === 'CASH' ? amountPaid : totalAmount,
         selectedContactId || undefined,
+        cashAccountId || undefined,
       );
       onOpenChange(false);
     } catch (e) {
@@ -123,28 +136,27 @@ export function CheckoutDialog({
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div
-                onClick={() => setMethod('CASH')}
-                className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'CASH' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
+            <div className="space-y-2">
+              <Label>{t('payment_method')}</Label>
+              <Select
+                value={cashAccountId}
+                onValueChange={(value) => {
+                  const selected = paymentMethods.find((item) => item.id === value);
+                  setCashAccountId(value);
+                  setMethod(selected?.method || "CASH");
+                }}
               >
-                <Banknote className="mb-3 h-6 w-6" />
-                <span className="text-sm font-medium">{t('cash')}</span>
-              </div>
-              <div
-                onClick={() => setMethod('CARD')}
-                className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'CARD' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
-              >
-                <CreditCard className="mb-3 h-6 w-6" />
-                <span className="text-sm font-medium">{t('card')}</span>
-              </div>
-              <div
-                onClick={() => setMethod('QRIS')}
-                className={`flex cursor-pointer flex-col items-center justify-between rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground ${method === 'QRIS' ? 'border-primary bg-accent text-accent-foreground' : 'border-muted bg-popover'}`}
-              >
-                <QrCode className="mb-3 h-6 w-6" />
-                <span className="text-sm font-medium">{t('qris')}</span>
-              </div>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('placeholder_select_method')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      [{item.method}] {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

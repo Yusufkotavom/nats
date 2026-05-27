@@ -6,6 +6,7 @@ import {
   getPOSServiceOrders,
   getPOSContacts,
   getPOSServiceNotifySettings,
+  getPOSPaymentMethods,
   settlePOSServiceOrder,
   updatePOSServiceOrderStatus,
 } from "../actions";
@@ -42,7 +43,7 @@ type ServiceOrderStatus =
   | "DONE"
   | "CLOSED"
   | "CANCELLED";
-type ServicePaymentMethod = "CASH" | "CARD" | "QRIS";
+type ServicePaymentMethod = "CASH" | "BANK";
 
 type ServiceOrderItem = {
   id: string;
@@ -128,6 +129,7 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
   const [price, setPrice] = useState<number>(0);
   const [downPayment, setDownPayment] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<ServicePaymentMethod>("CASH");
+  const [downPaymentCashAccountId, setDownPaymentCashAccountId] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [targetDate, setTargetDate] = useState<string>("");
   const [creating, setCreating] = useState(false);
@@ -165,6 +167,13 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
     queryFn: async () => {
       const raw = await getPOSServiceNotifySettings();
       return SuperJSON.deserialize<ServiceNotifySettings>(raw);
+    },
+  });
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ["pos-payment-methods"],
+    queryFn: async () => {
+      const raw = await getPOSPaymentMethods();
+      return SuperJSON.deserialize<Array<{ id: string; name: string; method: "CASH" | "BANK"; isDefault?: boolean }>>(raw);
     },
   });
 
@@ -275,6 +284,7 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
         targetDate: targetDate ? new Date(`${targetDate}T00:00:00`) : undefined,
         downPaymentAmount: downPayment > 0 ? downPayment : undefined,
         paymentMethod: downPayment > 0 ? paymentMethod : undefined,
+        downPaymentCashAccountId: downPayment > 0 ? downPaymentCashAccountId || undefined : undefined,
         items: [
           {
             productId,
@@ -431,7 +441,12 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
 
     setSettleLoadingId(order.id);
     try {
-      await settlePOSServiceOrder(order.id, "CASH", remaining);
+      const fallbackAccount =
+        paymentMethods.find((item) => item.method === "CASH" && item.isDefault) ||
+        paymentMethods.find((item) => item.method === "CASH") ||
+        paymentMethods[0];
+      const settleMethod: ServicePaymentMethod = fallbackAccount?.method || "CASH";
+      await settlePOSServiceOrder(order.id, settleMethod, remaining, fallbackAccount?.id);
       toast({ title: "Pelunasan berhasil" });
       if (
         order.contactId &&
@@ -586,12 +601,31 @@ export function ServiceWorkflowPanel({ sessionId, products }: ServiceWorkflowPan
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="CASH">Cash</SelectItem>
-                  <SelectItem value="CARD">Card</SelectItem>
-                  <SelectItem value="QRIS">QRIS</SelectItem>
+                  <SelectItem value="BANK">Bank</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+
+          {downPayment > 0 ? (
+            <div className="space-y-1">
+              <Label>Akun DP</Label>
+              <Select value={downPaymentCashAccountId} onValueChange={setDownPaymentCashAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih akun payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods
+                    .filter((item) => item.method === paymentMethod)
+                    .map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        [{item.method}] {item.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
 
           <div className="space-y-1">
             <Label>Target Selesai</Label>

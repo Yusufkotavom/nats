@@ -6,6 +6,7 @@ import {
   holdOrder,
   sendOrderToKitchen,
   getPOSContacts,
+  getPOSPaymentMethods,
 } from "../actions";
 import { POSCartItem, POSDiningSpot, POSContactOption } from "../types";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,13 @@ export function CartView({
       return SuperJSON.deserialize<POSContactOption[]>(raw);
     },
   });
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ["pos-payment-methods"],
+    queryFn: async () => {
+      const raw = await getPOSPaymentMethods();
+      return SuperJSON.deserialize<Array<{ id: string; name: string; method: "CASH" | "BANK" }>>(raw);
+    },
+  });
 
   const selectedContact =
     contacts.find((contact) => contact.id === selectedContactId) ?? null;
@@ -182,9 +190,10 @@ export function CartView({
   );
 
   const handleCheckout = async (
-    method: "CASH" | "CARD" | "QRIS",
+    method: "CASH" | "BANK" | "CARD" | "QRIS",
     amount: number,
     customerId?: string,
+    cashAccountId?: string,
   ) => {
     console.log("Processing checkout:", { method, amount });
     setIsProcessing(true);
@@ -214,6 +223,7 @@ export function CartView({
         },
         customerId,
         selectedDiningSpotId,
+        cashAccountId,
       );
 
       if (!result.success) {
@@ -717,13 +727,14 @@ export function CartView({
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         totalAmount={total}
+        paymentMethods={paymentMethods}
         contacts={contacts}
         selectedContactId={selectedContactId}
         onSelectedContactChange={setSelectedContactId}
         onQuickCreateContact={() => setQuickContactOpen(true)}
         onQuickInformContact={handleQuickInform}
-        onConfirm={(method, amount, customerId) =>
-          handleCheckout(method, amount, customerId)
+        onConfirm={(method, amount, customerId, cashAccountId) =>
+          handleCheckout(method, amount, customerId, cashAccountId)
         }
       />
 

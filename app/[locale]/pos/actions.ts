@@ -16,6 +16,7 @@ import {
   type ServicePaymentMethod,
   type ServiceWorkflowStatus,
 } from "@/modules/services/services/pos-service-workflow.service";
+import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
 import { ContactType } from "@/prisma/generated/prisma/client";
 import { POSCartItem } from "./types";
 
@@ -765,7 +766,7 @@ export async function processPOSTransaction(
     price: number;
     discount: number;
   }[],
-  paymentMethod: "CASH" | "CARD" | "QRIS",
+  paymentMethod: "CASH" | "BANK" | "CARD" | "QRIS",
   amountPaid: number,
   globalDiscount: number = 0,
   feeBreakdown: {
@@ -779,6 +780,7 @@ export async function processPOSTransaction(
   },
   customerId?: string,
   diningSpotId?: string,
+  cashAccountId?: string,
 ): Promise<
   ActionResponse<{
     invoiceId: string;
@@ -797,6 +799,7 @@ export async function processPOSTransaction(
       amountPaid,
       globalDiscount,
       feeBreakdown,
+      cashAccountId,
       customerId,
       diningSpotId,
     );
@@ -932,6 +935,7 @@ export async function createPOSServiceOrder(input: {
   targetDate?: Date;
   downPaymentAmount?: number;
   paymentMethod?: ServicePaymentMethod;
+  downPaymentCashAccountId?: string;
   items: Array<{
     productId: string;
     quantity: number;
@@ -972,15 +976,31 @@ export async function settlePOSServiceOrder(
   orderId: string,
   paymentMethod: ServicePaymentMethod,
   amount?: number,
+  cashAccountId?: string,
 ) {
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
   }
 
-  const order = await POSServiceWorkflowService.settle(orderId, paymentMethod, amount);
+  const order = await POSServiceWorkflowService.settle(
+    orderId,
+    cashAccountId,
+    amount,
+    paymentMethod,
+  );
   revalidateLocalizedPath("/pos");
   return SuperJSON.serialize(order);
+}
+
+export async function getPOSPaymentMethods() {
+  const session = await getSession();
+  if (!session?.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
+    throw new Error("Unauthorized");
+  }
+
+  const methods = await PaymentMethodCatalogService.list(session.activeCompanyId);
+  return SuperJSON.serialize(methods);
 }
 
 export async function resumeOrder(heldOrderId: string) {

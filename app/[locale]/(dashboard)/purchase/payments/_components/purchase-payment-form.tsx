@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -28,7 +28,6 @@ import {
 import {
   PurchaseInvoice,
   Contact,
-  CashAccount,
 } from "@/prisma/generated/prisma/client";
 import { PurchasePaymentInput, PurchasePaymentWithDetails } from "../types";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
@@ -38,7 +37,7 @@ import { useFormatDate } from "@/hooks";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SuperJSONResult } from "superjson";
-import { UNIFIED_PAYMENT_METHODS } from "@/lib/payments/payment-methods";
+import { UnifiedPaymentMethod } from "@/lib/payments/payment-methods";
 
 interface PurchasePaymentFormProps {
   initialData?: PurchasePaymentWithDetails;
@@ -46,6 +45,18 @@ interface PurchasePaymentFormProps {
   departments?: Department[];
   projects?: Project[];
 }
+
+type PaymentMethodOption = {
+  id: string;
+  name: string;
+  method: "CASH" | "BANK";
+  accountType: "CASH" | "BANK" | "PETTY_CASH" | "EWALLET";
+  bankName: string | null;
+  accountNumber: string | null;
+  glCode: string;
+  glName: string;
+  isDefault: boolean;
+};
 
 export function PurchasePaymentForm({
   initialData,
@@ -104,22 +115,15 @@ export function PurchasePaymentForm({
     queryFn: async () => {
       const data = await getCashAccounts();
       return SuperJSON.deserialize<{
-        accounts: CashAccount[];
-        defaults: {
-          CASH: string | null;
-          CARD: string | null;
-          QRIS: string | null;
-        };
+        methods: PaymentMethodOption[];
       }>(data as unknown as SuperJSONResult);
     },
   });
 
-  const filteredCashAccounts = (cashAccountsData?.accounts || []).filter((account) => {
-    if ((formData.method || "CASH") === "CASH") {
-      return account.type === "CASH" || account.type === "PETTY_CASH";
-    }
-    return account.type === "BANK" || account.type === "EWALLET";
-  });
+  const paymentMethods = useMemo(
+    () => cashAccountsData?.methods || [],
+    [cashAccountsData?.methods],
+  );
 
   useEffect(() => {
     if (!initialData && formData.purchaseInvoiceId && invoicesData) {
@@ -143,22 +147,21 @@ export function PurchasePaymentForm({
         }));
       }
     }
-  }, [formData.purchaseInvoiceId, invoicesData, formatDate]);
+  }, [formData.purchaseInvoiceId, invoicesData, formatDate, initialData]);
 
   useEffect(() => {
     if (readonly || initialData || !cashAccountsData) return;
-    const selectedMethod = (formData.method || "CASH") as "CASH" | "CARD" | "QRIS";
-    const allowedIds = new Set(filteredCashAccounts.map((account) => account.id));
-    const isCurrentValid = formData.cashAccountId && allowedIds.has(formData.cashAccountId);
-    if (isCurrentValid) return;
-
-    const defaultId = cashAccountsData.defaults[selectedMethod];
-    const fallbackId = filteredCashAccounts[0]?.id || "";
-    const nextId = defaultId && allowedIds.has(defaultId) ? defaultId : fallbackId;
-    if (nextId && nextId !== formData.cashAccountId) {
-      setFormData((prev) => ({ ...prev, cashAccountId: nextId }));
+    if (formData.cashAccountId) return;
+    const defaultMethod = paymentMethods.find((method) => method.isDefault);
+    const nextMethod = defaultMethod || paymentMethods[0];
+    if (nextMethod) {
+      setFormData((prev) => ({
+        ...prev,
+        cashAccountId: nextMethod.id,
+        method: nextMethod.method as UnifiedPaymentMethod,
+      }));
     }
-  }, [cashAccountsData, filteredCashAccounts, formData.method, formData.cashAccountId, readonly, initialData]);
+  }, [cashAccountsData, paymentMethods, formData.cashAccountId, readonly, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,35 +302,42 @@ export function PurchasePaymentForm({
 
           <CustomSelect
             label="Payment Method"
-            value={formData.method || "CASH"}
+            value={formData.cashAccountId}
             onValueChange={(val) =>
-              setFormData((prev) => ({ ...prev, method: val as typeof formData.method }))
+              setFormData((prev) => {
+                const selected = paymentMethods.find((method) => method.id === val);
+                return {
+                  ...prev,
+                  cashAccountId: val,
+                  method: (selected?.method || "CASH") as UnifiedPaymentMethod,
+                };
+              })
             }
             placeholder="Select payment method"
             disabled={readonly}
           >
-            {UNIFIED_PAYMENT_METHODS.map((method) => (
-              <SelectItem key={method} value={method}>
-                {method}
+            {readonly && initialData?.cashAccount ? (
+              <SelectItem value={initialData.cashAccount.id}>
+                {initialData.cashAccount.name}
               </SelectItem>
-            ))}
+            ) : (
+              paymentMethods.map((method) => (
+                <SelectItem key={method.id} value={method.id}>
+                  [{method.method}] {method.name}
+                </SelectItem>
+              ))
+            )}
           </CustomSelect>
 
-          <CustomSelect
+          <CustomInput
             label="Cash/Bank Account"
-            value={formData.cashAccountId}
-            onValueChange={(val) =>
-              setFormData((prev) => ({ ...prev, cashAccountId: val }))
+            value={
+              paymentMethods.find((method) => method.id === formData.cashAccountId)
+                ? `${paymentMethods.find((method) => method.id === formData.cashAccountId)?.glCode} - ${paymentMethods.find((method) => method.id === formData.cashAccountId)?.glName}`
+                : "-"
             }
-            placeholder="Select account"
-            disabled={readonly}
-          >
-            {filteredCashAccounts.map((account) => (
-              <SelectItem key={account.id} value={account.id}>
-                {account.name} ({account.type})
-              </SelectItem>
-            ))}
-          </CustomSelect>
+            disabled
+          />
 
           <CustomInput
             label="Amount"

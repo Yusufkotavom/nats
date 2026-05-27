@@ -77,10 +77,11 @@ export class POSTransactionService {
     static async process(
         sessionId: string,
         items: POSTransactionItem[],
-        paymentMethod: "CASH" | "CARD" | "QRIS",
+        paymentMethod: "CASH" | "BANK" | "CARD" | "QRIS",
         amountPaid: number,
         globalDiscount: number = 0,
         feeBreakdown: POSFeeBreakdown,
+        cashAccountId?: string,
         customerId?: string,
         diningSpotId?: string,
     ): Promise<POSTransactionOutboxResult> {
@@ -160,6 +161,7 @@ export class POSTransactionService {
                 sessionId,
                 companyId: session.companyId || undefined,
                 paymentMethod,
+                requestedAccountId: cashAccountId,
                 paymentAmount: finalTotalAmount,
             });
 
@@ -405,8 +407,9 @@ export class POSTransactionService {
     static async settleIssuedInvoice(
         sessionId: string,
         salesInvoiceId: string,
-        paymentMethod: "CASH" | "CARD" | "QRIS",
+        paymentMethod: "CASH" | "BANK" | "CARD" | "QRIS",
         amount?: number,
+        cashAccountId?: string,
     ): Promise<POSInvoiceSettlementResult> {
         const result = await prisma.$transaction(async (tx) => {
             const session = await this.validateSession(tx, sessionId);
@@ -442,6 +445,7 @@ export class POSTransactionService {
                 sessionId,
                 companyId: session.companyId || undefined,
                 paymentMethod,
+                requestedAccountId: cashAccountId,
                 paymentAmount,
             });
 
@@ -684,7 +688,8 @@ export class POSTransactionService {
             salesInvoiceId: string;
             sessionId: string;
             companyId?: string;
-            paymentMethod: "CASH" | "CARD" | "QRIS";
+            paymentMethod: "CASH" | "BANK" | "CARD" | "QRIS";
+            requestedAccountId?: string;
             paymentAmount: Decimal;
         },
     ) {
@@ -693,6 +698,7 @@ export class POSTransactionService {
             ? await PaymentAccountResolverService.resolveAccount(tx, {
                 companyId: params.companyId,
                 method: params.paymentMethod,
+                requestedAccountId: params.requestedAccountId,
             })
             : await tx.cashAccount.findFirst({
                 where: {

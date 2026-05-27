@@ -55,6 +55,11 @@ vi.mock("@/modules/services/services/pos-service-workflow.service", () => ({
     settle: (...args: unknown[]) => serviceWorkflowMock.settle(...args),
   },
 }));
+vi.mock("@/modules/cash-bank/services/payment-method-catalog.service", () => ({
+  PaymentMethodCatalogService: {
+    list: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 import {
   getPOSProducts,
@@ -66,6 +71,7 @@ import {
   createPOSServiceOrder,
   updatePOSServiceOrderStatus,
   settlePOSServiceOrder,
+  getPOSPaymentMethods,
 } from "./actions";
 import { SuperJSON } from "@/lib/superjson";
 
@@ -337,12 +343,18 @@ describe("pos/actions service workflow", () => {
   it("settles service order via workflow service", async () => {
     serviceWorkflowMock.settle.mockResolvedValue({ id: "svc-1", status: "DONE" });
 
-    const result = await settlePOSServiceOrder("svc-1", "CASH", 50000);
+    const result = await settlePOSServiceOrder("svc-1", "CASH", 50000, "cash-1");
     const data = SuperJSON.deserialize<{ id: string; status: string }>(result);
 
-    expect(serviceWorkflowMock.settle).toHaveBeenCalledWith("svc-1", "CASH", 50000);
+    expect(serviceWorkflowMock.settle).toHaveBeenCalledWith("svc-1", "cash-1", 50000, "CASH");
     expect(data.status).toBe("DONE");
     expect(revalidatePathMock).toHaveBeenCalledWith("/pos");
+  });
+
+  it("returns POS payment method catalog", async () => {
+    const result = await getPOSPaymentMethods();
+    const data = SuperJSON.deserialize<any[]>(result);
+    expect(Array.isArray(data)).toBe(true);
   });
 
   it("rejects service order access when unauthorized", async () => {

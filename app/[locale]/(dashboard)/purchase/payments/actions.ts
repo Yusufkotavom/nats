@@ -16,6 +16,7 @@ import {
   maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 import { PurchasePaymentService } from "@/modules/purchase/services/purchase-payment.service";
+import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
 
 type PostPurchasePaymentResult = {
   processed: boolean;
@@ -147,44 +148,8 @@ export async function getCashAccounts() {
     return [];
   }
 
-  const accounts = await prisma.cashAccount.findMany({
-    where: {
-      isActive: true,
-      glAccount: {
-        companyId: session.activeCompanyId,
-      },
-    },
-    orderBy: { name: "asc" },
-  });
-
-  let profile: {
-    defaultCashAccountId: string | null;
-    defaultCardAccountId: string | null;
-    defaultQrisAccountId: string | null;
-  } | null = null;
-  try {
-    profile = await prisma.companyProfile.findUnique({
-      where: { companyId: session.activeCompanyId },
-      select: {
-        defaultCashAccountId: true,
-        defaultCardAccountId: true,
-        defaultQrisAccountId: true,
-      },
-    });
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientValidationError) || !error.message.includes("defaultCashAccountId")) {
-      throw error;
-    }
-  }
-
-  return SuperJSON.serialize({
-    accounts,
-    defaults: {
-      CASH: profile?.defaultCashAccountId ?? null,
-      CARD: profile?.defaultCardAccountId ?? null,
-      QRIS: profile?.defaultQrisAccountId ?? null,
-    },
-  });
+  const methods = await PaymentMethodCatalogService.list(session.activeCompanyId);
+  return SuperJSON.serialize({ methods });
 }
 
 import { purchasePaymentSchema } from "@/lib/validation/schemas";

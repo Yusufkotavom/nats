@@ -26,6 +26,7 @@ export type CreatePOSServiceOrderInput = {
   targetDate?: Date;
   downPaymentAmount?: number;
   paymentMethod?: ServicePaymentMethod;
+  downPaymentCashAccountId?: string;
   items: Array<{
     productId: string;
     quantity: number;
@@ -258,6 +259,7 @@ export class POSServiceWorkflowService {
           sessionId: input.sessionId,
           companyId: session.companyId,
           paymentMethod: input.paymentMethod,
+          cashAccountId: input.downPaymentCashAccountId,
           paymentAmount: downPayment,
         });
       }
@@ -354,6 +356,7 @@ export class POSServiceWorkflowService {
     orderId: string,
     cashAccountId?: string,
     amount?: number,
+    paymentMethod: ServicePaymentMethod = "CASH",
   ) {
     return prisma.$transaction(async (tx) => {
       const order = await tx.pOSServiceOrder.findUnique({ where: { id: orderId } });
@@ -382,7 +385,7 @@ export class POSServiceWorkflowService {
         salesInvoiceId: invoice.id,
         sessionId: order.posSessionId,
         companyId: order.companyId || undefined,
-        paymentMethod: "CASH",
+        paymentMethod,
         cashAccountId,
         paymentAmount,
       });

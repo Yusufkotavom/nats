@@ -11,6 +11,7 @@ import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SalesPaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
 import {
   enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
@@ -147,44 +148,8 @@ export async function getCashAccounts() {
     return [];
   }
 
-  const accounts = await prisma.cashAccount.findMany({
-    where: {
-      isActive: true,
-      glAccount: {
-        companyId: session.activeCompanyId,
-      },
-    },
-    orderBy: { name: "asc" },
-  });
-
-  let profile: {
-    defaultCashAccountId: string | null;
-    defaultCardAccountId: string | null;
-    defaultQrisAccountId: string | null;
-  } | null = null;
-  try {
-    profile = await prisma.companyProfile.findUnique({
-      where: { companyId: session.activeCompanyId },
-      select: {
-        defaultCashAccountId: true,
-        defaultCardAccountId: true,
-        defaultQrisAccountId: true,
-      },
-    });
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientValidationError) || !error.message.includes("defaultCashAccountId")) {
-      throw error;
-    }
-  }
-
-  return SuperJSON.serialize({
-    accounts,
-    defaults: {
-      CASH: profile?.defaultCashAccountId ?? null,
-      CARD: profile?.defaultCardAccountId ?? null,
-      QRIS: profile?.defaultQrisAccountId ?? null,
-    },
-  });
+  const methods = await PaymentMethodCatalogService.list(session.activeCompanyId);
+  return SuperJSON.serialize({ methods });
 }
 
 import { salesPaymentSchema } from "@/lib/validation/schemas";
