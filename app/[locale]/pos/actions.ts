@@ -13,6 +13,8 @@ import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
 import { RestaurantOrderService } from "@/modules/pos/services/restaurant-order.service";
 import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
 import { ContactType } from "@/prisma/generated/prisma/client";
+import { createContactCommunicationLog, getCompanyCommunicationTemplate } from "@/app/[locale]/communications/actions";
+import { normalizePhoneForWhatsApp, renderCommunicationTemplate } from "@/lib/communication/company-communication";
 import { POSCartItem } from "./types";
 
 export type POSCheckoutSettings = {
@@ -687,6 +689,11 @@ export async function processPOSTransaction(
   }>
 > {
   try {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      throw new Error("No active company selected");
+    }
+
     const result = await POSTransactionService.process(
       sessionId,
       items,
@@ -698,6 +705,48 @@ export async function processPOSTransaction(
       customerId,
       diningSpotId,
     );
+
+    const template = await getCompanyCommunicationTemplate("POS_PAYMENT_POSTED");
+    if (template.isEnabled) {
+      const invoice = await prisma.salesInvoice.findFirst({
+        where: { id: result.invoiceId, companyId: session.activeCompanyId },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          totalAmount: true,
+          balanceDue: true,
+          contact: {
+            select: { id: true, name: true, phone: true },
+          },
+          payments: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { id: true, paymentNumber: true, amount: true },
+          },
+        },
+      });
+
+      const latestPayment = invoice?.payments[0];
+      if (invoice?.contact && latestPayment) {
+        const normalized = normalizePhoneForWhatsApp(invoice.contact.phone);
+        const message = renderCommunicationTemplate(template.template, {
+          customer_name: invoice.contact.name || "Pelanggan",
+          doc_number: latestPayment.paymentNumber,
+          amount: latestPayment.amount.toString(),
+          remaining_amount: invoice.balanceDue.toString(),
+        });
+        await createContactCommunicationLog({
+          contactId: invoice.contact.id,
+          eventType: "POS_PAYMENT_POSTED",
+          sourceType: "POS_PAYMENT",
+          sourceId: latestPayment.id,
+          target: normalized || null,
+          message,
+          status: normalized ? "SENT" : "FAILED",
+          errorMessage: normalized ? undefined : "Customer phone missing or invalid",
+        });
+      }
+    }
 
     return {
       success: true,

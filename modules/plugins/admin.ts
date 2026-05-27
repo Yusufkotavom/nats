@@ -1,4 +1,4 @@
-import { Building2Icon, CogIcon, LayoutDashboard, Shield } from "lucide-react";
+import { Building2Icon, CogIcon, Shield } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const adminPlugin: ModulePlugin = {
@@ -37,6 +37,7 @@ export const adminPlugin: ModulePlugin = {
           items: [
             { title: "System.ai-configuration", url: "/admin/settings/ai" },
             { title: "System.pos-settings", url: "/admin/settings/pos" },
+            { title: "System.communication-settings", url: "/admin/settings/communication" },
             { title: "System.data-reset", url: "/admin/settings/data-reset" },
             { title: "System.events-dashboard", url: "/admin/dashboard" },
             { title: "System.integration-outbox", url: "/admin/integrations/outbox" },

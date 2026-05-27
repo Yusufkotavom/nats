@@ -5,6 +5,7 @@ import type { Prisma } from "@/prisma/generated/prisma/client";
 import { Decimal } from "decimal.js";
 
 const SESSION_NUMBER_PREFIX = "SES";
+const POS_SESSION_INTERACTIVE_TX_TIMEOUT_MS = 10_000;
 type DbClient = typeof prisma | Prisma.TransactionClient;
 
 export class POSSessionService {
@@ -171,6 +172,6 @@ export class POSSessionService {
                 tx,
             );
             await JournalService.postJournalEntry(journal.id, tx);
-        });
+        }, { timeout: POS_SESSION_INTERACTIVE_TX_TIMEOUT_MS });
     }
 }

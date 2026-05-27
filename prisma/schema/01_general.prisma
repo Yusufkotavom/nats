@@ -20,6 +20,7 @@ model Company {
   contacts                   Contact[]
   contactCommunicationLogs   ContactCommunicationLog[]
   contactMessageTemplates    ContactMessageTemplate[]
+  communicationTemplates     CompanyCommunicationTemplate[]
   units                      Unit[]
   categories                 Category[]
   products                   Product[]

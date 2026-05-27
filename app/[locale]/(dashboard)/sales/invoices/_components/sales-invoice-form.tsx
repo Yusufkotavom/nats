@@ -70,11 +70,11 @@ import { useCompanyProfile } from "@/components/providers/session-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { createContactCommunicationLog, getCompanyCommunicationTemplate } from "@/app/[locale]/communications/actions";
 import {
-  buildSalesInvoiceWhatsAppMessage,
   normalizePhoneForWhatsApp,
-} from "@/lib/communication/sales-whatsapp";
-import { createContactCommunicationLog } from "@/app/[locale]/communications/actions";
+  renderCommunicationTemplate,
+} from "@/lib/communication/company-communication";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -501,17 +501,23 @@ export function SalesInvoiceForm({
     const receiptUrl = `${baseUrl}/${locale}/reporting/preview?code=POS_RECEIPT&invoiceId=${invoice.id}`;
     const totalAmount = Number(invoice.totalAmount || 0);
     const balanceDue = Number(invoice.balanceDue || 0);
-    const message = buildSalesInvoiceWhatsAppMessage({
-      contactName: invoice.contact.name,
-      invoiceNumber: invoice.invoiceNumber,
-      totalAmount,
-      balanceDue,
-      invoiceUrl,
-      receiptUrl,
-      introLabel: t("whatsapp_invoice_intro"),
-      totalLabel: t("whatsapp_invoice_total"),
-      balanceLabel: t("whatsapp_invoice_balance"),
-      helpLabel: t("whatsapp_invoice_help"),
+    const templateConfig = await getCompanyCommunicationTemplate("SALES_INVOICE_ISSUED");
+    if (!templateConfig.isEnabled) {
+      toast({
+        variant: "destructive",
+        title: tCommon("error"),
+        description: "Template komunikasi SALES_INVOICE_ISSUED sedang nonaktif",
+      });
+      return;
+    }
+    const message = renderCommunicationTemplate(templateConfig.template, {
+      customer_name: invoice.contact.name,
+      doc_number: invoice.invoiceNumber,
+      amount: totalAmount.toLocaleString("id-ID"),
+      remaining_amount: balanceDue.toLocaleString("id-ID"),
+      doc_url: invoiceUrl,
+      status: invoice.status,
+      date: formatDate(invoice.invoiceDate),
     });
 
     await createContactCommunicationLog({

@@ -64,6 +64,11 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { SuperJSON } from "@/lib/superjson";
 import { ServiceOrderCreateForm } from "../orders/_components/service-order-create-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getCompanyCommunicationTemplate } from "@/app/[locale]/communications/actions";
+import {
+  normalizePhoneForWhatsApp,
+  renderCommunicationTemplate,
+} from "@/lib/communication/company-communication";
 
 type DashboardTab = "orders" | "invoices" | "payments" | "returns_warranty";
 
@@ -112,16 +117,6 @@ function nextStatusOptions(status: ServiceOrderStatus): ServiceOrderStatus[] {
     CANCELLED: [],
   };
   return map[status];
-}
-
-function normalizePhoneForWhatsApp(phone?: string | null): string {
-  if (!phone) return "";
-  const digits = phone.replace(/\D/g, "");
-  if (!digits) return "";
-  if (digits.startsWith("62")) return digits;
-  if (digits.startsWith("0")) return `62${digits.slice(1)}`;
-  if (digits.startsWith("8")) return `62${digits}`;
-  return digits;
 }
 
 export function ServicesDashboard({
@@ -299,7 +294,7 @@ export function ServicesDashboard({
     setPreviewOpen(true);
   };
 
-  const openWhatsApp = (order: ServiceOrderListItem) => {
+  const openWhatsApp = async (order: ServiceOrderListItem) => {
     const normalized = normalizePhoneForWhatsApp(order.customerPhone);
     if (!normalized) {
       toast({ title: "Nomor telepon customer tidak tersedia", variant: "destructive" });
@@ -318,33 +313,36 @@ export function ServicesDashboard({
     const invoiceNumber = order.invoiceNumber || "-";
     const noInvoice = order.salesInvoiceId ? "" : "Belum ada invoice";
 
-    const templateByStatus =
+    const eventKey =
       order.status === "NEW"
-        ? settings?.serviceTemplateCreated
+        ? "SERVICE_CREATED"
         : order.status === "READY"
-          ? settings?.serviceTemplateReady
+          ? "SERVICE_READY"
           : order.status === "DONE"
-            ? settings?.serviceTemplateCostDone
-            : settings?.serviceTemplatePickedUp;
-
-    let messageText =
-      templateByStatus?.trim() ||
-      `Halo {{customer_name}}, update service order {{order_number}} status {{status}}.`;
+            ? "SERVICE_COST_DONE"
+            : "SERVICE_PICKED_UP";
+    const templateConfig = await getCompanyCommunicationTemplate(eventKey);
+    if (!templateConfig.isEnabled) {
+      toast({ title: "Template notifikasi event ini sedang nonaktif", variant: "destructive" });
+      return;
+    }
     const replacements: Record<string, string> = {
       customer_name: order.customerName,
       order_number: order.orderNumber,
+      doc_number: order.orderNumber,
       status: order.status,
       invoice_number: invoiceNumber,
       invoice_url: invoiceUrl,
       no_invoice: noInvoice || "-",
       warranty_text: warrantyText,
+      doc_url: invoiceUrl,
       total_amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
+      amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
       remaining_amount: Number(order.remainingAmount || 0).toLocaleString("id-ID"),
       target_date: order.targetDate ? formatDate(order.targetDate) : "-",
+      date: formatDate(order.createdAt),
     };
-    Object.entries(replacements).forEach(([key, value]) => {
-      messageText = messageText.replaceAll(`{{${key}}}`, value);
-    });
+    const messageText = renderCommunicationTemplate(templateConfig.template, replacements);
     const message = encodeURIComponent(messageText);
     window.open(`https://wa.me/${normalized}?text=${message}`, "_blank", "noopener,noreferrer");
   };

@@ -10,7 +10,7 @@ import { createJournalEntrySchema } from "@/lib/validation/schemas";
 import { z } from "zod";
 
 type CreateJournalEntryInput = z.infer<typeof createJournalEntrySchema>;
-const JOURNAL_INTERACTIVE_TX_TIMEOUT_MS = 8_000;
+const JOURNAL_INTERACTIVE_TX_TIMEOUT_MS = 10_000;
 
 export class JournalService {
     /**

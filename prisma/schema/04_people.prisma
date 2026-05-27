@@ -22,6 +22,8 @@ enum ContactCommunicationStatus {
 enum ContactCommunicationEventType {
   CONTACT_TEMPLATE
   SALES_INVOICE
+  SALES_PAYMENT_POSTED
+  POS_PAYMENT_POSTED
   SERVICE_CREATED
   SERVICE_STATUS_UPDATED
   SERVICE_PAYMENT_RECEIVED
@@ -31,6 +33,16 @@ enum ContactMessageTemplateKind {
   PROMO
   SERVICE_UPDATE
   PAYMENT_REMINDER
+}
+
+enum CompanyCommunicationEventKey {
+  SALES_INVOICE_ISSUED
+  SALES_PAYMENT_POSTED
+  SERVICE_CREATED
+  SERVICE_READY
+  SERVICE_COST_DONE
+  SERVICE_PICKED_UP
+  POS_PAYMENT_POSTED
 }
 
 model Contact {
@@ -120,5 +132,21 @@ model ContactMessageTemplate {
 
   @@unique([contactId, kind])
   @@index([kind, updatedAt])
+  @@index([companyId])
+}
+
+model CompanyCommunicationTemplate {
+  id          String                       @id @default(cuid())
+  companyId   String?
+  eventKey    CompanyCommunicationEventKey
+  isEnabled   Boolean                      @default(true)
+  channel     ContactCommunicationChannel  @default(WHATSAPP)
+  template    String
+  createdById String?
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
+  company     Company?                     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@unique([companyId, eventKey, channel])
   @@index([companyId])
 }

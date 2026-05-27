@@ -9,6 +9,7 @@ import { PaymentAccountResolverService } from "@/modules/cash-bank/services/paym
 
 const DEFAULT_WALK_IN_CUSTOMER_NAME = "Walk-in Customer";
 const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+const POS_SERVICE_INTERACTIVE_TX_TIMEOUT_MS = 10_000;
 
 export type ServicePaymentMethod = "CASH" | "BANK";
 export type ServiceWorkflowStatus =
@@ -298,7 +299,7 @@ export class POSServiceWorkflowService {
       });
 
       return serviceOrder;
-    });
+    }, { timeout: POS_SERVICE_INTERACTIVE_TX_TIMEOUT_MS });
 
     return result;
   }
@@ -349,7 +350,7 @@ export class POSServiceWorkflowService {
         data,
         include: { items: true },
       });
-    });
+    }, { timeout: POS_SERVICE_INTERACTIVE_TX_TIMEOUT_MS });
   }
 
   static async settle(
@@ -410,7 +411,7 @@ export class POSServiceWorkflowService {
         },
         include: { items: true },
       });
-    });
+    }, { timeout: POS_SERVICE_INTERACTIVE_TX_TIMEOUT_MS });
   }
 
   private static async completeServiceOrder(

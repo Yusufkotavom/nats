@@ -194,6 +194,12 @@ Seluruh operasional service kini dipusatkan di route dashboard `/services` denga
 - Panel detail contact menampilkan `Riwayat WA Terbaru` (10 log terakhir) sebagai communication trail minimum untuk tim sales/service.
 - Template WA per contact kini dipersist ke tabel `ContactMessageTemplate` (bukan local storage browser), sehingga bisa dipakai konsisten lintas device/user.
 
+### Centralized Communication Settings (2026-05-27)
+
+- Konfigurasi template notifikasi WhatsApp lintas modul kini dipusatkan di `Admin > Settings > Communication` (`/admin/settings/communication`).
+- Source of truth global disimpan di model `CompanyCommunicationTemplate` (tenant-scoped) dengan key event (mis. `SALES_INVOICE_ISSUED`, `SERVICE_READY`, `SALES_PAYMENT_POSTED`) agar sales/service/pos/payment memakai format pesan yang konsisten.
+- Flow legacy template service di `CompanyProfile` masih dipakai sebagai fallback kompatibilitas saat template event global belum di-set.
+
 ### Sales Invoice WhatsApp Touchpoint (2026-05-15)
 
 - Form invoice sales (`app/[locale]/(dashboard)/sales/invoices/_components/sales-invoice-form.tsx`) memiliki action **Kirim WA**.

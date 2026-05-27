@@ -94,6 +94,7 @@ const maxAttempts = getIntEnv("INTEGRATION_MAX_ATTEMPTS", 10);
 const lockTimeoutMs = getIntEnv("INTEGRATION_LOCK_TIMEOUT_MS", 60_000);
 const backoffBaseMs = getIntEnv("INTEGRATION_BACKOFF_BASE_MS", 5_000);
 const backoffMaxMs = getIntEnv("INTEGRATION_BACKOFF_MAX_MS", 5 * 60_000);
+const INTEGRATION_HANDLER_TX_TIMEOUT_MS = getIntEnv("INTEGRATION_HANDLER_TX_TIMEOUT_MS", 10_000);
 
 export async function dispatchPendingIntegrationEvents(
   options?: { limit?: number; concurrency?: number }
@@ -228,7 +229,7 @@ export async function processIntegrationOutboxEvent(outboxId: string) {
         await tx.integrationInbox.create({
           data: { consumer: handler.consumer, outboxId: outbox.id },
         });
-      });
+      }, { timeout: INTEGRATION_HANDLER_TX_TIMEOUT_MS });
     }
 
     await prisma.integrationOutbox.update({
