@@ -123,20 +123,15 @@ Aturan layer tetap berlaku:
   - endpoint/action restoran pada `app/[locale]/pos/actions.ts` diblok (`Restaurant features are disabled in POS settings`),
   - menu `POS > Dining Spots` disembunyikan dari sidebar dashboard.
 
-## POS Service Workflow Layer (2026-05-14)
+## Service Workflow Layer
 
-Cashier POS sekarang punya mode `Produk` dan `Service` dalam tab `Kasir` yang tetap reuse service existing:
+Workflow service tetap reuse domain service `modules/services/services/pos-service-workflow.service.ts`, namun surface POS service panel sudah dihapus dari kasir `/pos` agar tidak ada flow ganda.
 
-- Server action: `app/[locale]/pos/actions.ts`
-- Domain service baru: `modules/services/services/pos-service-workflow.service.ts`
-- Master produk: flag `Product.isService` (`prisma/schema/05_inventory.prisma`)
-- Persist workflow: `POSServiceOrder` dan `POSServiceOrderItem` (`prisma/schema/10_pos.prisma`)
-
-Kontrak alur:
+Seluruh operasional service kini dipusatkan di route dashboard `/services` dengan kontrak:
 
 1. `Create Service Order`:
-- validasi session `OPEN`,
-- validasi item wajib `isService=true`,
+- validasi session internal service (`ensureServiceSession`) per user-company,
+- validasi item service,
 - membuat `SalesOrder + SalesInvoice`,
 - opsional membuat payment DP (status invoice: `ISSUED` / `PARTIALLY_PAID` / `PAID`).
 
@@ -158,14 +153,14 @@ Kontrak alur:
 - tiap stage tetap membuka dokumen existing sebagai source of truth (invoice/payment memakai dokumen sales yang terhubung).
 - seluruh lookup order/invoice/payment pada route service pipeline wajib ter-scope `activeCompanyId` (`companyId` filter) untuk mencegah kebocoran dokumen lintas tenant.
 
-### Contact Assist Layer untuk POS Sales/Service (2026-05-15)
+### Contact Assist Layer untuk POS Sales + Services (2026-05-15)
 
 - Server action baru di `app/[locale]/pos/actions.ts`:
   - `getPOSContacts(search?, take?)`: ambil daftar contact `CUSTOMER` aktif untuk selector transaksi.
   - `createPOSQuickContact(...)`: quick create customer dari flow POS tanpa pindah menu.
 - UI layer:
   - `CheckoutDialog` (kasir produk) mendukung customer picker + quick create + quick inform.
-  - `ServiceWorkflowPanel` mendukung customer picker + quick create + quick inform per order, termasuk trigger update otomatis pada create/DP, status READY/DONE, dan payment settle.
+  - Quick inform service diproses dari modul `/services` (orders/pipeline), bukan dari panel POS kasir.
 - Komunikasi quick inform memakai helper client `contact-communication.ts`:
   - prioritas URL WhatsApp (`wa.me`),
   - fallback `mailto`,

@@ -4,12 +4,6 @@ const getSessionMock = vi.hoisted(() => vi.fn());
 const hasPermissionMock = vi.hoisted(() => vi.fn());
 const ensureDefaultLayoutMock = vi.hoisted(() => vi.fn());
 const revalidatePathMock = vi.hoisted(() => vi.fn());
-const serviceWorkflowMock = vi.hoisted(() => ({
-  list: vi.fn(),
-  create: vi.fn(),
-  transitionStatus: vi.fn(),
-  settle: vi.fn(),
-}));
 
 const prismaMock = vi.hoisted(() => ({
   companyProfile: {
@@ -46,15 +40,6 @@ vi.mock("@/modules/pos/services/dining-spot.service", () => ({
       ensureDefaultLayoutMock(...args),
   },
 }));
-vi.mock("@/modules/services/services/pos-service-workflow.service", () => ({
-  POSServiceWorkflowService: {
-    list: (...args: unknown[]) => serviceWorkflowMock.list(...args),
-    create: (...args: unknown[]) => serviceWorkflowMock.create(...args),
-    transitionStatus: (...args: unknown[]) =>
-      serviceWorkflowMock.transitionStatus(...args),
-    settle: (...args: unknown[]) => serviceWorkflowMock.settle(...args),
-  },
-}));
 vi.mock("@/modules/cash-bank/services/payment-method-catalog.service", () => ({
   PaymentMethodCatalogService: {
     list: vi.fn().mockResolvedValue([]),
@@ -63,14 +48,9 @@ vi.mock("@/modules/cash-bank/services/payment-method-catalog.service", () => ({
 
 import {
   getPOSProducts,
-  getPOSServiceProducts,
   getDiningSpots,
   getPOSContacts,
   createPOSQuickContact,
-  getPOSServiceOrders,
-  createPOSServiceOrder,
-  updatePOSServiceOrderStatus,
-  settlePOSServiceOrder,
   getPOSPaymentMethods,
 } from "./actions";
 import { SuperJSON } from "@/lib/superjson";
@@ -179,41 +159,6 @@ describe("pos/actions getDiningSpots", () => {
   });
 });
 
-describe("pos/actions getPOSServiceProducts", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    getSessionMock.mockResolvedValue({
-      permissions: ["pos.access"],
-      activeCompanyId: "company-1",
-    });
-    hasPermissionMock.mockReturnValue(true);
-  });
-
-  it("filters service form catalog by active products in active company", async () => {
-    prismaMock.product.findMany.mockResolvedValue([]);
-
-    await getPOSServiceProducts();
-
-    expect(prismaMock.product.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          isActive: true,
-        }),
-      }),
-    );
-  });
-
-  it("returns empty array when user unauthorized", async () => {
-    getSessionMock.mockResolvedValue(null);
-
-    const result = await getPOSServiceProducts();
-    const data = SuperJSON.deserialize<unknown[]>(result);
-
-    expect(data).toEqual([]);
-    expect(prismaMock.product.findMany).not.toHaveBeenCalled();
-  });
-});
-
 describe("pos/actions contact helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -282,7 +227,7 @@ describe("pos/actions contact helpers", () => {
   });
 });
 
-describe("pos/actions service workflow", () => {
+describe("pos/actions payment methods", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSessionMock.mockResolvedValue({
@@ -293,74 +238,9 @@ describe("pos/actions service workflow", () => {
     hasPermissionMock.mockReturnValue(true);
   });
 
-  it("lists service orders via workflow service", async () => {
-    serviceWorkflowMock.list.mockResolvedValue([{ id: "svc-1", status: "NEW" }]);
-
-    const result = await getPOSServiceOrders("sess-1", "NEW");
-    const data = SuperJSON.deserialize<Array<{ id: string; status: string }>>(result);
-
-    expect(serviceWorkflowMock.list).toHaveBeenCalledWith("sess-1", "NEW");
-    expect(data).toEqual([{ id: "svc-1", status: "NEW" }]);
-  });
-
-  it("creates service order and revalidates POS route", async () => {
-    serviceWorkflowMock.create.mockResolvedValue({ id: "svc-1", status: "NEW" });
-
-    const result = await createPOSServiceOrder({
-      sessionId: "sess-1",
-      items: [{ productId: "prod-1", quantity: 1 }],
-    });
-    const data = SuperJSON.deserialize<{ id: string; status: string }>(result);
-
-    expect(serviceWorkflowMock.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: "sess-1",
-      }),
-      "user-1",
-    );
-    expect(data.id).toBe("svc-1");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/pos");
-  });
-
-  it("updates service order status via workflow service", async () => {
-    serviceWorkflowMock.transitionStatus.mockResolvedValue({
-      id: "svc-1",
-      status: "PROCESSING",
-    });
-
-    const result = await updatePOSServiceOrderStatus("svc-1", "PROCESSING");
-    const data = SuperJSON.deserialize<{ id: string; status: string }>(result);
-
-    expect(serviceWorkflowMock.transitionStatus).toHaveBeenCalledWith(
-      "svc-1",
-      "PROCESSING",
-      "user-1",
-    );
-    expect(data.status).toBe("PROCESSING");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/pos");
-  });
-
-  it("settles service order via workflow service", async () => {
-    serviceWorkflowMock.settle.mockResolvedValue({ id: "svc-1", status: "DONE" });
-
-    const result = await settlePOSServiceOrder("svc-1", "CASH", 50000, "cash-1");
-    const data = SuperJSON.deserialize<{ id: string; status: string }>(result);
-
-    expect(serviceWorkflowMock.settle).toHaveBeenCalledWith("svc-1", "cash-1", 50000, "CASH");
-    expect(data.status).toBe("DONE");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/pos");
-  });
-
   it("returns POS payment method catalog", async () => {
     const result = await getPOSPaymentMethods();
     const data = SuperJSON.deserialize<any[]>(result);
     expect(Array.isArray(data)).toBe(true);
-  });
-
-  it("rejects service order access when unauthorized", async () => {
-    getSessionMock.mockResolvedValue(null);
-
-    await expect(getPOSServiceOrders("sess-1")).rejects.toThrow("Unauthorized");
-    expect(serviceWorkflowMock.list).not.toHaveBeenCalled();
   });
 });

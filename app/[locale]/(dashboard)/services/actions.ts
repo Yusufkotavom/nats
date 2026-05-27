@@ -10,6 +10,7 @@ import {
   POSServiceWorkflowService,
   type ServiceWorkflowStatus,
 } from "@/modules/services/services/pos-service-workflow.service";
+import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
 import type {
   ServiceAfterSalesCaseListItem,
   ServiceInvoiceListItem,
@@ -560,37 +561,26 @@ export async function settleServiceOrder(
   orderId: string,
   cashAccountId?: string,
   amount?: number,
+  paymentMethod: ServicePaymentMethod = "CASH",
 ) {
   const session = await getSession();
   assertAccess(session);
 
-  const result = await POSServiceWorkflowService.settle(orderId, cashAccountId, amount);
+  const result = await POSServiceWorkflowService.settle(
+    orderId,
+    cashAccountId,
+    amount,
+    paymentMethod,
+  );
   revalidateLocalizedPath("/services");
   return SuperJSON.serialize(result);
 }
 
-export async function getServiceCashAccounts() {
+export async function getServicePaymentMethods() {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
-
-  const accounts = await prisma.cashAccount.findMany({
-    where: {
-      isActive: true,
-      glAccount: { companyId },
-      type: { in: ["CASH", "PETTY_CASH", "BANK", "EWALLET"] },
-    },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      type: true,
-      bankName: true,
-      accountNumber: true,
-    },
-  });
-
-  return SuperJSON.serialize(accounts);
+  const methods = await PaymentMethodCatalogService.list(session.activeCompanyId!);
+  return SuperJSON.serialize(methods);
 }
 
 export async function updateServiceOrderPricing(input: {

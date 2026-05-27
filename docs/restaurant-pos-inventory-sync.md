@@ -40,9 +40,9 @@ Menjamin sinkronisasi penjualan POS ke persediaan secara terukur untuk operasion
 - Form stock adjustment dan movement inventory hanya memproses warehouse + produk milik company aktif.
 - Unik nama `Category`/`Warehouse` berlaku per company (`companyId + name`), bukan global lintas tenant.
 
-## Ekstensi POS Service (Kasir Mode Service)
+## Ekstensi Service (Modul `/services`)
 
-Selain flow restoran meja/dapur, POS juga mendukung mode `Service` untuk use case jasa (contoh: percetakan/ATK/service job):
+Selain flow restoran meja/dapur, aplikasi mendukung workflow jasa (contoh: percetakan/ATK/service job) melalui modul dashboard `/services`:
 
 1. Produk jasa ditandai lewat `Product.isService = true`.
 2. Saat service order dibuat, sistem membentuk `SalesOrder + SalesInvoice` (opsional DP di awal).
@@ -60,6 +60,10 @@ Kontrak operasional tambahan untuk use case percetakan + service HP/komputer:
 - Harga service dapat disesuaikan di tengah proses (setelah SO/DP) dengan sinkronisasi nilai dokumen order/invoice agar saldo tagihan tetap akurat.
 
 ## Ekstensi Flow Restoran (Bayar Belakangan)
+
+Catatan arsitektur:
+- Panel service di POS kasir (`/pos`) sudah dihapus untuk mencegah flow ganda dan kebingungan user.
+- Source of truth operasional service ada di route `/services/*` (orders, invoices, payments, returns-warranty).
 
 Implementasi lanjut (fase service restoran):
 1. `Open Table` -> spot status `ORDERING`.

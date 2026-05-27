@@ -8,7 +8,7 @@ import {
   createServiceAfterSalesCase,
   createServiceQuickContact,
   getServiceCreateMeta,
-  getServiceCashAccounts,
+  getServicePaymentMethods,
   getServiceOrderForEdit,
   getServiceAfterSales,
   getServiceInvoices,
@@ -183,6 +183,7 @@ export function ServicesDashboard({
     } | null;
   } | null>(null);
   const [settleCashAccountId, setSettleCashAccountId] = useState<string>("");
+  const [settlePaymentMethod, setSettlePaymentMethod] = useState<"CASH" | "BANK">("CASH");
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [editInitialSnapshot, setEditInitialSnapshot] = useState("");
 
@@ -244,19 +245,24 @@ export function ServicesDashboard({
       }>(raw);
     },
   });
-  const serviceCashAccountsQuery = useQuery({
-    queryKey: ["services-cash-accounts"],
+  const servicePaymentMethodsQuery = useQuery({
+    queryKey: ["services-payment-methods"],
     queryFn: async () => {
-      const raw = await getServiceCashAccounts();
+      const raw = await getServicePaymentMethods();
       return SuperJSON.deserialize<Array<{
         id: string;
         name: string;
-        type: "CASH" | "PETTY_CASH" | "BANK" | "EWALLET";
+        method: "CASH" | "BANK";
+        accountType: "CASH" | "PETTY_CASH" | "BANK" | "EWALLET";
         bankName: string | null;
         accountNumber: string | null;
       }>>(raw);
     },
   });
+  const settleMethodOptions = useMemo(
+    () => (servicePaymentMethodsQuery.data || []).filter((item) => item.method === settlePaymentMethod),
+    [servicePaymentMethodsQuery.data, settlePaymentMethod],
+  );
 
   const afterSalesQuery = useQuery({
     queryKey: [
@@ -355,9 +361,9 @@ export function ServicesDashboard({
   const onSettle = async (order: ServiceOrderListItem) => {
     setPendingActionId(order.id);
     try {
-      const defaultAccountId = settleCashAccountId || serviceCashAccountsQuery.data?.[0]?.id;
+      const defaultAccountId = settleCashAccountId || settleMethodOptions[0]?.id;
       if (!defaultAccountId) throw new Error("Akun Cash/Bank belum tersedia");
-      await settleServiceOrder(order.id, defaultAccountId, Number(order.remainingAmount));
+      await settleServiceOrder(order.id, defaultAccountId, Number(order.remainingAmount), settlePaymentMethod);
       await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
@@ -421,8 +427,8 @@ export function ServicesDashboard({
         latestPayment: detail.latestPayment,
       });
       setSettleAmount(detail.remainingAmount);
-      if (!settleCashAccountId && serviceCashAccountsQuery.data?.length) {
-        setSettleCashAccountId(serviceCashAccountsQuery.data[0].id);
+      if (!settleCashAccountId && settleMethodOptions.length) {
+        setSettleCashAccountId(settleMethodOptions[0].id);
       }
       setEditInitialSnapshot(JSON.stringify({
         status: detail.status,
@@ -498,9 +504,14 @@ export function ServicesDashboard({
     if (!editOrderId || !editOrderMeta || editOrderMeta.remainingAmount <= 0) return;
     setPendingActionId(editOrderId);
     try {
-      const selectedAccountId = settleCashAccountId || serviceCashAccountsQuery.data?.[0]?.id;
+      const selectedAccountId = settleCashAccountId || settleMethodOptions[0]?.id;
       if (!selectedAccountId) throw new Error("Pilih akun Cash/Bank terlebih dahulu");
-      await settleServiceOrder(editOrderId, selectedAccountId, settleAmount > 0 ? settleAmount : editOrderMeta.remainingAmount);
+      await settleServiceOrder(
+        editOrderId,
+        selectedAccountId,
+        settleAmount > 0 ? settleAmount : editOrderMeta.remainingAmount,
+        settlePaymentMethod,
+      );
       await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
@@ -536,10 +547,15 @@ export function ServicesDashboard({
   };
 
   useEffect(() => {
-    if (!settleCashAccountId && serviceCashAccountsQuery.data?.length) {
-      setSettleCashAccountId(serviceCashAccountsQuery.data[0].id);
+    if (!settleMethodOptions.length) {
+      setSettleCashAccountId("");
+      return;
     }
-  }, [serviceCashAccountsQuery.data, settleCashAccountId]);
+    const selectedStillExists = settleMethodOptions.some((item) => item.id === settleCashAccountId);
+    if (!selectedStillExists) {
+      setSettleCashAccountId(settleMethodOptions[0].id);
+    }
+  }, [settleMethodOptions, settleCashAccountId]);
 
   useEffect(() => {
     if (!editOrderOpen || !hasEditChanges) return;
@@ -945,14 +961,27 @@ export function ServicesDashboard({
             <div className="grid gap-2 rounded-md border p-3">
               <div className="text-sm font-medium">Quick Actions</div>
               <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[160px]">
+                  <Label>Method</Label>
+                  <Select
+                    value={settlePaymentMethod}
+                    onValueChange={(value) => setSettlePaymentMethod(value as "CASH" | "BANK")}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CASH">Cash</SelectItem>
+                      <SelectItem value="BANK">Bank</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="min-w-[280px]">
                   <Label>Cash/Bank Account</Label>
                   <Select value={settleCashAccountId} onValueChange={setSettleCashAccountId}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {(serviceCashAccountsQuery.data || []).map((account) => (
+                      {settleMethodOptions.map((account) => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.name} ({account.type})
+                          [{account.method}] {account.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
