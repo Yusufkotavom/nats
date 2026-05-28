@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
-import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import {
     AVAILABLE_TEMPLATES,
     RECOMMENDED_DEFAULT_ACCOUNT_MAPPINGS,
@@ -11,6 +10,7 @@ import {
     DEFAULT_CATEGORIES,
     DEFAULT_SAMPLE_CATALOG,
 } from "@/lib/setup/chart-of-accounts-template";
+import { ensureCompanyMinimalPaymentMethods } from "@/lib/setup/minimal-payment-methods";
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client";
 import { requireActiveCompanyContext } from "@/lib/company-context";
 
@@ -94,6 +94,9 @@ export const saveCompanyProfile = authorizedAction(
                 data: {
                     companyId,
                     ...data,
+                    enableDepartmentDimension: false,
+                    enableProjectDimension: false,
+                    posEnableRestaurantFeatures: false,
                 },
             });
         }
@@ -198,6 +201,10 @@ export const seedDefaultAccounts = authorizedAction(
                 mappedCount++;
             }
         }
+
+        await prisma.$transaction(async (tx) => {
+            await ensureCompanyMinimalPaymentMethods(tx, companyId);
+        });
 
         return { success: true, data: { mappedCount } };
     }

@@ -208,7 +208,14 @@ export async function getServiceOrders(
       take: pageSize,
       include: {
         items: {
-          select: { quantity: true },
+          select: {
+            quantity: true,
+            notes: true,
+            unitPrice: true,
+            product: {
+              select: { name: true },
+            },
+          },
           take: 1,
         },
       },
@@ -240,6 +247,9 @@ export async function getServiceOrders(
     customerPhone: order.contactId ? (contactMap.get(order.contactId)?.phone ?? null) : null,
     invoiceNumber: invoiceMap.get(order.salesInvoiceId) ?? null,
     quantity: order.items[0]?.quantity ?? 1,
+    primaryProductName: order.items[0]?.product?.name ?? null,
+    primaryItemNotes: order.items[0]?.notes ?? null,
+    primaryItemPrice: order.items[0]?.unitPrice?.toString() ?? null,
     totalAmount: order.totalAmount.toString(),
     paidAmount: order.paidAmount.toString(),
     remainingAmount: order.remainingAmount.toString(),

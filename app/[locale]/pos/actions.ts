@@ -37,7 +37,7 @@ async function isRestaurantFeaturesEnabled() {
     where: { companyId: session.activeCompanyId },
     select: { posEnableRestaurantFeatures: true },
   });
-  return profile?.posEnableRestaurantFeatures !== false;
+  return profile?.posEnableRestaurantFeatures === true;
 }
 
 async function assertRestaurantFeaturesEnabled() {

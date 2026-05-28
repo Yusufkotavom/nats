@@ -3,17 +3,15 @@
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { SuperJSON } from "@/lib/superjson";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { DiningSpotService } from "@/modules/pos/services/dining-spot.service";
-import { prisma } from "@/lib/prisma";
 import { getActiveCompanyContext } from "@/lib/company-context";
 
 async function assertRestaurantFeaturesEnabled() {
   const companyContext = await getActiveCompanyContext();
   const profile = companyContext?.profile ?? null;
-  if (profile?.posEnableRestaurantFeatures === false) {
+  if (profile?.posEnableRestaurantFeatures !== true) {
     throw new Error("Restaurant features are disabled in POS settings");
   }
 }

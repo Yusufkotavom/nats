@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createServiceOrder,
@@ -122,9 +122,11 @@ function nextStatusOptions(status: ServiceOrderStatus): ServiceOrderStatus[] {
 export function ServicesDashboard({
   initialTab = "orders",
   lockTab = false,
+  initialEditOrderId,
 }: {
   initialTab?: DashboardTab;
   lockTab?: boolean;
+  initialEditOrderId?: string;
 }) {
   const [tab, setTab] = useState<DashboardTab>(initialTab);
   const [search, setSearch] = useState("");
@@ -181,6 +183,7 @@ export function ServicesDashboard({
   const [settlePaymentMethod, setSettlePaymentMethod] = useState<"CASH" | "BANK">("CASH");
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [editInitialSnapshot, setEditInitialSnapshot] = useState("");
+  const [autoOpenedEdit, setAutoOpenedEdit] = useState(false);
 
   const { toast } = useToast();
   const t = useTranslations("Services");
@@ -373,11 +376,11 @@ export function ServicesDashboard({
     }
   };
 
-  const openEditOrder = async (order: ServiceOrderListItem) => {
-    setEditOrderId(order.id);
-    setPendingActionId(order.id);
+  const openEditOrder = useCallback(async (orderId: string, fallbackRemainingAmount?: number) => {
+    setEditOrderId(orderId);
+    setPendingActionId(orderId);
     try {
-      const raw = await getServiceOrderForEdit(order.id);
+      const raw = await getServiceOrderForEdit(orderId);
       const detail = SuperJSON.deserialize<{
         id: string;
         orderNumber: string;
@@ -424,7 +427,7 @@ export function ServicesDashboard({
         remainingAmount: detail.remainingAmount,
         latestPayment: detail.latestPayment,
       });
-      setSettleAmount(detail.remainingAmount);
+      setSettleAmount(detail.remainingAmount || fallbackRemainingAmount || 0);
       if (!settleCashAccountId && settleMethodOptions.length) {
         setSettleCashAccountId(settleMethodOptions[0].id);
       }
@@ -444,10 +447,19 @@ export function ServicesDashboard({
     } finally {
       setPendingActionId(null);
     }
-  };
+  }, [settleCashAccountId, settleMethodOptions, toast]);
 
   const onSaveOrderEdit = async () => {
     if (!editOrderId) return;
+    for (const item of editItems) {
+      if (!item.productId || item.quantity <= 0 || item.unitPrice <= 0 || !item.notes.trim()) {
+        toast({
+          title: "Produk, qty, harga, dan catatan tiap baris wajib diisi",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     setPendingActionId(editOrderId);
     try {
       await updateServiceOrder({
@@ -628,10 +640,37 @@ export function ServicesDashboard({
     }
   };
 
+  useEffect(() => {
+    if (!initialEditOrderId || autoOpenedEdit) return;
+    if (tab !== "orders") return;
+    const rows = ordersQuery.data?.rows || [];
+    const matched = rows.find((row) => row.id === initialEditOrderId);
+    if (!matched) return;
+    setAutoOpenedEdit(true);
+    void openEditOrder(matched.id, Number(matched.remainingAmount || 0));
+  }, [initialEditOrderId, autoOpenedEdit, tab, ordersQuery.data?.rows, openEditOrder]);
+
   const orderColumns: Column<ServiceOrderListItem>[] = [
-    { header: "Order #", accessorKey: "orderNumber", className: "font-medium" },
+    {
+      header: "Order #",
+      className: "font-medium",
+      cell: (item) => (
+        <Link href={`/services/orders/${item.id}`} className="text-primary hover:underline">
+          {item.orderNumber}
+        </Link>
+      ),
+    },
     { header: "Tanggal", cell: (item) => formatDate(item.createdAt) },
     { header: "Customer", accessorKey: "customerName" },
+    { header: "Produk", cell: (item) => item.primaryProductName || "-" },
+    { header: "Catatan", cell: (item) => item.primaryItemNotes || "-" },
+    {
+      header: "Harga",
+      className: "text-right",
+      headerClassName: "text-right",
+      cell: (item) =>
+        item.primaryItemPrice ? formatCurrency(Number(item.primaryItemPrice)) : "-",
+    },
     { header: "Status", cell: (item) => <Badge className={getStatusColor(item.status)}>{item.status}</Badge> },
     { header: "Invoice", cell: (item) => item.invoiceNumber || "-" },
     { header: "Total", className: "text-right", headerClassName: "text-right", cell: (item) => formatCurrency(Number(item.totalAmount)) },
@@ -651,7 +690,7 @@ export function ServicesDashboard({
             <DropdownMenuItem asChild>
               <Link href={`/services/pipeline/${item.id}`}>Open in Pipeline</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openEditOrder(item)}>Edit</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEditOrder(item.id, Number(item.remainingAmount || 0))}>Edit</DropdownMenuItem>
             {Number(item.remainingAmount) > 0 ? <DropdownMenuItem onClick={() => onSettle(item)}>Settle Payment</DropdownMenuItem> : null}
             <DropdownMenuSeparator />
             {item.salesOrderId ? (
@@ -912,6 +951,13 @@ export function ServicesDashboard({
       >
         <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
+            <div className="text-xs text-muted-foreground">
+              <Link href="/services/orders" className="hover:underline">
+                Service Orders
+              </Link>
+              <span className="mx-1">/</span>
+              <span>{editOrderMeta?.orderNumber || "Detail"}</span>
+            </div>
             <DialogTitle>Edit Service Order</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
@@ -1063,7 +1109,7 @@ export function ServicesDashboard({
                           </Select>
                           <Input
                             className="mt-2"
-                            placeholder="Catatan item"
+                            placeholder="Catatan item (wajib)"
                             value={item.notes}
                             onChange={(event) => changeEditItem(item.id, { notes: event.target.value })}
                           />

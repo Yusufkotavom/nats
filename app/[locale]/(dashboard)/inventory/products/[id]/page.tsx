@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { getCategories, getProduct } from "../actions";
+import { getCategories, getProduct, getWarehouseOptions } from "../actions";
 import { getUnits } from "../../uom/actions";
 import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration/taxes/actions";
 import { ProductForm } from "../_components/product-form";
@@ -15,11 +15,12 @@ export default async function ProductViewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [productData, categories, units, taxRates] = await Promise.all([
+  const [productData, categories, units, taxRates, warehouses] = await Promise.all([
     getProduct(id),
     getCategories(),
     getUnits(),
     getTaxRates(),
+    getWarehouseOptions(),
   ]);
 
   if (!productData) {
@@ -38,6 +39,7 @@ export default async function ProductViewPage({
         categories={categories}
         units={units.data}
         taxRates={taxRates}
+        warehouses={warehouses}
         readonly={true}
       /></Protect>
   );

@@ -42,10 +42,10 @@ export function CompanySettingsForm({
     initialData?.currencySymbol || ""
   );
   const [enableDepartmentDimension, setEnableDepartmentDimension] = useState(
-    initialData?.enableDepartmentDimension ?? true
+    initialData?.enableDepartmentDimension ?? false
   );
   const [enableProjectDimension, setEnableProjectDimension] = useState(
-    initialData?.enableProjectDimension ?? true
+    initialData?.enableProjectDimension ?? false
   );
 
   const handleCurrencyChange = (value: string) => {

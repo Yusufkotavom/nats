@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { revalidatePath } from "next/cache";
-import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { requireActiveCompanyContext } from "@/lib/company-context";
 
 interface CompanyProfileData {
@@ -83,6 +82,7 @@ export const updateCompanyProfile = authorizedAction(
           serviceUniversalNote: data.serviceUniversalNote,
           enableDepartmentDimension: data.enableDepartmentDimension,
           enableProjectDimension: data.enableProjectDimension,
+          posEnableRestaurantFeatures: false,
         },
       });
     }

@@ -57,7 +57,7 @@ export function POSSettingsForm({ initialData }: { initialData: POSSettings }) {
     initialData.posProductVisibilityMode || "POS_ONLY",
   );
   const [restaurantEnabled, setRestaurantEnabled] = useState<boolean>(
-    initialData.posEnableRestaurantFeatures ?? true,
+    initialData.posEnableRestaurantFeatures ?? false,
   );
   const [feeSettings, setFeeSettings] = useState(initialData.feeSettings || []);
   const [serviceNotifyOnCreated] = useState(

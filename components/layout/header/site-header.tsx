@@ -16,6 +16,7 @@ import { ModeToggle } from "@/components/layout/others/mode-toggle";
 import { ThemeCustomizer } from "@/components/layout/others/theme-customizer";
 import { useTranslations } from "next-intl";
 import { toTitleCase } from "@/lib/utils";
+import { isKnownAppRoute } from "@/lib/navigation/known-routes";
 
 // ...
 
@@ -41,10 +42,12 @@ export function SiteHeader() {
         }
       }
 
+      const isNavigable = !isLast && isKnownAppRoute(href);
+
       return (
         <React.Fragment key={href}>
           <BreadcrumbItem>
-            {isLast ? (
+            {isLast || !isNavigable ? (
               <BreadcrumbPage>
                 {title}
               </BreadcrumbPage>

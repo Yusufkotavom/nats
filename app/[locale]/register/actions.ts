@@ -5,6 +5,7 @@ import { hash } from "bcryptjs";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import { createSession } from "@/lib/auth/auth";
+import { ensureCompanyMinimalContacts } from "@/lib/setup/minimal-contacts";
 
 export async function registerUserAndTenant(prevState: unknown, formData: FormData) {
     const fullName = formData.get("fullName") as string;
@@ -97,6 +98,8 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
                     isDefault: true,
                 },
             });
+
+            await ensureCompanyMinimalContacts(tx, company.id);
 
             return {
                 companyId: company.id,

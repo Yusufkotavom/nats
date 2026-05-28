@@ -97,7 +97,7 @@ export function GeneralSection({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 rounded-md border p-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 rounded-md border p-3 md:grid-cols-4">
         <div className="flex items-center space-x-2">
           <Switch
             id="isActive"
@@ -127,6 +127,16 @@ export function GeneralSection({
             disabled={readonly}
           />
           <Label htmlFor="isService">Service Item</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="manageStock"
+            name="manageStock"
+            checked={formData.manageStock}
+            onCheckedChange={(val) => handleInputChange("manageStock", val)}
+            disabled={readonly}
+          />
+          <Label htmlFor="manageStock">Manage Stock</Label>
         </div>
       </div>
     </div>

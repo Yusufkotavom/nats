@@ -7,7 +7,7 @@ import { getActiveCompanyContext } from "@/lib/company-context";
 export default async function LegacyKitchenRedirect() {
   const companyContext = await getActiveCompanyContext();
   const profile = companyContext?.profile ?? null;
-  if (profile?.posEnableRestaurantFeatures === false) {
+  if (profile?.posEnableRestaurantFeatures !== true) {
     redirect("/pos?tab=cashier");
   }
   redirect("/pos?tab=kitchen");

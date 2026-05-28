@@ -48,7 +48,7 @@ export async function getStockAdjustmentFormData() {
       select: { id: true, name: true },
     }),
     prisma.product.findMany({
-      where: { isActive: true, companyId: session.activeCompanyId },
+      where: { isActive: true, companyId: session.activeCompanyId, manageStock: true },
       orderBy: { name: "asc" },
       select: {
         id: true,

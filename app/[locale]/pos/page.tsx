@@ -23,7 +23,7 @@ export default async function POSPage() {
   const companyContext = await getActiveCompanyContext();
   const profile = companyContext?.profile ?? null;
   const restaurantFeaturesEnabled =
-    profile?.posEnableRestaurantFeatures !== false;
+    profile?.posEnableRestaurantFeatures === true;
   const diningSpots = restaurantFeaturesEnabled
     ? await getDiningSpots()
     : SuperJSON.serialize([]);

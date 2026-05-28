@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { departmentSchema, projectSchema } from "./schemas";
 import { z } from "zod";
@@ -20,8 +19,8 @@ async function getDimensionVisibility() {
   });
 
   return {
-    enableDepartmentDimension: profile?.enableDepartmentDimension ?? true,
-    enableProjectDimension: profile?.enableProjectDimension ?? true,
+    enableDepartmentDimension: profile?.enableDepartmentDimension ?? false,
+    enableProjectDimension: profile?.enableProjectDimension ?? false,
   };
 }
 

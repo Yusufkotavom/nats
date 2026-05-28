@@ -20,6 +20,9 @@ import {
   Tag,
   ChefHat,
   CreditCard,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { useFormatCurrency } from "@/hooks/use-format-currency";
 import { CheckoutDialog } from "./checkout-dialog";
@@ -54,6 +57,7 @@ interface CartViewProps {
   globalDiscount: number;
   onUpdateGlobalDiscount: (discount: number) => void;
   onUpdateQuantity: (productId: string, delta: number) => void;
+  onUpdatePrice: (productId: string, price: number) => void;
   onUpdateDiscount: (productId: string, discount: number) => void;
   onRemove: (productId: string) => void;
   onClear: () => void;
@@ -79,6 +83,7 @@ export function CartView({
   globalDiscount,
   onUpdateGlobalDiscount,
   onUpdateQuantity,
+  onUpdatePrice,
   onUpdateDiscount,
   onRemove,
   onClear,
@@ -101,6 +106,8 @@ export function CartView({
   const [kitchenNote, setKitchenNote] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | undefined>();
   const [quickContactOpen, setQuickContactOpen] = useState(false);
+  const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null);
+  const [editingPriceValue, setEditingPriceValue] = useState("");
 
   const formatCurrency = useFormatCurrency();
   const { toast } = useToast();
@@ -439,6 +446,31 @@ export function CartView({
     setDiscountOpen(true);
   };
 
+  const startEditPrice = (itemId: string, currentPrice: number) => {
+    setEditingPriceItemId(itemId);
+    setEditingPriceValue(String(currentPrice));
+  };
+
+  const cancelEditPrice = () => {
+    setEditingPriceItemId(null);
+    setEditingPriceValue("");
+  };
+
+  const saveEditPrice = (itemId: string) => {
+    const parsed = Number(editingPriceValue);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      toast({
+        variant: "destructive",
+        title: "Harga tidak valid",
+        description: "Harga minimal 0",
+      });
+      return;
+    }
+    onUpdatePrice(itemId, parsed);
+    setEditingPriceItemId(null);
+    setEditingPriceValue("");
+  };
+
   const handleQuickInform = () => {
     if (!selectedContact) return;
 
@@ -527,9 +559,47 @@ export function CartView({
                   <div className="flex-1">
                     <h4 className="font-medium line-clamp-2">{item.name}</h4>
                     <p className="text-xs text-muted-foreground">{item.sku}</p>
-                    <div className="mt-1 font-bold text-primary">
-                      {formatCurrency(item.price)}
-                    </div>
+                    {editingPriceItemId === item.id ? (
+                      <div className="mt-1 flex items-center gap-1">
+                        <input
+                          type="number"
+                          min={0}
+                          value={editingPriceValue}
+                          onChange={(event) => setEditingPriceValue(event.target.value)}
+                          className="h-8 w-28 rounded-md border bg-background px-2 text-sm"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => saveEditPrice(item.id)}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={cancelEditPrice}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-1 flex items-center gap-1">
+                        <div className="font-bold text-primary">
+                          {formatCurrency(item.price)}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-primary"
+                          onClick={() => startEditPrice(item.id, item.price)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-1">

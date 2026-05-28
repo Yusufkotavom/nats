@@ -62,6 +62,8 @@ Untuk operasional jasa yang ingin dipisah dari layar kasir utama, gunakan modul 
   - `/services/pipeline/[orderId]` (top bar flow cepat `Service Order → Invoice → Payment`)
   - dengan pola list/filter/action setara modul `Sales`.
   - pada popup create order, user bisa quick add customer dan harga produk service terisi otomatis saat produk dipilih.
+  - pada list `Service Orders`, klik nomor order untuk buka detail/edit cepat (`/services/orders/[id]`).
+  - item service sekarang mewajibkan `Produk`, `Qty`, `Harga`, dan `Catatan` per baris (create/edit).
 
 ### Aktivasi Produk Service
 1. Buka `Inventory > Products`.

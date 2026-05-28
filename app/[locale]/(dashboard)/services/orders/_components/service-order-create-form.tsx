@@ -119,8 +119,8 @@ export function ServiceOrderCreateForm({
     }
 
     for (const line of lines) {
-      if (!line.productId || line.quantity <= 0) {
-        toast({ title: "Produk dan qty tiap baris wajib diisi", variant: "destructive" });
+      if (!line.productId || line.quantity <= 0 || line.price <= 0 || !line.notes.trim()) {
+        toast({ title: "Produk, qty, harga, dan catatan tiap baris wajib diisi", variant: "destructive" });
         return;
       }
     }
@@ -302,7 +302,7 @@ export function ServiceOrderCreateForm({
                     <TableRow>
                       <TableCell colSpan={5}>
                         <Input
-                          placeholder="Catatan item (opsional)"
+                          placeholder="Catatan item (wajib)"
                           value={line.notes}
                           onChange={(event) => handleLineChange(line.id, { notes: event.target.value })}
                         />

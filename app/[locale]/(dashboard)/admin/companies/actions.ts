@@ -9,6 +9,7 @@ import {
   setImpersonationContext,
   switchActiveCompanyContext,
 } from "@/lib/auth/auth";
+import { ensureCompanyMinimalContacts } from "@/lib/setup/minimal-contacts";
 
 async function assertPlatformSuperAdmin() {
   const session = await getSession();
@@ -83,6 +84,9 @@ export async function createCompanyAsPlatformAdmin(input: {
       data: {
         companyId: company.id,
         name,
+        enableDepartmentDimension: false,
+        enableProjectDimension: false,
+        posEnableRestaurantFeatures: false,
       },
     });
 
@@ -102,6 +106,8 @@ export async function createCompanyAsPlatformAdmin(input: {
         },
       });
     }
+
+    await ensureCompanyMinimalContacts(tx, company.id);
   });
 
   revalidateLocalizedPath("/admin/companies");
@@ -210,4 +216,3 @@ export async function switchMyActiveCompany(companyId: string) {
   revalidatePath("/", "layout");
   return { success: true };
 }
-

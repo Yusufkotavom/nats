@@ -8,6 +8,10 @@ const txMock = vi.hoisted(() => ({
   companyProfile: { create: vi.fn() },
   user: { create: vi.fn() },
   companyMembership: { create: vi.fn() },
+  contact: {
+    findMany: vi.fn(),
+    createMany: vi.fn(),
+  },
 }));
 
 const prismaMock = vi.hoisted(() => ({
@@ -49,6 +53,8 @@ describe("register/actions registerUserAndTenant", () => {
     txMock.companyProfile.create.mockResolvedValue({ id: "profile-1" });
     txMock.user.create.mockResolvedValue({ id: "user-1" });
     txMock.companyMembership.create.mockResolvedValue({ id: "membership-1" });
+    txMock.contact.findMany.mockResolvedValue([]);
+    txMock.contact.createMany.mockResolvedValue({ count: 3 });
 
     prismaMock.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) =>
       cb(txMock),
@@ -80,6 +86,15 @@ describe("register/actions registerUserAndTenant", () => {
         data: expect.objectContaining({
           isDefault: true,
         }),
+      }),
+    );
+    expect(txMock.contact.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ type: "CUSTOMER", name: "Walk-in Customer" }),
+          expect.objectContaining({ type: "VENDOR", name: "General Vendor" }),
+          expect.objectContaining({ type: "EMPLOYEE", name: "General Employee" }),
+        ]),
       }),
     );
     expect(createSessionMock).toHaveBeenCalledWith(

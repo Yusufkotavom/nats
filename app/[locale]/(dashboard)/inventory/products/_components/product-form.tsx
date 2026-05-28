@@ -23,6 +23,7 @@ interface ProductFormProps {
   categories: Category[];
   units: Unit[];
   taxRates: TaxRate[];
+  warehouses: Array<{ id: string; name: string }>;
   readonly?: boolean;
 }
 
@@ -31,6 +32,7 @@ export function ProductForm({
   categories,
   units,
   taxRates,
+  warehouses,
   readonly = false,
 }: ProductFormProps) {
   const product =
@@ -44,6 +46,17 @@ export function ProductForm({
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!product;
   const [localCategories, setLocalCategories] = useState<Category[]>(categories);
+  const stockByWarehouse = new Map<string, number>();
+  for (const row of product?.inventory || []) {
+    if (!row.warehouseId) continue;
+    stockByWarehouse.set(
+      row.warehouseId,
+      (stockByWarehouse.get(row.warehouseId) || 0) + (row.quantity || 0),
+    );
+  }
+  const initialWarehouseId = warehouses[0]?.id || "";
+  const initialStockWarehouseId =
+    (product?.inventory?.[0]?.warehouseId as string | undefined) || initialWarehouseId;
 
   // Fully controlled form state
   const [formData, setFormData] = useState<ProductFormState>({
@@ -57,6 +70,7 @@ export function ProductForm({
     isActive: product?.isActive ?? true,
     showInPos: product?.showInPos ?? true,
     isService: product?.isService ?? false,
+    manageStock: product?.manageStock ?? true,
     baseUnitId: product?.baseUnitId || "",
     purchaseUnitId: product?.purchaseUnitId || "",
     purchaseConversionFactor:
@@ -65,6 +79,8 @@ export function ProductForm({
     salesConversionFactor: product?.salesConversionFactor?.toString() || 1,
     image: product?.image || "",
     taxRateId: product?.taxRateId || "",
+    stockWarehouseId: initialStockWarehouseId,
+    targetStock: stockByWarehouse.get(initialStockWarehouseId) || 0,
   });
 
   const handleInputChange = (
@@ -121,12 +137,21 @@ export function ProductForm({
       isActive: formData.isActive,
       showInPos: formData.showInPos,
       isService: formData.isService,
+      manageStock: formData.manageStock,
       baseUnitId: formData.baseUnitId || null,
       purchaseUnitId: formData.purchaseUnitId || null,
       purchaseConversionFactor: purchaseFactor?.toString() || 1,
       salesUnitId: formData.salesUnitId || null,
       salesConversionFactor: salesFactor?.toString() || 1,
       taxRateId: formData.taxRateId || null,
+      stockAdjustment:
+        isEditing && formData.manageStock && formData.stockWarehouseId
+          ? {
+              warehouseId: formData.stockWarehouseId,
+              targetStock: Number(formData.targetStock || 0),
+              note: "Product edit stock sync",
+            }
+          : null,
     };
 
     try {
@@ -211,6 +236,8 @@ export function ProductForm({
                   handleInputChange={handleInputChange}
                   units={units}
                   taxRates={taxRates}
+                  warehouses={warehouses}
+                  isEditing={isEditing}
                   readonly={readonly}
                 />
               </TabsContent>

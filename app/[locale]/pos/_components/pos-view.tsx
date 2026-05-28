@@ -337,6 +337,21 @@ export function POSView({
     );
   };
 
+  const updatePrice = (productId: string, price: number) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.id !== productId) return item;
+        const nextPrice = Math.max(0, price);
+        const maxDiscount = nextPrice * item.quantity;
+        return {
+          ...item,
+          price: nextPrice,
+          discount: Math.min(item.discount || 0, maxDiscount),
+        };
+      }),
+    );
+  };
+
   const removeFromCart = (productId: string) => {
     setCart((prev) => prev.filter((item) => item.id !== productId));
   };
@@ -766,6 +781,7 @@ export function POSView({
                     globalDiscount={globalDiscount}
                     onUpdateGlobalDiscount={setGlobalDiscount}
                     onUpdateQuantity={updateQuantity}
+                    onUpdatePrice={updatePrice}
                     onUpdateDiscount={updateDiscount}
                     onRemove={removeFromCart}
                     onClear={clearCart}
@@ -811,6 +827,7 @@ export function POSView({
                           globalDiscount={globalDiscount}
                           onUpdateGlobalDiscount={setGlobalDiscount}
                           onUpdateQuantity={updateQuantity}
+                          onUpdatePrice={updatePrice}
                           onUpdateDiscount={updateDiscount}
                           onRemove={removeFromCart}
                           onClear={clearCart}

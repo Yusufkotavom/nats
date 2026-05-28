@@ -125,7 +125,7 @@ export async function getPOSSettings() {
     return {
       id: null,
       posProductVisibilityMode: "POS_ONLY" as POSProductVisibilityMode,
-      posEnableRestaurantFeatures: true,
+      posEnableRestaurantFeatures: false,
       serviceNotifyOnCreated: true,
       serviceNotifyOnReady: true,
       serviceNotifyOnCostDone: true,
@@ -156,7 +156,7 @@ export async function getPOSSettings() {
     id: profile.id,
     posProductVisibilityMode:
       (profile.posProductVisibilityMode as POSProductVisibilityMode) || "POS_ONLY",
-    posEnableRestaurantFeatures: profile.posEnableRestaurantFeatures ?? true,
+    posEnableRestaurantFeatures: profile.posEnableRestaurantFeatures ?? false,
     serviceNotifyOnCreated: profile.serviceNotifyOnCreated ?? true,
     serviceNotifyOnReady: profile.serviceNotifyOnReady ?? true,
     serviceNotifyOnCostDone: profile.serviceNotifyOnCostDone ?? true,

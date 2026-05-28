@@ -14,6 +14,8 @@ interface PricingSectionProps {
   ) => void;
   units: Unit[];
   taxRates: TaxRate[];
+  warehouses: Array<{ id: string; name: string }>;
+  isEditing: boolean;
   readonly?: boolean;
 }
 
@@ -22,6 +24,8 @@ export function PricingSection({
   handleInputChange,
   units,
   taxRates,
+  warehouses,
+  isEditing,
   readonly = false,
 }: PricingSectionProps) {
   return (
@@ -181,6 +185,37 @@ export function PricingSection({
           ))}
         </CustomSelect>
       </div>
+
+      {isEditing && formData.manageStock ? (
+        <div className="grid grid-cols-1 gap-4 rounded-md border p-4 md:grid-cols-2">
+          <CustomSelect
+            label="Stock Warehouse"
+            name="stockWarehouseId"
+            value={formData.stockWarehouseId}
+            onValueChange={(val) => handleInputChange("stockWarehouseId", val)}
+            disabled={readonly}
+            placeholder="Select warehouse"
+            containerClassName="grid gap-2"
+          >
+            {warehouses?.map((warehouse) => (
+              <SelectItem key={warehouse.id} value={warehouse.id}>
+                {warehouse.name}
+              </SelectItem>
+            ))}
+          </CustomSelect>
+          <CustomInput
+            label="Set Current Stock"
+            id="targetStock"
+            name="targetStock"
+            type="number"
+            min="0"
+            value={formData.targetStock}
+            onChange={(e) => handleInputChange("targetStock", Number(e.target.value) || 0)}
+            disabled={readonly}
+            containerClassName="grid gap-2"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

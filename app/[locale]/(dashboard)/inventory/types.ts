@@ -24,6 +24,7 @@ export type ProductFormData = Omit<
   purchaseConversionFactor: Decimal;
   salesConversionFactor: Decimal;
   inventory?: {
+    warehouseId: string;
     quantity: number;
     unitCost: Decimal;
   }[];
@@ -46,12 +47,18 @@ export type ProductInput = {
   isActive: boolean;
   showInPos?: boolean;
   isService?: boolean;
+  manageStock?: boolean;
   baseUnitId?: string | null;
   purchaseUnitId?: string | null;
   purchaseConversionFactor?: number | string;
   salesUnitId?: string | null;
   salesConversionFactor?: number | string;
   taxRateId?: string | null;
+  stockAdjustment?: {
+    warehouseId: string;
+    targetStock: number;
+    note?: string | null;
+  } | null;
 };
 
 export type ProductWithDetails = Prisma.ProductGetPayload<{

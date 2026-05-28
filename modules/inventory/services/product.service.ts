@@ -1,6 +1,7 @@
 import { Prisma } from "@/prisma/generated/prisma/client";
 import { enqueueIntegrationEventOnce } from "@/modules/integration/outbox";
 import { ProductInput } from "@/app/[locale]/(dashboard)/inventory/types";
+import { InventoryService } from "@/modules/inventory/services/inventory.service";
 
 export class ProductService {
     static async createProduct(
@@ -22,6 +23,7 @@ export class ProductService {
                 isActive: data.isActive,
                 showInPos: data.showInPos ?? true,
                 isService: data.isService ?? false,
+                manageStock: data.manageStock ?? true,
                 baseUnitId: data.baseUnitId,
                 purchaseUnitId: data.purchaseUnitId,
                 purchaseConversionFactor: data.purchaseConversionFactor,
@@ -87,6 +89,7 @@ export class ProductService {
                 isActive: data.isActive,
                 showInPos: data.showInPos ?? true,
                 isService: data.isService ?? false,
+                manageStock: data.manageStock ?? true,
                 baseUnitId: data.baseUnitId,
                 purchaseUnitId: data.purchaseUnitId,
                 purchaseConversionFactor: data.purchaseConversionFactor,
@@ -104,6 +107,49 @@ export class ProductService {
                     effectiveDate: new Date(),
                 },
             });
+        }
+
+        if (data.manageStock !== false && data.stockAdjustment?.warehouseId) {
+            const warehouse = await tx.warehouse.findFirst({
+                where: {
+                    id: data.stockAdjustment.warehouseId,
+                    companyId,
+                },
+                select: { id: true },
+            });
+            if (!warehouse) {
+                throw new Error("Warehouse not found for stock adjustment");
+            }
+
+            const currentRows = await tx.inventory.findMany({
+                where: {
+                    productId: id,
+                    warehouseId: data.stockAdjustment.warehouseId,
+                },
+                select: { quantity: true },
+            });
+            const currentStock = currentRows.reduce((sum, row) => sum + row.quantity, 0);
+            const targetStock = Math.max(0, Number(data.stockAdjustment.targetStock || 0));
+            const diff = targetStock - currentStock;
+
+            if (diff !== 0) {
+                await InventoryService.createInventoryMovement(tx, {
+                    type: "ADJUSTMENT",
+                    companyId,
+                    warehouseId: data.stockAdjustment.warehouseId,
+                    reference: `PRD-ADJ-${Date.now()}`,
+                    notes: data.stockAdjustment.note || `Stock sync from product edit (${updated.sku})`,
+                    status: "COMPLETED",
+                    items: [
+                        {
+                            productId: id,
+                            quantity: diff,
+                            unitCost: Number(data.cost || 0),
+                            notes: data.stockAdjustment.note || "Product edit stock update",
+                        },
+                    ],
+                });
+            }
         }
 
         return updated;

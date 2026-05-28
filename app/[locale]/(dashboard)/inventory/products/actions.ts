@@ -143,6 +143,13 @@ export async function getProduct(id: string) {
       baseUnit: true,
       purchaseUnit: true,
       salesUnit: true,
+      inventory: {
+        select: {
+          warehouseId: true,
+          quantity: true,
+          unitCost: true,
+        },
+      },
       priceHistory: {
         orderBy: { effectiveDate: "desc" },
       },
@@ -152,6 +159,23 @@ export async function getProduct(id: string) {
   if (!product) return null;
 
   return SuperJSON.serialize(product);
+}
+
+export async function getWarehouseOptions() {
+  const session = await getSession();
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "inventory.view")
+  ) {
+    return [];
+  }
+
+  return prisma.warehouse.findMany({
+    where: { companyId: session.activeCompanyId },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
 }
 
 export async function getProductsByIds(ids: string[]) {

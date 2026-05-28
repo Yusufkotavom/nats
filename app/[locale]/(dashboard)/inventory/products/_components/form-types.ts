@@ -9,6 +9,7 @@ export type ProductFormState = {
   isActive: boolean;
   showInPos: boolean;
   isService: boolean;
+  manageStock: boolean;
   baseUnitId: string;
   purchaseUnitId: string;
   purchaseConversionFactor: string | number;
@@ -16,4 +17,6 @@ export type ProductFormState = {
   salesConversionFactor: string | number;
   image: string;
   taxRateId?: string;
+  stockWarehouseId: string;
+  targetStock: number;
 };

@@ -18,6 +18,9 @@ export type ServiceOrderListItem = {
   customerPhone?: string | null;
   invoiceNumber?: string | null;
   quantity: number;
+  primaryProductName?: string | null;
+  primaryItemNotes?: string | null;
+  primaryItemPrice?: string | null;
   totalAmount: string;
   paidAmount: string;
   remainingAmount: string;

@@ -10,7 +10,7 @@ export default async function DiningSpotsPage() {
   const t = await getTranslations("POS");
   const companyContext = await getActiveCompanyContext();
   const profile = companyContext?.profile ?? null;
-  const restaurantEnabled = profile?.posEnableRestaurantFeatures !== false;
+  const restaurantEnabled = profile?.posEnableRestaurantFeatures === true;
 
   if (!restaurantEnabled) {
     return (
