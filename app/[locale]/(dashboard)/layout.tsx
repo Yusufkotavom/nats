@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { redirect } from "next/navigation";
 import { getActiveCompanyContext } from "@/lib/company-context";
+import { getCompanyAccessState } from "@/lib/subscription/access";
+import { SubscriptionReadonlyPopup } from "@/components/subscription/subscription-readonly-popup";
 
 export default async function DashboardLayout({
   children,
@@ -43,6 +45,10 @@ export default async function DashboardLayout({
 
   const companyContext = await getActiveCompanyContext();
   const companyProfile = companyContext?.profile ?? null;
+  const companyAccess =
+    session.activeCompanyId
+      ? await getCompanyAccessState(session.activeCompanyId)
+      : { isReadOnly: false };
 
   return (
     <SessionProvider
@@ -97,6 +103,7 @@ export default async function DashboardLayout({
             <div className="@container/main flex flex-1 flex-col gap-2">
               <div className="flex flex-col gap-4 py-2 md:gap-6 md:py-2">
                 {children}
+                <SubscriptionReadonlyPopup openByDefault={Boolean(companyAccess.isReadOnly)} />
               </div>
             </div>
           </div>

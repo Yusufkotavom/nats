@@ -4,6 +4,7 @@ import { verifySession } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
 import {
   getPlatformPlans,
+  getPlatformBillingSetting,
   getPlatformSubscriptionInvoices,
   getCompaniesForPlatformAdmin,
   getMyCompanyMemberships,
@@ -16,11 +17,12 @@ export default async function AdminCompaniesPage() {
     redirect("/dashboard");
   }
 
-  const [companies, memberships, plans, invoices] = await Promise.all([
+  const [companies, memberships, plans, invoices, billingSetting] = await Promise.all([
     getCompaniesForPlatformAdmin(),
     getMyCompanyMemberships(),
     getPlatformPlans(),
     getPlatformSubscriptionInvoices(),
+    getPlatformBillingSetting(),
   ]);
 
   return (
@@ -29,6 +31,7 @@ export default async function AdminCompaniesPage() {
       memberships={memberships}
       plans={plans}
       invoices={invoices}
+      billingSetting={billingSetting}
       activeCompanyId={session.activeCompanyId}
       impersonatedCompanyId={session.impersonatedCompanyId}
     />

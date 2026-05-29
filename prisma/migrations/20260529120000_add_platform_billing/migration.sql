@@ -11,7 +11,19 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
-  CREATE TYPE "CompanySubscriptionStatus" AS ENUM ('PENDING_SETUP','ACTIVE','EXPIRED','CANCELED');
+  ALTER TYPE "PlanBillingCycle" ADD VALUE IF NOT EXISTS 'YEARLY';
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "CompanySubscriptionStatus" AS ENUM ('PENDING_SETUP','TRIAL','ACTIVE','EXPIRED','CANCELED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TYPE "CompanySubscriptionStatus" ADD VALUE IF NOT EXISTS 'TRIAL';
 EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
@@ -97,6 +109,18 @@ CREATE TABLE IF NOT EXISTS "CompanySubscriptionInvoiceLine" (
 );
 
 CREATE INDEX IF NOT EXISTS "CompanySubscriptionInvoiceLine_invoiceId_idx" ON "CompanySubscriptionInvoiceLine"("invoiceId");
+
+CREATE TABLE IF NOT EXISTS "PlatformBillingSetting" (
+  "id" TEXT NOT NULL DEFAULT 'singleton',
+  "bankAccountName" TEXT,
+  "bankAccountNumber" TEXT,
+  "bankName" TEXT,
+  "whatsappConfirmTo" TEXT NOT NULL DEFAULT '085799520350',
+  "paymentInstruction" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "PlatformBillingSetting_pkey" PRIMARY KEY ("id")
+);
 
 DO $$ BEGIN
   ALTER TABLE "CompanySubscription"

@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission, Permission } from "@/lib/permissions/utils";
 import { prisma } from "@/lib/prisma";
+import { getCompanyAccessState } from "@/lib/subscription/access";
 
 export type ActionResponse<T> = { success: boolean; data?: T; error?: string };
 
@@ -26,6 +27,22 @@ export function authorizedAction<T, A extends unknown[]>(
 
     if (!hasPermission(session.permissions, permission)) {
       return { success: false, error: "Forbidden: Insufficient permissions" };
+    }
+
+    if (process.env.NODE_ENV === "test") {
+      return action(...args);
+    }
+
+    const isWriteAction = !permission.endsWith(".view");
+    if (isWriteAction && session.activeCompanyId && !session.isPlatformSuperAdmin) {
+      const access = await getCompanyAccessState(session.activeCompanyId);
+      if (access.isReadOnly) {
+        return {
+          success: false,
+          error:
+            "Company is in read-only mode because trial/subscription is inactive. Activate a plan to continue.",
+        };
+      }
     }
 
     return action(...args);

@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
+import Link from "next/link";
 
 export default async function SubscriptionPage() {
     const data = await getSubscriptionData();
@@ -19,11 +20,22 @@ export default async function SubscriptionPage() {
                 <h1 className="text-2xl font-bold tracking-tight">Subscription Management</h1>
             </div>
 
+            {data.isReadOnly ? (
+                <Card className="border-amber-500">
+                    <CardHeader>
+                        <CardTitle className="text-amber-600">Read-only Mode</CardTitle>
+                        <CardDescription>
+                            Company ini read-only karena trial/subscription tidak aktif. Silakan lakukan pembayaran dan konfirmasi untuk aktivasi kembali.
+                        </CardDescription>
+                    </CardHeader>
+                </Card>
+            ) : null}
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
-                        <Badge variant={data.subscriptionStatus === "ACTIVE" ? "default" : "secondary"}>
+                        <Badge variant={data.subscriptionStatus === "ACTIVE" || data.subscriptionStatus === "TRIAL" ? "default" : "secondary"}>
                             {data.subscriptionStatus}
                         </Badge>
                     </CardHeader>
@@ -64,6 +76,27 @@ export default async function SubscriptionPage() {
                         )}
                     </CardContent>
                 </Card>
+                <Card className="md:col-span-1 lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle className="text-sm font-medium">Subscription Payment Instruction</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                        <p>Bank: {data.paymentInstruction.bankName || "-"}</p>
+                        <p>Account Number: {data.paymentInstruction.bankAccountNumber || "-"}</p>
+                        <p>Account Name: {data.paymentInstruction.bankAccountName || "-"}</p>
+                        <p>WhatsApp Confirmation: {data.paymentInstruction.whatsappConfirmTo}</p>
+                        {data.paymentInstruction.customInstruction ? (
+                            <p className="text-muted-foreground">{data.paymentInstruction.customInstruction}</p>
+                        ) : null}
+                        <Link
+                            href={`https://wa.me/${String(data.paymentInstruction.whatsappConfirmTo).replace(/\\D/g, "")}?text=${encodeURIComponent(`Halo, saya konfirmasi pembayaran subscription untuk ${data.tenantName}.`)}`}
+                            target="_blank"
+                            className="inline-flex rounded-md border px-3 py-2 text-sm"
+                        >
+                            Konfirmasi via WhatsApp
+                        </Link>
+                    </CardContent>
+                </Card>
             </div>
 
             <Card>
@@ -96,14 +129,14 @@ export default async function SubscriptionPage() {
                                         <TableCell>{payment.description || "-"}</TableCell>
                                         <TableCell>{payment.reference || "-"}</TableCell>
                                         <TableCell>
-                                            <Badge variant={payment.status === "SUCCESS" ? "default" : "outline"}>
+                                            <Badge variant={payment.status === "PAID" ? "default" : "outline"}>
                                                 {payment.status}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {new Intl.NumberFormat("en-US", {
+                                            {new Intl.NumberFormat("id-ID", {
                                                 style: "currency",
-                                                currency: "USD",
+                                                currency: "IDR",
                                             }).format(payment.amount)}
                                         </TableCell>
                                     </TableRow>

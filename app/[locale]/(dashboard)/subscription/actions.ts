@@ -4,6 +4,7 @@ import { verifySession } from "@/lib/auth/auth";
 import { prisma } from "@/lib/prisma";
 import { serializePrisma } from "@/lib/prisma";
 import { getActiveCompanyContext } from "@/lib/company-context";
+import { getCompanyAccessState } from "@/lib/subscription/access";
 
 export async function getSubscriptionData() {
     const session = await verifySession();
@@ -14,7 +15,7 @@ export async function getSubscriptionData() {
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-    const [monthlyTransactions, subscription, invoices] = await Promise.all([
+    const [monthlyTransactions, subscription, invoices, accessState, billingSetting] = await Promise.all([
       prisma.tenantTransactionMonthly.findUnique({
         where: { yearMonth },
       }),
@@ -33,6 +34,17 @@ export async function getSubscriptionData() {
             take: 30,
           })
         : [],
+      session.activeCompanyId
+        ? getCompanyAccessState(session.activeCompanyId)
+        : Promise.resolve({
+            isReadOnly: true,
+            reason: "NO_SUBSCRIPTION" as const,
+            subscriptionStatus: null,
+            trialEndsAt: null,
+          }),
+      prisma.platformBillingSetting.findUnique({
+        where: { id: "singleton" },
+      }),
     ]);
 
     return serializePrisma({
@@ -41,7 +53,17 @@ export async function getSubscriptionData() {
         subscriptionStart: subscription?.startDate || null,
         subscriptionEnd: subscription?.endDate || null,
         nextBillingDate: subscription?.nextBillingDate || null,
+        trialEndsAt: accessState.trialEndsAt,
+        isReadOnly: accessState.isReadOnly,
+        readOnlyReason: accessState.reason,
         tenantName: companyProfile?.name || "Standalone ERP",
+        paymentInstruction: {
+          bankName: billingSetting?.bankName || null,
+          bankAccountNumber: billingSetting?.bankAccountNumber || null,
+          bankAccountName: billingSetting?.bankAccountName || null,
+          whatsappConfirmTo: billingSetting?.whatsappConfirmTo || "085799520350",
+          customInstruction: billingSetting?.paymentInstruction || null,
+        },
         paymentHistory: invoices.map((invoice) => ({
           id: invoice.id,
           paymentDate: invoice.issueDate,

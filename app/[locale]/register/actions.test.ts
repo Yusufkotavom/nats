@@ -8,6 +8,7 @@ const txMock = vi.hoisted(() => ({
   companyProfile: { create: vi.fn() },
   user: { create: vi.fn() },
   companyMembership: { create: vi.fn() },
+  companySubscription: { create: vi.fn() },
   contact: {
     findMany: vi.fn(),
     createMany: vi.fn(),
@@ -53,6 +54,7 @@ describe("register/actions registerUserAndTenant", () => {
     txMock.companyProfile.create.mockResolvedValue({ id: "profile-1" });
     txMock.user.create.mockResolvedValue({ id: "user-1" });
     txMock.companyMembership.create.mockResolvedValue({ id: "membership-1" });
+    txMock.companySubscription.create.mockResolvedValue({ id: "sub-1" });
     txMock.contact.findMany.mockResolvedValue([]);
     txMock.contact.createMany.mockResolvedValue({ count: 3 });
 

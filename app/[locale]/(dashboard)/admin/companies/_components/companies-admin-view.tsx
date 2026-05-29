@@ -7,6 +7,8 @@ import {
   createPlatformPlan,
   generateSubscriptionInvoiceForCompany,
   markSubscriptionInvoicePaid,
+  runSubscriptionAutoBillingNow,
+  savePlatformBillingSetting,
   setCompanyStatusAsPlatformAdmin,
   startCompanyImpersonation,
   stopCompanyImpersonation,
@@ -37,7 +39,7 @@ type CompanyRow = {
   createdAt: Date;
   subscription: {
     id: string;
-    status: "PENDING_SETUP" | "ACTIVE" | "EXPIRED" | "CANCELED";
+    status: "PENDING_SETUP" | "TRIAL" | "ACTIVE" | "EXPIRED" | "CANCELED";
     planName: string | null;
     nextBillingDate: Date | null;
     lastInvoiceStatus: string | null;
@@ -58,7 +60,7 @@ type PlanRow = {
   description: string | null;
   price: any;
   currency: string;
-  billingCycle: "MONTHLY";
+  billingCycle: "MONTHLY" | "YEARLY";
   isActive: boolean;
 };
 
@@ -74,11 +76,20 @@ type InvoiceRow = {
   totalAmount: number;
 };
 
+type BillingSetting = {
+  bankAccountName: string | null;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  whatsappConfirmTo: string;
+  paymentInstruction: string | null;
+};
+
 export function CompaniesAdminView({
   companies,
   memberships,
   plans,
   invoices,
+  billingSetting,
   activeCompanyId,
   impersonatedCompanyId,
 }: {
@@ -86,6 +97,7 @@ export function CompaniesAdminView({
   memberships: MembershipRow[];
   plans: PlanRow[];
   invoices: InvoiceRow[];
+  billingSetting: BillingSetting;
   activeCompanyId: string | null;
   impersonatedCompanyId: string | null;
 }) {
@@ -94,8 +106,14 @@ export function CompaniesAdminView({
   const [planCode, setPlanCode] = useState("");
   const [planName, setPlanName] = useState("");
   const [planPrice, setPlanPrice] = useState("0");
+  const [planBillingCycle, setPlanBillingCycle] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [billingBankName, setBillingBankName] = useState(billingSetting.bankName || "");
+  const [billingBankNumber, setBillingBankNumber] = useState(billingSetting.bankAccountNumber || "");
+  const [billingAccountName, setBillingAccountName] = useState(billingSetting.bankAccountName || "");
+  const [billingWhatsapp, setBillingWhatsapp] = useState(billingSetting.whatsappConfirmTo || "085799520350");
+  const [billingInstruction, setBillingInstruction] = useState(billingSetting.paymentInstruction || "");
   const [isPending, startTransition] = useTransition();
 
   const activePlans = useMemo(() => plans.filter((plan) => plan.isActive), [plans]);
@@ -230,10 +248,19 @@ export function CompaniesAdminView({
           <TabsContent value="plans" className="space-y-4">
             <div className="rounded-lg border p-4">
               <h3 className="mb-3 text-sm font-semibold">Create Platform Plan</h3>
-              <div className="grid gap-2 md:grid-cols-4">
+              <div className="grid gap-2 md:grid-cols-5">
                 <Input placeholder="Code (e.g. UMKM)" value={planCode} onChange={(e) => setPlanCode(e.target.value)} />
                 <Input placeholder="Plan name" value={planName} onChange={(e) => setPlanName(e.target.value)} />
                 <Input type="number" placeholder="Price" value={planPrice} onChange={(e) => setPlanPrice(e.target.value)} />
+                <Select value={planBillingCycle} onValueChange={(value) => setPlanBillingCycle(value as "MONTHLY" | "YEARLY")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Billing cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONTHLY">Monthly</SelectItem>
+                    <SelectItem value="YEARLY">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   disabled={isPending || !planCode.trim() || !planName.trim()}
                   onClick={() =>
@@ -243,10 +270,12 @@ export function CompaniesAdminView({
                         name: planName,
                         price: Number(planPrice) || 0,
                         currency: "IDR",
+                        billingCycle: planBillingCycle,
                       });
                       setPlanCode("");
                       setPlanName("");
                       setPlanPrice("0");
+                      setPlanBillingCycle("MONTHLY");
                       window.location.reload();
                     })
                   }
@@ -284,6 +313,41 @@ export function CompaniesAdminView({
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-4">
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-3 text-sm font-semibold">Subscription Payment Setting</h3>
+              <div className="grid gap-2 md:grid-cols-2">
+                <Input placeholder="Bank name" value={billingBankName} onChange={(e) => setBillingBankName(e.target.value)} />
+                <Input placeholder="Bank account number" value={billingBankNumber} onChange={(e) => setBillingBankNumber(e.target.value)} />
+                <Input placeholder="Bank account holder name" value={billingAccountName} onChange={(e) => setBillingAccountName(e.target.value)} />
+                <Input placeholder="WhatsApp confirmation number" value={billingWhatsapp} onChange={(e) => setBillingWhatsapp(e.target.value)} />
+                <Input
+                  className="md:col-span-2"
+                  placeholder="Optional additional payment instruction"
+                  value={billingInstruction}
+                  onChange={(e) => setBillingInstruction(e.target.value)}
+                />
+              </div>
+              <div className="mt-3">
+                <Button
+                  disabled={isPending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      await savePlatformBillingSetting({
+                        bankName: billingBankName,
+                        bankAccountNumber: billingBankNumber,
+                        bankAccountName: billingAccountName,
+                        whatsappConfirmTo: billingWhatsapp,
+                        paymentInstruction: billingInstruction,
+                      });
+                      window.location.reload();
+                    })
+                  }
+                >
+                  Save Payment Setting
+                </Button>
+              </div>
+            </div>
+
             <div className="rounded-lg border p-4">
               <h3 className="mb-3 text-sm font-semibold">Assign Plan to Company</h3>
               <div className="grid gap-2 md:grid-cols-3">
@@ -344,6 +408,20 @@ export function CompaniesAdminView({
                   }
                 >
                   Generate Invoice
+                </Button>
+              </div>
+              <div className="mt-3">
+                <Button
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      await runSubscriptionAutoBillingNow();
+                      window.location.reload();
+                    })
+                  }
+                >
+                  Run Auto Billing Now
                 </Button>
               </div>
             </div>

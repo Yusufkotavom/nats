@@ -100,12 +100,14 @@ export async function createCompanyAsPlatformAdmin(input: {
   }
 
   await prisma.$transaction(async (tx) => {
+    const now = new Date();
+    const trialEndsAt = addOneMonth(now);
     const company = await tx.company.create({
       data: {
         code,
         name,
         createdById: session.userId,
-        status: CompanyStatus.PENDING_SETUP,
+        status: CompanyStatus.ACTIVE,
       },
     });
 
@@ -140,7 +142,11 @@ export async function createCompanyAsPlatformAdmin(input: {
     await tx.companySubscription.create({
       data: {
         companyId: company.id,
-        status: CompanySubscriptionStatus.PENDING_SETUP,
+        status: CompanySubscriptionStatus.TRIAL,
+        startDate: now,
+        endDate: trialEndsAt,
+        nextBillingDate: trialEndsAt,
+        autoRenew: false,
       },
     });
   });
@@ -161,11 +167,66 @@ function nextMonthUtc(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, 0, 0, 0));
 }
 
+function addOneMonth(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), 0, 0, 0));
+}
+
+function nextByBillingCycle(date: Date, cycle: PlanBillingCycle) {
+  if (cycle === PlanBillingCycle.YEARLY) {
+    return new Date(Date.UTC(date.getUTCFullYear() + 1, date.getUTCMonth(), 1, 0, 0, 0));
+  }
+  return nextMonthUtc(date);
+}
+
 export async function getPlatformPlans() {
   await assertPlatformSuperAdmin();
   return prisma.platformPlan.findMany({
     orderBy: [{ isActive: "desc" }, { name: "asc" }],
   });
+}
+
+export async function getPlatformBillingSetting() {
+  await assertPlatformSuperAdmin();
+  return prisma.platformBillingSetting.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: {
+      id: "singleton",
+      whatsappConfirmTo: "085799520350",
+    },
+  });
+}
+
+export async function savePlatformBillingSetting(input: {
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankName?: string;
+  whatsappConfirmTo?: string;
+  paymentInstruction?: string;
+}) {
+  await assertPlatformSuperAdmin();
+  await prisma.platformBillingSetting.upsert({
+    where: { id: "singleton" },
+    update: {
+      bankAccountName: input.bankAccountName?.trim() || null,
+      bankAccountNumber: input.bankAccountNumber?.trim() || null,
+      bankName: input.bankName?.trim() || null,
+      whatsappConfirmTo: input.whatsappConfirmTo?.trim() || "085799520350",
+      paymentInstruction: input.paymentInstruction?.trim() || null,
+    },
+    create: {
+      id: "singleton",
+      bankAccountName: input.bankAccountName?.trim() || null,
+      bankAccountNumber: input.bankAccountNumber?.trim() || null,
+      bankName: input.bankName?.trim() || null,
+      whatsappConfirmTo: input.whatsappConfirmTo?.trim() || "085799520350",
+      paymentInstruction: input.paymentInstruction?.trim() || null,
+    },
+  });
+
+  revalidateLocalizedPath("/admin/companies");
+  revalidateLocalizedPath("/subscription");
+  return { success: true };
 }
 
 export async function createPlatformPlan(input: {
@@ -174,6 +235,7 @@ export async function createPlatformPlan(input: {
   description?: string;
   price: number;
   currency?: string;
+  billingCycle?: "MONTHLY" | "YEARLY";
 }) {
   await assertPlatformSuperAdmin();
   const code = input.code.trim().toUpperCase();
@@ -186,7 +248,8 @@ export async function createPlatformPlan(input: {
       description: input.description?.trim() || null,
       price: new Decimal(input.price || 0),
       currency: input.currency?.trim().toUpperCase() || "IDR",
-      billingCycle: PlanBillingCycle.MONTHLY,
+      billingCycle:
+        input.billingCycle === "YEARLY" ? PlanBillingCycle.YEARLY : PlanBillingCycle.MONTHLY,
       isActive: true,
     },
   });
@@ -214,7 +277,7 @@ export async function assignPlanToCompany(input: {
   await assertPlatformSuperAdmin();
   const plan = await prisma.platformPlan.findUnique({
     where: { id: input.planId },
-    select: { id: true, isActive: true },
+    select: { id: true, isActive: true, billingCycle: true },
   });
   if (!plan || !plan.isActive) {
     return { success: false, error: "Plan not found or inactive" };
@@ -223,7 +286,7 @@ export async function assignPlanToCompany(input: {
   const startDate = input.startDate ? new Date(input.startDate) : new Date();
   const nextBillingDate = input.nextBillingDate
     ? new Date(input.nextBillingDate)
-    : nextMonthUtc(startDate);
+    : nextByBillingCycle(startDate, plan.billingCycle as PlanBillingCycle);
 
   await prisma.$transaction(async (tx) => {
     await tx.companySubscription.upsert({
@@ -335,12 +398,46 @@ export async function generateSubscriptionInvoiceForCompany(input: {
 
     await tx.companySubscription.update({
       where: { id: subscription.id },
-      data: { nextBillingDate: nextMonthUtc(periodStart) },
+      data: { nextBillingDate: nextByBillingCycle(periodStart, subscription.plan.billingCycle) },
     });
 
     revalidateLocalizedPath("/admin/companies");
     return { success: true, data: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber } };
   });
+}
+
+export async function runSubscriptionAutoBillingNow() {
+  await assertPlatformSuperAdmin();
+  const now = new Date();
+  const dueSubscriptions = await prisma.companySubscription.findMany({
+    where: {
+      status: CompanySubscriptionStatus.ACTIVE,
+      autoRenew: true,
+      nextBillingDate: { lte: now },
+      planId: { not: null },
+    },
+    include: {
+      plan: true,
+    },
+    take: 200,
+  });
+
+  let generated = 0;
+  let skipped = 0;
+
+  for (const subscription of dueSubscriptions) {
+    const result = await generateSubscriptionInvoiceForCompany({
+      companyId: subscription.companyId,
+      subscriptionId: subscription.id,
+    });
+    if (result.success) {
+      generated += 1;
+    } else {
+      skipped += 1;
+    }
+  }
+
+  return { success: true, data: { generated, skipped } };
 }
 
 export async function markSubscriptionInvoicePaid(invoiceId: string) {

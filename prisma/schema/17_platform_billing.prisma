@@ -1,9 +1,11 @@
 enum PlanBillingCycle {
   MONTHLY
+  YEARLY
 }
 
 enum CompanySubscriptionStatus {
   PENDING_SETUP
+  TRIAL
   ACTIVE
   EXPIRED
   CANCELED
@@ -94,4 +96,15 @@ model CompanySubscriptionInvoiceLine {
   updatedAt   DateTime                   @updatedAt
 
   @@index([invoiceId])
+}
+
+model PlatformBillingSetting {
+  id                 String   @id @default("singleton")
+  bankAccountName    String?
+  bankAccountNumber  String?
+  bankName           String?
+  whatsappConfirmTo  String   @default("085799520350")
+  paymentInstruction String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }

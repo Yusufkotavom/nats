@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
 import { createSession } from "@/lib/auth/auth";
 import { ensureCompanyMinimalContacts } from "@/lib/setup/minimal-contacts";
+import { CompanySubscriptionStatus } from "@/prisma/generated/prisma/client";
+
+function addOneMonth(date: Date) {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), 0, 0, 0));
+}
 
 export async function registerUserAndTenant(prevState: unknown, formData: FormData) {
     const fullName = formData.get("fullName") as string;
@@ -75,10 +80,13 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
         const companyCode = `${companyCodeBase || "company"}-${randomUUID().slice(0, 8)}`;
 
         const created = await prisma.$transaction(async (tx) => {
+            const now = new Date();
+            const trialEndsAt = addOneMonth(now);
             const company = await tx.company.create({
                 data: {
                     code: companyCode,
                     name: companyName.trim(),
+                    status: "ACTIVE",
                 },
             });
 
@@ -100,6 +108,16 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
             });
 
             await ensureCompanyMinimalContacts(tx, company.id);
+            await tx.companySubscription.create({
+                data: {
+                    companyId: company.id,
+                    status: CompanySubscriptionStatus.TRIAL,
+                    startDate: now,
+                    endDate: trialEndsAt,
+                    nextBillingDate: trialEndsAt,
+                    autoRenew: false,
+                },
+            });
 
             return {
                 companyId: company.id,
