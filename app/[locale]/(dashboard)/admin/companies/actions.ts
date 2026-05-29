@@ -62,8 +62,12 @@ export async function getCompaniesForPlatformAdmin() {
       ? {
           id: company.subscriptions[0].id,
           status: company.subscriptions[0].status,
+          planId: company.subscriptions[0].planId,
           planName: company.subscriptions[0].plan?.name || null,
+          startDate: company.subscriptions[0].startDate,
+          endDate: company.subscriptions[0].endDate,
           nextBillingDate: company.subscriptions[0].nextBillingDate,
+          autoRenew: company.subscriptions[0].autoRenew,
           lastInvoiceStatus: company.subscriptions[0].invoices[0]?.status || null,
           lastInvoiceNumber: company.subscriptions[0].invoices[0]?.invoiceNumber || null,
         }
@@ -315,6 +319,60 @@ export async function assignPlanToCompany(input: {
   });
 
   revalidateLocalizedPath("/admin/companies");
+  return { success: true };
+}
+
+export async function saveCompanySubscriptionManual(input: {
+  companyId: string;
+  planId?: string | null;
+  status: "PENDING_SETUP" | "TRIAL" | "ACTIVE" | "EXPIRED" | "CANCELED";
+  startDate?: string | null;
+  endDate?: string | null;
+  nextBillingDate?: string | null;
+  autoRenew?: boolean;
+}) {
+  await assertPlatformSuperAdmin();
+
+  const normalizedPlanId = input.planId && input.planId.trim() ? input.planId.trim() : null;
+  const startDate = input.startDate ? new Date(input.startDate) : null;
+  const endDate = input.endDate ? new Date(input.endDate) : null;
+  const nextBillingDate = input.nextBillingDate ? new Date(input.nextBillingDate) : null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.companySubscription.upsert({
+      where: { companyId: input.companyId },
+      update: {
+        planId: normalizedPlanId,
+        status: input.status as CompanySubscriptionStatus,
+        startDate,
+        endDate,
+        nextBillingDate,
+        autoRenew: Boolean(input.autoRenew),
+      },
+      create: {
+        companyId: input.companyId,
+        planId: normalizedPlanId,
+        status: input.status as CompanySubscriptionStatus,
+        startDate,
+        endDate,
+        nextBillingDate,
+        autoRenew: Boolean(input.autoRenew),
+      },
+    });
+
+    await tx.company.update({
+      where: { id: input.companyId },
+      data: {
+        status:
+          input.status === "ACTIVE" || input.status === "TRIAL"
+            ? CompanyStatus.ACTIVE
+            : CompanyStatus.SUSPENDED,
+      },
+    });
+  });
+
+  revalidateLocalizedPath("/admin/companies");
+  revalidateLocalizedPath("/subscription");
   return { success: true };
 }
 

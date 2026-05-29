@@ -8,6 +8,7 @@ import {
   generateSubscriptionInvoiceForCompany,
   markSubscriptionInvoicePaid,
   runSubscriptionAutoBillingNow,
+  saveCompanySubscriptionManual,
   savePlatformBillingSetting,
   setCompanyStatusAsPlatformAdmin,
   startCompanyImpersonation,
@@ -40,8 +41,12 @@ type CompanyRow = {
   subscription: {
     id: string;
     status: "PENDING_SETUP" | "TRIAL" | "ACTIVE" | "EXPIRED" | "CANCELED";
+    planId?: string | null;
     planName: string | null;
+    startDate?: Date | null;
+    endDate?: Date | null;
     nextBillingDate: Date | null;
+    autoRenew?: boolean;
     lastInvoiceStatus: string | null;
     lastInvoiceNumber: string | null;
   } | null;
@@ -114,9 +119,20 @@ export function CompaniesAdminView({
   const [billingAccountName, setBillingAccountName] = useState(billingSetting.bankAccountName || "");
   const [billingWhatsapp, setBillingWhatsapp] = useState(billingSetting.whatsappConfirmTo || "085799520350");
   const [billingInstruction, setBillingInstruction] = useState(billingSetting.paymentInstruction || "");
+  const [manualCompanyId, setManualCompanyId] = useState("");
+  const [manualPlanId, setManualPlanId] = useState("");
+  const [manualStatus, setManualStatus] = useState<"PENDING_SETUP" | "TRIAL" | "ACTIVE" | "EXPIRED" | "CANCELED">("TRIAL");
+  const [manualStartDate, setManualStartDate] = useState("");
+  const [manualEndDate, setManualEndDate] = useState("");
+  const [manualNextBillingDate, setManualNextBillingDate] = useState("");
+  const [manualAutoRenew, setManualAutoRenew] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const activePlans = useMemo(() => plans.filter((plan) => plan.isActive), [plans]);
+  const selectedManualCompany = useMemo(
+    () => companies.find((c) => c.id === manualCompanyId) || null,
+    [companies, manualCompanyId],
+  );
 
   return (
     <PageListLayout>
@@ -346,6 +362,106 @@ export function CompaniesAdminView({
                   Save Payment Setting
                 </Button>
               </div>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-3 text-sm font-semibold">Manual Subscription Override</h3>
+              <div className="grid gap-2 md:grid-cols-4">
+                <Select
+                  value={manualCompanyId}
+                  onValueChange={(value) => {
+                    setManualCompanyId(value);
+                    const company = companies.find((c) => c.id === value);
+                    if (!company?.subscription) return;
+                    setManualPlanId(company.subscription.planId || "");
+                    setManualStatus(company.subscription.status);
+                    setManualStartDate(
+                      company.subscription.startDate
+                        ? new Date(company.subscription.startDate).toISOString().slice(0, 10)
+                        : "",
+                    );
+                    setManualEndDate(
+                      company.subscription.endDate
+                        ? new Date(company.subscription.endDate).toISOString().slice(0, 10)
+                        : "",
+                    );
+                    setManualNextBillingDate(
+                      company.subscription.nextBillingDate
+                        ? new Date(company.subscription.nextBillingDate).toISOString().slice(0, 10)
+                        : "",
+                    );
+                    setManualAutoRenew(Boolean(company.subscription.autoRenew));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={manualPlanId || "__NONE__"} onValueChange={(value) => setManualPlanId(value === "__NONE__" ? "" : value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select plan (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__NONE__">No plan</SelectItem>
+                    {plans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={manualStatus} onValueChange={(value) => setManualStatus(value as typeof manualStatus)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Subscription status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING_SETUP">PENDING_SETUP</SelectItem>
+                    <SelectItem value="TRIAL">TRIAL</SelectItem>
+                    <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                    <SelectItem value="EXPIRED">EXPIRED</SelectItem>
+                    <SelectItem value="CANCELED">CANCELED</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={manualAutoRenew ? "YES" : "NO"} onValueChange={(value) => setManualAutoRenew(value === "YES")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Auto renew" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="YES">Auto renew ON</SelectItem>
+                    <SelectItem value="NO">Auto renew OFF</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input type="date" value={manualStartDate} onChange={(e) => setManualStartDate(e.target.value)} />
+                <Input type="date" value={manualEndDate} onChange={(e) => setManualEndDate(e.target.value)} />
+                <Input type="date" value={manualNextBillingDate} onChange={(e) => setManualNextBillingDate(e.target.value)} />
+                <Button
+                  disabled={isPending || !manualCompanyId}
+                  onClick={() =>
+                    startTransition(async () => {
+                      await saveCompanySubscriptionManual({
+                        companyId: manualCompanyId,
+                        planId: manualPlanId || null,
+                        status: manualStatus,
+                        startDate: manualStartDate || null,
+                        endDate: manualEndDate || null,
+                        nextBillingDate: manualNextBillingDate || null,
+                        autoRenew: manualAutoRenew,
+                      });
+                      window.location.reload();
+                    })
+                  }
+                >
+                  Save Manual Subscription
+                </Button>
+              </div>
+              {selectedManualCompany?.subscription ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Current: {selectedManualCompany.subscription.status} • plan: {selectedManualCompany.subscription.planName || "-"}
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-lg border p-4">
