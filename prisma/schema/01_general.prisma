@@ -1,5 +1,6 @@
 // GENERAL TABLE
 enum CompanyStatus {
+  PENDING_SETUP
   ACTIVE
   SUSPENDED
 }
@@ -45,6 +46,8 @@ model Company {
   posServiceOrders           POSServiceOrder[]
   restaurantOrders           RestaurantOrder[]
   kitchenTickets             KitchenTicket[]
+  subscriptions              CompanySubscription[]
+  subscriptionInvoices       CompanySubscriptionInvoice[]
   profile                    CompanyProfile?
   memberships                CompanyMembership[]
   impersonationAuditAsTarget CompanyImpersonationAudit[] @relation("ImpersonatedCompany")

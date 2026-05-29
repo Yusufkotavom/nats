@@ -23,18 +23,21 @@ export default async function SubscriptionPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
-                        <Badge variant={data.subscription === "PREMIUM" ? "default" : "secondary"}>
-                            {data.subscription}
+                        <Badge variant={data.subscriptionStatus === "ACTIVE" ? "default" : "secondary"}>
+                            {data.subscriptionStatus}
                         </Badge>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.tenantName}</div>
+                        <div className="text-2xl font-bold">{data.subscription}</div>
                         <p className="text-muted-foreground text-xs pt-1">
                             {data.subscriptionStart && data.subscriptionEnd ? (
                                 `Active from ${format(new Date(data.subscriptionStart), "PPP")} to ${format(new Date(data.subscriptionEnd), "PPP")}`
                             ) : (
-                                "Lifetime or Trial"
+                                "Not configured yet"
                             )}
+                        </p>
+                        <p className="text-muted-foreground text-xs pt-1">
+                            Next Billing: {data.nextBillingDate ? format(new Date(data.nextBillingDate), "PPP") : "-"}
                         </p>
                     </CardContent>
                 </Card>

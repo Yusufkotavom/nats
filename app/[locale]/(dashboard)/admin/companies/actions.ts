@@ -10,6 +10,14 @@ import {
   switchActiveCompanyContext,
 } from "@/lib/auth/auth";
 import { ensureCompanyMinimalContacts } from "@/lib/setup/minimal-contacts";
+import { generateDocumentNumber } from "@/lib/document-numbering";
+import { Decimal } from "decimal.js";
+import {
+  CompanySubscriptionInvoiceStatus,
+  CompanySubscriptionStatus,
+  CompanyStatus,
+  PlanBillingCycle,
+} from "@/prisma/generated/prisma/client";
 
 async function assertPlatformSuperAdmin() {
   const session = await getSession();
@@ -26,6 +34,16 @@ export async function getCompaniesForPlatformAdmin() {
     orderBy: { createdAt: "desc" },
     include: {
       profile: true,
+      subscriptions: {
+        include: {
+          plan: true,
+          invoices: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+        },
+        take: 1,
+      },
       _count: {
         select: { memberships: true },
       },
@@ -40,6 +58,16 @@ export async function getCompaniesForPlatformAdmin() {
     memberCount: company._count.memberships,
     profileEmail: company.profile?.email || null,
     profilePhone: company.profile?.phone || null,
+    subscription: company.subscriptions[0]
+      ? {
+          id: company.subscriptions[0].id,
+          status: company.subscriptions[0].status,
+          planName: company.subscriptions[0].plan?.name || null,
+          nextBillingDate: company.subscriptions[0].nextBillingDate,
+          lastInvoiceStatus: company.subscriptions[0].invoices[0]?.status || null,
+          lastInvoiceNumber: company.subscriptions[0].invoices[0]?.invoiceNumber || null,
+        }
+      : null,
     createdAt: company.createdAt,
   }));
 }
@@ -77,6 +105,7 @@ export async function createCompanyAsPlatformAdmin(input: {
         code,
         name,
         createdById: session.userId,
+        status: CompanyStatus.PENDING_SETUP,
       },
     });
 
@@ -108,10 +137,254 @@ export async function createCompanyAsPlatformAdmin(input: {
     }
 
     await ensureCompanyMinimalContacts(tx, company.id);
+    await tx.companySubscription.create({
+      data: {
+        companyId: company.id,
+        status: CompanySubscriptionStatus.PENDING_SETUP,
+      },
+    });
   });
 
   revalidateLocalizedPath("/admin/companies");
   return { success: true };
+}
+
+function startOfMonthUtc(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0));
+}
+
+function endOfMonthUtc(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59));
+}
+
+function nextMonthUtc(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, 0, 0, 0));
+}
+
+export async function getPlatformPlans() {
+  await assertPlatformSuperAdmin();
+  return prisma.platformPlan.findMany({
+    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+  });
+}
+
+export async function createPlatformPlan(input: {
+  code: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency?: string;
+}) {
+  await assertPlatformSuperAdmin();
+  const code = input.code.trim().toUpperCase();
+  const name = input.name.trim();
+  if (!code || !name) return { success: false, error: "Code and name are required" };
+  await prisma.platformPlan.create({
+    data: {
+      code,
+      name,
+      description: input.description?.trim() || null,
+      price: new Decimal(input.price || 0),
+      currency: input.currency?.trim().toUpperCase() || "IDR",
+      billingCycle: PlanBillingCycle.MONTHLY,
+      isActive: true,
+    },
+  });
+  revalidateLocalizedPath("/admin/companies");
+  return { success: true };
+}
+
+export async function togglePlatformPlanStatus(planId: string, isActive: boolean) {
+  await assertPlatformSuperAdmin();
+  await prisma.platformPlan.update({
+    where: { id: planId },
+    data: { isActive },
+  });
+  revalidateLocalizedPath("/admin/companies");
+  return { success: true };
+}
+
+export async function assignPlanToCompany(input: {
+  companyId: string;
+  planId: string;
+  startDate?: string;
+  nextBillingDate?: string;
+  autoRenew?: boolean;
+}) {
+  await assertPlatformSuperAdmin();
+  const plan = await prisma.platformPlan.findUnique({
+    where: { id: input.planId },
+    select: { id: true, isActive: true },
+  });
+  if (!plan || !plan.isActive) {
+    return { success: false, error: "Plan not found or inactive" };
+  }
+
+  const startDate = input.startDate ? new Date(input.startDate) : new Date();
+  const nextBillingDate = input.nextBillingDate
+    ? new Date(input.nextBillingDate)
+    : nextMonthUtc(startDate);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.companySubscription.upsert({
+      where: { companyId: input.companyId },
+      update: {
+        planId: input.planId,
+        status: CompanySubscriptionStatus.ACTIVE,
+        startDate,
+        nextBillingDate,
+        autoRenew: Boolean(input.autoRenew),
+      },
+      create: {
+        companyId: input.companyId,
+        planId: input.planId,
+        status: CompanySubscriptionStatus.ACTIVE,
+        startDate,
+        nextBillingDate,
+        autoRenew: Boolean(input.autoRenew),
+      },
+    });
+
+    await tx.company.update({
+      where: { id: input.companyId },
+      data: { status: CompanyStatus.ACTIVE },
+    });
+  });
+
+  revalidateLocalizedPath("/admin/companies");
+  return { success: true };
+}
+
+export async function generateSubscriptionInvoiceForCompany(input: {
+  companyId: string;
+  subscriptionId?: string;
+  issueDate?: string;
+  dueDays?: number;
+}) {
+  await assertPlatformSuperAdmin();
+
+  const issueDate = input.issueDate ? new Date(input.issueDate) : new Date();
+  const dueDate = new Date(issueDate);
+  dueDate.setDate(dueDate.getDate() + (input.dueDays ?? 7));
+
+  return prisma.$transaction(async (tx) => {
+    const subscription =
+      input.subscriptionId
+        ? await tx.companySubscription.findFirst({
+            where: { id: input.subscriptionId, companyId: input.companyId },
+            include: { plan: true },
+          })
+        : await tx.companySubscription.findFirst({
+            where: { companyId: input.companyId },
+            include: { plan: true },
+          });
+
+    if (!subscription) return { success: false, error: "Subscription not found" };
+    if (!subscription.plan) return { success: false, error: "Plan is not assigned" };
+    if (subscription.status !== CompanySubscriptionStatus.ACTIVE) {
+      return { success: false, error: "Subscription is not active" };
+    }
+
+    const periodStart = startOfMonthUtc(subscription.nextBillingDate || issueDate);
+    const periodEnd = endOfMonthUtc(subscription.nextBillingDate || issueDate);
+
+    const existing = await tx.companySubscriptionInvoice.findFirst({
+      where: {
+        subscriptionId: subscription.id,
+        periodStart,
+        periodEnd,
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return { success: false, error: "Invoice for this period already exists" };
+    }
+
+    const invoiceNumber = await generateDocumentNumber(
+      "SUBSCRIPTION_INVOICE",
+      "Subscription Invoice",
+      "SUB-INV-",
+    );
+
+    const subtotal = new Decimal(subscription.plan.price);
+    const invoice = await tx.companySubscriptionInvoice.create({
+      data: {
+        companyId: input.companyId,
+        subscriptionId: subscription.id,
+        invoiceNumber,
+        periodStart,
+        periodEnd,
+        issueDate,
+        dueDate,
+        status: CompanySubscriptionInvoiceStatus.ISSUED,
+        subtotal,
+        taxAmount: new Decimal(0),
+        totalAmount: subtotal,
+        lines: {
+          create: [
+            {
+              description: `${subscription.plan.name} (${subscription.plan.billingCycle})`,
+              quantity: 1,
+              unitPrice: subtotal,
+              amount: subtotal,
+            },
+          ],
+        },
+      },
+    });
+
+    await tx.companySubscription.update({
+      where: { id: subscription.id },
+      data: { nextBillingDate: nextMonthUtc(periodStart) },
+    });
+
+    revalidateLocalizedPath("/admin/companies");
+    return { success: true, data: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber } };
+  });
+}
+
+export async function markSubscriptionInvoicePaid(invoiceId: string) {
+  await assertPlatformSuperAdmin();
+  await prisma.companySubscriptionInvoice.update({
+    where: { id: invoiceId },
+    data: {
+      status: CompanySubscriptionInvoiceStatus.PAID,
+      paidAt: new Date(),
+    },
+  });
+  revalidateLocalizedPath("/admin/companies");
+  return { success: true };
+}
+
+export async function getPlatformSubscriptionInvoices() {
+  await assertPlatformSuperAdmin();
+  const rows = await prisma.companySubscriptionInvoice.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 100,
+    include: {
+      company: {
+        select: { id: true, name: true, code: true },
+      },
+      subscription: {
+        include: {
+          plan: {
+            select: { name: true, code: true },
+          },
+        },
+      },
+    },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    invoiceNumber: row.invoiceNumber,
+    companyName: row.company.name,
+    companyCode: row.company.code,
+    planName: row.subscription.plan?.name || "-",
+    status: row.status,
+    issueDate: row.issueDate,
+    dueDate: row.dueDate,
+    totalAmount: Number(row.totalAmount),
+  }));
 }
 
 export async function setCompanyStatusAsPlatformAdmin(

@@ -1,0 +1,97 @@
+enum PlanBillingCycle {
+  MONTHLY
+}
+
+enum CompanySubscriptionStatus {
+  PENDING_SETUP
+  ACTIVE
+  EXPIRED
+  CANCELED
+}
+
+enum CompanySubscriptionInvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
+model PlatformPlan {
+  id            String           @id @default(cuid())
+  code          String           @unique
+  name          String
+  description   String?
+  price         Decimal          @default(0)
+  currency      String           @default("IDR")
+  billingCycle  PlanBillingCycle @default(MONTHLY)
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  subscriptions CompanySubscription[]
+}
+
+model CompanySubscription {
+  id              String                    @id @default(cuid())
+  companyId       String
+  company         Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planId          String?
+  plan            PlatformPlan?             @relation(fields: [planId], references: [id], onDelete: SetNull)
+  status          CompanySubscriptionStatus @default(PENDING_SETUP)
+  startDate       DateTime?
+  endDate         DateTime?
+  nextBillingDate DateTime?
+  autoRenew       Boolean                   @default(false)
+  billingName     String?
+  billingEmail    String?
+  billingPhone    String?
+  billingAddress  String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  invoices CompanySubscriptionInvoice[]
+
+  @@unique([companyId])
+  @@index([status])
+  @@index([nextBillingDate])
+}
+
+model CompanySubscriptionInvoice {
+  id             String                           @id @default(cuid())
+  companyId      String
+  company        Company                          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  subscription   CompanySubscription              @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  invoiceNumber  String                           @unique
+  periodStart    DateTime
+  periodEnd      DateTime
+  issueDate      DateTime
+  dueDate        DateTime
+  status         CompanySubscriptionInvoiceStatus @default(DRAFT)
+  subtotal       Decimal                          @default(0)
+  taxAmount      Decimal                          @default(0)
+  totalAmount    Decimal                          @default(0)
+  paidAt         DateTime?
+  notes          String?
+  createdAt      DateTime                         @default(now())
+  updatedAt      DateTime                         @updatedAt
+
+  lines CompanySubscriptionInvoiceLine[]
+
+  @@unique([subscriptionId, periodStart, periodEnd])
+  @@index([companyId, status])
+}
+
+model CompanySubscriptionInvoiceLine {
+  id          String                     @id @default(cuid())
+  invoiceId   String
+  invoice     CompanySubscriptionInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Int                        @default(1)
+  unitPrice   Decimal                    @default(0)
+  amount      Decimal                    @default(0)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  @@index([invoiceId])
+}

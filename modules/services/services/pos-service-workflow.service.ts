@@ -6,9 +6,9 @@ import { resolveStockConsumptionItems } from "@/modules/inventory/services/bom-c
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
 import { JournalService } from "@/modules/accounting/services/journal.service";
 import { PaymentAccountResolverService } from "@/modules/cash-bank/services/payment-account-resolver.service";
+import { formatSequence } from "@/lib/utils/format-sequence";
 
 const DEFAULT_WALK_IN_CUSTOMER_NAME = "Walk-in Customer";
-const uniqueSuffix = () => `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 const POS_SERVICE_INTERACTIVE_TX_TIMEOUT_MS = 10_000;
 
 export type ServicePaymentMethod = "CASH" | "BANK";
@@ -47,6 +47,59 @@ const allowedStatusTransitions: Record<ServiceWorkflowStatus, ServiceWorkflowSta
 };
 
 export class POSServiceWorkflowService {
+  private static async generateServiceDocNumber(
+    tx: Prisma.TransactionClient,
+    entityType: string,
+    defaultName: string,
+    defaultPrefix: string,
+  ) {
+    let format = await tx.documentNumbering.findUnique({
+      where: { entityType },
+    });
+
+    if (!format) {
+      format = await tx.documentNumbering.create({
+        data: {
+          entityType,
+          name: defaultName,
+          prefix: defaultPrefix,
+        },
+      });
+    }
+
+    const now = new Date();
+    const isYearReset = Boolean(
+      format.lastGeneratedAt &&
+        format.resetYearly &&
+        format.lastGeneratedAt.getFullYear() !== now.getFullYear(),
+    );
+    const isMonthReset = Boolean(
+      format.lastGeneratedAt &&
+        format.resetMonthly &&
+        format.lastGeneratedAt.getMonth() !== now.getMonth(),
+    );
+    const nextSequence = isYearReset || isMonthReset ? 1 : format.currentSequence + 1;
+
+    const updated = await tx.documentNumbering.update({
+      where: { id: format.id },
+      data: {
+        currentSequence: nextSequence,
+        lastGeneratedAt: now,
+      },
+    });
+
+    return formatSequence(
+      updated.currentSequence,
+      updated.prefix,
+      updated.suffix,
+      updated.sequenceDigits,
+      updated.includeYear,
+      updated.yearFormat,
+      updated.includeMonth,
+      now,
+    );
+  }
+
   static async list(sessionId: string, status?: ServiceWorkflowStatus) {
     const orders = await prisma.pOSServiceOrder.findMany({
       where: {
@@ -138,10 +191,11 @@ export class POSServiceWorkflowService {
         throw new Error("Service order must contain at least one service item");
       }
 
-      const nowKey = uniqueSuffix();
-      const orderNumber = `SVC-POS-${nowKey}`;
-      const salesOrderNumber = `SO-POS-SVC-${nowKey}`;
-      const invoiceNumber = `INV-POS-SVC-${nowKey}`;
+      const [orderNumber, salesOrderNumber, invoiceNumber] = await Promise.all([
+        this.generateServiceDocNumber(tx, "SERVICE_ORDER", "Service Order", "SVC-"),
+        this.generateServiceDocNumber(tx, "SERVICE_SALES_ORDER", "Service Sales Order", "SSO-"),
+        this.generateServiceDocNumber(tx, "SERVICE_INVOICE", "Service Invoice", "SINV-"),
+      ]);
 
       const contactId = await this.resolveCustomer(tx, session.companyId, input.customerId);
       const serviceItems = await Promise.all(
@@ -438,7 +492,12 @@ export class POSServiceWorkflowService {
       throw new Error("Sales order not found for service order");
     }
 
-    const shipmentNumber = `SHP-POS-SVC-${uniqueSuffix()}`;
+    const shipmentNumber = await this.generateServiceDocNumber(
+      tx,
+      "SERVICE_SHIPMENT",
+      "Service Shipment",
+      "SSHP-",
+    );
     const shipment = await tx.salesShipment.create({
       data: {
         shipmentNumber,
@@ -558,7 +617,12 @@ export class POSServiceWorkflowService {
       paymentAmount: Decimal;
     },
   ) {
-    const paymentNumber = `PAY-POS-SVC-${uniqueSuffix()}`;
+    const paymentNumber = await this.generateServiceDocNumber(
+      tx,
+      "SERVICE_PAYMENT",
+      "Service Payment",
+      "SPAY-",
+    );
     const cashAccount = params.cashAccountId
       ? await tx.cashAccount.findFirst({
           where: {
