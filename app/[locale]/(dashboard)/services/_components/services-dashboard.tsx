@@ -64,10 +64,11 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { SuperJSON } from "@/lib/superjson";
 import { ServiceOrderCreateForm } from "../orders/_components/service-order-create-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { buildCompanyCommunicationPreview, createContactCommunicationLog } from "@/app/[locale]/communications/actions";
+import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
 import {
   normalizePhoneForWhatsApp,
 } from "@/lib/communication/company-communication";
+import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 
 type DashboardTab = "orders" | "invoices" | "payments" | "returns_warranty";
 
@@ -1163,39 +1164,23 @@ export function ServicesDashboard({
         {tab === "returns_warranty" ? <DataTable data={afterSalesQuery.data?.rows ?? []} columns={afterSalesColumns} isLoading={afterSalesQuery.isLoading} emptyMessage="Belum ada case return/garansi" pagination={{ totalEntries: afterSalesQuery.data?.total ?? 0, pageSize: 10, currentPage: page, onPageChange: setPage }} /> : null}
       </PageListContent>
 
-      <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Kirim notifikasi customer</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <div className="text-sm text-muted-foreground">Preview pesan (template dari Admin &gt; Settings &gt; Communication)</div>
-            <Textarea value={notifyMessage} onChange={(event) => setNotifyMessage(event.target.value)} className="min-h-[140px]" />
-            <div className="text-xs text-muted-foreground">Tujuan: +{notifyPhone}</div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setNotifyOpen(false)}>Nanti</Button>
-              <Button
-                onClick={async () => {
-                  if (!notifyMeta) return;
-                  await createContactCommunicationLog({
-                    contactId: notifyMeta.contactId,
-                    eventType: notifyMeta.eventType,
-                    sourceType: "SERVICE_ORDER",
-                    sourceId: notifyMeta.sourceId,
-                    target: notifyPhone,
-                    message: notifyMessage,
-                    status: "SENT",
-                  });
-                  window.open(`https://wa.me/${notifyPhone}?text=${encodeURIComponent(notifyMessage)}`, "_blank", "noopener,noreferrer");
-                  setNotifyOpen(false);
-                }}
-              >
-                Kirim WhatsApp
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <WhatsAppNotificationDialog
+        open={notifyOpen}
+        onOpenChange={setNotifyOpen}
+        phone={notifyPhone}
+        message={notifyMessage}
+        onMessageChange={setNotifyMessage}
+        context={
+          notifyMeta
+            ? {
+                contactId: notifyMeta.contactId,
+                eventType: notifyMeta.eventType,
+                sourceType: "SERVICE_ORDER",
+                sourceId: notifyMeta.sourceId,
+              }
+            : null
+        }
+      />
 
       <ReportPreviewDialog
         isOpen={previewOpen}

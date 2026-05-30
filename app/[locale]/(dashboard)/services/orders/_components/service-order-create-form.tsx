@@ -25,8 +25,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Trash2 } from "lucide-react";
-import { buildCompanyCommunicationPreview, createContactCommunicationLog } from "@/app/[locale]/communications/actions";
+import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
+import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 
 type ServiceLine = {
   id: string;
@@ -445,38 +446,23 @@ export function ServiceOrderCreateForm({
         <Button onClick={handleCreate} disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button>
       </div>
 
-      <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Kirim notifikasi customer</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <div className="text-sm text-muted-foreground">Preview pesan (sumber template: Admin &gt; Settings &gt; Communication)</div>
-            <Textarea value={notifyPreview} onChange={(event) => setNotifyPreview(event.target.value)} className="min-h-[140px]" />
-            <div className="text-xs text-muted-foreground">Tujuan: +{notifyPhone}</div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setNotifyOpen(false)}>Nanti</Button>
-              <Button
-                onClick={async () => {
-                  await createContactCommunicationLog({
-                    contactId: notifyMeta.contactId,
-                    eventType: "SERVICE_CREATED",
-                    sourceType: "SERVICE_ORDER",
-                    sourceId: notifyMeta.orderId,
-                    target: notifyPhone,
-                    message: notifyPreview,
-                    status: "SENT",
-                  });
-                  window.open(`https://wa.me/${notifyPhone}?text=${encodeURIComponent(notifyPreview)}`, "_blank", "noopener,noreferrer");
-                  setNotifyOpen(false);
-                }}
-              >
-                Kirim WhatsApp
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <WhatsAppNotificationDialog
+        open={notifyOpen}
+        onOpenChange={setNotifyOpen}
+        phone={notifyPhone}
+        message={notifyPreview}
+        onMessageChange={setNotifyPreview}
+        context={
+          notifyMeta.contactId && notifyMeta.orderId
+            ? {
+                contactId: notifyMeta.contactId,
+                eventType: "SERVICE_CREATED",
+                sourceType: "SERVICE_ORDER",
+                sourceId: notifyMeta.orderId,
+              }
+            : null
+        }
+      />
     </div>
   );
 }

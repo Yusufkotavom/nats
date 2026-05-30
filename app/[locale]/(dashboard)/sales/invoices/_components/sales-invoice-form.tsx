@@ -70,11 +70,11 @@ import { useCompanyProfile } from "@/components/providers/session-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { createContactCommunicationLog, getCompanyCommunicationTemplate } from "@/app/[locale]/communications/actions";
+import { buildCompanyCommunicationPreview, createContactCommunicationLog } from "@/app/[locale]/communications/actions";
 import {
   normalizePhoneForWhatsApp,
-  renderCommunicationTemplate,
 } from "@/lib/communication/company-communication";
+import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -124,6 +124,13 @@ export function SalesInvoiceForm({
     })) || []
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyContext, setNotifyContext] = useState<{
+    contactId: string;
+    sourceId: string;
+  } | null>(null);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
   const hasAppliedInitialSalesOrder = useRef(false);
   const [invoiceDateInput, setInvoiceDateInput] = useState(
@@ -525,11 +532,21 @@ export function SalesInvoiceForm({
     const locale = pathname.split("/").filter(Boolean)[0] || "id";
     const baseUrl = window.location.origin;
     const invoiceUrl = `${baseUrl}/${locale}/reporting/preview?code=SALES_INVOICE&invoiceId=${invoice.id}`;
-    const receiptUrl = `${baseUrl}/${locale}/reporting/preview?code=POS_RECEIPT&invoiceId=${invoice.id}`;
     const totalAmount = Number(invoice.totalAmount || 0);
     const balanceDue = Number(invoice.balanceDue || 0);
-    const templateConfig = await getCompanyCommunicationTemplate("SALES_INVOICE_ISSUED");
-    if (!templateConfig.isEnabled) {
+    const preview = await buildCompanyCommunicationPreview({
+      eventKey: "SALES_INVOICE_ISSUED",
+      vars: {
+        customer_name: invoice.contact.name,
+        doc_number: invoice.invoiceNumber,
+        amount: totalAmount.toLocaleString("id-ID"),
+        remaining_amount: balanceDue.toLocaleString("id-ID"),
+        doc_url: invoiceUrl,
+        status: invoice.status,
+        date: formatDate(invoice.invoiceDate),
+      },
+    });
+    if (!preview.isEnabled) {
       toast({
         variant: "destructive",
         title: tCommon("error"),
@@ -537,35 +554,10 @@ export function SalesInvoiceForm({
       });
       return;
     }
-    const message = renderCommunicationTemplate(templateConfig.template, {
-      customer_name: invoice.contact.name,
-      doc_number: invoice.invoiceNumber,
-      amount: totalAmount.toLocaleString("id-ID"),
-      remaining_amount: balanceDue.toLocaleString("id-ID"),
-      doc_url: invoiceUrl,
-      status: invoice.status,
-      date: formatDate(invoice.invoiceDate),
-    });
-
-    await createContactCommunicationLog({
-      contactId: invoice.contactId,
-      eventType: "SALES_INVOICE",
-      sourceType: "SALES_INVOICE",
-      sourceId: invoice.id,
-      target: normalized,
-      message,
-      status: "SENT",
-      documentLinks: [
-        { label: "Invoice PDF", url: invoiceUrl },
-        { label: "POS Receipt", url: receiptUrl },
-      ],
-    });
-
-    window.open(
-      `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    setNotifyPhone(normalized);
+    setNotifyMessage(preview.message);
+    setNotifyContext({ contactId: invoice.contactId, sourceId: invoice.id });
+    setNotifyOpen(true);
   };
 
   return (
@@ -1136,6 +1128,24 @@ export function SalesInvoiceForm({
             </Card>
           </div>
         </PageFormContent>
+
+        <WhatsAppNotificationDialog
+          open={notifyOpen}
+          onOpenChange={setNotifyOpen}
+          phone={notifyPhone}
+          message={notifyMessage}
+          onMessageChange={setNotifyMessage}
+          context={
+            notifyContext
+              ? {
+                  contactId: notifyContext.contactId,
+                  eventType: "SALES_INVOICE",
+                  sourceType: "SALES_INVOICE",
+                  sourceId: notifyContext.sourceId,
+                }
+              : null
+          }
+        />
       </form>
 
       <AttachmentDialog
