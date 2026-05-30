@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +84,7 @@ interface SalesInvoiceFormProps {
   departments?: Department[];
   projects?: Project[];
   readonly?: boolean;
+  initialSalesOrderId?: string;
 }
 
 export function SalesInvoiceForm({
@@ -94,6 +95,7 @@ export function SalesInvoiceForm({
   departments = [],
   projects = [],
   readonly = false,
+  initialSalesOrderId,
 }: SalesInvoiceFormProps) {
   const invoice = serializedInvoice
     ? SuperJSON.deserialize<SalesInvoiceWithDetails>(serializedInvoice)
@@ -123,6 +125,7 @@ export function SalesInvoiceForm({
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
+  const hasAppliedInitialSalesOrder = useRef(false);
   const [invoiceDateInput, setInvoiceDateInput] = useState(
     invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), inputDateFormat) : format(new Date(), inputDateFormat),
   );
@@ -380,7 +383,15 @@ export function SalesInvoiceForm({
       }
 
       if (result.success) {
-        router.push("/sales/invoices");
+        const createdInvoice =
+          !isEditing && result.data
+            ? SuperJSON.deserialize<{ id: string }>(result.data)
+            : null;
+        if (createdInvoice?.id) {
+          router.push(`/sales/invoices/${createdInvoice.id}/edit`);
+        } else {
+          router.push("/sales/invoices");
+        }
       } else {
         toast({
           title: "Error",
@@ -461,6 +472,14 @@ export function SalesInvoiceForm({
     ? salesOrders.filter((so) => so.contactId === formData.contactId)
     : salesOrders;
   const showDimensionFields = departments.length > 0 || projects.length > 0;
+
+  useEffect(() => {
+    if (isEditing || !initialSalesOrderId || hasAppliedInitialSalesOrder.current) {
+      return;
+    }
+    hasAppliedInitialSalesOrder.current = true;
+    void handleSalesOrderChange(initialSalesOrderId);
+  }, [initialSalesOrderId, isEditing]);
 
   const handleSendInvoiceWhatsApp = async () => {
     if (!invoice) return;
@@ -555,6 +574,21 @@ export function SalesInvoiceForm({
         <PageFormHeader>
           <PageFormTitle title={isEditing ? "Edit Sales Invoice" : "New Sales Invoice"} />
           <PageFormActions>
+            <div className="flex flex-wrap gap-2">
+            {invoice?.salesOrderId && (
+              <Button asChild type="button" variant="outline" size="sm">
+                <Link href={`/sales/shipments/new?salesOrderId=${invoice.salesOrderId}`}>
+                  Create Shipment
+                </Link>
+              </Button>
+            )}
+            {invoice && (
+              <Button asChild type="button" variant="outline" size="sm">
+                <Link href={`/sales/payments/new?salesInvoiceId=${invoice.id}`}>
+                  Create Payment
+                </Link>
+              </Button>
+            )}
             {invoice && (
               <Button asChild type="button" variant="outline" size="sm">
                 <Link
@@ -616,12 +650,13 @@ export function SalesInvoiceForm({
             >
               Close
             </Button>
+            </div>
           </PageFormActions>
         </PageFormHeader>
         <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
           <div className="space-y-4">
             <Card>
-              <CardContent className="grid gap-4 md:grid-cols-2 mt-4">
+              <CardContent className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <CustomSelect
                   label={t("sales_order_optional")}
                   value={formData.salesOrderId || "none"}
@@ -645,7 +680,7 @@ export function SalesInvoiceForm({
                 </CustomSelect>
 
                 {showDimensionFields ? (
-                  <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div className="col-span-1 grid grid-cols-1 gap-4 md:col-span-2 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">{t("department")}</label>
                       <SearchableSelect
@@ -876,7 +911,7 @@ export function SalesInvoiceForm({
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{tCommon("products")}</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="overflow-x-auto p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -1033,7 +1068,7 @@ export function SalesInvoiceForm({
                     No items added.
                   </div>
                 )}
-                <div className="flex justify-between items-start p-4 border-t">
+                <div className="flex flex-col gap-4 border-t p-4 sm:flex-row sm:items-start sm:justify-between">
                   <Button
                     type="button"
                     variant="outline"
@@ -1043,7 +1078,7 @@ export function SalesInvoiceForm({
                   >
                     <PlusIcon /> Add Item
                   </Button>
-                  <div className="w-1/3 space-y-2">
+                  <div className="w-full space-y-2 sm:w-1/3">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium">
                         Subtotal (Net)

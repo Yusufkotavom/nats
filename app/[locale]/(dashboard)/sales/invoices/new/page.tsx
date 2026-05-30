@@ -13,7 +13,14 @@ export const metadata: Metadata = {
   description: "Create a new sales invoice",
 };
 
-export default async function NewSalesInvoicePage() {
+export default async function NewSalesInvoicePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ salesOrderId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialSalesOrderId = resolvedSearchParams?.salesOrderId || undefined;
+
   const [customers, salesOrders, departments, projects, taxRates] = await Promise.all([
     getContacts({ type: ContactType.CUSTOMER }),
     getSalesOrdersForSelect(),
@@ -29,6 +36,7 @@ export default async function NewSalesInvoicePage() {
       departments={departments}
       projects={projects.projects}
       taxRates={taxRates}
+      initialSalesOrderId={initialSalesOrderId}
     />
   );
 }

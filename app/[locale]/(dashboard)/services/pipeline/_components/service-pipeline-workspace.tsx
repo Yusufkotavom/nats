@@ -57,7 +57,8 @@ export function ServicePipelineWorkspace({
 
   const actionLabelMap: Record<string, string> = {
     move_processing: "Move to Processing",
-    move_ready: "Move to Ready/Done",
+    move_ready: "Move to Ready",
+    move_done: "Complete Work",
     settle_payment: "Settle Payment",
     close_order: "Close Service Order",
     done: "Done",

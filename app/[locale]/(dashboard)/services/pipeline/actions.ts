@@ -113,7 +113,7 @@ export async function getServicePipelineState(orderId: string): Promise<ServiceP
 
 export async function runServicePipelineAction(
   orderId: string,
-  action: "move_processing" | "move_ready" | "settle_payment" | "close_order",
+  action: "move_processing" | "move_ready" | "move_done" | "settle_payment" | "close_order",
 ) {
   const session = await getSession();
   assertAccess(session);
@@ -124,6 +124,8 @@ export async function runServicePipelineAction(
   }
   if (action === "move_ready") {
     await updateServiceOrderStatus(orderId, "READY");
+  }
+  if (action === "move_done") {
     await updateServiceOrderStatus(orderId, "DONE");
   }
   if (action === "settle_payment") {

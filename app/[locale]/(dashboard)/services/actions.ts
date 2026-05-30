@@ -334,6 +334,7 @@ export async function getServiceInvoices(
       if (!invoice) return null;
       return {
         id: invoice.id,
+        serviceOrderId: order.id,
         invoiceNumber: invoice.invoiceNumber,
         orderNumber: order.orderNumber,
         customerName: order.contactId ? (contactMap.get(order.contactId)?.name ?? "Walk-in Customer") : "Walk-in Customer",
@@ -405,17 +406,21 @@ export async function getServicePayments(
       companyId,
       salesInvoiceId: { in: payments.map((payment) => payment.salesInvoiceId).filter(Boolean) as string[] },
     },
-    select: { salesInvoiceId: true, orderNumber: true },
+    select: { id: true, salesInvoiceId: true, orderNumber: true },
   });
-  const orderMap = new Map(serviceOrders.map((o) => [o.salesInvoiceId, o.orderNumber]));
+  const orderMap = new Map(
+    serviceOrders.map((o) => [o.salesInvoiceId, { orderNumber: o.orderNumber, orderId: o.id }]),
+  );
 
   const rows: ServicePaymentListItem[] = payments
     .filter((payment) => payment.salesInvoiceId && orderMap.has(payment.salesInvoiceId))
     .map((payment) => ({
+      serviceOrderId: orderMap.get(payment.salesInvoiceId as string)?.orderId ?? "",
+      salesInvoiceId: payment.salesInvoiceId as string,
       id: payment.id,
       paymentNumber: payment.paymentNumber,
       invoiceNumber: payment.salesInvoice?.invoiceNumber ?? payment.reference ?? "-",
-      orderNumber: orderMap.get(payment.salesInvoiceId as string) ?? "-",
+      orderNumber: orderMap.get(payment.salesInvoiceId as string)?.orderNumber ?? "-",
       customerName: payment.contact?.name ?? "Walk-in Customer",
       method: payment.method ?? "-",
       amount: payment.amount.toString(),
@@ -424,8 +429,8 @@ export async function getServicePayments(
 
   return {
     data: rows,
-    total: rows.length,
-    totalPages: Math.ceil(rows.length / pageSize) || 1,
+    total,
+    totalPages: Math.ceil(total / pageSize) || 1,
   };
 }
 
@@ -626,6 +631,9 @@ export async function updateServiceOrderPricing(input: {
       include: { items: true },
     });
     if (!order) throw new Error("Service order tidak ditemukan");
+    if (["DONE", "CLOSED", "CANCELLED"].includes(order.status)) {
+      throw new Error("Service order final tidak bisa diubah harga");
+    }
     if (!order.items.length) throw new Error("Service order belum punya item");
 
     const item = order.items[0];
@@ -792,6 +800,9 @@ export async function updateServiceOrder(input: {
       include: { items: true },
     });
     if (!order) throw new Error("Service order tidak ditemukan");
+    if (["DONE", "CLOSED", "CANCELLED"].includes(order.status)) {
+      throw new Error("Service order final tidak bisa diedit");
+    }
 
     const products = await tx.product.findMany({
       where: { id: { in: input.items.map((item) => item.productId) } },

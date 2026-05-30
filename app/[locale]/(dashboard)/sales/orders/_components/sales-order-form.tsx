@@ -274,7 +274,14 @@ export function SalesOrderForm({
 
       if (result.success) {
         if (!isEditing) {
-          router.push("/sales/orders");
+          const createdOrder = result.data
+            ? SuperJSON.deserialize<{ id: string }>(result.data)
+            : null;
+          if (createdOrder?.id) {
+            router.push(`/sales/orders/${createdOrder.id}/edit`);
+          } else {
+            router.push("/sales/orders");
+          }
         } else {
           // Stay on page but show success? Or redirect?
           // Revalidation happens in action, so UI updates.
@@ -303,8 +310,20 @@ export function SalesOrderForm({
       setIsLoading(true);
       try {
         const result = await confirmSalesOrder(order.id);
-        if (!result.success)
+        if (!result.success) {
           await alert({ title: "Error", description: result.error });
+          return;
+        }
+
+        const shouldCreateInvoice = await confirm({
+          title: "Create Invoice",
+          description:
+            "Sales Order sudah dikonfirmasi. Buat Sales Invoice sekarang?",
+          confirmText: "Create Invoice",
+        });
+        if (shouldCreateInvoice) {
+          router.push(`/sales/invoices/new?salesOrderId=${order.id}`);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -378,7 +397,7 @@ export function SalesOrderForm({
   return (
     <PageFormLayout>
       <PageFormHeader>
-        <div className="flex gap-5 items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
           <PageFormTitle title={displayOrderNumber === "Draft"
             ? "Draft Sales Order"
             : `Sales Order ${displayOrderNumber || "New"}`} />
@@ -407,7 +426,7 @@ export function SalesOrderForm({
                     <InfoIcon className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="min-w-1/3">
+                <DialogContent className="w-[95vw] max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>Status History</DialogTitle>
                   </DialogHeader>
@@ -474,6 +493,7 @@ export function SalesOrderForm({
           </div>
         </div>
         <PageFormActions>
+          <div className="flex flex-wrap gap-2">
           {/* Action Buttons */}
           {isDraft && !readonly && (
             <>
@@ -497,6 +517,26 @@ export function SalesOrderForm({
 
           {formData.status === "CONFIRMED" && !readonly && (
             <>
+              {order ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push(`/sales/shipments/new?salesOrderId=${order.id}`)}
+                    disabled={isLoading}
+                  >
+                    Create Shipment
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push(`/sales/invoices/new?salesOrderId=${order.id}`)}
+                    disabled={isLoading}
+                  >
+                    Create Invoice
+                  </Button>
+                </>
+              ) : null}
               <Button type="button" onClick={handleClose} disabled={isLoading}>
                 <CheckCircle className="mr-2 h-4 w-4" />
                 {tCommon("finish")}
@@ -574,7 +614,7 @@ export function SalesOrderForm({
             <ArrowLeftSquare className="mr-2 h-4 w-4" />
             {tCommon("close")}
           </Button>
-
+          </div>
         </PageFormActions>
       </PageFormHeader>
       <form onSubmit={handleSubmit}>
@@ -582,7 +622,7 @@ export function SalesOrderForm({
           <div className="space-y-4">
             <Card>
               <CardContent>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">{t("customer")}</label>
@@ -602,7 +642,7 @@ export function SalesOrderForm({
                         disabled={isReadOnly}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <CustomInput
                         type="date"
                         label={t("order_date")}
@@ -644,7 +684,7 @@ export function SalesOrderForm({
                     </div>
 
                     {showDimensionFields ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">{t("department")}</label>
                           <SearchableSelect
@@ -717,7 +757,7 @@ export function SalesOrderForm({
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{t("ordered_items")}</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="overflow-x-auto p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -758,7 +798,7 @@ export function SalesOrderForm({
                                     sku: string;
                                   }) => (
                                     <SelectItem key={p.id} value={p.id}>
-                                      {p.name} ({p.sku})
+                                      {p.name}
                                     </SelectItem>
                                   ),
                                 )}
@@ -835,7 +875,7 @@ export function SalesOrderForm({
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="justify-between border-t p-4">
+              <CardFooter className="flex-col gap-3 border-t p-4 sm:flex-row sm:items-center sm:justify-between">
                 <Button
                   type="button"
                   variant="outline"

@@ -198,7 +198,7 @@ export function KitchenTab({ sessionId }: KitchenTabProps) {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="font-medium">
-                      {item.product?.name || item.productId}
+                      {item.product?.name || "Produk"}
                     </div>
                     <Badge variant="secondary">{item.status}</Badge>
                   </div>

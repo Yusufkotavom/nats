@@ -44,7 +44,6 @@ interface CheckoutDialogProps {
   selectedContactId?: string;
   onSelectedContactChange: (contactId?: string) => void;
   onQuickCreateContact: () => void;
-  onQuickInformContact?: () => void;
 }
 
 export function CheckoutDialog({
@@ -57,7 +56,6 @@ export function CheckoutDialog({
   selectedContactId,
   onSelectedContactChange,
   onQuickCreateContact,
-  onQuickInformContact,
 }: CheckoutDialogProps) {
   const t = useTranslations('POS');
   const [method, setMethod] = useState<'CASH' | 'BANK' | 'CARD' | 'QRIS'>('CASH');
@@ -183,15 +181,6 @@ export function CheckoutDialog({
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" onClick={onQuickCreateContact}>
                   + Quick Contact
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!selectedContactId}
-                  onClick={() => onQuickInformContact?.()}
-                >
-                  Quick Inform
                 </Button>
               </div>
             </div>

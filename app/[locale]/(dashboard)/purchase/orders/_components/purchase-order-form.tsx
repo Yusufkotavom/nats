@@ -385,8 +385,8 @@ export function PurchaseOrderForm({
 
   return (
     <div className="flex-1 space-y-4 px-4 pt-0">
-      <div className="flex items-center justify-between space-y-2">
-        <div className="flex gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
           <h2 className="text-xl font-bold tracking-tight flex-1">
             {displayOrderNumber === "Draft"
               ? "Draft Purchase Order"
@@ -417,7 +417,7 @@ export function PurchaseOrderForm({
                     <InfoIcon className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="min-w-1/3">
+                <DialogContent className="w-[95vw] max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>Status History</DialogTitle>
                   </DialogHeader>
@@ -483,7 +483,7 @@ export function PurchaseOrderForm({
             )}
           </div>
         </div>
-        <div className="flex gap-2 text-sm">
+        <div className="flex flex-wrap gap-2 text-sm">
           {/* Action Buttons */}
           {isDraft && !readonly && (
             <>
@@ -592,7 +592,7 @@ export function PurchaseOrderForm({
           <div className="space-y-4">
             <Card>
               <CardContent>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <CustomSelect
                       value={formData.contactId}
@@ -609,7 +609,7 @@ export function PurchaseOrderForm({
                         </SelectItem>
                       ))}
                     </CustomSelect>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <CustomInput
                         type="date"
                         label="Order Date"
@@ -651,7 +651,7 @@ export function PurchaseOrderForm({
                     </div>
 
                     {showDimensionFields ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Department</label>
                           <SearchableSelect
@@ -723,7 +723,7 @@ export function PurchaseOrderForm({
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Ordered Items</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="overflow-x-auto p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -841,7 +841,7 @@ export function PurchaseOrderForm({
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="justify-between border-t p-4">
+              <CardFooter className="flex-col gap-3 border-t p-4 sm:flex-row sm:items-center sm:justify-between">
                 <Button
                   type="button"
                   variant="outline"

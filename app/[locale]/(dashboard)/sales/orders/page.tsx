@@ -139,6 +139,11 @@ export default function SalesOrdersPage() {
             header: t("order_number"),
             accessorKey: "orderNumber",
             className: "font-medium",
+            cell: (item) => (
+                <Link href={`/sales/orders/${item.id}/edit`} className="text-primary hover:underline">
+                    {item.orderNumber}
+                </Link>
+            ),
         },
         {
             header: tCommon("date"),

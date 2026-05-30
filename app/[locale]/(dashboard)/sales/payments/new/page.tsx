@@ -9,9 +9,21 @@ export const metadata: Metadata = {
   description: "Create a new sales payment",
 };
 
-export default async function NewSalesPaymentPage() {
+export default async function NewSalesPaymentPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ salesInvoiceId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialSalesInvoiceId = resolvedSearchParams?.salesInvoiceId || undefined;
   const departments = await getDepartments();
   const projects = await getProjects();
 
-  return <SalesPaymentForm departments={departments} projects={projects} />;
+  return (
+    <SalesPaymentForm
+      departments={departments}
+      projects={projects}
+      initialSalesInvoiceId={initialSalesInvoiceId}
+    />
+  );
 }

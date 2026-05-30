@@ -344,7 +344,7 @@ export class RestaurantOrderService {
       note: ticket.notes,
       items: ticket.items.map((item) => ({
         productId: item.productId,
-        productName: item.product?.name ?? item.productId,
+        productName: item.product?.name ?? "Produk",
         sku: item.product?.sku ?? undefined,
         quantity: item.quantity,
         station: item.station,

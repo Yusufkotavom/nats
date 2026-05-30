@@ -6,6 +6,7 @@ import {
   holdOrder,
   sendOrderToKitchen,
   getPOSContacts,
+  getPOSInvoice,
   getPOSPaymentMethods,
 } from "../actions";
 import { POSCartItem, POSDiningSpot, POSContactOption } from "../types";
@@ -49,8 +50,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { QuickContactDialog } from "./quick-contact-dialog";
-import { buildMailtoUrl, buildWhatsAppUrl } from "./contact-communication";
+import { buildWhatsAppUrl } from "./contact-communication";
 import { SuperJSON } from "@/lib/superjson";
+import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -261,8 +263,53 @@ export function CartView({
 
       // Store invoice ID for receipt
       if (result.data?.invoiceId) {
-        setLastInvoiceId(result.data.invoiceId);
-        setIsReceiptOpen(true);
+        const serializedInvoice = await getPOSInvoice(result.data.invoiceId);
+        const invoice = serializedInvoice
+          ? SuperJSON.deserialize<any>(serializedInvoice)
+          : null;
+        const latestPayment = invoice?.payments?.[0];
+
+        if (invoice?.contact) {
+          const preview = await buildCompanyCommunicationPreview({
+            eventKey: "POS_PAYMENT_POSTED",
+            vars: {
+              customer_name: invoice.contact.name || "Pelanggan",
+              doc_number: latestPayment?.paymentNumber || invoice.invoiceNumber || "-",
+              amount: Number(latestPayment?.amount || amount || 0).toString(),
+              remaining_amount: Number(invoice.balanceDue || 0).toString(),
+              doc_url: "",
+            },
+          });
+
+          if (!preview.isEnabled) {
+            setLastInvoiceId(result.data.invoiceId);
+            setIsReceiptOpen(true);
+          } else {
+            const shouldSend = await confirm({
+              title: "Kirim info pembayaran ke customer?",
+              description: `Kirim WhatsApp ke ${invoice.contact.name || "Customer"} sekarang.`,
+            });
+
+            if (shouldSend) {
+              const waUrl = buildWhatsAppUrl(invoice.contact.phone, preview.message);
+
+              if (waUrl) {
+                window.open(waUrl, "_blank", "noopener,noreferrer");
+              } else {
+                toast({
+                  variant: "destructive",
+                  title: "Nomor WhatsApp customer tidak valid",
+                });
+              }
+            }
+
+            setLastInvoiceId(result.data.invoiceId);
+            setIsReceiptOpen(true);
+          }
+        } else {
+          setLastInvoiceId(result.data.invoiceId);
+          setIsReceiptOpen(true);
+        }
       }
 
       onClear();
@@ -471,32 +518,6 @@ export function CartView({
     setEditingPriceValue("");
   };
 
-  const handleQuickInform = () => {
-    if (!selectedContact) return;
-
-    const promoMessage = `Halo ${selectedContact.name}, promo terbaru kami sudah tersedia. Balas pesan ini untuk info detail atau pemesanan.`;
-    const waUrl = buildWhatsAppUrl(selectedContact.phone, promoMessage);
-    if (waUrl) {
-      window.open(waUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    const mailtoUrl = buildMailtoUrl(
-      selectedContact.email,
-      "Info Promo Terbaru",
-      promoMessage,
-    );
-    if (mailtoUrl) {
-      window.open(mailtoUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    toast({
-      variant: "destructive",
-      title: "Kontak belum punya nomor WhatsApp/email",
-    });
-  };
-
   const getActiveDiscountValue = () => {
     if (selectedItemId) {
       const item = cart.find((i) => i.id === selectedItemId);
@@ -558,7 +579,6 @@ export function CartView({
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium line-clamp-2">{item.name}</h4>
-                    <p className="text-xs text-muted-foreground">{item.sku}</p>
                     {editingPriceItemId === item.id ? (
                       <div className="mt-1 flex items-center gap-1">
                         <input
@@ -802,7 +822,6 @@ export function CartView({
         selectedContactId={selectedContactId}
         onSelectedContactChange={setSelectedContactId}
         onQuickCreateContact={() => setQuickContactOpen(true)}
-        onQuickInformContact={handleQuickInform}
         onConfirm={(method, amount, customerId, cashAccountId) =>
           handleCheckout(method, amount, customerId, cashAccountId)
         }

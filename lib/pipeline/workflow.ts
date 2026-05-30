@@ -34,6 +34,7 @@ export function getSalesNextStep(input: SalesWorkflowInput): SalesPipelineStep {
 export type ServicePipelineStep =
   | "move_processing"
   | "move_ready"
+  | "move_done"
   | "settle_payment"
   | "close_order"
   | "done";
@@ -47,7 +48,8 @@ export type ServiceWorkflowInput = {
 export function getServiceNextStep(input: ServiceWorkflowInput): ServicePipelineStep {
   if (input.status === "NEW") return "move_processing";
   if (input.status === "PROCESSING") return "move_ready";
-  if (input.status === "READY" || input.status === "DONE") {
+  if (input.status === "READY") return "move_done";
+  if (input.status === "DONE") {
     if (input.remainingAmount > 0) return "settle_payment";
     if (input.canClose) return "close_order";
     return "done";

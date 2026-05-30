@@ -811,7 +811,7 @@ export class POSTransactionService {
                 shippingCost: shippingCostAmount.gt(0) ? shippingCostAmount.toString() : undefined,
                 items: params.itemsWithCalculations.map(({ item, discountPercent }, index) => {
                     return {
-                        description: `POS Item - ${item.productId}`,
+                        description: "POS Item",
                         quantity: item.quantity,
                         unitPrice: new Decimal(item.price).toString(),
                         discount: discountPercent.toString(),

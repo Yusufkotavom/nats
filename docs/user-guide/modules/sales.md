@@ -2,7 +2,7 @@
 title: Modul Sales
 module: sales
 order: 120
-updatedAt: 2026-05-25
+updatedAt: 2026-05-30
 summary: Panduan lengkap proses penjualan dari order sampai payment dengan contoh praktis.
 related: modules/pos,modules/inventory,modules/accounting
 ---
@@ -31,6 +31,14 @@ Sales Order → Shipment → Invoice → Payment
 - Top bar ini menjadi jembatan cepat antar tahap: `Sales Order` → `Shipment` → `Invoice` → `Payment`.
 - Jika dokumen tahap berikutnya belum ada, step akan tampil placeholder (`-`), jadi user tahu tahap mana yang sudah/ belum terbentuk.
 - Tujuan utamanya mengurangi klik bolak-balik list dokumen, sambil tetap memakai form/original page yang sama.
+
+### Alur Cepat Baru (Anti Pecah Halaman)
+- Saat **Sales Order CONFIRMED**, sistem menampilkan popup: **Buat Sales Invoice sekarang?**
+- Jika pilih **Yes**, user langsung diarahkan ke `/sales/invoices/new?salesOrderId=...` dan data order otomatis terisi.
+- Saat create **Sales Invoice/Shipment/Payment**, sistem langsung redirect ke halaman **edit** dokumen yang baru dibuat.
+- Di halaman edit:
+  - Sales Order: ada tombol cepat **Create Shipment** dan **Create Invoice**.
+  - Sales Invoice: ada tombol cepat **Create Shipment** (jika ada SO) dan **Create Payment**.
 
 ## 🚀 Langkah 1: Sales Order
 

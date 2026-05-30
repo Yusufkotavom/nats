@@ -222,7 +222,7 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
                       key={item.id}
                       className="flex items-center justify-between gap-2"
                     >
-                      <span>{item.product?.name || item.productId}</span>
+                      <span>{item.product?.name || "Produk"}</span>
                       <span>
                         {item.servedQuantity > 0
                           ? item.servedQuantity

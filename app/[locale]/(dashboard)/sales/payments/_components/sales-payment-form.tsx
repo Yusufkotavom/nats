@@ -46,6 +46,7 @@ interface SalesPaymentFormProps {
   readonly?: boolean;
   departments?: Department[];
   projects?: Project[];
+  initialSalesInvoiceId?: string;
 }
 
 type PaymentMethodOption = {
@@ -65,6 +66,7 @@ export function SalesPaymentForm({
   readonly = false,
   departments = [],
   projects = [],
+  initialSalesInvoiceId,
 }: SalesPaymentFormProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -135,6 +137,12 @@ export function SalesPaymentForm({
   );
 
   useEffect(() => {
+    if (!initialData && initialSalesInvoiceId && !formData.salesInvoiceId) {
+      setFormData((prev) => ({ ...prev, salesInvoiceId: initialSalesInvoiceId }));
+    }
+  }, [initialSalesInvoiceId, initialData, formData.salesInvoiceId]);
+
+  useEffect(() => {
     if (!initialData && formData.salesInvoiceId && invoicesData) {
       const invoice = invoicesData.find(
         (inv) => inv.id === formData.salesInvoiceId
@@ -190,13 +198,24 @@ export function SalesPaymentForm({
       }
 
       if (result.success) {
+        const createdPayment =
+          !initialData &&
+          result.data &&
+          typeof result.data === "object" &&
+          "json" in result.data
+            ? SuperJSON.deserialize<{ id: string }>(result.data as SuperJSONResult)
+            : null;
         toast({
           title: "Success",
           description: initialData
             ? "Payment updated successfully"
             : "Payment created successfully",
         });
-        router.push("/sales/payments");
+        if (createdPayment?.id) {
+          router.push(`/sales/payments/${createdPayment.id}/edit`);
+        } else {
+          router.push("/sales/payments");
+        }
         router.refresh();
       } else {
         toast({

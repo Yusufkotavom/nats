@@ -179,9 +179,6 @@ export function POSInvoiceDetail({
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="font-medium">{item.product.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.product.sku}
-                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         {item.quantity}

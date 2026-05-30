@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
@@ -59,6 +59,7 @@ interface SalesShipmentFormProps {
     departments?: Department[];
     projects?: Project[];
     readonly?: boolean;
+    initialSalesOrderId?: string;
 }
 
 export function SalesShipmentForm({
@@ -68,6 +69,7 @@ export function SalesShipmentForm({
     departments = [],
     projects = [],
     readonly = false,
+    initialSalesOrderId,
 }: SalesShipmentFormProps) {
     const router = useRouter();
     const t = useTranslations("Sales");
@@ -87,6 +89,7 @@ export function SalesShipmentForm({
         })) || [],
     );
     const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+    const hasAppliedInitialSalesOrder = useRef(false);
     const showDimensionFields = departments.length > 0 || projects.length > 0;
 
     const salesOrders = useMemo(
@@ -225,6 +228,13 @@ export function SalesShipmentForm({
                     title: "Success",
                     description: "Sales shipment created successfully",
                 });
+                const createdShipment = result.data
+                    ? SuperJSON.deserialize<{ id: string }>(result.data)
+                    : null;
+                if (createdShipment?.id) {
+                    router.push(`/sales/shipments/${createdShipment.id}/edit`);
+                    return;
+                }
             }
             router.push("/sales/shipments");
         } catch (error) {
@@ -269,6 +279,18 @@ export function SalesShipmentForm({
         }
         return "-";
     };
+
+    useEffect(() => {
+        if (shipment || !initialSalesOrderId || hasAppliedInitialSalesOrder.current) {
+            return;
+        }
+        hasAppliedInitialSalesOrder.current = true;
+        const so = salesOrders.find((item) => item.id === initialSalesOrderId);
+        if (so) {
+            handleContactChange(so.contactId);
+            handleSalesOrderChange(so.id);
+        }
+    }, [initialSalesOrderId, shipment, salesOrders]);
 
     return (
         <PageFormLayout>

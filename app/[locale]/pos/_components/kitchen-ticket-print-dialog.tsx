@@ -153,7 +153,6 @@ export function KitchenTicketPrintDialog({
                   <td>
                     <div>
                       {item.productName}
-                      {item.sku ? ` (${item.sku})` : ""}
                     </div>
                     {item.note ? (
                       <div className="note">» {item.note}</div>

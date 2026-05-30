@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -47,6 +47,8 @@ import Link from "next/link";
 interface TransactionFormProps {
   cashAccounts: CashAccount[];
   glAccounts: Account[];
+  expenseParentAccountId?: string | null;
+  incomeParentAccountId?: string | null;
   contacts: Contact[];
   departments?: Department[];
   projects?: Project[];
@@ -58,6 +60,8 @@ interface TransactionFormProps {
 export function TransactionForm({
   cashAccounts,
   glAccounts,
+  expenseParentAccountId,
+  incomeParentAccountId,
   contacts,
   departments,
   projects,
@@ -80,6 +84,11 @@ export function TransactionForm({
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [entryMode, setEntryMode] = useState<"SIMPLE" | "ADVANCED">(
+    initialData?.allocations?.length && initialData.allocations.length > 1
+      ? "ADVANCED"
+      : "SIMPLE",
+  );
   const formatCurrency = useFormatCurrency();
   const showDimensionFields =
     (departments?.length ?? 0) > 0 || (projects?.length ?? 0) > 0;
@@ -94,6 +103,8 @@ export function TransactionForm({
       ? {
         ...initialData,
         date: new Date(initialData.date), // Ensure date is Date object
+        amount: Number(initialData.allocations?.[0]?.amount || 0),
+        categoryAccountId: initialData.allocations?.[0]?.accountId || "",
         departmentId: initialData.departmentId,
         projectId: initialData.projectId,
       }
@@ -102,6 +113,8 @@ export function TransactionForm({
         type: CashTransactionType.INCOME,
         cashAccountId: "",
         contactId: "",
+        amount: 0,
+        categoryAccountId: "",
         departmentId: undefined,
         projectId: undefined,
         allocations: [],
@@ -111,6 +124,30 @@ export function TransactionForm({
         description: "",
       },
   );
+
+  const filteredCategoryOptions = useMemo(() => {
+    const type = formData.type;
+    const parentId =
+      type === CashTransactionType.EXPENSE
+        ? expenseParentAccountId
+        : incomeParentAccountId;
+    const fallbackType = type === CashTransactionType.EXPENSE ? "expense" : "revenue";
+
+    const candidates = glAccounts.filter((acc) => {
+      if (parentId) return acc.parentId === parentId;
+      return acc.type === fallbackType;
+    });
+
+    return candidates.map((acc) => ({
+      label: `${acc.code} - ${acc.name}`,
+      value: acc.id,
+    }));
+  }, [
+    glAccounts,
+    formData.type,
+    expenseParentAccountId,
+    incomeParentAccountId,
+  ]);
 
   const handleAddAllocation = () => {
     setFormData((prev) => ({
@@ -150,8 +187,35 @@ export function TransactionForm({
         return;
       }
 
+      let allocationsToSubmit = formData.allocations;
+      if (entryMode === "SIMPLE") {
+        if (!formData.categoryAccountId) {
+          toast({
+            title: t("validation_error"),
+            description: "Pilih kategori transaksi",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (Number(formData.amount || 0) <= 0) {
+          toast({
+            title: t("validation_error"),
+            description: "Nominal harus lebih besar dari 0",
+            variant: "destructive",
+          });
+          return;
+        }
+        allocationsToSubmit = [
+          {
+            accountId: formData.categoryAccountId,
+            amount: Number(formData.amount || 0),
+            description: formData.description || "Transaksi Kas/Bank",
+          },
+        ];
+      }
+
       // Check if allocations have accountId and amount > 0
-      for (const alloc of formData.allocations) {
+      for (const alloc of allocationsToSubmit) {
         if (!alloc.accountId) {
           toast({
             title: t("validation_error"),
@@ -173,6 +237,7 @@ export function TransactionForm({
       setIsSubmitting(true);
       const submitData = {
         ...formData,
+        allocations: allocationsToSubmit,
         attachments: attachmentDialog.attachments,
         notes: noteDialog.note,
       };
@@ -232,10 +297,12 @@ export function TransactionForm({
     }
   };
 
-  const totalAmount = formData.allocations.reduce(
+  const totalAmount = (entryMode === "SIMPLE"
+    ? Number(formData.amount || 0)
+    : formData.allocations.reduce(
     (sum, a) => sum + Number(a.amount || 0),
     0,
-  );
+  ));
 
   return (
     <PageFormLayout>
@@ -259,16 +326,37 @@ export function TransactionForm({
       </PageFormHeader>
 
       <PageFormContent className="space-y-8">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <CustomSelect
             label={t("type")}
             value={formData.type}
-            onValueChange={(val) =>
-              setFormData({ ...formData, type: val as CashTransactionType })
-            }
+            onValueChange={(val) => {
+              const nextType = val as CashTransactionType;
+              const currentCategory = formData.categoryAccountId || "";
+              const categoryStillValid = filteredCategoryOptions.some(
+                (item) => item.value === currentCategory,
+              );
+              setFormData({
+                ...formData,
+                type: nextType,
+                categoryAccountId: categoryStillValid ? currentCategory : "",
+              });
+            }}
             options={[
               { label: t("revenue_in"), value: CashTransactionType.INCOME },
               { label: t("expense_out"), value: CashTransactionType.EXPENSE },
+            ]}
+            disabled={readOnly}
+          />
+          <CustomSelect
+            label="Mode Input"
+            value={entryMode}
+            onValueChange={(val) =>
+              setEntryMode(val as "SIMPLE" | "ADVANCED")
+            }
+            options={[
+              { label: "Sederhana (UMKM)", value: "SIMPLE" },
+              { label: "Akuntansi Lanjutan", value: "ADVANCED" },
             ]}
             disabled={readOnly}
           />
@@ -309,19 +397,21 @@ export function TransactionForm({
             placeholder={t("optional_reference")}
             disabled={readOnly}
           />
-          <CustomSelect
-            label={t("cash_bank_account")}
-            value={formData.cashAccountId}
-            onValueChange={(val) =>
-              setFormData({ ...formData, cashAccountId: val })
-            }
-            options={cashAccounts.map((acc) => ({
-              label: acc.name,
-              value: acc.id,
-            }))}
-            placeholder={t("select_account")}
-            disabled={readOnly}
-          />
+          <div className="space-y-1">
+            <Label>{t("cash_bank_account")}</Label>
+            <SearchableSelect
+              value={formData.cashAccountId || ""}
+              onValueChange={(val) =>
+                setFormData({ ...formData, cashAccountId: val || "" })
+              }
+              options={cashAccounts.map((acc) => ({
+                label: acc.name,
+                value: acc.id,
+              }))}
+              placeholder={t("select_account")}
+              disabled={readOnly}
+            />
+          </div>
 
           <CustomInput
             label={t("description")}
@@ -332,9 +422,35 @@ export function TransactionForm({
             placeholder={t("transaction_description")}
             disabled={readOnly}
           />
+          {entryMode === "SIMPLE" ? (
+            <>
+              <div className="space-y-1">
+                <Label>Kategori</Label>
+                <SearchableSelect
+                  value={formData.categoryAccountId || ""}
+                  onValueChange={(val) =>
+                    setFormData({ ...formData, categoryAccountId: val || "" })
+                  }
+                  options={filteredCategoryOptions}
+                  placeholder="Pilih kategori transaksi"
+                  disabled={readOnly}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Nominal</Label>
+                <CurrencyInput
+                  value={Number(formData.amount || 0)}
+                  onChange={(val) =>
+                    setFormData({ ...formData, amount: Number(val || 0) })
+                  }
+                  disabled={readOnly}
+                />
+              </div>
+            </>
+          ) : null}
 
           {showDimensionFields ? (
-            <div className="col-span-2 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>{t("department")}</Label>
                 <SearchableSelect
@@ -360,8 +476,9 @@ export function TransactionForm({
         </div>
 
         {/* Allocations Table */}
+        {entryMode === "ADVANCED" ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold">Allocations</h2>
 
             {!readOnly && (
@@ -373,7 +490,7 @@ export function TransactionForm({
             )}
           </div>
 
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -445,8 +562,8 @@ export function TransactionForm({
             </Table>
           </div>
 
-          <div className="flex justify-between bg-muted/20 rounded-md p-2">
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-3 rounded-md bg-muted/20 p-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -468,12 +585,13 @@ export function TransactionForm({
                 {noteDialog.note ? t("edit_note") : t("add_note")}
               </Button>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between gap-4 sm:justify-end">
               <span>Total:</span>
               <span>{formatCurrency(totalAmount)}</span>
             </div>
           </div>
         </div>
+        ) : null}
       </PageFormContent>
 
       <AttachmentDialog

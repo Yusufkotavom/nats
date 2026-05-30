@@ -6,7 +6,14 @@ import { getSalesOrdersForSelect } from "../actions";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 import { SuperJSONResult } from "superjson";
 
-export default async function NewSalesShipmentPage() {
+export default async function NewSalesShipmentPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ salesOrderId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialSalesOrderId = resolvedSearchParams?.salesOrderId || undefined;
+
   const [contactsResult, salesOrdersResult, departments, projects] = await Promise.all([
     getContacts({ page: 1, pageSize: 1000 }), // Fetch all contacts for dropdown
     getSalesOrdersForSelect(),
@@ -23,6 +30,7 @@ export default async function NewSalesShipmentPage() {
       salesOrders={salesOrdersResult as unknown as SuperJSONResult}
       departments={departments}
       projects={projects.projects}
+      initialSalesOrderId={initialSalesOrderId}
     />
   );
 }

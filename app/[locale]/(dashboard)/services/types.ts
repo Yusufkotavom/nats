@@ -30,6 +30,7 @@ export type ServiceOrderListItem = {
 
 export type ServiceInvoiceListItem = {
   id: string;
+  serviceOrderId: string;
   invoiceNumber: string;
   orderNumber: string;
   customerName: string;
@@ -42,6 +43,8 @@ export type ServiceInvoiceListItem = {
 
 export type ServicePaymentListItem = {
   id: string;
+  serviceOrderId: string;
+  salesInvoiceId: string;
   paymentNumber: string;
   invoiceNumber: string;
   orderNumber: string;

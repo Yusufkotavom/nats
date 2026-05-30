@@ -184,9 +184,6 @@ export function ProductGrid({
               <h3 className="line-clamp-2 text-sm font-medium leading-tight">
                 {product.name}
               </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {product.sku}
-              </p>
             </CardContent>
             <CardFooter className="flex-1 flex items-center justify-between p-3 pt-0">
               <span className="font-bold text-primary">

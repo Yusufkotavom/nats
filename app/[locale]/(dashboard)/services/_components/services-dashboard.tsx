@@ -376,6 +376,34 @@ export function ServicesDashboard({
     }
   };
 
+  const onSettleFromInvoice = async (invoice: ServiceInvoiceListItem) => {
+    setPendingActionId(invoice.serviceOrderId);
+    try {
+      const defaultAccountId = settleCashAccountId || settleMethodOptions[0]?.id;
+      if (!defaultAccountId) throw new Error("Akun Cash/Bank belum tersedia");
+      const remaining = Number(invoice.balanceDue);
+      if (remaining <= 0) throw new Error("Invoice ini tidak memiliki sisa tagihan");
+      await settleServiceOrder(
+        invoice.serviceOrderId,
+        defaultAccountId,
+        remaining,
+        settlePaymentMethod,
+      );
+      await queryClient.invalidateQueries({ queryKey: ["services-orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
+      await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
+      toast({ title: "Pembayaran service berhasil dicatat" });
+    } catch (error) {
+      toast({
+        title: "Gagal mencatat pembayaran",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setPendingActionId(null);
+    }
+  };
+
   const openEditOrder = useCallback(async (orderId: string, fallbackRemainingAmount?: number) => {
     setEditOrderId(orderId);
     setPendingActionId(orderId);
@@ -729,11 +757,34 @@ export function ServicesDashboard({
     { header: "Balance", className: "text-right", headerClassName: "text-right", cell: (item) => formatCurrency(Number(item.balanceDue)) },
     {
       header: "",
-      className: "w-[90px]",
+      className: "w-[120px]",
       cell: (item) => (
-        <Button variant="ghost" className="h-8" onClick={() => openPrint("SERVICE_INVOICE", { invoiceId: item.id }, `Print ${item.invoiceNumber}`)}>
-          Print
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0" disabled={pendingActionId === item.serviceOrderId}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href={`/services/pipeline/${item.serviceOrderId}`}>Open in Pipeline</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/sales/invoices/${item.id}`}>Open Invoice</Link>
+            </DropdownMenuItem>
+            {Number(item.balanceDue) > 0 ? (
+              <DropdownMenuItem onClick={() => onSettleFromInvoice(item)}>
+                Settle Payment
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => openPrint("SERVICE_INVOICE", { invoiceId: item.id }, `Print ${item.invoiceNumber}`)}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
@@ -746,6 +797,31 @@ export function ServicesDashboard({
     { header: "Method", accessorKey: "method" },
     { header: "Tanggal", cell: (item) => formatDate(item.paymentDate) },
     { header: "Amount", className: "text-right", headerClassName: "text-right", cell: (item) => formatCurrency(Number(item.amount)) },
+    {
+      header: "",
+      className: "w-[120px]",
+      cell: (item) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href={`/services/pipeline/${item.serviceOrderId}`}>Open in Pipeline</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/sales/payments/${item.id}`}>Open Payment</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/sales/invoices/${item.salesInvoiceId}`}>Open Invoice</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
   ];
 
   const afterSalesColumns: Column<ServiceAfterSalesCaseListItem>[] = [

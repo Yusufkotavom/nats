@@ -15,6 +15,8 @@ export interface Attachment {
 export type CashTransactionFormData = {
   type: CashTransactionType;
   date: Date;
+  amount?: number;
+  categoryAccountId?: string;
   reference?: string;
   description?: string;
   contactId?: string;
