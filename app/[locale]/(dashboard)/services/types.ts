@@ -14,6 +14,7 @@ export type ServiceOrderListItem = {
   salesOrderId?: string | null;
   salesInvoiceId?: string | null;
   status: ServiceOrderStatus;
+  contactId?: string | null;
   customerName: string;
   customerPhone?: string | null;
   invoiceNumber?: string | null;

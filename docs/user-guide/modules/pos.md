@@ -112,7 +112,7 @@ Produk service dapat dijual walau stok produk service nol.
 ## Alur Service Order (DP dan Pelunasan)
 1. Masuk tab `Kasir` lalu pilih mode **Service**.
 2. Pilih produk service, qty, harga, target selesai, dan catatan.
-3. Isi DP jika ada (opsional) + metode pembayaran DP.
+3. Isi DP jika ada (opsional) + metode pembayaran DP + akun kas/bank tujuan DP.
 4. Klik **Buat Order Service**.
 5. Lanjutkan status antrian sesuai progres: `NEW -> PROCESSING -> READY -> DONE`.
 6. Saat status `DONE`, sistem menyelesaikan shipment internal dan proses konsumsi stok sesuai aturan BOM.
@@ -123,6 +123,9 @@ Produk service dapat dijual walau stok produk service nol.
 Untuk customer yang punya nomor WhatsApp/email, sistem otomatis membuka draft pesan update pada momen:
 
 1. **Service order dibuat** (termasuk info DP jika ada).
+2. Setelah create sukses, sistem menampilkan popup manual kirim notifikasi customer (preview pesan dari `Admin > Settings > Communication`, event `SERVICE_CREATED`).
+3. Saat status service berubah ke tahap penting (`READY`, `DONE`, `CLOSED`), sistem menampilkan popup manual kirim notifikasi customer sesuai template event service.
+4. Saat pelunasan/payment dicatat, sistem menampilkan popup manual kirim notifikasi customer menggunakan template komunikasi pembayaran.
 2. **Status berubah ke READY/DONE** (pesan siap ambil).
 3. **Pelunasan/pembayaran diterima** (sebagai bukti pembayaran).
 

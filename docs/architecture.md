@@ -138,7 +138,7 @@ Seluruh operasional service kini dipusatkan di route dashboard `/services` denga
 - validasi session internal service (`ensureServiceSession`) per user-company,
 - validasi item service,
 - membuat `SalesOrder + SalesInvoice`,
-- opsional membuat payment DP (status invoice: `ISSUED` / `PARTIALLY_PAID` / `PAID`).
+- opsional membuat payment DP (status invoice: `ISSUED` / `PARTIALLY_PAID` / `PAID`) dengan akun kas/bank tujuan DP yang dipilih user.
 
 2. `Transition Status` (`NEW -> PROCESSING -> READY -> DONE -> CLOSED`, dengan opsi `CANCELLED`):
 - saat masuk `DONE`, sistem menjalankan completion:
@@ -151,6 +151,11 @@ Seluruh operasional service kini dipusatkan di route dashboard `/services` denga
 - membuat `SalesPayment`,
 - update `SalesInvoice.balanceDue` + status,
 - sinkronkan `paidAmount`/`remainingAmount` di service order.
+
+5. `Customer Notification (Manual Popup)`:
+- notifikasi customer di service flow bersifat **manual** via popup konfirmasi (bukan auto-send): saat create order, saat status berpindah tahap penting, dan saat payment dicatat.
+- isi pesan bersumber dari template centralized `Admin > Settings > Communication` (`CompanyCommunicationTemplate`) melalui helper preview/render yang sama lintas modul.
+- saat user klik kirim, sistem mencatat jejak ke `ContactCommunicationLog` lalu membuka `wa.me` dengan isi pesan final.
 
 4. `Service Pipeline Bridge`:
 - route `/services/pipeline/[orderId]` bertindak sebagai jembatan cepat lintas dokumen service dengan top bar stage `Service Order → Invoice → Payment`,

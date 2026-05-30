@@ -64,10 +64,9 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { SuperJSON } from "@/lib/superjson";
 import { ServiceOrderCreateForm } from "../orders/_components/service-order-create-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getCompanyCommunicationTemplate } from "@/app/[locale]/communications/actions";
+import { buildCompanyCommunicationPreview, createContactCommunicationLog } from "@/app/[locale]/communications/actions";
 import {
   normalizePhoneForWhatsApp,
-  renderCommunicationTemplate,
 } from "@/lib/communication/company-communication";
 
 type DashboardTab = "orders" | "invoices" | "payments" | "returns_warranty";
@@ -184,6 +183,19 @@ export function ServicesDashboard({
   const [settleAmount, setSettleAmount] = useState<number>(0);
   const [editInitialSnapshot, setEditInitialSnapshot] = useState("");
   const [autoOpenedEdit, setAutoOpenedEdit] = useState(false);
+  const [editOrderContact, setEditOrderContact] = useState<{
+    contactId: string | null;
+    customerName: string;
+    customerPhone: string | null;
+  }>({ contactId: null, customerName: "", customerPhone: null });
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyMeta, setNotifyMeta] = useState<{
+    eventType: "SERVICE_CREATED" | "SERVICE_STATUS_UPDATED" | "SERVICE_PAYMENT_RECEIVED";
+    sourceId: string;
+    contactId: string;
+  } | null>(null);
 
   const { toast } = useToast();
   const t = useTranslations("Services");
@@ -298,6 +310,10 @@ export function ServicesDashboard({
   };
 
   const openWhatsApp = async (order: ServiceOrderListItem) => {
+    if (!order.contactId) {
+      toast({ title: "Order ini belum memiliki customer", variant: "destructive" });
+      return;
+    }
     const normalized = normalizePhoneForWhatsApp(order.customerPhone);
     if (!normalized) {
       toast({ title: "Nomor telepon customer tidak tersedia", variant: "destructive" });
@@ -324,30 +340,82 @@ export function ServicesDashboard({
           : order.status === "DONE"
             ? "SERVICE_COST_DONE"
             : "SERVICE_PICKED_UP";
-    const templateConfig = await getCompanyCommunicationTemplate(eventKey);
-    if (!templateConfig.isEnabled) {
+    const preview = await buildCompanyCommunicationPreview({
+      eventKey,
+      vars: {
+        customer_name: order.customerName,
+        order_number: order.orderNumber,
+        doc_number: order.orderNumber,
+        status: order.status,
+        invoice_number: invoiceNumber,
+        invoice_url: invoiceUrl,
+        no_invoice: noInvoice || "-",
+        warranty_text: warrantyText,
+        doc_url: invoiceUrl,
+        total_amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
+        amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
+        remaining_amount: Number(order.remainingAmount || 0).toLocaleString("id-ID"),
+        target_date: order.targetDate ? formatDate(order.targetDate) : "-",
+        date: formatDate(order.createdAt),
+      },
+    });
+    if (!preview.isEnabled) {
       toast({ title: "Template notifikasi event ini sedang nonaktif", variant: "destructive" });
       return;
     }
-    const replacements: Record<string, string> = {
-      customer_name: order.customerName,
-      order_number: order.orderNumber,
-      doc_number: order.orderNumber,
-      status: order.status,
-      invoice_number: invoiceNumber,
-      invoice_url: invoiceUrl,
-      no_invoice: noInvoice || "-",
-      warranty_text: warrantyText,
-      doc_url: invoiceUrl,
-      total_amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
-      amount: Number(order.totalAmount || 0).toLocaleString("id-ID"),
-      remaining_amount: Number(order.remainingAmount || 0).toLocaleString("id-ID"),
-      target_date: order.targetDate ? formatDate(order.targetDate) : "-",
-      date: formatDate(order.createdAt),
-    };
-    const messageText = renderCommunicationTemplate(templateConfig.template, replacements);
-    const message = encodeURIComponent(messageText);
-    window.open(`https://wa.me/${normalized}?text=${message}`, "_blank", "noopener,noreferrer");
+    setNotifyPhone(normalized);
+    setNotifyMessage(preview.message);
+    setNotifyMeta({
+      eventType: eventKey === "SERVICE_CREATED" ? "SERVICE_CREATED" : "SERVICE_STATUS_UPDATED",
+      sourceId: order.id,
+      contactId: order.contactId,
+    });
+    setNotifyOpen(true);
+  };
+
+  const openServiceNotification = async (input: {
+    eventKey: "SERVICE_CREATED" | "SERVICE_READY" | "SERVICE_COST_DONE" | "SERVICE_PICKED_UP" | "SALES_PAYMENT_POSTED";
+    eventType: "SERVICE_CREATED" | "SERVICE_STATUS_UPDATED" | "SERVICE_PAYMENT_RECEIVED";
+    sourceId: string;
+    contactId: string | null;
+    customerName: string;
+    customerPhone: string | null;
+    orderNumber: string;
+    invoiceNumber?: string | null;
+    totalAmount: number;
+    remainingAmount: number;
+    createdAt?: Date;
+    targetDate?: Date | null;
+  }) => {
+    if (!input.contactId) return;
+    const normalized = normalizePhoneForWhatsApp(input.customerPhone);
+    if (!normalized) return;
+
+    const locale = window.location.pathname.split("/").filter(Boolean)[0] || "id";
+    const origin = window.location.origin;
+    const invoiceUrl = input.invoiceNumber
+      ? `${origin}/${locale}/services/orders`
+      : "-";
+
+    const preview = await buildCompanyCommunicationPreview({
+      eventKey: input.eventKey,
+      vars: {
+        customer_name: input.customerName,
+        doc_number: input.orderNumber,
+        amount: Number(input.totalAmount || 0).toLocaleString("id-ID"),
+        remaining_amount: Number(input.remainingAmount || 0).toLocaleString("id-ID"),
+        status: "-",
+        date: formatDate(input.createdAt || new Date()),
+        warranty_text: "-",
+        doc_url: invoiceUrl,
+      },
+    });
+    if (!preview.isEnabled) return;
+
+    setNotifyPhone(normalized);
+    setNotifyMessage(preview.message);
+    setNotifyMeta({ eventType: input.eventType, sourceId: input.sourceId, contactId: input.contactId });
+    setNotifyOpen(true);
   };
 
   const openCall = (order: ServiceOrderListItem) => {
@@ -369,6 +437,20 @@ export function ServicesDashboard({
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
       toast({ title: "Pembayaran service berhasil dicatat" });
+      await openServiceNotification({
+        eventKey: "SALES_PAYMENT_POSTED",
+        eventType: "SERVICE_PAYMENT_RECEIVED",
+        sourceId: order.id,
+        contactId: order.contactId || null,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone || null,
+        orderNumber: order.orderNumber,
+        invoiceNumber: order.invoiceNumber || null,
+        totalAmount: Number(order.totalAmount || 0),
+        remainingAmount: 0,
+        createdAt: new Date(),
+        targetDate: order.targetDate,
+      });
     } catch (error) {
       toast({ title: "Gagal mencatat pembayaran", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
     } finally {
@@ -393,6 +475,20 @@ export function ServicesDashboard({
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
       toast({ title: "Pembayaran service berhasil dicatat" });
+      const paymentOrder = (ordersQuery.data?.rows || []).find((row) => row.id === invoice.serviceOrderId);
+      await openServiceNotification({
+        eventKey: "SALES_PAYMENT_POSTED",
+        eventType: "SERVICE_PAYMENT_RECEIVED",
+        sourceId: invoice.serviceOrderId,
+        contactId: paymentOrder?.contactId || null,
+        customerName: paymentOrder?.customerName || invoice.customerName,
+        customerPhone: paymentOrder?.customerPhone || null,
+        orderNumber: invoice.orderNumber,
+        invoiceNumber: invoice.invoiceNumber,
+        totalAmount: Number(invoice.totalAmount || 0),
+        remainingAmount: 0,
+        createdAt: new Date(),
+      });
     } catch (error) {
       toast({
         title: "Gagal mencatat pembayaran",
@@ -412,6 +508,9 @@ export function ServicesDashboard({
       const detail = SuperJSON.deserialize<{
         id: string;
         orderNumber: string;
+        contactId: string | null;
+        customerName: string;
+        customerPhone: string | null;
         status: ServiceOrderStatus;
         notes: string;
         salesOrderId: string | null;
@@ -454,6 +553,11 @@ export function ServicesDashboard({
         paidAmount: detail.paidAmount,
         remainingAmount: detail.remainingAmount,
         latestPayment: detail.latestPayment,
+      });
+      setEditOrderContact({
+        contactId: detail.contactId,
+        customerName: detail.customerName,
+        customerPhone: detail.customerPhone,
       });
       setSettleAmount(detail.remainingAmount || fallbackRemainingAmount || 0);
       if (!settleCashAccountId && settleMethodOptions.length) {
@@ -505,6 +609,31 @@ export function ServicesDashboard({
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["services-payments"] });
       toast({ title: "Service order berhasil diperbarui" });
+      if (editStatusValue !== editStatusOptions[0]) {
+        const statusEventKey =
+          editStatusValue === "READY"
+            ? "SERVICE_READY"
+            : editStatusValue === "DONE"
+              ? "SERVICE_COST_DONE"
+              : editStatusValue === "CLOSED"
+                ? "SERVICE_PICKED_UP"
+                : null;
+        if (statusEventKey) {
+          await openServiceNotification({
+            eventKey: statusEventKey,
+            eventType: "SERVICE_STATUS_UPDATED",
+            sourceId: editOrderId,
+            contactId: editOrderContact.contactId,
+            customerName: editOrderContact.customerName,
+            customerPhone: editOrderContact.customerPhone,
+            orderNumber: editOrderMeta?.orderNumber || "-",
+            invoiceNumber: editOrderMeta?.invoiceNumber || null,
+            totalAmount: editOrderMeta?.totalAmount || 0,
+            remainingAmount: editOrderMeta?.remainingAmount || 0,
+            createdAt: new Date(),
+          });
+        }
+      }
       setEditInitialSnapshot("");
       setEditOrderOpen(false);
     } catch (error) {
@@ -555,6 +684,11 @@ export function ServicesDashboard({
       await queryClient.invalidateQueries({ queryKey: ["services-invoices"] });
       const raw = await getServiceOrderForEdit(editOrderId);
       const refreshed = SuperJSON.deserialize<{
+        orderNumber: string;
+        contactId: string | null;
+        customerName: string;
+        customerPhone: string | null;
+        invoiceNumber: string | null;
         paidAmount: number;
         remainingAmount: number;
         latestPayment: {
@@ -576,7 +710,25 @@ export function ServicesDashboard({
           : prev,
       );
       setSettleAmount(refreshed.remainingAmount);
+      setEditOrderContact({
+        contactId: refreshed.contactId,
+        customerName: refreshed.customerName,
+        customerPhone: refreshed.customerPhone,
+      });
       toast({ title: "Pembayaran service berhasil dicatat" });
+      await openServiceNotification({
+        eventKey: "SALES_PAYMENT_POSTED",
+        eventType: "SERVICE_PAYMENT_RECEIVED",
+        sourceId: editOrderId,
+        contactId: refreshed.contactId,
+        customerName: refreshed.customerName,
+        customerPhone: refreshed.customerPhone,
+        orderNumber: refreshed.orderNumber,
+        invoiceNumber: refreshed.invoiceNumber,
+        totalAmount: refreshed.paidAmount,
+        remainingAmount: refreshed.remainingAmount,
+        createdAt: new Date(),
+      });
     } catch (error) {
       toast({ title: "Gagal mencatat pembayaran", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
     } finally {
@@ -586,6 +738,7 @@ export function ServicesDashboard({
 
   useEffect(() => {
     if (!settleMethodOptions.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSettleCashAccountId("");
       return;
     }
@@ -674,6 +827,7 @@ export function ServicesDashboard({
     const rows = ordersQuery.data?.rows || [];
     const matched = rows.find((row) => row.id === initialEditOrderId);
     if (!matched) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAutoOpenedEdit(true);
     void openEditOrder(matched.id, Number(matched.remainingAmount || 0));
   }, [initialEditOrderId, autoOpenedEdit, tab, ordersQuery.data?.rows, openEditOrder]);
@@ -879,6 +1033,7 @@ export function ServicesDashboard({
                       compact
                       products={createMetaQuery.data.products}
                       contacts={createMetaQuery.data.contacts}
+                      paymentMethodOptions={servicePaymentMethodsQuery.data || []}
                       createOrderAction={createServiceOrder}
                       createQuickContactAction={createServiceQuickContact}
                       onSuccess={async () => {
@@ -1007,6 +1162,40 @@ export function ServicesDashboard({
         {tab === "payments" ? <DataTable data={paymentsQuery.data?.rows ?? []} columns={paymentColumns} isLoading={paymentsQuery.isLoading} emptyMessage="Belum ada pembayaran service" pagination={{ totalEntries: paymentsQuery.data?.total ?? 0, pageSize: 10, currentPage: page, onPageChange: setPage }} /> : null}
         {tab === "returns_warranty" ? <DataTable data={afterSalesQuery.data?.rows ?? []} columns={afterSalesColumns} isLoading={afterSalesQuery.isLoading} emptyMessage="Belum ada case return/garansi" pagination={{ totalEntries: afterSalesQuery.data?.total ?? 0, pageSize: 10, currentPage: page, onPageChange: setPage }} /> : null}
       </PageListContent>
+
+      <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Kirim notifikasi customer</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="text-sm text-muted-foreground">Preview pesan (template dari Admin &gt; Settings &gt; Communication)</div>
+            <Textarea value={notifyMessage} onChange={(event) => setNotifyMessage(event.target.value)} className="min-h-[140px]" />
+            <div className="text-xs text-muted-foreground">Tujuan: +{notifyPhone}</div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setNotifyOpen(false)}>Nanti</Button>
+              <Button
+                onClick={async () => {
+                  if (!notifyMeta) return;
+                  await createContactCommunicationLog({
+                    contactId: notifyMeta.contactId,
+                    eventType: notifyMeta.eventType,
+                    sourceType: "SERVICE_ORDER",
+                    sourceId: notifyMeta.sourceId,
+                    target: notifyPhone,
+                    message: notifyMessage,
+                    status: "SENT",
+                  });
+                  window.open(`https://wa.me/${notifyPhone}?text=${encodeURIComponent(notifyMessage)}`, "_blank", "noopener,noreferrer");
+                  setNotifyOpen(false);
+                }}
+              >
+                Kirim WhatsApp
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ReportPreviewDialog
         isOpen={previewOpen}

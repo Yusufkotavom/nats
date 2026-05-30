@@ -25,6 +25,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Trash2 } from "lucide-react";
+import { buildCompanyCommunicationPreview, createContactCommunicationLog } from "@/app/[locale]/communications/actions";
+import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 
 type ServiceLine = {
   id: string;
@@ -34,11 +36,34 @@ type ServiceLine = {
   notes: string;
 };
 
+type ServicePaymentMethodOption = {
+  id: string;
+  name: string;
+  method: "CASH" | "BANK";
+  accountType: "CASH" | "PETTY_CASH" | "BANK" | "EWALLET";
+  bankName: string | null;
+  accountNumber: string | null;
+};
+
+type CreatedServiceOrderPayload = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  customerId: string | null;
+  customerName: string;
+  customerPhone: string | null;
+  invoiceNumber: string | null;
+  totalAmount: number;
+  remainingAmount: number;
+  createdAt: Date;
+};
+
 export function ServiceOrderCreateForm({
   products,
   contacts,
   createOrderAction,
   createQuickContactAction,
+  paymentMethodOptions = [],
   compact = false,
   onSuccess,
 }: {
@@ -50,6 +75,7 @@ export function ServiceOrderCreateForm({
     targetDate?: Date;
     downPaymentAmount?: number;
     paymentMethod?: "CASH" | "BANK";
+    downPaymentCashAccountId?: string;
     items: Array<{
       productId: string;
       quantity: number;
@@ -63,6 +89,7 @@ export function ServiceOrderCreateForm({
     phone?: string;
     email?: string;
   }) => Promise<unknown>;
+  paymentMethodOptions?: ServicePaymentMethodOption[];
   compact?: boolean;
   onSuccess?: () => void;
 }) {
@@ -71,6 +98,8 @@ export function ServiceOrderCreateForm({
   const [saving, setSaving] = useState(false);
   const [customerId, setCustomerId] = useState("walk-in");
   const [downPayment, setDownPayment] = useState(0);
+  const [downPaymentMethod, setDownPaymentMethod] = useState<"CASH" | "BANK">("CASH");
+  const [downPaymentAccountId, setDownPaymentAccountId] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<ServiceLine[]>([
@@ -81,6 +110,15 @@ export function ServiceOrderCreateForm({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyPreview, setNotifyPreview] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyMeta, setNotifyMeta] = useState<{ contactId: string; orderId: string }>({ contactId: "", orderId: "" });
+
+  const dpAccountOptions = useMemo(
+    () => paymentMethodOptions.filter((item) => item.method === downPaymentMethod),
+    [paymentMethodOptions, downPaymentMethod],
+  );
 
   const grandTotal = useMemo(
     () => lines.reduce((sum, line) => sum + (line.quantity || 0) * (line.price || 0), 0),
@@ -127,12 +165,19 @@ export function ServiceOrderCreateForm({
 
     setSaving(true);
     try {
-      await createOrderAction({
+      const selectedDpAccountId = downPayment > 0 ? (downPaymentAccountId || dpAccountOptions[0]?.id) : undefined;
+      if (downPayment > 0 && !selectedDpAccountId) {
+        toast({ title: "Pilih akun DP terlebih dahulu", variant: "destructive" });
+        return;
+      }
+
+      const raw = await createOrderAction({
         customerId: customerId === "walk-in" ? undefined : customerId,
         notes: notes.trim() || undefined,
         targetDate: targetDate ? new Date(`${targetDate}T00:00:00`) : undefined,
         downPaymentAmount: downPayment > 0 ? downPayment : undefined,
-        paymentMethod: downPayment > 0 ? "CASH" : undefined,
+        paymentMethod: downPayment > 0 ? downPaymentMethod : undefined,
+        downPaymentCashAccountId: selectedDpAccountId,
         items: lines.map((line) => ({
           productId: line.productId,
           quantity: line.quantity,
@@ -141,7 +186,31 @@ export function ServiceOrderCreateForm({
         })),
       });
 
+      const created = SuperJSON.deserialize<CreatedServiceOrderPayload>(raw as any);
+
       toast({ title: "Service order berhasil dibuat" });
+
+      const normalized = normalizePhoneForWhatsApp(created.customerPhone);
+      if (created.customerId && normalized) {
+        const preview = await buildCompanyCommunicationPreview({
+          eventKey: "SERVICE_CREATED",
+          vars: {
+            customer_name: created.customerName,
+            doc_number: created.orderNumber,
+            amount: Number(created.totalAmount || 0).toLocaleString("id-ID"),
+            remaining_amount: Number(created.remainingAmount || 0).toLocaleString("id-ID"),
+            date: new Date(created.createdAt).toLocaleDateString("id-ID"),
+            status: created.status,
+          },
+        });
+        if (preview.isEnabled) {
+          setNotifyPreview(preview.message);
+          setNotifyPhone(normalized);
+          setNotifyMeta({ contactId: created.customerId, orderId: created.id });
+          setNotifyOpen(true);
+        }
+      }
+
       onSuccess?.();
       if (!compact) {
         router.push("/services/orders");
@@ -325,6 +394,34 @@ export function ServiceOrderCreateForm({
           <Label>Down Payment</Label>
           <Input type="number" min={0} value={downPayment} onChange={(event) => setDownPayment(Number(event.target.value) || 0)} />
         </div>
+        {downPayment > 0 ? (
+          <>
+            <div className="grid gap-2">
+              <Label>Metode DP</Label>
+              <Select value={downPaymentMethod} onValueChange={(value) => setDownPaymentMethod(value as "CASH" | "BANK")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="BANK">Bank</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2 sm:col-span-2">
+              <Label>Akun DP (Kas/Bank)</Label>
+              <Select value={downPaymentAccountId} onValueChange={setDownPaymentAccountId}>
+                <SelectTrigger><SelectValue placeholder="Pilih akun DP" /></SelectTrigger>
+                <SelectContent>
+                  {dpAccountOptions.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name}
+                      {item.accountNumber ? ` • ${item.accountNumber}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : null}
         <div className="grid gap-2">
           <Label>Target Date</Label>
           <Input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} />
@@ -347,6 +444,39 @@ export function ServiceOrderCreateForm({
         ) : null}
         <Button onClick={handleCreate} disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button>
       </div>
+
+      <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Kirim notifikasi customer</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="text-sm text-muted-foreground">Preview pesan (sumber template: Admin &gt; Settings &gt; Communication)</div>
+            <Textarea value={notifyPreview} onChange={(event) => setNotifyPreview(event.target.value)} className="min-h-[140px]" />
+            <div className="text-xs text-muted-foreground">Tujuan: +{notifyPhone}</div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setNotifyOpen(false)}>Nanti</Button>
+              <Button
+                onClick={async () => {
+                  await createContactCommunicationLog({
+                    contactId: notifyMeta.contactId,
+                    eventType: "SERVICE_CREATED",
+                    sourceType: "SERVICE_ORDER",
+                    sourceId: notifyMeta.orderId,
+                    target: notifyPhone,
+                    message: notifyPreview,
+                    status: "SENT",
+                  });
+                  window.open(`https://wa.me/${notifyPhone}?text=${encodeURIComponent(notifyPreview)}`, "_blank", "noopener,noreferrer");
+                  setNotifyOpen(false);
+                }}
+              >
+                Kirim WhatsApp
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

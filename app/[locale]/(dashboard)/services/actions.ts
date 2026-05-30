@@ -156,6 +156,7 @@ export async function createServiceOrder(input: {
   targetDate?: Date;
   downPaymentAmount?: number;
   paymentMethod?: ServicePaymentMethod;
+  downPaymentCashAccountId?: string;
   items: Array<{
     productId: string;
     quantity: number;
@@ -179,13 +180,37 @@ export async function createServiceOrder(input: {
     userId,
   );
 
+  const [contact, invoice] = await Promise.all([
+    order.contactId
+      ? prisma.contact.findFirst({
+          where: { id: order.contactId, companyId },
+          select: { id: true, name: true, phone: true },
+        })
+      : Promise.resolve(null),
+    prisma.salesInvoice.findFirst({
+      where: { id: order.salesInvoiceId, companyId },
+      select: { id: true, invoiceNumber: true },
+    }),
+  ]);
+
   revalidateLocalizedPaths([
     "/services",
     "/services/orders",
     "/services/invoices",
     "/services/payments",
   ]);
-  return SuperJSON.serialize(order);
+  return SuperJSON.serialize({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    customerId: order.contactId,
+    customerName: contact?.name || "Walk-in Customer",
+    customerPhone: contact?.phone || null,
+    invoiceNumber: invoice?.invoiceNumber || null,
+    totalAmount: Number(order.totalAmount),
+    remainingAmount: Number(order.remainingAmount),
+    createdAt: order.createdAt,
+  });
 }
 
 export async function getServiceOrders(
@@ -254,6 +279,7 @@ export async function getServiceOrders(
     salesOrderId: order.salesOrderId,
     salesInvoiceId: order.salesInvoiceId,
     status: order.status as ServiceOrderListItem["status"],
+    contactId: order.contactId,
     customerName: order.contactId ? (contactMap.get(order.contactId)?.name ?? "Walk-in Customer") : "Walk-in Customer",
     customerPhone: order.contactId ? (contactMap.get(order.contactId)?.phone ?? null) : null,
     invoiceNumber: invoiceMap.get(order.salesInvoiceId) ?? null,
@@ -726,6 +752,13 @@ export async function getServiceOrderForEdit(orderId: string) {
     }),
   ]);
 
+  const contact = order.contactId
+    ? await prisma.contact.findFirst({
+        where: { id: order.contactId, companyId },
+        select: { id: true, name: true, phone: true },
+      })
+    : null;
+
   const latestPayment = await prisma.salesPayment.findFirst({
     where: {
       companyId,
@@ -744,6 +777,9 @@ export async function getServiceOrderForEdit(orderId: string) {
   return SuperJSON.serialize({
     id: order.id,
     orderNumber: order.orderNumber,
+    contactId: contact?.id || null,
+    customerName: contact?.name || "Walk-in Customer",
+    customerPhone: contact?.phone || null,
     status: order.status,
     notes: order.notes || "",
     salesOrderId: order.salesOrderId,
