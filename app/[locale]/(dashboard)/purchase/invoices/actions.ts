@@ -154,27 +154,28 @@ export async function getPurchaseOrdersForSelect() {
 import { purchaseInvoiceSchema } from "@/lib/validation/schemas";
 
 export const createPurchaseInvoice = authorizedAction(
-  "purchase.create",
-  async (rawData: PurchaseInvoiceInput) => {
-    try {
-      const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+   "purchase.create",
+   async (rawData: PurchaseInvoiceInput) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const parseResult = purchaseInvoiceSchema.safeParse(rawData);
-      if (!parseResult.success) {
-        return { success: false, error: parseResult.error.message };
-      }
+       const parseResult = purchaseInvoiceSchema.safeParse(rawData);
+       if (!parseResult.success) {
+         return { success: false, error: parseResult.error.message };
+       }
 
-      const result = await PurchaseInvoiceService.create(parseResult.data, session.userId);
+       const result = await PurchaseInvoiceService.create(parseResult.data, session.userId, session.activeCompanyId);
 
-      revalidateLocalizedPath("/purchase/invoices");
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to create Invoice:", error);
-      return { success: false, error: error instanceof Error ? error.message : "Failed to create Purchase Invoice" };
-    }
-  },
-);
+       revalidateLocalizedPath("/purchase/invoices");
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to create Invoice:", error);
+       return { success: false, error: error instanceof Error ? error.message : "Failed to create Purchase Invoice" };
+     }
+   },
+ );
 
 export const updatePurchaseInvoice = authorizedAction(
   "purchase.edit",

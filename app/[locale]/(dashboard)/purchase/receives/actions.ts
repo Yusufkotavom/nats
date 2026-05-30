@@ -169,22 +169,23 @@ export async function getPurchaseOrdersForSelect() {
 }
 
 export const createPurchaseReceive = authorizedAction(
-  "purchase.create",
-  async (data: PurchaseReceiveInput) => {
-    try {
-      const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+   "purchase.create",
+   async (data: PurchaseReceiveInput) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const result = await PurchaseReceiveService.create(data, session.userId);
+       const result = await PurchaseReceiveService.create(data, session.userId, session.activeCompanyId);
 
-      revalidateLocalizedPath("/purchase/receives");
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to create Receive:", error);
-      return { success: false, error: "Failed to create Purchase Receive" };
-    }
-  },
-);
+       revalidateLocalizedPath("/purchase/receives");
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to create Receive:", error);
+       return { success: false, error: "Failed to create Purchase Receive" };
+     }
+   },
+ );
 
 export const updatePurchaseReceive = authorizedAction(
   "purchase.edit",

@@ -53,6 +53,7 @@ export class PurchasePaymentService {
                     notes: data.notes,
                     departmentId: data.departmentId,
                     projectId: data.projectId,
+                    companyId,
                     cashAccountId: data.cashAccountId,
                     attachments: {
                         connect: data.attachmentIds?.map((id) => ({ id })),

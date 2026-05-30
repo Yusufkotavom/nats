@@ -6,7 +6,7 @@ import { generateDocumentNumber } from "@/lib/document-numbering";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class PurchaseReceiveService {
-    static async create(data: PurchaseReceiveInput, userId: string) {
+    static async create(data: PurchaseReceiveInput, userId: string, companyId: string) {
         const receiveNumber = await this.generateReceiveNumber();
 
         return await prisma.$transaction(async (tx) => {
@@ -20,6 +20,7 @@ export class PurchaseReceiveService {
                     receiveDate: data.receiveDate,
                     notes: data.notes,
                     status: INITIAL_DRAFT_STATUS,
+                    companyId,
                     items: {
                         create: data.items.map((item) => ({
                             productId: item.productId,

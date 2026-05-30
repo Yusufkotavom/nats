@@ -6,7 +6,7 @@ import { CalculationService } from "@/lib/utils/calculation-service";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class PurchaseReturnService {
-    static async create(data: PurchaseReturnInput, userId: string) {
+    static async create(data: PurchaseReturnInput, userId: string, companyId: string) {
         await this.assertUniqueReturnNumber(data.returnNumber);
 
         const itemsWithCalculations = data.items.map((item) => {
@@ -42,6 +42,7 @@ export class PurchaseReturnService {
                     purchaseInvoiceId: data.purchaseInvoiceId || undefined,
                     departmentId: data.departmentId,
                     projectId: data.projectId,
+                    companyId,
                     returnDate: data.returnDate,
                     reason: data.reason,
                     notes: data.notes,

@@ -194,25 +194,26 @@ export async function getPurchaseInvoicesForReturn() {
 // For now, I'll rely on Purchase Order for auto-population of Products.
 
 export const createPurchaseReturn = authorizedAction(
-  "purchase.create",
-  async (data: PurchaseReturnInput) => {
-    try {
-      const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+   "purchase.create",
+   async (data: PurchaseReturnInput) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const result = await PurchaseReturnService.create(data, session.userId);
+       const result = await PurchaseReturnService.create(data, session.userId, session.activeCompanyId);
 
-      revalidateLocalizedPath("/purchase/returns");
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to create Return:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to create Purchase Return",
-      };
-    }
-  },
-);
+       revalidateLocalizedPath("/purchase/returns");
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to create Return:", error);
+       return {
+         success: false,
+         error: error instanceof Error ? error.message : "Failed to create Purchase Return",
+       };
+     }
+   },
+ );
 
 export const updatePurchaseReturn = authorizedAction(
   "purchase.edit",

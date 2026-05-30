@@ -7,7 +7,7 @@ import { generateDocumentNumber } from "@/lib/document-numbering";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class PurchaseInvoiceService {
-    static async create(data: PurchaseInvoiceInput, userId: string) {
+    static async create(data: PurchaseInvoiceInput, userId: string, companyId: string) {
         const invoiceNumber = data.invoiceNumber || (await this.generateInvoiceNumber());
         await this.assertUniqueInvoiceNumber(invoiceNumber, data.contactId);
 
@@ -31,6 +31,7 @@ export class PurchaseInvoiceService {
                     handlingCost: data.handlingCost,
                     departmentId: data.departmentId,
                     projectId: data.projectId,
+                    companyId,
                     items: {
                         create: itemsData,
                     },

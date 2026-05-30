@@ -139,108 +139,123 @@ export async function getPurchaseOrder(id: string) {
 
 
 export const createPurchaseOrder = authorizedAction(
-  "purchase.create",
-  async (data: PurchaseOrderInput) => {
-    try {
-      const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+   "purchase.create",
+   async (data: PurchaseOrderInput) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company");
 
-      const result = await PurchaseOrderService.create(data, session.userId);
+       const result = await PurchaseOrderService.create(data, session.userId, session.activeCompanyId);
 
-      revalidateLocalizedPath("/purchase/orders");
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to create PO:", error);
-      return { success: false, error: "Failed to create Purchase Order" };
-    }
-  },
-);
+       revalidateLocalizedPath("/purchase/orders");
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to create PO:", error);
+       return { success: false, error: "Failed to create Purchase Order" };
+     }
+   },
+ );
 
 export const updatePurchaseOrder = authorizedAction(
-  "purchase.edit",
-  async (id: string, data: PurchaseOrderInput) => {
-    try {
-      const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+   "purchase.edit",
+   async (id: string, data: PurchaseOrderInput) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company");
 
-      const result = await PurchaseOrderService.update(id, data, session.userId);
+       const result = await PurchaseOrderService.update(id, data, session.userId, session.activeCompanyId);
 
-      revalidateLocalizedPath("/purchase/orders");
-      revalidateLocalizedPath(`/purchase/orders/${id}`);
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to update PO:", error);
-      const message = error instanceof Error ? error.message : "Failed to update Purchase Order";
-      return { success: false, error: message };
-    }
-  },
-);
+       revalidateLocalizedPath("/purchase/orders");
+       revalidateLocalizedPath(`/purchase/orders/${id}`);
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to update PO:", error);
+       const message = error instanceof Error ? error.message : "Failed to update Purchase Order";
+       return { success: false, error: message };
+     }
+   },
+ );
 
 export const issuePurchaseOrder = authorizedAction(
-  "purchase.edit",
-  async (id: string) => {
-    try {
-      const result = await PurchaseOrderService.issue(id);
+   "purchase.edit",
+   async (id: string) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company");
 
-      revalidateLocalizedPath("/purchase/orders");
-      revalidateLocalizedPath(`/purchase/orders/${id}`);
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to issue PO:", error);
-      const message = error instanceof Error ? error.message : "Failed to issue Purchase Order";
-      return { success: false, error: message };
-    }
-  },
-);
+       const result = await PurchaseOrderService.issue(id, session.activeCompanyId);
+
+       revalidateLocalizedPath("/purchase/orders");
+       revalidateLocalizedPath(`/purchase/orders/${id}`);
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to issue PO:", error);
+       const message = error instanceof Error ? error.message : "Failed to issue Purchase Order";
+       return { success: false, error: message };
+     }
+   },
+ );
 
 export const cancelPurchaseOrder = authorizedAction(
-  "purchase.edit",
-  async (id: string) => {
-    try {
-      const result = await PurchaseOrderService.cancel(id);
+   "purchase.edit",
+   async (id: string) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company");
 
-      revalidateLocalizedPath("/purchase/orders");
-      revalidateLocalizedPath(`/purchase/orders/${id}`);
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to cancel PO:", error);
-      const message = error instanceof Error ? error.message : "Failed to cancel Purchase Order";
-      return { success: false, error: message };
-    }
-  },
-);
+       const result = await PurchaseOrderService.cancel(id, session.activeCompanyId);
+
+       revalidateLocalizedPath("/purchase/orders");
+       revalidateLocalizedPath(`/purchase/orders/${id}`);
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to cancel PO:", error);
+       const message = error instanceof Error ? error.message : "Failed to cancel Purchase Order";
+       return { success: false, error: message };
+     }
+   },
+ );
 
 export const closePurchaseOrder = authorizedAction(
-  "purchase.edit",
-  async (id: string) => {
-    try {
-      const session = await getSession();
-      if (!session) throw new Error("Unauthorized");
+   "purchase.edit",
+   async (id: string) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company");
 
-      const result = await PurchaseOrderService.close(id, session.userId);
+       const result = await PurchaseOrderService.close(id, session.userId, session.activeCompanyId);
 
-      revalidateLocalizedPath("/purchase/orders");
-      revalidateLocalizedPath(`/purchase/orders/${id}`);
-      return { success: true, data: SuperJSON.serialize(result) };
-    } catch (error) {
-      console.error("Failed to close PO:", error);
-      const message = error instanceof Error ? error.message : "Failed to close Purchase Order";
-      return { success: false, error: message };
-    }
-  },
-);
+       revalidateLocalizedPath("/purchase/orders");
+       revalidateLocalizedPath(`/purchase/orders/${id}`);
+       return { success: true, data: SuperJSON.serialize(result) };
+     } catch (error) {
+       console.error("Failed to close PO:", error);
+       const message = error instanceof Error ? error.message : "Failed to close Purchase Order";
+       return { success: false, error: message };
+     }
+   },
+ );
 
 export const deletePurchaseOrder = authorizedAction(
-  "purchase.delete",
-  async (id: string) => {
-    try {
-      await PurchaseOrderService.delete(id);
-      revalidateLocalizedPath("/purchase/orders");
-      return { success: true };
-    } catch (error) {
-      console.error("Failed to delete PO:", error);
-      const message = error instanceof Error ? error.message : "Failed to delete Purchase Order";
-      return { success: false, error: message };
-    }
-  },
-);
+   "purchase.delete",
+   async (id: string) => {
+     try {
+       const session = await getSession();
+       if (!session) throw new Error("Unauthorized");
+       if (!session.activeCompanyId) throw new Error("No active company");
+
+       await PurchaseOrderService.delete(id, session.activeCompanyId);
+       revalidateLocalizedPath("/purchase/orders");
+       return { success: true };
+     } catch (error) {
+       console.error("Failed to delete PO:", error);
+       const message = error instanceof Error ? error.message : "Failed to delete Purchase Order";
+       return { success: false, error: message };
+     }
+   },
+ );
