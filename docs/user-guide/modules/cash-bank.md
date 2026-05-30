@@ -18,8 +18,8 @@ related: modules/sales,modules/purchase,modules/accounting
 - Saldo akun berubah sesuai transaksi.
 - Link ke dokumen sumber tercatat.
 
-## Alur UMKM (Mode Sederhana)
-- Di halaman `Cash & Bank > Transaction > New`, gunakan mode default **Sederhana (UMKM)**.
+## Alur Transaksi (Mode Simple)
+- Di halaman `Cash & Bank > Transaction > New`, mode default adalah **Simple**.
 - User cukup isi:
   - tipe transaksi (`INCOME`/`EXPENSE`),
   - akun kas/bank,
@@ -38,4 +38,9 @@ related: modules/sales,modules/purchase,modules/accounting
   - Transport
   - Penjualan Tunai
   - Pendapatan Lainnya
-- Jika tim accounting butuh detail, gunakan **Mode Akuntansi Lanjutan** untuk input multi-allocation dan pilih akun GL manual.
+- Jika tim accounting butuh detail, gunakan mode **Accounting** untuk input multi-allocation dan pilih akun GL manual.
+
+## Setup Kategori Transaksi
+- Kategori sekarang bisa dikelola dari halaman terpisah `Cash & Bank > Transaction Categories` (`/cash-bank/categories`).
+- Halaman ini mendukung tambah, edit, dan nonaktifkan kategori transaksi.
+- Penghapusan dibatasi: kategori yang sudah dipakai transaksi tidak bisa dihapus agar histori jurnal tetap aman.

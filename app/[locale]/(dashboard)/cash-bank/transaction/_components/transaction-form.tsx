@@ -192,7 +192,7 @@ export function TransactionForm({
         if (!formData.categoryAccountId) {
           toast({
             title: t("validation_error"),
-            description: "Pilih kategori transaksi",
+            description: t("select_transaction_category"),
             variant: "destructive",
           });
           return;
@@ -349,14 +349,14 @@ export function TransactionForm({
             disabled={readOnly}
           />
           <CustomSelect
-            label="Mode Input"
+            label={t("entry_mode")}
             value={entryMode}
             onValueChange={(val) =>
               setEntryMode(val as "SIMPLE" | "ADVANCED")
             }
             options={[
-              { label: "Sederhana (UMKM)", value: "SIMPLE" },
-              { label: "Akuntansi Lanjutan", value: "ADVANCED" },
+              { label: t("entry_mode_simple"), value: "SIMPLE" },
+              { label: t("entry_mode_accounting"), value: "ADVANCED" },
             ]}
             disabled={readOnly}
           />
@@ -425,19 +425,24 @@ export function TransactionForm({
           {entryMode === "SIMPLE" ? (
             <>
               <div className="space-y-1">
-                <Label>Kategori</Label>
+                <div className="flex items-center justify-between gap-3">
+                  <Label>{t("category")}</Label>
+                  <Link href="/cash-bank/categories" className="text-xs text-primary hover:underline">
+                    {t("manage_categories")}
+                  </Link>
+                </div>
                 <SearchableSelect
                   value={formData.categoryAccountId || ""}
                   onValueChange={(val) =>
                     setFormData({ ...formData, categoryAccountId: val || "" })
                   }
                   options={filteredCategoryOptions}
-                  placeholder="Pilih kategori transaksi"
+                  placeholder={t("select_transaction_category")}
                   disabled={readOnly}
                 />
               </div>
               <div className="space-y-1">
-                <Label>Nominal</Label>
+                <Label>{t("amount")}</Label>
                 <CurrencyInput
                   value={Number(formData.amount || 0)}
                   onChange={(val) =>

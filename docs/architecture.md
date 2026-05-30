@@ -73,6 +73,11 @@ Baseline SaaS multi-company sekarang ditambahkan di layer auth + data model tanp
 - Flag ini mengendalikan visibility menu `General > Departments/Projects` pada sidebar, serta field dimensi pada form transaksi (purchase, sales, cash transaction, quick purchase).
 - Loader `getDepartments/getProjects` di layer action akan mengembalikan opsi kosong saat flag dimensi dimatikan, sehingga UI transaksi otomatis menyederhana tanpa mengubah kontrak data transaksi existing.
 
+8. Cash-Bank simple category setup:
+- Form `Cash & Bank > Transaction > New` memakai mode default `Simple` dengan input minimal (`type`, `cash/bank account`, `category`, `amount`).
+- Kategori transaksi dikelola terpisah di route `/cash-bank/categories` dan disimpan sebagai akun posting anak dari default parent `UNCATEGORIZED_EXPENSE` atau `UNCATEGORIZED_INCOME`.
+- Guard delete kategori dilakukan di layer action: akun kategori yang sudah punya relasi allocation/journal line tidak boleh dinonaktifkan, sehingga histori transaksi tetap konsisten.
+
 ## Alur Kritis Restoran: Table -> Kitchen -> Billing -> Inventory
 
 Implementasi saat ini:

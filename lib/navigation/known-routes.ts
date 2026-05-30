@@ -46,6 +46,7 @@ export const KNOWN_STATIC_APP_ROUTES = new Set<string>([
   "/budgeting/saving-targets",
   "/budgeting/saving-targets/new",
   "/cash-bank",
+  "/cash-bank/categories",
   "/cash-bank/transaction",
   "/cash-bank/transaction/new",
   "/cash-bank/transfer",
