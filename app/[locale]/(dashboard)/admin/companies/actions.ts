@@ -240,6 +240,8 @@ export async function createPlatformPlan(input: {
   price: number;
   currency?: string;
   billingCycle?: "MONTHLY" | "YEARLY";
+  monthlyTransactionLimit?: number | null;
+  featureList?: string[];
 }) {
   await assertPlatformSuperAdmin();
   const code = input.code.trim().toUpperCase();
@@ -254,6 +256,11 @@ export async function createPlatformPlan(input: {
       currency: input.currency?.trim().toUpperCase() || "IDR",
       billingCycle:
         input.billingCycle === "YEARLY" ? PlanBillingCycle.YEARLY : PlanBillingCycle.MONTHLY,
+      monthlyTransactionLimit:
+        typeof input.monthlyTransactionLimit === "number" && input.monthlyTransactionLimit > 0
+          ? Math.floor(input.monthlyTransactionLimit)
+          : null,
+      featureList: (input.featureList || []).map((x) => x.trim()).filter(Boolean),
       isActive: true,
     },
   });

@@ -56,7 +56,6 @@ import {
   ArrowLeftSquare,
   InfoIcon,
   PrinterIcon,
-  DoorClosedIcon,
 } from "lucide-react";
 import {
   createSalesOrder,
@@ -82,10 +81,7 @@ import { uploadFile } from "@/app/[locale]/(dashboard)/general/files/actions";
 import { Paperclip } from "lucide-react";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { Department, Project } from "@/prisma/generated/prisma/client";
-import { checkBudgetAvailability } from "@/app/[locale]/(dashboard)/budgeting/actions";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
 import {
   PageFormActions,
   PageFormContent,
@@ -144,7 +140,6 @@ export function SalesOrderForm({
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
 
-  const [budgetWarning, setBudgetWarning] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<
     Omit<SalesOrderInput, "items"> & {
@@ -267,7 +262,7 @@ export function SalesOrderForm({
     try {
       const submissionData = {
         ...formData,
-        items: formData.items.map(({ id, ...item }) => item),
+        items: formData.items.map(({ id: _id, ...item }) => item),
         attachmentIds: attachments.map((a) => a.id),
       };
       let result;
@@ -582,13 +577,7 @@ export function SalesOrderForm({
 
         </PageFormActions>
       </PageFormHeader>
-      {budgetWarning && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Budget Warning</AlertTitle>
-          <AlertDescription>{budgetWarning}</AlertDescription>
-        </Alert>
-      )} <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
         <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
           <div className="space-y-4">
             <Card>

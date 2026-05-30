@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { decrypt } from "@/lib/auth/session-token";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
+import { canAccessAdminPath } from "@/lib/navigation/platform-admin-access";
+import { isKnownAppRoute } from "@/lib/navigation/known-routes";
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -44,6 +46,7 @@ export async function middleware(request: NextRequest) {
     "/reporting",
     "/setup",
     "/subscription",
+    "/platform",
   ];
   const publicRoutes = ["/auth"];
 
@@ -102,6 +105,48 @@ export async function middleware(request: NextRequest) {
     const targetPath = session?.userId ? "dashboard" : "auth";
     const redirectUrl = new URL(`/${locale}/${targetPath}`, request.nextUrl);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // 4. Legacy superadmin route migration: /admin/* -> /platform/*
+  if (
+    pathToCheck === "/admin/companies" ||
+    pathToCheck === "/admin/dashboard" ||
+    pathToCheck.startsWith("/admin/integrations/") ||
+    pathToCheck === "/admin/settings/ai" ||
+    pathToCheck === "/admin/settings/data-reset"
+  ) {
+    if (!["en", "id"].includes(locale)) {
+      return response;
+    }
+    const mapped =
+      pathToCheck === "/admin/companies"
+        ? "/platform/companies"
+        : pathToCheck === "/admin/dashboard"
+          ? "/platform/dashboard"
+          : pathToCheck.startsWith("/admin/integrations/")
+            ? pathToCheck.replace("/admin/integrations/", "/platform/integrations/")
+            : pathToCheck === "/admin/settings/ai"
+              ? "/platform/settings/ai"
+              : "/platform/settings/data-reset";
+    return NextResponse.redirect(new URL(`/${locale}${mapped}`, request.nextUrl));
+  }
+
+  // 5. Restrict platform-only routes to platform super admin.
+  if (session?.userId && !canAccessAdminPath(pathToCheck, Boolean(session.isPlatformSuperAdmin))) {
+    if (!["en", "id"].includes(locale)) {
+      return response;
+    }
+    const dashboardUrl = new URL(`/${locale}/dashboard`, request.nextUrl);
+    return NextResponse.redirect(dashboardUrl);
+  }
+
+  // 6. Redirect unknown routes (404 candidates) to dashboard/auth.
+  if (!isKnownAppRoute(pathToCheck)) {
+    if (!["en", "id"].includes(locale)) {
+      return response;
+    }
+    const targetPath = session?.userId ? "dashboard" : "auth";
+    return NextResponse.redirect(new URL(`/${locale}/${targetPath}`, request.nextUrl));
   }
 
   return response;

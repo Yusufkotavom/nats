@@ -7,7 +7,6 @@
 
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { AccountType } from "@/prisma/generated/prisma/enums";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";

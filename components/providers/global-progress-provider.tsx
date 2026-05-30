@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { getGlobalProgressEvents } from "@/lib/ui-progress";
 
@@ -16,14 +16,14 @@ export function GlobalProgressProvider() {
   const timerRef = useRef<number | null>(null);
   const finishTimerRef = useRef<number | null>(null);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (timerRef.current) window.clearInterval(timerRef.current);
     if (finishTimerRef.current) window.clearTimeout(finishTimerRef.current);
     timerRef.current = null;
     finishTimerRef.current = null;
-  };
+  }, []);
 
-  const start = () => {
+  const start = useCallback(() => {
     activeCountRef.current += 1;
     setVisible(true);
     setProgress((prev) => (prev < 8 ? 8 : prev));
@@ -37,9 +37,9 @@ export function GlobalProgressProvider() {
         });
       }, 140);
     }
-  };
+  }, []);
 
-  const stop = () => {
+  const stop = useCallback(() => {
     activeCountRef.current = Math.max(0, activeCountRef.current - 1);
     if (activeCountRef.current > 0) return;
 
@@ -49,7 +49,7 @@ export function GlobalProgressProvider() {
       setVisible(false);
       setProgress(0);
     }, 220);
-  };
+  }, [clearTimers]);
 
   useEffect(() => {
     const onStart = () => start();
@@ -82,15 +82,19 @@ export function GlobalProgressProvider() {
       document.removeEventListener("click", onClickCapture, true);
       clearTimers();
     };
-  }, []);
+  }, [clearTimers, start, stop]);
 
   useEffect(() => {
     if (activeCountRef.current > 0) {
       activeCountRef.current = 1;
-      stop();
+      const timeoutId = window.setTimeout(() => {
+        stop();
+      }, 0);
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, stop]);
 
   return (
     <div

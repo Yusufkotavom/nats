@@ -21,7 +21,7 @@ const prismaMock = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/auth", () => ({
-  getSession: (...args: unknown[]) => getSessionMock(...args),
+  getSession: () => getSessionMock(),
 }));
 
 vi.mock("@/lib/permissions/protected-action", () => ({

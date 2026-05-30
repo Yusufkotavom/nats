@@ -1,13 +1,13 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import { Prisma, DiscountType } from '@/prisma/generated/prisma/client';
 import { authorizedAction } from '@/lib/permissions/protected-action';
 import { BatchPricingInput, PriceCalculationResult } from './types';
 import { SuperJSON } from '@/lib/superjson';
 import { getSession } from '@/lib/auth/auth';
 import { hasPermission } from '@/lib/permissions/utils';
+import { revalidateLocalizedPath } from '@/lib/revalidate-localized-path';
 
 export async function getCategories() {
   const session = await getSession();

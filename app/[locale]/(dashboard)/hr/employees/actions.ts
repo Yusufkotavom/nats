@@ -1,9 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { EmployeeService } from '@/modules/hr/services/employee.service';
 import { CreateEmployeeDTO, UpdateEmployeeDTO, ActionResponse } from '@/modules/hr/types';
 import { SuperJSON } from "@/lib/superjson";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 
 export async function getEmployees(
     page = 1,

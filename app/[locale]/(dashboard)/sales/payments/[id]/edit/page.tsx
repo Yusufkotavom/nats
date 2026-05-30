@@ -57,7 +57,7 @@ export default async function EditSalesPaymentPage(props: PageProps) {
       <SalesPaymentForm
         initialData={payment}
         departments={departments}
-        projects={projects.projects}
+        projects={projects}
       />
     </>
   );

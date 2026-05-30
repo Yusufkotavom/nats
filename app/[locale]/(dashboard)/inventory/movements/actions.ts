@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { MovementType } from "@/prisma/generated/prisma/enums";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { SuperJSON } from "@/lib/superjson";

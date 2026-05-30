@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { clientRegistry } from "@/lib/reporting/client-registry";
 import { getReportData } from "../actions";
@@ -39,6 +39,8 @@ export function ReportPreview({ code, input, className }: ReportPreviewProps) {
   const [nativePdfUrl, setNativePdfUrl] = useState<string | null>(null);
   const [nativePdfLoading, setNativePdfLoading] = useState(false);
 
+  const stableInput = useMemo(() => JSON.stringify(input), [input]);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -58,7 +60,7 @@ export function ReportPreview({ code, input, className }: ReportPreviewProps) {
     };
 
     fetchData();
-  }, [code, JSON.stringify(input)]);
+  }, [code, input, stableInput]);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 768px)");

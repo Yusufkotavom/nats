@@ -16,7 +16,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
 } from "@/components/ui/table";
 import {
   DndContext,
@@ -32,9 +31,8 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
-import { Loader2, Plus, Trash2, GripVertical, PlusIcon, CalendarIcon } from "lucide-react";
+import { Loader2, Trash2, PlusIcon, CalendarIcon } from "lucide-react";
 import {
   createPurchaseInvoice,
   updatePurchaseInvoice,
@@ -197,7 +195,6 @@ export function PurchaseInvoiceForm({
 
     if (poId) {
       try {
-        const po = purchaseOrders.find((p) => p.id === poId);
         // Note: We might need to fetch full PO details if items are not passed fully,
         // but here we rely on purchaseOrders prop or fetch if needed.
         // Actually getPurchaseOrder action is available.
@@ -293,7 +290,15 @@ export function PurchaseInvoiceForm({
 
   useEffect(() => {
     const calculatedTotalTax = formData.items.reduce((sum, item) => {
-      const { taxAmount } = calculateItemValues(item);
+      const quantity = item.quantity || 0;
+      const unitPrice = item.unitPrice || 0;
+      const subtotal = quantity * unitPrice;
+      const discountAmount = subtotal * ((item.discount || 0) / 100);
+      const taxableAmount = Math.max(0, subtotal - discountAmount);
+      const taxAmount = item.taxRateId
+        ? taxableAmount *
+          ((Number(taxRates.find((r) => r.id === item.taxRateId)?.rate ?? 0)) / 100)
+        : (item.tax || 0);
       return sum + taxAmount;
     }, 0);
 
@@ -301,7 +306,7 @@ export function PurchaseInvoiceForm({
     if (Math.abs(calculatedTotalTax - formData.totalTax) > 0.001) {
       setFormData((prev) => ({ ...prev, totalTax: calculatedTotalTax }));
     }
-  }, [formData.items]);
+  }, [formData.items, formData.totalTax, taxRates]);
 
   const itemsTotal = formData.items.reduce(
     (sum, item) => sum + calculateItemValues(item).total,
@@ -361,7 +366,7 @@ export function PurchaseInvoiceForm({
       const submissionData = {
         ...formData,
         invoiceNumber: formData.invoiceNumber?.trim() || undefined,
-        items: formData.items.map(({ id, ...item }) => item),
+        items: formData.items.map(({ id: _id, ...item }) => item),
         attachmentIds: attachments.map((a) => a.id),
       };
       let result;

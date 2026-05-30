@@ -370,7 +370,7 @@ export async function sendCompanyCommunicationTest(input: {
     eventType: mapEventKeyToContactEventType(input.eventKey),
     sourceType: "COMPANY_COMMUNICATION_TEST",
     sourceId: input.eventKey,
-    target: normalizedPhone || null,
+    target: normalizedPhone || undefined,
     message,
     status: normalizedPhone ? "SENT" : "FAILED",
     errorMessage: normalizedPhone ? undefined : "Target phone is missing or invalid",

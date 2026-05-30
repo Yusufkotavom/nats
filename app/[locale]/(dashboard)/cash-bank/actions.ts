@@ -6,13 +6,11 @@ import {
   CashTransferFormData,
   UpdateCashAccountFormData,
 } from "./types";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { SuperJSON } from "@/lib/superjson";
 import {
   CashAccountType,
   EntryStatus,
-  TransferStatus,
 } from "@/prisma/generated/prisma/enums";
 import {
   JournalEntryLine,
@@ -33,8 +31,7 @@ import { CashAccountSyncService } from "@/modules/cash-bank/services/cash-accoun
 import { Decimal } from "decimal.js";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-
-const CASH_GL_CODE_PREFIX = "111";
+import { assertCompanyWriteAccess } from "@/lib/subscription/write-guard";
 
 type CashTransferOutboxResult = {
   transferId: string;
@@ -44,6 +41,7 @@ type CashTransferOutboxResult = {
 };
 
 export async function syncCashAccounts() {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.activeCompanyId) {
     throw new Error("No active company selected");
@@ -55,6 +53,7 @@ export async function syncCashAccounts() {
 
 
 export async function uploadTransferAttachment(formData: FormData) {
+  await assertCompanyWriteAccess();
   const session = await verifySession();
   const file = formData.get("file") as File;
 
@@ -231,6 +230,7 @@ export async function getCashAccount(id: string) {
 }
 
 export async function createCashAccount(data: CashAccountFormData) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "cash_bank.create")) {
     throw new Error("Unauthorized");
@@ -244,6 +244,7 @@ export async function updateCashAccount(
   id: string,
   data: UpdateCashAccountFormData,
 ): Promise<ActionResponse<Record<string, never>>> {
+  await assertCompanyWriteAccess();
   try {
     const session = await getSession();
     if (!session || !hasPermission(session.permissions, "cash_bank.edit")) {
@@ -262,6 +263,7 @@ export async function updateCashAccount(
 }
 
 export async function deleteCashAccount(id: string) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "cash_bank.delete")) {
     throw new Error("Unauthorized");
@@ -275,12 +277,12 @@ export async function deleteCashAccount(id: string) {
 export async function createCashTransfer(
   data: CashTransferFormData | SuperJSONResult,
 ) {
+  await assertCompanyWriteAccess();
   const sessionPerm = await getSession();
   if (!sessionPerm || !hasPermission(sessionPerm.permissions, "cash_bank.create")) {
     throw new Error("Unauthorized");
   }
-  const session = await verifySession();
-  const userId = session.userId;
+  await verifySession();
 
   const data2 = SuperJSON.deserialize(
     data as unknown as SuperJSONResult,
@@ -300,6 +302,7 @@ export async function updateCashTransfer(
   id: string,
   data: CashTransferFormData | SuperJSONResult,
 ) {
+  await assertCompanyWriteAccess();
   const sessionPerm = await getSession();
   if (!sessionPerm || !hasPermission(sessionPerm.permissions, "cash_bank.edit")) {
     throw new Error("Unauthorized");
@@ -324,6 +327,7 @@ export async function updateCashTransfer(
 export async function approveCashTransfer(
   id: string,
 ): Promise<ActionResponse<CashTransferOutboxResult>> {
+  await assertCompanyWriteAccess();
   try {
     const session = await verifySession();
     const userId = session.userId;
@@ -354,6 +358,7 @@ export async function approveCashTransfer(
 }
 
 export async function deleteCashTransfer(id: string) {
+  await assertCompanyWriteAccess();
   await CashTransferService.deleteTransfer(id);
 
   revalidateLocalizedPath("/accounting/cash-bank");
@@ -525,7 +530,7 @@ export async function getCashAccountDetails(
       const credit = Number(line.creditAmount);
       currentRunningBalance += debit - credit;
 
-      const { runningBalance, ...rest } = line as any;
+      const { runningBalance: _runningBalance, ...rest } = line as any;
       return {
         ...rest,
         runningBalance: currentRunningBalance,

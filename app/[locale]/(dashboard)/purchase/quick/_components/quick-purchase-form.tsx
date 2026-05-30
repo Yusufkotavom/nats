@@ -183,7 +183,7 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
                 <Label>Department</Label>
                 <SearchableSelect
                   value={departmentId}
-                  onValueChange={(value) => setDepartmentId(value)}
+                  onValueChange={(value) => setDepartmentId(value || "")}
                   options={data.departments.map((department) => ({
                     value: department.id,
                     label: department.name,
@@ -196,7 +196,7 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
                 <Label>Project</Label>
                 <SearchableSelect
                   value={projectId}
-                  onValueChange={(value) => setProjectId(value)}
+                  onValueChange={(value) => setProjectId(value || "")}
                   options={data.projects.map((project) => ({
                     value: project.id,
                     label: project.name,
@@ -236,11 +236,13 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
             </CustomSelect>
           )}
           {mode === "PREORDER_DP" ? (
-            <CurrencyInput
-              label="Nominal DP"
-              value={downPaymentAmount}
-              onChange={(value) => setDownPaymentAmount(Number(value) || 0)}
-            />
+            <div className="space-y-2">
+              <Label>Nominal DP</Label>
+              <CurrencyInput
+                value={downPaymentAmount}
+                onChange={(value) => setDownPaymentAmount(Number(value) || 0)}
+              />
+            </div>
           ) : null}
         </CardContent>
       </Card>
@@ -289,11 +291,13 @@ export function QuickPurchaseForm({ data }: { data: FormDataSource }) {
                   />
                 </div>
                 <div className="md:col-span-4">
-                  <CurrencyInput
-                    label="Unit Cost"
-                    value={row.unitCost}
-                    onChange={(value) => updateItem(row.id, { unitCost: Number(value) || 0 })}
-                  />
+                  <div className="space-y-2">
+                    <Label>Unit Cost</Label>
+                    <CurrencyInput
+                      value={row.unitCost}
+                      onChange={(value) => updateItem(row.id, { unitCost: Number(value) || 0 })}
+                    />
+                  </div>
                 </div>
                 <div className="md:col-span-1 flex items-end">
                   <Button variant="ghost" size="icon" onClick={() => removeItem(row.id)}>

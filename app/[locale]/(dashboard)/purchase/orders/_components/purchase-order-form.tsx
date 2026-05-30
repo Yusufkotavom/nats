@@ -211,8 +211,8 @@ export function PurchaseOrderForm({
       const product = products?.find((p: { id: string }) => p.id === value);
       if (product) {
         newItems[index].unitCost = calculatePurchaseUnitCost({
-          cost: product.cost,
-          purchaseConversionFactor: product.purchaseConversionFactor,
+          cost: Number(product.cost),
+          purchaseConversionFactor: Number(product.purchaseConversionFactor),
         });
       }
     }

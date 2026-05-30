@@ -1,5 +1,5 @@
 import { Decimal } from "decimal.js";
-import { Discount, DiscountType } from "@/prisma/generated/prisma/client";
+import { Discount } from "@/prisma/generated/prisma/client";
 
 export function calculateDiscountedPrice(price: Decimal, discounts: Discount[]): Decimal {
     if (!discounts || discounts.length === 0) {

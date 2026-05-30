@@ -49,11 +49,14 @@ export default function TrialBalancePage() {
     },
   });
 
-  const items = trialBalanceData?.items || [];
-  const totals = {
-    debit: trialBalanceData?.totalDebit || 0,
-    credit: trialBalanceData?.totalCredit || 0,
-  };
+  const items = useMemo(() => trialBalanceData?.items ?? [], [trialBalanceData?.items]);
+  const totals = useMemo(
+    () => ({
+      debit: trialBalanceData?.totalDebit ?? 0,
+      credit: trialBalanceData?.totalCredit ?? 0,
+    }),
+    [trialBalanceData?.totalDebit, trialBalanceData?.totalCredit],
+  );
 
   // Default expand all when items change
   useEffect(() => {

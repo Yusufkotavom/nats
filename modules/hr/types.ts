@@ -1,4 +1,4 @@
-import { ContactType, EmploymentStatus, Gender, MaritalStatus } from '@/prisma/generated/prisma/client';
+import { EmploymentStatus, Gender, MaritalStatus } from '@/prisma/generated/prisma/client';
 
 export type ActionResponse<T = any> =
     | { success: true; data: T }

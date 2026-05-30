@@ -16,6 +16,7 @@ import { ContactType } from "@/prisma/generated/prisma/client";
 import { createContactCommunicationLog, getCompanyCommunicationTemplate } from "@/app/[locale]/communications/actions";
 import { normalizePhoneForWhatsApp, renderCommunicationTemplate } from "@/lib/communication/company-communication";
 import { POSCartItem } from "./types";
+import { assertCompanyWriteAccess } from "@/lib/subscription/write-guard";
 
 export type POSCheckoutSettings = {
   feeLines: {
@@ -224,6 +225,7 @@ export async function createPOSQuickContact(input: {
   phone?: string;
   email?: string;
 }) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -377,6 +379,7 @@ export async function openDiningSpot(
   guestCount?: number,
   notes?: string,
 ) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -394,6 +397,7 @@ export async function openDiningSpot(
 }
 
 export async function closeDiningSpot(diningSpotId: string, notes?: string) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -432,6 +436,7 @@ export async function sendOrderToKitchen(
   customerId?: string,
   globalDiscount: number = 0,
 ) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -484,6 +489,7 @@ export async function updateKitchenItemStatus(
   kitchenItemId: string,
   status: "NEW" | "COOKING" | "READY" | "SERVED" | "CANCELLED",
 ) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -524,6 +530,7 @@ export async function generateRestaurantBill(
     }[];
   },
 ) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -541,6 +548,7 @@ export async function settleRestaurantBill(
   paymentMethod: "CASH" | "CARD" | "QRIS",
   amount?: number,
 ) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -558,6 +566,7 @@ export async function settleRestaurantBill(
 }
 
 export async function closeRestaurantOrder(orderId: string) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId || !hasPermission(session.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -569,6 +578,7 @@ export async function closeRestaurantOrder(orderId: string) {
 }
 
 export async function openPOSSession(openingCash: number, warehouseId: string) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   const userId = session?.userId;
   if (!userId || !hasPermission(session.permissions, "pos.access"))
@@ -593,6 +603,7 @@ export async function closePOSSession(
   actualCash: number,
   notes?: string,
 ) {
+  await assertCompanyWriteAccess();
   const sessionUser = await getSession();
   if (!sessionUser || !hasPermission(sessionUser.permissions, "pos.access")) {
     throw new Error("Unauthorized");
@@ -688,6 +699,7 @@ export async function processPOSTransaction(
     };
   }>
 > {
+  await assertCompanyWriteAccess();
   try {
     const session = await getSession();
     if (!session?.activeCompanyId) {
@@ -740,7 +752,7 @@ export async function processPOSTransaction(
           eventType: "POS_PAYMENT_POSTED",
           sourceType: "POS_PAYMENT",
           sourceId: latestPayment.id,
-          target: normalized || null,
+          target: normalized || undefined,
           message,
           status: normalized ? "SENT" : "FAILED",
           errorMessage: normalized ? undefined : "Customer phone missing or invalid",
@@ -772,6 +784,7 @@ export async function holdOrder(
   globalDiscount: number = 0,
   diningSpotId?: string,
 ) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   const userId = session?.userId;
   if (!userId) throw new Error("Unauthorized");
@@ -870,6 +883,7 @@ export async function getPOSPaymentMethods() {
 }
 
 export async function resumeOrder(heldOrderId: string) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId) throw new Error("Unauthorized");
 
@@ -880,6 +894,7 @@ export async function resumeOrder(heldOrderId: string) {
 }
 
 export async function deleteHeldOrder(heldOrderId: string) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   if (!session?.userId) throw new Error("Unauthorized");
 

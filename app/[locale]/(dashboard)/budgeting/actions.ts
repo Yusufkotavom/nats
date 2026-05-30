@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { budgetSchema } from "./schemas";
 import { z } from "zod";
@@ -200,6 +199,7 @@ export async function updateBudget(
 
     const parsed = budgetSchema.parse(data);
     const normalized = normalizeBudgetPayload(parsed);
+    const { items, departmentId, projectId, ...budgetData } = normalized;
 
     const existing = await prisma.budget.findUnique({ where: { id } });
     if (!existing) throw new Error("Budget not found");
@@ -210,14 +210,16 @@ export async function updateBudget(
     await prisma.budget.update({
       where: { id },
       data: {
-        ...normalized,
+        ...budgetData,
+        departmentId: departmentId ?? undefined,
+        projectId: projectId ?? undefined,
       },
     });
 
     await prisma.budgetItem.deleteMany({ where: { budgetId: id } });
-    if (normalized.items.length > 0) {
+    if (items.length > 0) {
       await prisma.budgetItem.createMany({
-        data: normalized.items.map((item) => ({
+        data: items.map((item: BudgetInput["items"][number]) => ({
           budgetId: id,
           ...item,
         })),

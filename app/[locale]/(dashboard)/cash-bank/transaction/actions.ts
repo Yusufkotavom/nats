@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { CashTransactionFormData } from "./types";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { verifySession } from "@/lib/auth/auth";
 import { SuperJSON } from "@/lib/superjson";
@@ -14,6 +13,7 @@ import {
 import type { ActionResponse } from "@/lib/permissions/protected-action";
 import { CashTransactionService } from "@/modules/cash-bank/services/cash-transaction.service";
 import { cashTransactionSchema } from "@/lib/validation/schemas";
+import { assertCompanyWriteAccess } from "@/lib/subscription/write-guard";
 
 type CashTransactionOutboxResult = {
   transactionId: string;
@@ -25,6 +25,7 @@ type CashTransactionOutboxResult = {
 export async function createCashTransaction(
   data: CashTransactionFormData | SuperJSONResult,
 ): Promise<ActionResponse<CashTransactionOutboxResult>> {
+  await assertCompanyWriteAccess();
   try {
     const session = await verifySession();
 
@@ -139,6 +140,7 @@ export async function updateCashTransaction(
   id: string,
   data: CashTransactionFormData | SuperJSONResult,
 ) {
+  await assertCompanyWriteAccess();
   // const session = await verifySession(); // Not strictly needed for update if we don't track updatedBy, but good practice if we did.
 
   const data2 = SuperJSON.deserialize(
@@ -159,6 +161,7 @@ export async function updateCashTransaction(
 }
 
 export async function approveCashTransaction(id: string) {
+  await assertCompanyWriteAccess();
   try {
     const session = await verifySession();
 
@@ -192,6 +195,7 @@ export async function approveCashTransaction(id: string) {
 }
 
 export async function deleteCashTransaction(id: string) {
+  await assertCompanyWriteAccess();
   await CashTransactionService.deleteTransaction(id);
 
   revalidateLocalizedPath("/cash-bank/transaction");

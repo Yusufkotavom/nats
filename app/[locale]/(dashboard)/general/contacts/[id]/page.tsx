@@ -20,6 +20,6 @@ export default async function ContactDetailsPage({ params }: PageProps) {
   }
 
   return (
-    <ContactDetailView contact={contact} messagingContext={messagingContext} />
+    <ContactDetailView contact={contact} messagingContext={messagingContext as any} />
   );
 }

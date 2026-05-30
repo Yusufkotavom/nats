@@ -1,6 +1,6 @@
 import { Decimal } from "decimal.js";
 import { JournalService } from "@/modules/accounting/services/journal.service";
-import { TransferStatus, EntryStatus } from "@/prisma/generated/prisma/enums";
+import { TransferStatus } from "@/prisma/generated/prisma/enums";
 import { cashTransferApprovedPayloadSchema } from "@/modules/integration/events";
 import type { Prisma } from "@/prisma/generated/prisma/client";
 
@@ -82,4 +82,3 @@ export async function handleCashTransferApprovedCashBank(tx: Tx, payloadInput: u
     },
   });
 }
-

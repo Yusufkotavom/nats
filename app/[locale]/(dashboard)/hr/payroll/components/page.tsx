@@ -7,13 +7,11 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateComponentDialog } from "./_components/create-component-dialog";
 import { PageListActions, PageListContent, PageListHeader, PageListLayout, PageListTitle } from "@/components/layout/page/list-layout";
 
 import { SuperJSON } from "@/lib/superjson";
-import { SuperJSONResult } from "superjson";
 import { SalaryComponent } from "@/prisma/generated/prisma/client";
 
 export default async function SalaryComponentsPage() {

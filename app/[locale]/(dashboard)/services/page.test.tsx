@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
 import ServicesPage from "./page";
 
 const redirectSpy = vi.hoisted(() => vi.fn());
@@ -14,8 +13,7 @@ describe("dashboard/services page", () => {
   });
 
   it("redirects /services root to /services/orders", async () => {
-    const ui = ServicesPage();
-    render(ui);
+    await ServicesPage();
     expect(redirectSpy).toHaveBeenCalledWith("/services/orders");
   });
 });

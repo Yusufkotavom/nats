@@ -87,7 +87,10 @@ export class POSTransactionService {
     ): Promise<POSTransactionOutboxResult> {
         const result = await prisma.$transaction(async (tx) => {
             const session = await this.validateSession(tx, sessionId);
-            const contactId = await this.resolveCustomer(tx, customerId);
+            if (!session.companyId) {
+                throw new Error("Session is not bound to an active company");
+            }
+            const contactId = await this.resolveCustomer(tx, session.companyId, customerId);
             await this.validateDiningSpotForCheckout(tx, diningSpotId);
 
             const itemsWithCalculations = items.map((item) => {
@@ -128,6 +131,7 @@ export class POSTransactionService {
             );
 
             const salesOrder = await this.createSalesOrder(tx, {
+                companyId: session.companyId,
                 contactId,
                 sessionId,
                 cashierId: session.cashierId,
@@ -139,6 +143,7 @@ export class POSTransactionService {
             });
 
             const salesInvoice = await this.createInvoice(tx, {
+                companyId: session.companyId,
                 contactId,
                 salesOrderId: salesOrder.id,
                 sessionId,
@@ -159,13 +164,14 @@ export class POSTransactionService {
                 invoiceNumber: salesInvoice.invoiceNumber,
                 salesInvoiceId: salesInvoice.id,
                 sessionId,
-                companyId: session.companyId || undefined,
+                companyId: session.companyId,
                 paymentMethod,
                 requestedAccountId: cashAccountId,
                 paymentAmount: finalTotalAmount,
             });
 
             const shipment = await this.createShipment(tx, {
+                companyId: session.companyId,
                 contactId,
                 salesOrderId: salesOrder.id,
                 orderItems: salesOrder.items,
@@ -258,7 +264,10 @@ export class POSTransactionService {
     ): Promise<POSInvoiceIssueResult> {
         const result = await prisma.$transaction(async (tx) => {
             const session = await this.validateSession(tx, sessionId);
-            const contactId = await this.resolveCustomer(tx, customerId);
+            if (!session.companyId) {
+                throw new Error("Session is not bound to an active company");
+            }
+            const contactId = await this.resolveCustomer(tx, session.companyId, customerId);
             await this.validateDiningSpotForCheckout(tx, diningSpotId);
 
             const itemsWithCalculations = items.map((item) => {
@@ -298,6 +307,7 @@ export class POSTransactionService {
             );
 
             const salesOrder = await this.createSalesOrder(tx, {
+                companyId: session.companyId,
                 contactId,
                 sessionId,
                 cashierId: session.cashierId,
@@ -309,6 +319,7 @@ export class POSTransactionService {
             });
 
             const salesInvoice = await this.createInvoice(tx, {
+                companyId: session.companyId,
                 contactId,
                 salesOrderId: salesOrder.id,
                 sessionId,
@@ -325,6 +336,7 @@ export class POSTransactionService {
             });
 
             const shipment = await this.createShipment(tx, {
+                companyId: session.companyId,
                 contactId,
                 salesOrderId: salesOrder.id,
                 orderItems: salesOrder.items,
@@ -413,6 +425,9 @@ export class POSTransactionService {
     ): Promise<POSInvoiceSettlementResult> {
         const result = await prisma.$transaction(async (tx) => {
             const session = await this.validateSession(tx, sessionId);
+            if (!session.companyId) {
+                throw new Error("Session is not bound to an active company");
+            }
             const invoice = await tx.salesInvoice.findUnique({
                 where: { id: salesInvoiceId },
                 include: { payments: true },
@@ -443,7 +458,7 @@ export class POSTransactionService {
                 invoiceNumber: invoice.invoiceNumber,
                 salesInvoiceId: invoice.id,
                 sessionId,
-                companyId: session.companyId || undefined,
+                companyId: session.companyId,
                 paymentMethod,
                 requestedAccountId: cashAccountId,
                 paymentAmount,
@@ -544,18 +559,19 @@ export class POSTransactionService {
 
     private static async resolveCustomer(
         tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+        companyId: string,
         customerId?: string,
     ): Promise<string> {
         if (customerId) return customerId;
 
         const walkIn = await tx.contact.findFirst({
-            where: { name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
+            where: { companyId, name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
         });
 
         if (walkIn) return walkIn.id;
 
         const newWalkIn = await tx.contact.create({
-            data: { name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
+            data: { companyId, name: DEFAULT_WALK_IN_CUSTOMER_NAME, type: "CUSTOMER" },
         });
         return newWalkIn.id;
     }
@@ -581,6 +597,7 @@ export class POSTransactionService {
     private static async createSalesOrder(
         tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
         params: {
+            companyId: string;
             contactId: string;
             sessionId: string;
             cashierId: string;
@@ -594,6 +611,7 @@ export class POSTransactionService {
         const orderNumber = `${POS_ORDER_NUMBER_PREFIX}-${Date.now()}`;
         return await tx.salesOrder.create({
             data: {
+                companyId: params.companyId,
                 orderNumber,
                 contactId: params.contactId,
                 status: "SHIPPED", // Equivalent to fully processed order
@@ -624,6 +642,7 @@ export class POSTransactionService {
     private static async createInvoice(
         tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
         params: {
+            companyId: string;
             contactId: string;
             salesOrderId: string;
             sessionId: string;
@@ -649,6 +668,7 @@ export class POSTransactionService {
         const invoiceDate = new Date();
         return await tx.salesInvoice.create({
             data: {
+                companyId: params.companyId,
                 invoiceNumber,
                 contactId: params.contactId,
                 salesOrderId: params.salesOrderId,
@@ -687,7 +707,7 @@ export class POSTransactionService {
             invoiceNumber: string;
             salesInvoiceId: string;
             sessionId: string;
-            companyId?: string;
+            companyId: string;
             paymentMethod: "CASH" | "BANK" | "CARD" | "QRIS";
             requestedAccountId?: string;
             paymentAmount: Decimal;
@@ -728,6 +748,7 @@ export class POSTransactionService {
     private static async createShipment(
         tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
         params: {
+            companyId: string;
             contactId: string;
             salesOrderId: string;
             orderItems: { id: string; productId: string; quantity: number }[];
@@ -736,6 +757,7 @@ export class POSTransactionService {
         const shipmentNumber = `${POS_SHIPMENT_NUMBER_PREFIX}-${Date.now()}`;
         return await tx.salesShipment.create({
             data: {
+                companyId: params.companyId,
                 shipmentNumber,
                 salesOrderId: params.salesOrderId,
                 contactId: params.contactId,

@@ -1,13 +1,13 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import bcrypt from "bcryptjs";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { requireActiveCompanyContext } from "@/lib/company-context";
+import { canManagePlatformRole } from "@/lib/auth/platform-role-guard";
 
 interface UserCreateData {
   name: string;
@@ -82,6 +82,10 @@ export const createUser = authorizedAction(
   "users.create",
   async (data: UserCreateData) => {
     try {
+      const session = await getSession();
+      if (!session) {
+        return { success: false, error: "Unauthorized" };
+      }
       const { companyId } = await requireActiveCompanyContext();
       if (!data.name) {
         return { success: false, error: "Name is required" };
@@ -97,6 +101,17 @@ export const createUser = authorizedAction(
           success: false,
           error: "Password must be at least 6 characters",
         };
+      }
+
+      const targetRole = await prisma.role.findUnique({
+        where: { id: data.roleId },
+        select: { name: true },
+      });
+      if (!targetRole) {
+        return { success: false, error: "Role not found" };
+      }
+      if (!canManagePlatformRole(session.isPlatformSuperAdmin, targetRole.name)) {
+        return { success: false, error: "Forbidden: cannot assign platform superadmin role" };
       }
 
       const hashedPassword = await bcrypt.hash(
@@ -135,6 +150,10 @@ export const updateUser = authorizedAction(
   "users.edit",
   async (id: string, data: UserUpdateData) => {
     try {
+      const session = await getSession();
+      if (!session) {
+        return { success: false, error: "Unauthorized" };
+      }
       const { companyId } = await requireActiveCompanyContext();
       const membership = await prisma.companyMembership.findUnique({
         where: { companyId_userId: { companyId, userId: id } },
@@ -158,6 +177,34 @@ export const updateUser = authorizedAction(
           success: false,
           error: "Password must be at least 6 characters",
         };
+      }
+
+      const existingUser = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          role: {
+            select: { name: true },
+          },
+        },
+      });
+      if (!existingUser) {
+        return { success: false, error: "User not found" };
+      }
+      if (!canManagePlatformRole(session.isPlatformSuperAdmin, existingUser.role?.name)) {
+        return { success: false, error: "Forbidden: cannot edit platform superadmin user" };
+      }
+
+      if (data.roleId) {
+        const targetRole = await prisma.role.findUnique({
+          where: { id: data.roleId },
+          select: { name: true },
+        });
+        if (!targetRole) {
+          return { success: false, error: "Role not found" };
+        }
+        if (!canManagePlatformRole(session.isPlatformSuperAdmin, targetRole.name)) {
+          return { success: false, error: "Forbidden: cannot assign platform superadmin role" };
+        }
       }
 
        
@@ -190,7 +237,25 @@ export const deleteUser = authorizedAction(
   "users.delete",
   async (id: string) => {
     try {
+      const session = await getSession();
+      if (!session) {
+        return { success: false, error: "Unauthorized" };
+      }
       const { companyId } = await requireActiveCompanyContext();
+      const target = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          role: {
+            select: { name: true },
+          },
+        },
+      });
+      if (!target) {
+        return { success: false, error: "User not found" };
+      }
+      if (!canManagePlatformRole(session.isPlatformSuperAdmin, target.role?.name)) {
+        return { success: false, error: "Forbidden: cannot delete platform superadmin user" };
+      }
       await prisma.$transaction(async (tx) => {
         await tx.companyMembership.deleteMany({
           where: { companyId, userId: id },

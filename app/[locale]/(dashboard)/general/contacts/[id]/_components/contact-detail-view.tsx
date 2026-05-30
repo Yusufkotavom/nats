@@ -103,6 +103,15 @@ interface ContactDetailViewProps {
 
 type TemplateKind = "PROMO" | "SERVICE_UPDATE" | "PAYMENT_REMINDER";
 
+const DEFAULT_TEMPLATES: Record<TemplateKind, string> = {
+  PROMO:
+    "Halo {{contact_name}}, kami punya promo terbaru untuk {{latest_product_items}}. Cek detailnya di sini: {{sales_order_pdf_url}}",
+  SERVICE_UPDATE:
+    "Halo {{contact_name}}, update service {{latest_service_order}}: status {{latest_service_status}}. Item: {{latest_service_items}}. Target selesai: {{latest_service_target_date}}.",
+  PAYMENT_REMINDER:
+    "Halo {{contact_name}}, kami mengingatkan nota {{latest_invoice_number}} dengan total {{latest_invoice_total}} dan sisa {{latest_invoice_balance}}. Invoice: {{invoice_pdf_url}} | Nota POS: {{receipt_pdf_url}}",
+};
+
 const TEMPLATE_LABELS: Record<TemplateKind, string> = {
   PROMO: "Promo",
   SERVICE_UPDATE: "Update Service",
@@ -138,20 +147,11 @@ export function ContactDetailView({ contact, messagingContext }: ContactDetailVi
     return segments[0] || "id";
   }, [pathname]);
 
-  const defaultTemplates: Record<TemplateKind, string> = {
-    PROMO:
-      "Halo {{contact_name}}, kami punya promo terbaru untuk {{latest_product_items}}. Cek detailnya di sini: {{sales_order_pdf_url}}",
-    SERVICE_UPDATE:
-      "Halo {{contact_name}}, update service {{latest_service_order}}: status {{latest_service_status}}. Item: {{latest_service_items}}. Target selesai: {{latest_service_target_date}}.",
-    PAYMENT_REMINDER:
-      "Halo {{contact_name}}, kami mengingatkan nota {{latest_invoice_number}} dengan total {{latest_invoice_total}} dan sisa {{latest_invoice_balance}}. Invoice: {{invoice_pdf_url}} | Nota POS: {{receipt_pdf_url}}",
-  };
-
   const [templateKind, setTemplateKind] = useState<TemplateKind>("PROMO");
   const [templateText, setTemplateText] = useState<string>(
-    defaultTemplates.PROMO,
+    DEFAULT_TEMPLATES.PROMO,
   );
-  const [templateMap, setTemplateMap] = useState<Record<TemplateKind, string>>(defaultTemplates);
+  const [templateMap, setTemplateMap] = useState<Record<TemplateKind, string>>(DEFAULT_TEMPLATES);
   const [templateLoading, setTemplateLoading] = useState(true);
   const [templateSaving, setTemplateSaving] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
@@ -163,7 +163,7 @@ export function ContactDetailView({ contact, messagingContext }: ContactDetailVi
       try {
         const rows = await getContactMessageTemplates(contact.id);
         if (!active) return;
-        const nextMap: Record<TemplateKind, string> = { ...defaultTemplates };
+        const nextMap: Record<TemplateKind, string> = { ...DEFAULT_TEMPLATES };
         rows.forEach((row) => {
           if (row.kind in nextMap) {
             nextMap[row.kind as TemplateKind] = row.template;
@@ -173,8 +173,8 @@ export function ContactDetailView({ contact, messagingContext }: ContactDetailVi
         setTemplateText(nextMap[templateKind]);
       } catch {
         if (!active) return;
-        setTemplateMap(defaultTemplates);
-        setTemplateText(defaultTemplates[templateKind]);
+        setTemplateMap(DEFAULT_TEMPLATES);
+        setTemplateText(DEFAULT_TEMPLATES[templateKind]);
       } finally {
         if (active) {
           setTemplateLoading(false);
@@ -522,7 +522,7 @@ export function ContactDetailView({ contact, messagingContext }: ContactDetailVi
               onValueChange={(value) => {
                 const nextKind = value as TemplateKind;
                 setTemplateKind(nextKind);
-                setTemplateText(templateMap[nextKind] || defaultTemplates[nextKind]);
+                setTemplateText(templateMap[nextKind] || DEFAULT_TEMPLATES[nextKind]);
               }}
             >
               <SelectTrigger className="w-full md:w-[260px]">

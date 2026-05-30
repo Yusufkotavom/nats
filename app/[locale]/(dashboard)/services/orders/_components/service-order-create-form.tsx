@@ -169,7 +169,9 @@ export function ServiceOrderCreateForm({
         phone: quickPhone.trim() || undefined,
         email: quickEmail.trim() || undefined,
       });
-      const contact = SuperJSON.deserialize<{ id: string; name: string }>(raw);
+      const contact = SuperJSON.deserialize<{ id: string; name: string }>(
+        raw as any,
+      );
       setCustomerId(contact.id);
       setQuickName("");
       setQuickPhone("");

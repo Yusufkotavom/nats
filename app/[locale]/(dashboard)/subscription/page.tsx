@@ -78,6 +78,22 @@ export default async function SubscriptionPage() {
                 </Card>
                 <Card className="md:col-span-1 lg:col-span-3">
                     <CardHeader>
+                        <CardTitle className="text-sm font-medium">Plan Features</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {data.planFeatures.length > 0 ? (
+                            <ul className="list-disc space-y-1 pl-5 text-sm">
+                                {data.planFeatures.map((feature: string) => (
+                                    <li key={feature}>{feature}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No feature list configured for this plan.</p>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card className="md:col-span-1 lg:col-span-3">
+                    <CardHeader>
                         <CardTitle className="text-sm font-medium">Subscription Payment Instruction</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">

@@ -1,7 +1,4 @@
-import { Protect } from "@/components/ui/protect";
 import { cn } from "@/lib/utils";
-import { Button } from "@base-ui/react";
-import { Link, Plus } from "lucide-react";
 
 export function PageListLayout({
   className,

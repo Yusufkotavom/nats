@@ -8,7 +8,6 @@ import { Decimal } from "decimal.js";
 import {
     enqueueIntegrationEvent,
     enqueueIntegrationEventOnce,
-    maybeProcessIntegrationOutboxEvent,
 } from "@/modules/integration/outbox";
 import { z } from "zod";
 import { cashTransactionSchema } from "@/lib/validation/schemas";

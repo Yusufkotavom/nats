@@ -1,7 +1,7 @@
 import { Decimal } from "decimal.js";
 import { JournalService } from "@/modules/accounting/services/journal.service";
 import { cashTransactionCreateRequestedPayloadSchema } from "@/modules/integration/events";
-import { CashTransactionStatus, CashTransactionType, EntryStatus } from "@/prisma/generated/prisma/enums";
+import { CashTransactionStatus, CashTransactionType } from "@/prisma/generated/prisma/enums";
 import type { Prisma } from "@/prisma/generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;

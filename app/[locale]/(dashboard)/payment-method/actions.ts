@@ -9,16 +9,45 @@ import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/paymen
 
 type MethodKey = "CASH" | "BANK";
 
-function assertViewAccess(session: Awaited<ReturnType<typeof getSession>>) {
+type AuthSession = NonNullable<Awaited<ReturnType<typeof getSession>>> & {
+  activeCompanyId: string;
+  userId: string;
+};
+
+function assertViewAccess(
+  session: Awaited<ReturnType<typeof getSession>>,
+): asserts session is AuthSession {
   if (!session?.activeCompanyId || !hasPermission(session.permissions, "cash_bank.view")) {
     throw new Error("Unauthorized");
   }
 }
 
-function assertEditAccess(session: Awaited<ReturnType<typeof getSession>>) {
+function assertEditAccess(
+  session: Awaited<ReturnType<typeof getSession>>,
+): asserts session is AuthSession {
   if (!session?.activeCompanyId || !hasPermission(session.permissions, "cash_bank.edit")) {
     throw new Error("Unauthorized");
   }
+}
+
+async function getCompanyProfileCreateDefaults(companyId: string) {
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { name: true },
+  });
+  return {
+    companyId,
+    name: company?.name ?? "Default Company",
+    currency: "IDR",
+    currencySymbol: "Rp",
+    dateFormat: "dd/MM/yyyy",
+    currencyFormat: "standard",
+    locale: "id-ID",
+    timezone: "Asia/Jakarta",
+    enableDepartmentDimension: false,
+    enableProjectDimension: false,
+    posEnableRestaurantFeatures: false,
+  };
 }
 
 async function getDefaultParentAccountId(companyId: string, type: MethodKey) {
@@ -68,7 +97,7 @@ async function getAccountOptions(companyId: string, method: MethodKey) {
 export async function getPaymentMethodMappings() {
   const session = await getSession();
   assertViewAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const [profile, cashOptions, bankOptions] = await Promise.all([
     prisma.companyProfile.findUnique({
@@ -120,7 +149,7 @@ export async function updatePaymentMethodMapping(input: {
 }) {
   const session = await getSession();
   assertEditAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const account = await prisma.cashAccount.findFirst({
     where: {
@@ -140,12 +169,14 @@ export async function updatePaymentMethodMapping(input: {
   }
 
   if (input.method === "CASH") {
+    const createDefaults = await getCompanyProfileCreateDefaults(companyId);
     await prisma.companyProfile.upsert({
       where: { companyId },
       update: { defaultCashAccountId: input.cashAccountId },
-      create: { companyId, defaultCashAccountId: input.cashAccountId },
+      create: { ...createDefaults, defaultCashAccountId: input.cashAccountId },
     });
   } else {
+    const createDefaults = await getCompanyProfileCreateDefaults(companyId);
     await prisma.companyProfile.upsert({
       where: { companyId },
       update: {
@@ -153,7 +184,7 @@ export async function updatePaymentMethodMapping(input: {
         defaultQrisAccountId: input.cashAccountId,
       },
       create: {
-        companyId,
+        ...createDefaults,
         defaultCardAccountId: input.cashAccountId,
         defaultQrisAccountId: input.cashAccountId,
       },
@@ -167,15 +198,17 @@ export async function updatePaymentMethodMapping(input: {
 export async function deletePaymentMethodMapping(method: MethodKey) {
   const session = await getSession();
   assertEditAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   if (method === "CASH") {
+    const createDefaults = await getCompanyProfileCreateDefaults(companyId);
     await prisma.companyProfile.upsert({
       where: { companyId },
       update: { defaultCashAccountId: null },
-      create: { companyId, defaultCashAccountId: null },
+      create: { ...createDefaults, defaultCashAccountId: null },
     });
   } else {
+    const createDefaults = await getCompanyProfileCreateDefaults(companyId);
     await prisma.companyProfile.upsert({
       where: { companyId },
       update: {
@@ -183,7 +216,7 @@ export async function deletePaymentMethodMapping(method: MethodKey) {
         defaultQrisAccountId: null,
       },
       create: {
-        companyId,
+        ...createDefaults,
         defaultCardAccountId: null,
         defaultQrisAccountId: null,
       },
@@ -202,7 +235,7 @@ export async function createPaymentMethod(input: {
 }) {
   const session = await getSession();
   assertEditAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
   const methodName = input.name.trim();
   if (!methodName) throw new Error("Method name is required");
 
@@ -264,7 +297,7 @@ export async function updatePaymentMethodAccount(input: {
 }) {
   const session = await getSession();
   assertEditAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
   const name = input.name.trim();
   if (!name) throw new Error("Nama akun wajib diisi");
 
@@ -309,7 +342,7 @@ export async function updatePaymentMethodAccount(input: {
 export async function deletePaymentMethodAccount(cashAccountId: string) {
   const session = await getSession();
   assertEditAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const target = await prisma.cashAccount.findFirst({
     where: {

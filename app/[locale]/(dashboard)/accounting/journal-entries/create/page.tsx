@@ -67,7 +67,7 @@ export default function CreateJournalEntryPage() {
     },
   });
 
-  const { data: projects = [] } = useQuery({
+  const { data: projectsData = { projects: [], total: 0 } } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
       const res = await getProjects();
@@ -99,7 +99,7 @@ export default function CreateJournalEntryPage() {
       accounts={accounts}
       contacts={contacts}
       departments={departments}
-      projects={projects.projects}
+      projects={projectsData.projects}
       initialData={newEntry}
       onSubmit={handleSubmit}
       isSubmitting={createMutation.isPending}

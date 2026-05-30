@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { withDbRetry } from "@/lib/db-retry";
 import { hash } from "bcryptjs";
 import { redirect } from "next/navigation";
 import { randomUUID } from "crypto";
@@ -10,6 +11,11 @@ import { CompanySubscriptionStatus } from "@/prisma/generated/prisma/client";
 
 function addOneMonth(date: Date) {
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), 0, 0, 0));
+}
+
+async function resetPrismaConnection() {
+    await prisma.$disconnect();
+    await prisma.$connect();
 }
 
 export async function registerUserAndTenant(prevState: unknown, formData: FormData) {
@@ -41,9 +47,36 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-        where: { email },
-    });
+    let existingUser: Awaited<ReturnType<typeof prisma.user.findUnique>> | null = null;
+    try {
+        existingUser = await withDbRetry(() =>
+            prisma.user.findUnique({
+                where: { email },
+            }),
+            {
+                onRetry: resetPrismaConnection,
+            },
+        );
+    } catch (error) {
+        console.error("register existing user lookup failed:", error);
+        const errorCode =
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            typeof (error as { code?: string }).code === "string"
+                ? (error as { code?: string }).code
+                : "";
+        const isConnectivityError = errorCode === "ETIMEDOUT" || errorCode === "P6001";
+        return {
+            errors: {
+                email: [
+                    isConnectivityError
+                        ? "Koneksi database timeout. Coba lagi 10-20 detik, lalu restart server jika perlu."
+                        : "Database belum sinkron. Jalankan migrate/db push lalu coba lagi.",
+                ],
+            },
+        };
+    }
 
     if (existingUser) {
         return {
@@ -54,19 +87,25 @@ export async function registerUserAndTenant(prevState: unknown, formData: FormDa
     }
 
     // Ensure tenant admin role exists for self-signup flow
-    const tenantAdminRole = await prisma.role.upsert({
-        where: { name: "company_admin" },
-        update: {
-            isActive: true,
-            permissions: ["*"],
+    const tenantAdminRole = await withDbRetry(
+        () =>
+            prisma.role.upsert({
+                where: { name: "company_admin" },
+                update: {
+                    isActive: true,
+                    permissions: ["*"],
+                },
+                create: {
+                    name: "company_admin",
+                    description: "Company administrator",
+                    permissions: ["*"],
+                    isActive: true,
+                },
+            }),
+        {
+            onRetry: resetPrismaConnection,
         },
-        create: {
-            name: "company_admin",
-            description: "Company administrator",
-            permissions: ["*"],
-            isActive: true,
-        },
-    });
+    );
 
     try {
         const hashedPassword = await hash(password, 10);

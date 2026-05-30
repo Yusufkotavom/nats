@@ -1,9 +1,15 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { withDbRetry } from "@/lib/db-retry";
 import { compare, hash } from "bcryptjs";
 import { createSession, deleteSession, resolveUserCompanyContext } from "@/lib/auth/auth";
 import { redirect } from "next/navigation";
+
+async function resetPrismaConnection() {
+  await prisma.$disconnect();
+  await prisma.$connect();
+}
 
 export async function login(prevState: unknown, formData: FormData) {
   const email = formData.get("email") as string;
@@ -25,12 +31,36 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: {
-      role: true,
-    },
-  });
+  let user: Awaited<ReturnType<typeof prisma.user.findUnique>> | null = null;
+  try {
+    user = await withDbRetry(() =>
+      prisma.user.findUnique({
+        where: { email },
+      }),
+      {
+        onRetry: resetPrismaConnection,
+      },
+    );
+  } catch (error) {
+    console.error("login user lookup failed:", error);
+    const errorCode =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof (error as { code?: string }).code === "string"
+        ? (error as { code?: string }).code
+        : "";
+    const isConnectivityError = errorCode === "ETIMEDOUT" || errorCode === "P6001";
+    return {
+      errors: {
+        email: [
+          isConnectivityError
+            ? "Koneksi database timeout. Coba lagi 10-20 detik, lalu restart server jika perlu."
+            : "Database belum sinkron. Jalankan migrate/db push lalu coba lagi.",
+        ],
+      },
+    };
+  }
 
   if (!user) {
     return {
@@ -50,7 +80,17 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  if (!user.role || !user.role.isActive) {
+  const role = await withDbRetry(
+    () =>
+      prisma.role.findUnique({
+        where: { id: user.roleId },
+      }),
+    {
+      onRetry: resetPrismaConnection,
+    },
+  );
+
+  if (!role || !role.isActive) {
     return {
       errors: {
         email: [
@@ -60,15 +100,17 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  if (user.role.name === "company_admin" && !user.role.permissions.includes("*")) {
+  let activeRole = role;
+
+  if (activeRole.name === "company_admin" && !activeRole.permissions.includes("*")) {
     const healedRole = await prisma.role.update({
-      where: { id: user.role.id },
+      where: { id: activeRole.id },
       data: { permissions: ["*"], isActive: true },
     });
-    user.role = healedRole;
+    activeRole = healedRole;
   }
 
-  const isPlatformSuperAdmin = user.role.name === "superadmin";
+  const isPlatformSuperAdmin = activeRole.name === "superadmin";
   const { activeCompanyId } = await resolveUserCompanyContext(user.id);
 
   if (!isPlatformSuperAdmin && !activeCompanyId) {
@@ -81,12 +123,12 @@ export async function login(prevState: unknown, formData: FormData) {
     };
   }
 
-  await createSession(user.id, user.name, user.role, {
+  await createSession(user.id, user.name, activeRole, {
     activeCompanyId,
     isPlatformSuperAdmin,
   });
 
-  if (user.role.name === "Cashier") {
+  if (activeRole.name === "Cashier") {
     redirect("/pos");
   }
 
@@ -103,7 +145,6 @@ export async function loginDemo() {
 
   let user = await prisma.user.findUnique({
     where: { email },
-    include: { role: true },
   });
 
   const superAdminRole = await prisma.role.findUnique({
@@ -123,14 +164,20 @@ export async function loginDemo() {
         name: "Demo Admin",
         roleId: superAdminRole.id,
       },
-      include: { role: true },
     });
   }
 
+  const userRole = await prisma.role.findUnique({
+    where: { id: user.roleId },
+  });
+  if (!userRole) {
+    throw new Error("Role is missing for demo user");
+  }
+
   const { activeCompanyId } = await resolveUserCompanyContext(user.id);
-  await createSession(user.id, user.name, user.role, {
+  await createSession(user.id, user.name, userRole, {
     activeCompanyId,
-    isPlatformSuperAdmin: user.role.name === "superadmin",
+    isPlatformSuperAdmin: userRole.name === "superadmin",
   });
   redirect("/dashboard");
 }

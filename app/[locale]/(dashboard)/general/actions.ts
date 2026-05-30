@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getTranslations } from "next-intl/server";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { requireActiveCompanyContext } from "@/lib/company-context";
+import { assertCompanyWriteAccess } from "@/lib/subscription/write-guard";
 
 async function getDimensionVisibility() {
   const { companyId } = await requireActiveCompanyContext();
@@ -39,6 +40,7 @@ export async function getDepartments() {
 }
 
 export async function createDepartment(data: z.infer<typeof departmentSchema>) {
+  await assertCompanyWriteAccess();
   const t = await getTranslations("General.Departments");
   try {
     const parsed = departmentSchema.parse(data);
@@ -128,6 +130,7 @@ export async function getProjects(params?: {
 }
 
 export async function createProject(data: z.infer<typeof projectSchema>) {
+  await assertCompanyWriteAccess();
   const t = await getTranslations("General.Projects");
   try {
     const parsed = projectSchema.parse(data);

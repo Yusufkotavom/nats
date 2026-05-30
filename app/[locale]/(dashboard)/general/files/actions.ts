@@ -3,9 +3,9 @@
 import { prisma } from "@/lib/prisma";
 import { saveFileToDisk, deleteFileFromDisk } from "@/lib/file-service";
 import { getSession } from "@/lib/auth/auth";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { getTranslations } from "next-intl/server";
+import { assertCompanyWriteAccess } from "@/lib/subscription/write-guard";
 
 /**
  * Upload a file to local storage.
@@ -14,6 +14,7 @@ import { getTranslations } from "next-intl/server";
  * @returns        - Object containing success/error and file info
  */
 export async function uploadFile(formData: FormData) {
+  await assertCompanyWriteAccess();
   const tCommon = await getTranslations("Common");
   const t = await getTranslations("General.Files");
   const session = await getSession();
@@ -61,6 +62,7 @@ export async function uploadFile(formData: FormData) {
  * @returns  - Success flag or error
  */
 export async function deleteFile(id: string) {
+  await assertCompanyWriteAccess();
   const tCommon = await getTranslations("Common");
   const t = await getTranslations("General.Files");
   const session = await getSession();

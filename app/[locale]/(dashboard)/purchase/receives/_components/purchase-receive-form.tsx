@@ -43,9 +43,6 @@ import {
   createPurchaseReceive,
   updatePurchaseReceive,
   getPurchaseOrder,
-  getPurchaseReceive,
-  getProducts,
-  getPurchaseOrdersForSelect,
 } from "../actions";
 import { PurchaseReceiveInput } from "../types";
 import { format } from "date-fns";
@@ -83,8 +80,6 @@ interface PurchaseOrderForSelect {
   }[];
 }
 
-import { useFormatDate } from "@/hooks/use-format-date";
-
 interface PurchaseReceiveFormProps {
   receive?: SuperJSONResult | null;
   vendors: Awaited<ReturnType<typeof getContacts>>["data"];
@@ -120,7 +115,6 @@ export function PurchaseReceiveForm({
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const formatDate = useFormatDate();
   const isEditing = !!receive;
 
   const [attachments, setAttachments] = useState<Attachment[]>(
@@ -260,7 +254,7 @@ export function PurchaseReceiveForm({
       const dataToSubmit = {
         ...formData,
         status: nextStatus ?? status,
-        items: formData.items.map(({ id, ...item }) => item),
+        items: formData.items.map(({ id: _id, ...item }) => item),
         attachmentIds: attachments.map((a) => a.id),
       };
 

@@ -1,4 +1,4 @@
-import { Bot, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import type { ModulePlugin } from "./types";
 
 export const aiPlugin: ModulePlugin = {

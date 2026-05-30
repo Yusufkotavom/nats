@@ -30,7 +30,7 @@ describe("OpenRouter Integration Test", () => {
     expect(response).toBeDefined();
     expect(response.content).toBeTruthy();
     expect(typeof response.content).toBe("string");
-    expect(response.content.length).toBeGreaterThan(0);
+    expect((response.content ?? "").length).toBeGreaterThan(0);
   }, 30000); // 30s timeout
 
   it("should stream chat with OpenRouter", async () => {

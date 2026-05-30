@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { settleServiceOrder, updateServiceOrderStatus } from "../actions";
 
@@ -30,7 +29,14 @@ type ServicePipelineState = {
   } | null;
 };
 
-function assertAccess(session: Awaited<ReturnType<typeof getSession>>) {
+type AuthSession = NonNullable<Awaited<ReturnType<typeof getSession>>> & {
+  activeCompanyId: string;
+  userId: string;
+};
+
+function assertAccess(
+  session: Awaited<ReturnType<typeof getSession>>,
+): asserts session is AuthSession {
   const canAccessServices =
     !!session?.permissions &&
     (hasPermission(session.permissions, "pos.access") ||
@@ -48,15 +54,17 @@ function assertAccess(session: Awaited<ReturnType<typeof getSession>>) {
 export async function getServicePipelineState(orderId: string): Promise<ServicePipelineState> {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const order = await prisma.pOSServiceOrder.findFirst({
     where: { id: orderId, companyId },
-    include: {
-      salesInvoice: { select: { id: true, invoiceNumber: true, status: true } },
-    },
   });
   if (!order) throw new Error("Service order not found");
+
+  const invoice = await prisma.salesInvoice.findFirst({
+    where: { id: order.salesInvoiceId, companyId },
+    select: { id: true, invoiceNumber: true, status: true },
+  });
 
   const contact = order.contactId
     ? await prisma.contact.findFirst({
@@ -86,11 +94,11 @@ export async function getServicePipelineState(orderId: string): Promise<ServiceP
       totalAmount: Number(order.totalAmount),
       remainingAmount: Number(order.remainingAmount),
     },
-    invoice: order.salesInvoice
+    invoice: invoice
       ? {
-          id: order.salesInvoice.id,
-          invoiceNumber: order.salesInvoice.invoiceNumber,
-          status: order.salesInvoice.status,
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: invoice.status,
         }
       : null,
     payment: payment
@@ -109,7 +117,7 @@ export async function runServicePipelineAction(
 ) {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   if (action === "move_processing") {
     await updateServiceOrderStatus(orderId, "PROCESSING");

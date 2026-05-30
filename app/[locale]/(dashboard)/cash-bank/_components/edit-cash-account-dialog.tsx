@@ -25,7 +25,7 @@ import { CashAccountWithBalance, UpdateCashAccountFormData } from "../types";
 import { CashAccountType } from "@/prisma/generated/prisma/enums";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Label } from "@/components/ui/label";
@@ -59,7 +59,6 @@ export function EditCashAccountDialog({
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors },
   } = useForm<UpdateCashAccountFormData>({
     resolver: zodResolver(formSchema),
@@ -82,7 +81,7 @@ export function EditCashAccountDialog({
     }
   }, [open, account, reset]);
 
-  const accountType = watch("type");
+  const accountType = useWatch({ control, name: "type" });
 
   const onSubmit = (data: UpdateCashAccountFormData) => {
     startTransition(async () => {

@@ -26,9 +26,7 @@ export async function getTaxSummaryReport(startDate: Date, endDate: Date) {
   }
 
   // Fetch Tax Rates
-  const taxRates = await prisma.taxRate.findMany({
-    where: { companyId: session.activeCompanyId }
-  })
+  const taxRates = await prisma.taxRate.findMany()
   
   // Initialize summary map
   const summary = new Map<string, TaxSummaryEntry>()

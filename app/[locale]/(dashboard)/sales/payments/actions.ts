@@ -254,7 +254,7 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
             eventType: "SALES_PAYMENT_POSTED",
             sourceType: "SALES_PAYMENT",
             sourceId: payment.id,
-            target: normalized || null,
+            target: normalized || undefined,
             message,
             status: normalized ? "SENT" : "FAILED",
             errorMessage: normalized ? undefined : "Customer phone missing or invalid",

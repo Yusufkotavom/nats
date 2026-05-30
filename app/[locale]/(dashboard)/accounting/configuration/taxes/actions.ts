@@ -2,9 +2,8 @@
 
 import { prisma } from "@/lib/prisma"
 import { TaxRate } from "@/prisma/generated/prisma/client"
-import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { getSession } from "@/lib/auth/auth"
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path"
 
 const taxRateSchema = z.object({
   code: z.string().min(1, "Code is required"),

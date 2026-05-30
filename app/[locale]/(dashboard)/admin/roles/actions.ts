@@ -1,11 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
+import { canManagePlatformRole, isPlatformRole } from "@/lib/auth/platform-role-guard";
 
 interface RoleData {
   name: string;
@@ -25,7 +25,9 @@ export const getRoles = async () => {
     }
   }
 
+  const isPlatformSuperAdmin = Boolean(session?.isPlatformSuperAdmin);
   return prisma.role.findMany({
+    where: isPlatformSuperAdmin ? undefined : { name: { not: "superadmin" } },
     orderBy: { name: "asc" },
   });
 };
@@ -39,6 +41,9 @@ export const getRole = async (id: string) => {
   const role = await prisma.role.findUnique({
     where: { id },
   });
+  if (role && !canManagePlatformRole(Boolean(session?.isPlatformSuperAdmin), role.name)) {
+    return null;
+  }
   return role;
 };
 /**
@@ -51,8 +56,15 @@ export const getRole = async (id: string) => {
 export const createRole = authorizedAction(
   "roles:create",
   async (data: RoleData) => {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, error: "Unauthorized" };
+    }
     if (!data.name) {
       return { success: false, error: "Name is required" };
+    }
+    if (isPlatformRole(data.name)) {
+      return { success: false, error: "Forbidden: superadmin role is platform-managed" };
     }
     // Permissions are optional on creation now, can be added later
     // if (!data.permissions || data.permissions.length === 0) {
@@ -60,6 +72,10 @@ export const createRole = authorizedAction(
     // }
 
     const isActive = data.isActive ?? true;
+
+    if (isPlatformRole(data.name)) {
+      return { success: false, error: "Forbidden: superadmin role is platform-managed" };
+    }
 
     const existing = await prisma.role.findUnique({
       where: { name: data.name },
@@ -94,6 +110,10 @@ export const createRole = authorizedAction(
 export const updateRole = authorizedAction(
   "roles:update",
   async (id: string, data: RoleData) => {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, error: "Unauthorized" };
+    }
     if (!data.name) {
       return { success: false, error: "Name is required" };
     }
@@ -138,6 +158,21 @@ export const updateRole = authorizedAction(
 export const updateRolePermissions = authorizedAction(
   "roles:update",
   async (id: string, permissions: string[]) => {
+    const session = await getSession();
+    if (!session) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const role = await prisma.role.findUnique({
+      where: { id },
+      select: { name: true },
+    });
+    if (!role) {
+      return { success: false, error: "Role not found" };
+    }
+    if (!canManagePlatformRole(session.isPlatformSuperAdmin, role.name)) {
+      return { success: false, error: "Forbidden: superadmin role is platform-managed" };
+    }
+
     await prisma.role.update({
       where: { id },
       data: {

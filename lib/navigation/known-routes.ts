@@ -73,6 +73,11 @@ export const KNOWN_STATIC_APP_ROUTES = new Set<string>([
   "/inventory/uom",
   "/inventory/warehouses",
   "/payment-method",
+  "/platform/companies",
+  "/platform/dashboard",
+  "/platform/integrations/outbox",
+  "/platform/settings/ai",
+  "/platform/settings/data-reset",
   "/pos",
   "/pos/dining-spots",
   "/pos/restaurant",
@@ -183,7 +188,7 @@ function patternToRegex(pattern: string) {
   const escaped = pattern
     .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
     .replace(/\\\[\.\.\.([A-Za-z0-9_]+)\\\]/g, "(.+)")
-    .replace(/\\[([A-Za-z0-9_]+)\\]/g, "([^/]+)");
+    .replace(/\\\[([A-Za-z0-9_]+)\\\]/g, "([^/]+)");
   return new RegExp("^" + escaped + "$");
 }
 

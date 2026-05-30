@@ -51,7 +51,7 @@ import { SuperJSON } from '@/lib/superjson';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { useFormatDate } from "@/hooks/use-format-date";
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 export function GlobalDiscountManager() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);

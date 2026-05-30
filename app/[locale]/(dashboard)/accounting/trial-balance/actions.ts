@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import {
-  CalculatedAccount,
   TrialBalanceItem,
   TrialBalanceResult,
 } from "../types";
@@ -76,33 +75,35 @@ export const getTrialBalance = authorizedAction(
 
     // 3. Prepare data structure for hierarchy and calculation
 
-    const nodeMap = new Map<string, CalculatedAccount>();
+    type CalculatedNode = {
+      id: string;
+      code: string;
+      name: string;
+      type: string;
+      parentId: string | null;
+      level: number;
+      ownDebit: number;
+      ownCredit: number;
+      totalDebit: number;
+      totalCredit: number;
+      children: string[];
+      calculated: boolean;
+    };
+    const nodeMap = new Map<string, CalculatedNode>();
 
     // Initialize nodes
     for (const acc of accounts) {
       const bal = balanceMap.get(acc.id) || { debit: 0, credit: 0 };
       nodeMap.set(acc.id, {
-        id: acc.id,
-        code: acc.code,
-        name: acc.name,
-        type: acc.type,
+        ...acc,
         parentId: acc.parentId ?? null,
-        level: acc.level, // We will re-verify level or trust it. Let's trust it for sorting but re-verify structure.
+        level: acc.level,
         ownDebit: bal.debit,
         ownCredit: bal.credit,
         totalDebit: 0,
         totalCredit: 0,
         children: [],
         calculated: false,
-        parent: null,
-        _count: {
-          journalEntryLines: 0,
-        },
-        normalBalance: "debit",
-        isPosting: false,
-        isActive: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
     }
 

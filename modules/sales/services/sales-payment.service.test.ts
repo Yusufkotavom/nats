@@ -53,7 +53,7 @@ const MOCK_PAYMENT_INPUT = {
     salesInvoiceId: "inv-001",
     paymentDate: new Date("2026-02-16"),
     amount: 500,
-    method: "CARD",
+    method: "CARD" as const,
     cashAccountId: "cash-001",
 };
 

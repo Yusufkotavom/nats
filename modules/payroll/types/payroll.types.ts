@@ -1,4 +1,4 @@
-import { PayrollPeriod, SalaryComponent, SalaryStructure, SalarySlip, SalarySlipStatus, PayrollPeriodStatus } from '@/prisma/generated/prisma/client';
+import { PayrollPeriod, SalaryStructure } from '@/prisma/generated/prisma/client';
 
 
 

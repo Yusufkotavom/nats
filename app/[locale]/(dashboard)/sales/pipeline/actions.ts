@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { confirmSalesOrder, closeSalesOrder } from "../orders/actions";
 import { createSalesInvoice, postSalesInvoice } from "../invoices/actions";
@@ -44,7 +43,14 @@ type SalesPipelineState = {
   activeCashAccountId: string | null;
 };
 
-function assertAccess(session: Awaited<ReturnType<typeof getSession>>) {
+type AuthSession = NonNullable<Awaited<ReturnType<typeof getSession>>> & {
+  activeCompanyId: string;
+  userId: string;
+};
+
+function assertAccess(
+  session: Awaited<ReturnType<typeof getSession>>,
+): asserts session is AuthSession {
   if (!session?.userId || !hasPermission(session.permissions, "sales.edit")) {
     throw new Error("Unauthorized");
   }
@@ -58,7 +64,7 @@ const SHIPMENT_SKIPPED_MARKER = "[PIPELINE_SHIPMENT_SKIPPED]";
 export async function getSalesPipelineState(orderId: string): Promise<SalesPipelineState> {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const order = await prisma.salesOrder.findFirst({
     where: { id: orderId, companyId },
@@ -102,7 +108,7 @@ export async function getSalesPipelineState(orderId: string): Promise<SalesPipel
     : null;
 
   const cashAccount = await prisma.cashAccount.findFirst({
-    where: { isActive: true, companyId },
+    where: { isActive: true, glAccount: { companyId } },
     orderBy: { createdAt: "asc" },
     select: { id: true },
   });
@@ -165,7 +171,7 @@ export async function runSalesPipelineAction(
 ) {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const current = await prisma.salesOrder.findFirst({
     where: { id: orderId, companyId },
@@ -255,7 +261,7 @@ export async function runSalesPipelineAction(
         totalTax: 0,
         shippingCost: 0,
         items: current.items.map((item) => ({
-          description: item.description || "Item",
+          description: "Item",
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
           discount: 0,
@@ -287,7 +293,7 @@ export async function runSalesPipelineAction(
     if (!invoice) throw new Error("Invoice not found");
 
     const cashAccount = await prisma.cashAccount.findFirst({
-      where: { isActive: true, companyId },
+      where: { isActive: true, glAccount: { companyId } },
       orderBy: { createdAt: "asc" },
       select: { id: true },
     });

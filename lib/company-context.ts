@@ -7,24 +7,29 @@ export async function getActiveCompanyContext() {
     return null;
   }
 
-  const company = await prisma.company.findUnique({
-    where: { id: session.activeCompanyId },
-    include: {
-      profile: true,
-    },
-  });
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id: session.activeCompanyId },
+      include: {
+        profile: true,
+      },
+    });
 
-  if (!company || company.status !== "ACTIVE") {
+    if (!company || company.status !== "ACTIVE") {
+      return null;
+    }
+
+    return {
+      companyId: company.id,
+      companyName: company.name,
+      profile: company.profile,
+      isImpersonating: Boolean(session.impersonatedCompanyId),
+      impersonatedCompanyId: session.impersonatedCompanyId,
+    };
+  } catch (error) {
+    console.error("getActiveCompanyContext company lookup failed:", error);
     return null;
   }
-
-  return {
-    companyId: company.id,
-    companyName: company.name,
-    profile: company.profile,
-    isImpersonating: Boolean(session.impersonatedCompanyId),
-    impersonatedCompanyId: session.impersonatedCompanyId,
-  };
 }
 
 export async function requireActiveCompanyContext() {
@@ -33,21 +38,26 @@ export async function requireActiveCompanyContext() {
     throw new Error("No active company selected");
   }
 
-  const company = await prisma.company.findUnique({
-    where: { id: session.activeCompanyId },
-    include: {
-      profile: true,
-    },
-  });
-  if (!company || company.status !== "ACTIVE") {
-    throw new Error("Active company is not available");
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id: session.activeCompanyId },
+      include: {
+        profile: true,
+      },
+    });
+
+    if (!company || company.status !== "ACTIVE") {
+      throw new Error("Active company is not available");
+    }
+
+    return {
+      session,
+      companyId: company.id,
+      companyName: company.name,
+      profile: company.profile,
+    };
+  } catch (error) {
+    console.error("requireActiveCompanyContext company lookup failed:", error);
+    throw new Error("Active company is temporarily unavailable");
   }
-
-  return {
-    session,
-    companyId: company.id,
-    companyName: company.name,
-    profile: company.profile,
-  };
 }
-

@@ -111,8 +111,10 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
   };
 
   const handleConfirmCheckout = async (
-    method: "CASH" | "CARD" | "QRIS",
+    method: "CASH" | "BANK" | "CARD" | "QRIS",
     amountPaid: number,
+    _customerId?: string,
+    cashAccountId?: string,
   ) => {
     if (!checkoutOrder) return;
     setWorkingOrderId(checkoutOrder.orderId);
@@ -120,7 +122,7 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
       await settleRestaurantBill(
         sessionId,
         checkoutOrder.orderId,
-        method,
+        method === "BANK" ? "CARD" : method,
         amountPaid,
       );
       toast({
@@ -285,6 +287,10 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
         selectedContactId={undefined}
         onSelectedContactChange={() => undefined}
         onQuickCreateContact={() => undefined}
+        paymentMethods={[
+          { id: "", name: "Cash", method: "CASH" },
+          { id: "", name: "Bank", method: "BANK" },
+        ]}
         onConfirm={(method, amount) => handleConfirmCheckout(method, amount)}
       />
     </div>

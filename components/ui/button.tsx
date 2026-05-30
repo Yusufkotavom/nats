@@ -69,7 +69,7 @@ function Button({
       started = true;
       startGlobalProgress();
       const result = onClick?.(event);
-      if (result instanceof Promise) {
+      if (result && typeof (result as Promise<unknown>).then === "function") {
         await result;
       }
     } finally {

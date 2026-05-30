@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getSessionMock = vi.hoisted(() => vi.fn());
-const hasPermissionMock = vi.hoisted(() => vi.fn(() => true));
+const hasPermissionMock = vi.hoisted(() => vi.fn((..._args: any[]) => true));
 
 const prismaMock = vi.hoisted(() => ({
   salesReturn: {
@@ -12,11 +12,11 @@ const prismaMock = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/auth", () => ({
-  getSession: (...args: unknown[]) => getSessionMock(...args),
+  getSession: () => getSessionMock(),
 }));
 
 vi.mock("@/lib/permissions/utils", () => ({
-  hasPermission: (...args: unknown[]) => hasPermissionMock(...args),
+  hasPermission: hasPermissionMock as any,
 }));
 
 vi.mock("@/lib/permissions/protected-action", () => ({

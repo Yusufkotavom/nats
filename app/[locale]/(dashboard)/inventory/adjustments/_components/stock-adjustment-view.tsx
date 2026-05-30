@@ -269,7 +269,7 @@ export function StockAdjustmentView({
           <Label>Warehouse</Label>
           <SearchableSelect
             value={warehouseId}
-            onValueChange={setWarehouseId}
+            onValueChange={(value) => setWarehouseId(value || "")}
             options={warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))}
             placeholder="Pilih Warehouse"
           />

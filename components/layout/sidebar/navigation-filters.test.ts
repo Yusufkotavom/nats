@@ -4,9 +4,11 @@ import { filterAdministrationNavigation } from "./navigation-filters";
 describe("filterAdministrationNavigation", () => {
   const items = [
     { title: "Company.settings", url: "/admin/settings" },
+    { title: "System.ai-configuration", url: "/platform/settings/ai" },
+    { title: "System.events-dashboard", url: "/platform/dashboard" },
     { title: "Company.departments", url: "/general/departments" },
     { title: "Company.projects", url: "/general/projects" },
-    { title: "Admin.companies", url: "/admin/companies" },
+    { title: "Admin.companies", url: "/platform/companies" },
   ];
 
   it("hides departments/projects when dimensions are disabled", () => {
@@ -18,7 +20,9 @@ describe("filterAdministrationNavigation", () => {
 
     expect(filtered.map((item) => item.url)).toEqual([
       "/admin/settings",
-      "/admin/companies",
+      "/platform/settings/ai",
+      "/platform/dashboard",
+      "/platform/companies",
     ]);
   });
 

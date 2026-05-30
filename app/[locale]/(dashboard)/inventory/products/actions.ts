@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/prisma/generated/prisma/client";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { ProductFormData, ProductInput } from "../types";
 import { authorizedAction } from "@/lib/permissions/protected-action";

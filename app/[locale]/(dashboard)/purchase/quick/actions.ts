@@ -6,7 +6,6 @@ import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { prisma } from "@/lib/prisma";
 import { SuperJSON } from "@/lib/superjson";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { SuperJSONResult } from "superjson";
 import { createPurchaseReceive, updatePurchaseReceive } from "../receives/actions";
@@ -25,7 +24,7 @@ type QuickPurchaseFormData = {
 export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "purchase.view")) {
-    return SuperJSON.serialize<QuickPurchaseFormData>({
+    return SuperJSON.serialize({
       vendors: [],
       products: [],
       cashAccounts: [],
@@ -34,7 +33,7 @@ export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
     });
   }
   if (!session.activeCompanyId) {
-    return SuperJSON.serialize<QuickPurchaseFormData>({
+    return SuperJSON.serialize({
       vendors: [],
       products: [],
       cashAccounts: [],
@@ -65,18 +64,18 @@ export async function getQuickPurchaseFormData(): Promise<SuperJSONResult> {
       select: { id: true, name: true },
     }),
     prisma.department.findMany({
-      where: { isActive: true, companyId: session.activeCompanyId },
+      where: { isActive: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
     prisma.project.findMany({
-      where: { companyId: session.activeCompanyId },
+      where: {},
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
   ]);
 
-  return SuperJSON.serialize<QuickPurchaseFormData>({
+  return SuperJSON.serialize({
     vendors,
     products: products.map((p) => ({ ...p, cost: Number(p.cost) })),
     cashAccounts,

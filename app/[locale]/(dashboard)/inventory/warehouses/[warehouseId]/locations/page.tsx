@@ -22,7 +22,7 @@ export default async function Page({
 
   const warehouse = await getWarehouse(warehouseId);
 
-  if (!warehouse.json) {
+  if (!warehouse || !warehouse.json) {
     notFound();
   }
 

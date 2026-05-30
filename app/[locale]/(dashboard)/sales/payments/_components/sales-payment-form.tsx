@@ -84,7 +84,7 @@ export function SalesPaymentForm({
     reference: initialData?.reference || "",
     notes: initialData?.notes || "",
     cashAccountId: initialData?.cashAccountId || "",
-    method: initialData?.method || "CASH",
+    method: (initialData?.method || "CASH") as UnifiedPaymentMethod,
     departmentId: initialData?.departmentId || null,
     projectId: initialData?.projectId || null,
     attachmentIds: initialData?.attachments?.map((a) => a.id) || [],

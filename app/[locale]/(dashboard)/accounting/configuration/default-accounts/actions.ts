@@ -2,10 +2,10 @@
 
 import { prisma } from "@/lib/prisma"
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client"
-import { revalidatePath } from "next/cache"
 import { authorizedAction } from "@/lib/permissions/protected-action"
 import { getSession } from "@/lib/auth/auth"
 import { hasPermission } from "@/lib/permissions/utils"
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path"
 
 export type DefaultAccountWithAccount = {
   id: string

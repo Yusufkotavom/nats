@@ -7,7 +7,6 @@ import { DepreciationService } from "@/modules/fixed-assets/services/depreciatio
 import { CategoryService } from "@/modules/fixed-assets/services/category.service";
 import { AssetStatus, DepreciationMethod } from "@/prisma/generated/prisma/client";
 import { Decimal } from "decimal.js";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { getSession } from "@/lib/auth/auth";
 
@@ -149,8 +148,8 @@ export async function disposeAsset(
   date: Date,
   amount: number,
   reason: string,
-  depositAccountId: string,
-  userId: string
+  _depositAccountId: string,
+  _userId: string
 ) {
   try {
     const session = await getSession();
@@ -194,7 +193,7 @@ export async function getDueDepreciationSchedules() {
   return SuperJSON.serialize(schedules);
 }
 
-export async function postDepreciationRun(scheduleIds: string[], userId: string) {
+export async function postDepreciationRun(scheduleIds: string[], _userId: string) {
   try {
     const session = await getSession();
     if (!session?.userId) throw new Error("Unauthorized");

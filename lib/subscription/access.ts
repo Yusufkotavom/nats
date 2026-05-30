@@ -14,13 +14,24 @@ export type CompanyAccessState = {
 };
 
 export async function getCompanyAccessState(companyId: string): Promise<CompanyAccessState> {
-  const subscription = await prisma.companySubscription.findUnique({
-    where: { companyId },
-    select: {
-      status: true,
-      endDate: true,
-    },
-  });
+  let subscription: { status: CompanySubscriptionStatus; endDate: Date | null } | null = null;
+  try {
+    subscription = await prisma.companySubscription.findUnique({
+      where: { companyId },
+      select: {
+        status: true,
+        endDate: true,
+      },
+    });
+  } catch (error) {
+    console.error("getCompanyAccessState subscription lookup failed:", error);
+    return {
+      isReadOnly: false,
+      reason: "OK",
+      subscriptionStatus: null,
+      trialEndsAt: null,
+    };
+  }
 
   if (!subscription) {
     return {

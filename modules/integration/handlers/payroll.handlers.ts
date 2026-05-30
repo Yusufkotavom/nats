@@ -23,7 +23,6 @@ export const handlePayrollRunCompleted = async (
     const expenseAccount = await getRequiredDefaultAccount('SALARIES_EXPENSE');
     const liabilityAccount = await getRequiredDefaultAccount('PAYROLL_LIABILITY');
 
-    const totalAmount = new Decimal(payload.totalAmount);
     // Note: In a real scenario, total earnings might be higher than net pay due to deductions.
     // Ideally:
     // Dr Salaries Expense (Total Earnings)

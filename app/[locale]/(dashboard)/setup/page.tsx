@@ -2,17 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { SetupWizard } from "./_components/setup-wizard";
 import {
-    getSetupStatus,
-    getPostingAccounts,
-    getCurrentDefaultAccounts,
+    getSetupBootstrap,
 } from "./actions";
 
 export default async function SetupPage() {
-    const [status, accounts, currentDefaults] = await Promise.all([
-        getSetupStatus(),
-        getPostingAccounts(),
-        getCurrentDefaultAccounts(),
-    ]);
+    const { status, accounts, currentDefaults } = await getSetupBootstrap();
 
     const existingDefaults = currentDefaults.map((d) => ({
         purpose: d.purpose,

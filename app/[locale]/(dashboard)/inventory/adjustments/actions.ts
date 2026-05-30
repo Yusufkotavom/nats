@@ -5,7 +5,6 @@ import { SuperJSON } from "@/lib/superjson";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { authorizedAction } from "@/lib/permissions/protected-action";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { z } from "zod";
 import { MovementType } from "@/prisma/generated/prisma/client";

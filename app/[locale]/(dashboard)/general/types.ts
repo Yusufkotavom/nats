@@ -16,8 +16,8 @@ export type PaginatedResult<T> = {
 
 export type CreateContactInput = Omit<
   Contact,
-  "id" | "createdAt" | "updatedAt"
->;
+  "id" | "createdAt" | "updatedAt" | "companyId"
+> & { companyId?: string };
 export type UpdateContactInput = Partial<CreateContactInput>;
 
 export type CreateCustomerInput = CreateContactInput;

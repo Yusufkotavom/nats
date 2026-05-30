@@ -16,7 +16,7 @@ export class SalesInvoiceService {
 
         await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
 
-        const taxRates = await prisma.taxRate.findMany({ where: { companyId } });
+        const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
 
         return await prisma.$transaction(async (tx) => {
@@ -86,7 +86,7 @@ export class SalesInvoiceService {
         }
 
         // 3. Calculate Totals
-        const taxRates = await prisma.taxRate.findMany({ where: { companyId } });
+        const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
 
         // 4. Update Transaction

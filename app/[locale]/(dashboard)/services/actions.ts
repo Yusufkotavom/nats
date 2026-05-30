@@ -15,9 +15,11 @@ import type {
   ServiceAfterSalesCaseListItem,
   ServiceInvoiceListItem,
   ServiceOrderListItem,
+  ServicePaymentMethod,
   ServicePaymentListItem,
 } from "./types";
 import { SalesReturnService } from "@/modules/sales/services/sales-return.service";
+import { assertCompanyWriteAccess } from "@/lib/subscription/write-guard";
 
 type PagingResult<T> = {
   data: T[];
@@ -25,7 +27,14 @@ type PagingResult<T> = {
   totalPages: number;
 };
 
-function assertAccess(session: Awaited<ReturnType<typeof getSession>>) {
+type AuthSession = NonNullable<Awaited<ReturnType<typeof getSession>>> & {
+  activeCompanyId: string;
+  userId: string;
+};
+
+function assertAccess(
+  session: Awaited<ReturnType<typeof getSession>>,
+): asserts session is AuthSession {
   const canAccessServices =
     !!session?.permissions &&
     (hasPermission(session.permissions, "pos.access") ||
@@ -71,8 +80,8 @@ async function ensureServiceSession(companyId: string, userId: string) {
 export async function getServiceCreateMeta() {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
-  const userId = session.userId!;
+  const companyId = session.activeCompanyId;
+  const userId = session.userId;
 
   const sessionId = await ensureServiceSession(companyId, userId);
 
@@ -105,9 +114,10 @@ export async function createServiceQuickContact(input: {
   phone?: string;
   email?: string;
 }) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const name = input.name.trim();
   const phone = input.phone?.trim() || null;
@@ -154,10 +164,11 @@ export async function createServiceOrder(input: {
     notes?: string;
   }>;
 }) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
-  const userId = session.userId!;
+  const companyId = session.activeCompanyId;
+  const userId = session.userId;
   const sessionId = await ensureServiceSession(companyId, userId);
 
   const order = await POSServiceWorkflowService.create(
@@ -185,7 +196,7 @@ export async function getServiceOrders(
 ): Promise<PagingResult<ServiceOrderListItem>> {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const where = {
     companyId,
@@ -271,7 +282,7 @@ export async function getServiceInvoices(
 ): Promise<PagingResult<ServiceInvoiceListItem>> {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const where = {
     companyId,
@@ -349,7 +360,7 @@ export async function getServicePayments(
 ): Promise<PagingResult<ServicePaymentListItem>> {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const serviceInvoiceIds = (
     await prisma.pOSServiceOrder.findMany({
@@ -428,7 +439,7 @@ export async function getServiceAfterSales(
 ): Promise<PagingResult<ServiceAfterSalesCaseListItem>> {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
   const where = {
     companyId,
     ...(status !== "ALL" ? { status } : {}),
@@ -514,9 +525,10 @@ export async function createServiceAfterSalesCase(input: {
   caseType: "RETURN" | "WARRANTY";
   notes?: string;
 }) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const order = await prisma.pOSServiceOrder.findFirst({
     where: { id: input.serviceOrderId, companyId },
@@ -559,6 +571,7 @@ export async function updateServiceOrderStatus(
   orderId: string,
   status: ServiceWorkflowStatus,
 ) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   assertAccess(session);
 
@@ -589,7 +602,7 @@ export async function settleServiceOrder(
 export async function getServicePaymentMethods() {
   const session = await getSession();
   assertAccess(session);
-  const methods = await PaymentMethodCatalogService.list(session.activeCompanyId!);
+  const methods = await PaymentMethodCatalogService.list(session.activeCompanyId);
   return SuperJSON.serialize(methods);
 }
 
@@ -599,6 +612,7 @@ export async function updateServiceOrderPricing(input: {
   quantity?: number;
   notes?: string;
 }) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   assertAccess(session);
 
@@ -681,7 +695,7 @@ export async function updateServiceOrderPricing(input: {
 export async function getServiceOrderForEdit(orderId: string) {
   const session = await getSession();
   assertAccess(session);
-  const companyId = session.activeCompanyId!;
+  const companyId = session.activeCompanyId;
 
   const order = await prisma.pOSServiceOrder.findFirst({
     where: { id: orderId, companyId },
@@ -766,6 +780,7 @@ export async function updateServiceOrder(input: {
     notes?: string;
   }>;
 }) {
+  await assertCompanyWriteAccess();
   const session = await getSession();
   assertAccess(session);
 

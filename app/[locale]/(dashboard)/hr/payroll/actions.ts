@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { PayrollService } from '@/modules/payroll/services/payroll.service';
 import { CreatePayrollPeriodDTO, CreateSalaryStructureDTO, ActionResponse, CreateSalaryComponentDTO } from '@/modules/payroll/types/payroll.types';
 import { prisma } from '@/lib/prisma';
@@ -9,6 +8,7 @@ import { SalaryComponentService } from '@/modules/payroll/services/salary-compon
 import { ContactType } from '@/prisma/generated/prisma/client';
 
 import { SuperJSON } from "@/lib/superjson";
+import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 
 export async function createPayrollPeriod(data: CreatePayrollPeriodDTO): Promise<ActionResponse> {
     try {

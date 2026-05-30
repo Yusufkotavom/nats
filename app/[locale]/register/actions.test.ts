@@ -23,6 +23,8 @@ const prismaMock = vi.hoisted(() => ({
     upsert: vi.fn(),
   },
   $transaction: vi.fn(),
+  $disconnect: vi.fn(),
+  $connect: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -42,6 +44,8 @@ import { registerUserAndTenant } from "./actions";
 describe("register/actions registerUserAndTenant", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMock.$disconnect.mockResolvedValue(undefined);
+    prismaMock.$connect.mockResolvedValue(undefined);
 
     prismaMock.user.findUnique.mockResolvedValue(null);
     prismaMock.role.upsert.mockResolvedValue({

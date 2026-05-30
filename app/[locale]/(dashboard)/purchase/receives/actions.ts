@@ -4,9 +4,8 @@ import { InventoryService } from "@/modules/inventory/services/inventory.service
 import { getRequiredDefaultAccount } from "@/lib/accounting/default-account.service";
 
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
-import { Prisma, ContactType } from "@/prisma/generated/prisma/client";
+import { Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { PurchaseReceiveInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";

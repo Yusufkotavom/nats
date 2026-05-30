@@ -80,7 +80,7 @@ export function PurchasePaymentForm({
     departmentId: initialData?.departmentId || null,
     projectId: initialData?.projectId || null,
     cashAccountId: initialData?.cashAccountId || "",
-    method: initialData?.method || "CASH",
+    method: ((initialData as any)?.method || "CASH") as UnifiedPaymentMethod,
   });
 
   // Date string for input

@@ -28,17 +28,27 @@ export default async function DashboardLayout({
   };
 
   if (session?.userId) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      include: { role: true },
-    });
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        include: { role: true },
+      });
 
-    if (user) {
+      if (user) {
+        userData = {
+          ...userData,
+          name: user.name,
+          email: user.email,
+          role: session.role || user.role?.name || "Member",
+        };
+      }
+    } catch (error) {
+      // Fallback to session-only rendering when DB schema is temporarily out of sync.
+      console.error("DashboardLayout user lookup failed:", error);
       userData = {
         ...userData,
-        name: user.name,
-        email: user.email,
-        role: session.role || user.role?.name || "Member",
+        name: session.userName || userData.name,
+        role: session.role || "Member",
       };
     }
   }

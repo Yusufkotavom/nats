@@ -265,8 +265,8 @@ export const updatePOSSettings = authorizedAction(
         serviceWarrantyUnit: data.serviceWarrantyUnit,
       };
 
-      const profileCreateData: Prisma.CompanyProfileCreateInput = {
-        company: { connect: { id: companyId } },
+      const profileCreateData: Prisma.CompanyProfileUncheckedCreateInput = {
+        companyId,
         name: "Default Company",
         currency: "IDR",
         currencySymbol: "Rp",
@@ -288,31 +288,23 @@ export const updatePOSSettings = authorizedAction(
         serviceWarrantyUnit: data.serviceWarrantyUnit,
       };
 
-      try {
-        (profileUpdateData as Prisma.CompanyProfileUncheckedUpdateInput).defaultCashAccountId =
-          data.defaultCashAccountId || null;
-        (profileUpdateData as Prisma.CompanyProfileUncheckedUpdateInput).defaultCardAccountId =
-          data.defaultCardAccountId || null;
-        (profileUpdateData as Prisma.CompanyProfileUncheckedUpdateInput).defaultQrisAccountId =
-          data.defaultQrisAccountId || null;
-
-        (profileCreateData as Prisma.CompanyProfileUncheckedCreateInput).defaultCashAccountId =
-          data.defaultCashAccountId || null;
-        (profileCreateData as Prisma.CompanyProfileUncheckedCreateInput).defaultCardAccountId =
-          data.defaultCardAccountId || null;
-        (profileCreateData as Prisma.CompanyProfileUncheckedCreateInput).defaultQrisAccountId =
-          data.defaultQrisAccountId || null;
-      } catch {
-        // Keep backward compatibility when generated Prisma types/client haven't included the new fields yet.
-      }
+      (profileUpdateData as Prisma.CompanyProfileUncheckedUpdateInput).defaultCashAccountId =
+        data.defaultCashAccountId || null;
+      (profileUpdateData as Prisma.CompanyProfileUncheckedUpdateInput).defaultCardAccountId =
+        data.defaultCardAccountId || null;
+      (profileUpdateData as Prisma.CompanyProfileUncheckedUpdateInput).defaultQrisAccountId =
+        data.defaultQrisAccountId || null;
+      profileCreateData.defaultCashAccountId = data.defaultCashAccountId || null;
+      profileCreateData.defaultCardAccountId = data.defaultCardAccountId || null;
+      profileCreateData.defaultQrisAccountId = data.defaultQrisAccountId || null;
 
       await prisma.companyProfile.update({
         where: { id: existing.id },
         data: profileUpdateData,
       });
     } else {
-      const profileCreateData: Prisma.CompanyProfileCreateInput = {
-        company: { connect: { id: companyId } },
+      const profileCreateData: Prisma.CompanyProfileUncheckedCreateInput = {
+        companyId,
         name: "Default Company",
         currency: "IDR",
         currencySymbol: "Rp",
@@ -334,16 +326,9 @@ export const updatePOSSettings = authorizedAction(
         serviceWarrantyUnit: data.serviceWarrantyUnit,
       };
 
-      try {
-        (profileCreateData as Prisma.CompanyProfileUncheckedCreateInput).defaultCashAccountId =
-          data.defaultCashAccountId || null;
-        (profileCreateData as Prisma.CompanyProfileUncheckedCreateInput).defaultCardAccountId =
-          data.defaultCardAccountId || null;
-        (profileCreateData as Prisma.CompanyProfileUncheckedCreateInput).defaultQrisAccountId =
-          data.defaultQrisAccountId || null;
-      } catch {
-        // Backward compatibility for older generated Prisma client.
-      }
+      profileCreateData.defaultCashAccountId = data.defaultCashAccountId || null;
+      profileCreateData.defaultCardAccountId = data.defaultCardAccountId || null;
+      profileCreateData.defaultQrisAccountId = data.defaultQrisAccountId || null;
 
       await prisma.companyProfile.create({
         data: profileCreateData,

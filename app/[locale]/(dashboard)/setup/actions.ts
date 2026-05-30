@@ -13,6 +13,7 @@ import {
 import { ensureCompanyMinimalPaymentMethods } from "@/lib/setup/minimal-payment-methods";
 import { DefaultAccountPurpose } from "@/prisma/generated/prisma/client";
 import { requireActiveCompanyContext } from "@/lib/company-context";
+import { withDbRetry } from "@/lib/db-retry";
 
 export type SetupStatus = {
     hasCompanyProfile: boolean;
@@ -36,12 +37,12 @@ export async function getSetupStatus(): Promise<SetupStatus> {
         unitCount,
         categoryCount,
     ] = await Promise.all([
-        prisma.companyProfile.findUnique({ where: { companyId } }),
-        prisma.account.count({ where: { companyId } }),
-        prisma.defaultAccount.count({ where: { companyId, isActive: true } }),
-        prisma.warehouse.count({ where: { companyId } }),
-        prisma.unit.count({ where: { companyId } }),
-        prisma.category.count({ where: { companyId } }),
+        withDbRetry(() => prisma.companyProfile.findUnique({ where: { companyId } })),
+        withDbRetry(() => prisma.account.count({ where: { companyId } })),
+        withDbRetry(() => prisma.defaultAccount.count({ where: { companyId, isActive: true } })),
+        withDbRetry(() => prisma.warehouse.count({ where: { companyId } })),
+        withDbRetry(() => prisma.unit.count({ where: { companyId } })),
+        withDbRetry(() => prisma.category.count({ where: { companyId } })),
     ]);
 
     return {
@@ -372,11 +373,13 @@ export const saveInitialWarehouse = authorizedAction(
  */
 export async function getPostingAccounts() {
     const { companyId } = await requireActiveCompanyContext();
-    return prisma.account.findMany({
-        where: { isPosting: true, companyId },
-        select: { id: true, code: true, name: true, type: true },
-        orderBy: { code: "asc" },
-    });
+    return withDbRetry(() =>
+        prisma.account.findMany({
+            where: { isPosting: true, companyId },
+            select: { id: true, code: true, name: true, type: true },
+            orderBy: { code: "asc" },
+        }),
+    );
 }
 
 /**
@@ -384,8 +387,57 @@ export async function getPostingAccounts() {
  */
 export async function getCurrentDefaultAccounts() {
     const { companyId } = await requireActiveCompanyContext();
-    return prisma.defaultAccount.findMany({
-        where: { companyId, isActive: true },
-        include: { account: { select: { id: true, code: true, name: true } } },
-    });
+    return withDbRetry(() =>
+        prisma.defaultAccount.findMany({
+            where: { companyId, isActive: true },
+            include: { account: { select: { id: true, code: true, name: true } } },
+        }),
+    );
+}
+
+export async function getSetupBootstrap() {
+    const { companyId } = await requireActiveCompanyContext();
+    const [
+        companyProfile,
+        accountCount,
+        defaultAccountCount,
+        warehouseCount,
+        unitCount,
+        categoryCount,
+        accounts,
+        currentDefaults,
+    ] = await Promise.all([
+        withDbRetry(() => prisma.companyProfile.findUnique({ where: { companyId } })),
+        withDbRetry(() => prisma.account.count({ where: { companyId } })),
+        withDbRetry(() => prisma.defaultAccount.count({ where: { companyId, isActive: true } })),
+        withDbRetry(() => prisma.warehouse.count({ where: { companyId } })),
+        withDbRetry(() => prisma.unit.count({ where: { companyId } })),
+        withDbRetry(() => prisma.category.count({ where: { companyId } })),
+        withDbRetry(() =>
+            prisma.account.findMany({
+                where: { isPosting: true, companyId },
+                select: { id: true, code: true, name: true, type: true },
+                orderBy: { code: "asc" },
+            }),
+        ),
+        withDbRetry(() =>
+            prisma.defaultAccount.findMany({
+                where: { companyId, isActive: true },
+                include: { account: { select: { id: true, code: true, name: true } } },
+            }),
+        ),
+    ]);
+
+    return {
+        status: {
+            hasCompanyProfile: !!companyProfile,
+            accountCount,
+            defaultAccountCount,
+            warehouseCount,
+            unitCount,
+            categoryCount,
+        } satisfies SetupStatus,
+        accounts,
+        currentDefaults,
+    };
 }

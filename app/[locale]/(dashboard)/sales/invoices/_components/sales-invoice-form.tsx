@@ -308,14 +308,22 @@ export function SalesInvoiceForm({
 
   useEffect(() => {
     const calculatedTotalTax = formData.items.reduce((sum, item) => {
-      const { taxAmount } = calculateItemValues(item);
+      const quantity = item.quantity || 0;
+      const unitPrice = item.unitPrice || 0;
+      const subtotal = quantity * unitPrice;
+      const discountAmount = subtotal * ((item.discount || 0) / 100);
+      const taxableAmount = Math.max(0, subtotal - discountAmount);
+      const taxAmount = item.taxRateId
+        ? taxableAmount *
+          ((Number(taxRates.find((r) => r.id === item.taxRateId)?.rate ?? 0)) / 100)
+        : (item.tax || 0);
       return sum + taxAmount;
     }, 0);
 
     if (Math.abs(calculatedTotalTax - formData.totalTax) > 0.001) {
       setFormData((prev) => ({ ...prev, totalTax: calculatedTotalTax }));
     }
-  }, [formData.items]);
+  }, [formData.items, formData.totalTax, taxRates]);
 
   const itemsNetTotal = formData.items.reduce(
     (sum, item) => sum + calculateItemValues(item).taxableAmount,

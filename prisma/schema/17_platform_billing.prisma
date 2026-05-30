@@ -26,6 +26,8 @@ model PlatformPlan {
   price         Decimal          @default(0)
   currency      String           @default("IDR")
   billingCycle  PlanBillingCycle @default(MONTHLY)
+  monthlyTransactionLimit Int?
+  featureList   String[]         @default([])
   isActive      Boolean          @default(true)
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt

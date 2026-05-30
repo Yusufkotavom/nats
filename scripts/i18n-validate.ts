@@ -21,20 +21,6 @@ const T_CALL_REGEX = /\b(\w+)\s*\(\s*["']([^"']+)["']\s*(?:,.*)?\)/g;
 // Matches: t.rich("key"), t.markup("key"), t.raw("key")
 const T_METHOD_REGEX = /\b(\w+)\.(?:rich|markup|raw)\s*\(\s*["']([^"']+)["']\s*(?:,.*)?\)/g;
 
-interface ValidationResult {
-  missingKeys: {
-    lang: string;
-    namespace: string;
-    key: string;
-    files: string[];
-  }[];
-  unusedKeys: {
-    lang: string;
-    namespace: string;
-    key: string;
-  }[];
-}
-
 // Helper to recursively find files
 function findFiles(dir: string, extension: string): string[] {
   let results: string[] = [];
@@ -126,7 +112,7 @@ function scanSourceCode(dir = SOURCE_DIR): { usage: KeyMap; fileUsage: FileKeyMa
     const varToNamespace = new Map<string, string>();
 
     hookMatches.forEach(match => {
-      const [_, varName, namespace] = match;
+      const [, varName, namespace] = match;
       varToNamespace.set(varName, namespace);
     });
 
@@ -138,7 +124,7 @@ function scanSourceCode(dir = SOURCE_DIR): { usage: KeyMap; fileUsage: FileKeyMa
     const allMatches = [...callMatches, ...methodMatches];
 
     allMatches.forEach(match => {
-      const [_, varName, key] = match;
+      const [, varName, key] = match;
       const namespace = varToNamespace.get(varName);
 
       if (namespace) {
@@ -180,7 +166,7 @@ async function main() {
   console.log(`Starting i18n validation... (Mode: ${isCheckMode ? 'Check' : 'Fix'})`);
 
   // 1. Scan source code
-  const { usage, fileUsage } = scanSourceCode();
+  const { usage } = scanSourceCode();
 
   // 2. Load existing translations
   const translations: Record<string, any> = {};

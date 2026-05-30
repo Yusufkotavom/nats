@@ -53,6 +53,7 @@ export async function getSubscriptionData() {
         subscriptionStart: subscription?.startDate || null,
         subscriptionEnd: subscription?.endDate || null,
         nextBillingDate: subscription?.nextBillingDate || null,
+        planFeatures: subscription?.plan?.featureList || [],
         trialEndsAt: accessState.trialEndsAt,
         isReadOnly: accessState.isReadOnly,
         readOnlyReason: accessState.reason,
@@ -73,6 +74,10 @@ export async function getSubscriptionData() {
           amount: Number(invoice.totalAmount),
         })),
         monthlyUsage: monthlyTransactions?.count || 0,
-        monthlyLimit: "Unlimited",
+        monthlyLimit:
+          typeof subscription?.plan?.monthlyTransactionLimit === "number" &&
+          subscription.plan.monthlyTransactionLimit > 0
+            ? subscription.plan.monthlyTransactionLimit
+            : "Unlimited",
     });
 }
