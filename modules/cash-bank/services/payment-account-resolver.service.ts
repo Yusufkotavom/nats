@@ -35,6 +35,19 @@ export class PaymentAccountResolverService {
     companyId: string,
     method: PaymentMethod,
   ) {
+    const txWithProfile = tx as DbClient & {
+      companyProfile?: {
+        findUnique?: (...args: any[]) => Promise<{
+          defaultCashAccountId: string | null;
+          defaultCardAccountId: string | null;
+          defaultQrisAccountId: string | null;
+        } | null>;
+      };
+    };
+    if (!txWithProfile.companyProfile?.findUnique) {
+      return null;
+    }
+
     let profile: {
       defaultCashAccountId: string | null;
       defaultCardAccountId: string | null;
@@ -42,7 +55,7 @@ export class PaymentAccountResolverService {
     } | null = null;
 
     try {
-      profile = await tx.companyProfile.findUnique({
+      profile = await txWithProfile.companyProfile.findUnique({
         where: { companyId },
         select: {
           defaultCashAccountId: true,

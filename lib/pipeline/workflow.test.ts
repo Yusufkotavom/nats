@@ -46,6 +46,9 @@ describe("pipeline workflow helpers", () => {
     ).toBe("move_processing");
     expect(
       getServiceNextStep({ status: "READY", remainingAmount: 5000, canClose: false }),
+    ).toBe("move_done");
+    expect(
+      getServiceNextStep({ status: "DONE", remainingAmount: 5000, canClose: false }),
     ).toBe("settle_payment");
     expect(
       getServiceNextStep({ status: "DONE", remainingAmount: 0, canClose: true }),

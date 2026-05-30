@@ -52,6 +52,9 @@ const prismaMock = vi.hoisted(() => ({
     cashAccount: {
         findFirst: vi.fn(),
     },
+    companyProfile: {
+        findUnique: vi.fn(),
+    },
     salesPayment: {
         create: vi.fn(),
     },
@@ -75,6 +78,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 describe("POSTransactionService", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        prismaMock.companyProfile.findUnique.mockResolvedValue(null);
     });
 
     describe("process", () => {
@@ -105,7 +109,8 @@ describe("POSTransactionService", () => {
                 id: mockSessionId,
                 status: "OPEN",
                 warehouseId: "wh-1",
-                cashierId: "user-1"
+                cashierId: "user-1",
+                companyId: "cmp-1"
             });
 
             // Mock Customer Resolution (Walk-in)
@@ -261,6 +266,7 @@ describe("POSTransactionService", () => {
                 status: "OPEN",
                 warehouseId: "wh-1",
                 cashierId: "user-1",
+                companyId: "cmp-1",
             });
             prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
             prismaMock.salesOrder.create.mockResolvedValue({
@@ -341,6 +347,7 @@ describe("POSTransactionService", () => {
                 status: "OPEN",
                 warehouseId: "wh-1",
                 cashierId: "user-1",
+                companyId: "cmp-1",
             });
             prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
             prismaMock.salesOrder.create.mockResolvedValue({
@@ -420,6 +427,7 @@ describe("POSTransactionService", () => {
                 status: "OPEN",
                 warehouseId: "wh-1",
                 cashierId: "user-1",
+                companyId: "cmp-1",
             });
             prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
             prismaMock.salesOrder.create.mockResolvedValue({
@@ -474,7 +482,8 @@ describe("POSTransactionService", () => {
 
             prismaMock.pOSSession.findUnique.mockResolvedValue({
                 id: mockSessionId,
-                status: "CLOSED" // Closed
+                status: "CLOSED", // Closed
+                companyId: "cmp-1"
             });
 
             await expect(POSTransactionService.process(
@@ -494,6 +503,7 @@ describe("POSTransactionService", () => {
                 status: "OPEN",
                 warehouseId: "wh-1",
                 cashierId: "user-1",
+                companyId: "cmp-1",
             });
             prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
             prismaMock.diningSpot.findUnique.mockResolvedValue({
@@ -526,6 +536,7 @@ describe("POSTransactionService", () => {
                 status: "OPEN",
                 warehouseId: "wh-1",
                 cashierId: "user-1",
+                companyId: "cmp-1",
             });
             prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
             prismaMock.diningSpot.findUnique.mockResolvedValue({
@@ -601,6 +612,7 @@ describe("POSTransactionService", () => {
                 status: "OPEN",
                 warehouseId: "wh-1",
                 cashierId: "user-1",
+                companyId: "cmp-1",
             });
             prismaMock.contact.findFirst.mockResolvedValue({ id: "contact-walk-in", name: "Walk-in Customer" });
             prismaMock.salesOrder.create.mockResolvedValue({
@@ -659,6 +671,7 @@ describe("POSTransactionService", () => {
                 status: "OPEN",
                 warehouseId: "wh-1",
                 cashierId: "user-1",
+                companyId: "cmp-1",
             });
             prismaMock.salesInvoice.findUnique.mockResolvedValue({
                 id: "inv-1",
