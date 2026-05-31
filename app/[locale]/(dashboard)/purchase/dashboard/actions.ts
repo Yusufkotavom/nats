@@ -8,7 +8,7 @@ import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getDashboardSummary() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -20,7 +20,7 @@ export async function getDashboardSummary() {
       totalOutstanding
     ] = await Promise.all([
       // Total Purchase Orders Count
-      prisma.purchaseOrder.count(),
+      prisma.purchaseOrder.count({ where: { companyId: session.activeCompanyId } }),
 
       // Total Purchase Invoices Amount (Billed)
       prisma.purchaseInvoice.aggregate({
@@ -28,6 +28,7 @@ export async function getDashboardSummary() {
           totalAmount: true,
         },
         where: {
+          companyId: session.activeCompanyId,
           status: {
             not: PurchaseInvoiceStatus.CANCELED,
           },
@@ -36,6 +37,7 @@ export async function getDashboardSummary() {
 
       // Total Paid Amount
       prisma.purchasePayment.aggregate({
+        where: { companyId: session.activeCompanyId },
         _sum: {
           amount: true,
         },
@@ -62,6 +64,7 @@ export async function getDashboardSummary() {
           totalAmount: true,
         },
         where: {
+          companyId: session.activeCompanyId,
           status: {
             in: [PurchaseInvoiceStatus.BILLED, PurchaseInvoiceStatus.PARTIALLY_PAID],
           },
@@ -81,6 +84,7 @@ export async function getDashboardSummary() {
         totalAmount: true
       },
       where: {
+        companyId: session.activeCompanyId,
         status: {
           in: [PurchaseInvoiceStatus.BILLED, PurchaseInvoiceStatus.PARTIALLY_PAID, PurchaseInvoiceStatus.PAID]
         }
@@ -107,7 +111,7 @@ export async function getDashboardSummary() {
 
 export async function getPurchaseTrends() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -118,6 +122,7 @@ export async function getPurchaseTrends() {
 
     const orders = await prisma.purchaseOrder.findMany({
       where: {
+        companyId: session.activeCompanyId,
         createdAt: {
           gte: sixMonthsAgo,
         },
@@ -174,13 +179,14 @@ export async function getPurchaseTrends() {
 
 export async function getPurchaseStatusBreakdown() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
     const statusCounts = await prisma.purchaseOrder.groupBy({
       by: ["status"],
+      where: { companyId: session.activeCompanyId },
       _count: {
         status: true,
       },
@@ -200,12 +206,13 @@ export async function getPurchaseStatusBreakdown() {
 
 export async function getRecentPurchases() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
     const recentOrders = await prisma.purchaseOrder.findMany({
+      where: { companyId: session.activeCompanyId },
       take: 5,
       orderBy: {
         createdAt: "desc",
@@ -237,7 +244,7 @@ export async function getRecentPurchases() {
 
 export async function getTopSuppliers() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -248,6 +255,7 @@ export async function getTopSuppliers() {
         totalAmount: true,
       },
       where: {
+        companyId: session.activeCompanyId,
         status: {
           notIn: [PurchaseInvoiceStatus.CANCELED, PurchaseInvoiceStatus.DRAFT],
         },
@@ -262,7 +270,7 @@ export async function getTopSuppliers() {
 
     const contactIds = topSuppliers.map((s) => s.contactId);
     const contacts = await prisma.contact.findMany({
-      where: { id: { in: contactIds } },
+      where: { id: { in: contactIds }, companyId: session.activeCompanyId },
       select: { id: true, name: true, email: true },
     });
 
@@ -294,7 +302,7 @@ export async function getTopProducts(): Promise<{
   }[];
 }> {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -307,6 +315,7 @@ export async function getTopProducts(): Promise<{
       },
       where: {
         purchaseOrder: {
+          companyId: session.activeCompanyId,
           status: {
             notIn: [PurchaseOrderStatus.CANCELLED, PurchaseOrderStatus.DRAFT],
           },
@@ -322,7 +331,7 @@ export async function getTopProducts(): Promise<{
 
     const productIds = topProducts.map((p) => p.productId);
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, companyId: session.activeCompanyId },
       select: { id: true, name: true, sku: true },
     });
 
@@ -345,13 +354,14 @@ export async function getTopProducts(): Promise<{
 
 export async function getOutstandingSummary() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
     const outstandingInvoices = await prisma.purchaseInvoice.findMany({
       where: {
+        companyId: session.activeCompanyId,
         status: {
           in: [PurchaseInvoiceStatus.BILLED, PurchaseInvoiceStatus.PARTIALLY_PAID],
         },
@@ -417,13 +427,14 @@ export async function getOutstandingSummary() {
 
 export async function getOverdueInvoices() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "purchase.view")) {
+  if (!session || !hasPermission(session.permissions, "purchase.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
     const overdueInvoices = await prisma.purchaseInvoice.findMany({
       where: {
+        companyId: session.activeCompanyId,
         status: {
           in: [PurchaseInvoiceStatus.BILLED, PurchaseInvoiceStatus.PARTIALLY_PAID],
         },

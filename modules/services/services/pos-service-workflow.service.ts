@@ -358,10 +358,15 @@ export class POSServiceWorkflowService {
     return result;
   }
 
-  static async transitionStatus(orderId: string, nextStatus: ServiceWorkflowStatus, userId: string) {
+  static async transitionStatus(
+    orderId: string,
+    nextStatus: ServiceWorkflowStatus,
+    userId: string,
+    companyId: string,
+  ) {
     return prisma.$transaction(async (tx) => {
-      const order = await tx.pOSServiceOrder.findUnique({
-        where: { id: orderId },
+      const order = await tx.pOSServiceOrder.findFirst({
+        where: { id: orderId, companyId },
         include: { items: true },
       });
       if (!order) {
@@ -382,7 +387,9 @@ export class POSServiceWorkflowService {
       }
 
       if (nextStatus === "CLOSED") {
-        const invoice = await tx.salesInvoice.findUnique({ where: { id: order.salesInvoiceId } });
+        const invoice = await tx.salesInvoice.findFirst({
+          where: { id: order.salesInvoiceId, companyId },
+        });
         if (!invoice || invoice.status !== "PAID") {
           throw new Error("Service order can only be closed when invoice is fully paid");
         }
@@ -409,16 +416,18 @@ export class POSServiceWorkflowService {
 
   static async settle(
     orderId: string,
+    companyId: string,
     cashAccountId?: string,
     amount?: number,
     paymentMethod: ServicePaymentMethod = "CASH",
   ) {
     return prisma.$transaction(async (tx) => {
-      const order = await tx.pOSServiceOrder.findUnique({ where: { id: orderId } });
+      const order = await tx.pOSServiceOrder.findFirst({ where: { id: orderId, companyId } });
       if (!order) throw new Error("Service order not found");
+      if (!order.companyId) throw new Error("Service order has no company context");
 
-      const invoice = await tx.salesInvoice.findUnique({
-        where: { id: order.salesInvoiceId },
+      const invoice = await tx.salesInvoice.findFirst({
+        where: { id: order.salesInvoiceId, companyId },
         include: { payments: true },
       });
       if (!invoice) throw new Error("Invoice not found");
@@ -439,7 +448,7 @@ export class POSServiceWorkflowService {
         invoiceNumber: invoice.invoiceNumber,
         salesInvoiceId: invoice.id,
         sessionId: order.posSessionId,
-        companyId: order.companyId || undefined,
+        companyId: order.companyId,
         paymentMethod,
         cashAccountId,
         paymentAmount,
@@ -473,8 +482,13 @@ export class POSServiceWorkflowService {
     order: Prisma.POSServiceOrderGetPayload<{ include: { items: true } }>,
     userId: string,
   ) {
+    if (!order.companyId) {
+      throw new Error("Service order has no company context");
+    }
+
     const existingCompletedShipment = await tx.salesShipment.findFirst({
       where: {
+        companyId: order.companyId,
         salesOrderId: order.salesOrderId,
         status: "COMPLETED",
       },
@@ -484,8 +498,8 @@ export class POSServiceWorkflowService {
       return;
     }
 
-    const salesOrder = await tx.salesOrder.findUnique({
-      where: { id: order.salesOrderId },
+    const salesOrder = await tx.salesOrder.findFirst({
+      where: { id: order.salesOrderId, companyId: order.companyId },
       include: { items: true },
     });
     if (!salesOrder) {
@@ -500,6 +514,7 @@ export class POSServiceWorkflowService {
     );
     const shipment = await tx.salesShipment.create({
       data: {
+        companyId: order.companyId,
         shipmentNumber,
         salesOrderId: salesOrder.id,
         contactId: salesOrder.contactId,
@@ -549,7 +564,7 @@ export class POSServiceWorkflowService {
         transactionDate: new Date(),
       });
 
-      const totalCogs = await this.calculateInventoryOutCost(tx, movementItems);
+      const totalCogs = await this.calculateInventoryOutCost(tx, movementItems, order.companyId);
       if (totalCogs.gt(0)) {
         const cogsAccount = await getRequiredDefaultAccount("COGS");
         const inventoryAccount = await getRequiredDefaultAccount("INVENTORY_ASSET");
@@ -585,12 +600,13 @@ export class POSServiceWorkflowService {
   private static async calculateInventoryOutCost(
     tx: Prisma.TransactionClient,
     movementItems: Array<{ productId: string; quantity: number }>,
+    companyId: string,
   ): Promise<Decimal> {
     let total = new Decimal(0);
 
     for (const item of movementItems) {
-      const product = await tx.product.findUnique({
-        where: { id: item.productId },
+      const product = await tx.product.findFirst({
+        where: { id: item.productId, companyId },
         select: { averageCost: true, cost: true },
       });
       if (!product) {
@@ -611,7 +627,7 @@ export class POSServiceWorkflowService {
       invoiceNumber: string;
       salesInvoiceId: string;
       sessionId: string;
-      companyId?: string;
+      companyId: string;
       paymentMethod: ServicePaymentMethod;
       cashAccountId?: string;
       paymentAmount: Decimal;

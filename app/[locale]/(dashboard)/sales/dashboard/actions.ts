@@ -8,7 +8,7 @@ import { hasPermission } from "@/lib/permissions/utils";
 
 export async function getDashboardSummary() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "sales.view")) {
+  if (!session || !hasPermission(session.permissions, "sales.view") || !session.activeCompanyId) {
     return {
       success: false,
       error: "Unauthorized",
@@ -23,7 +23,7 @@ export async function getDashboardSummary() {
       outstandingInvoices
     ] = await Promise.all([
       // Total Sales Orders Count
-      prisma.salesOrder.count(),
+      prisma.salesOrder.count({ where: { companyId: session.activeCompanyId } }),
 
       // Total Sales (Invoiced Amount)
       prisma.salesInvoice.aggregate({
@@ -31,6 +31,7 @@ export async function getDashboardSummary() {
           totalAmount: true,
         },
         where: {
+          companyId: session.activeCompanyId,
           status: {
             notIn: [SalesInvoiceStatus.DRAFT, SalesInvoiceStatus.CANCELLED],
           },
@@ -39,6 +40,7 @@ export async function getDashboardSummary() {
 
       // Total Received (Payments)
       prisma.salesPayment.aggregate({
+        where: { companyId: session.activeCompanyId },
         _sum: {
           amount: true,
         },
@@ -50,6 +52,7 @@ export async function getDashboardSummary() {
           balanceDue: true,
         },
         where: {
+          companyId: session.activeCompanyId,
           status: {
             notIn: [SalesInvoiceStatus.DRAFT, SalesInvoiceStatus.CANCELLED, SalesInvoiceStatus.PAID],
           },
@@ -78,7 +81,7 @@ export async function getDashboardSummary() {
 
 export async function getSalesTrends() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "sales.view")) {
+  if (!session || !hasPermission(session.permissions, "sales.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -89,6 +92,7 @@ export async function getSalesTrends() {
 
     const orders = await prisma.salesOrder.findMany({
       where: {
+        companyId: session.activeCompanyId,
         createdAt: {
           gte: sixMonthsAgo,
         },
@@ -141,12 +145,13 @@ export async function getSalesTrends() {
 
 export async function getRecentSales() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "sales.view")) {
+  if (!session || !hasPermission(session.permissions, "sales.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
     const recentOrders = await prisma.salesOrder.findMany({
+      where: { companyId: session.activeCompanyId },
       take: 5,
       orderBy: {
         createdAt: "desc",
@@ -178,7 +183,7 @@ export async function getRecentSales() {
 
 export async function getTopCustomers() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "sales.view")) {
+  if (!session || !hasPermission(session.permissions, "sales.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -189,6 +194,7 @@ export async function getTopCustomers() {
         totalAmount: true,
       },
       where: {
+        companyId: session.activeCompanyId,
         status: {
           notIn: [SalesInvoiceStatus.DRAFT, SalesInvoiceStatus.CANCELLED],
         },
@@ -204,7 +210,7 @@ export async function getTopCustomers() {
     // Fetch contact details
     const contactIds = topCustomers.map((c) => c.contactId);
     const contacts = await prisma.contact.findMany({
-      where: { id: { in: contactIds } },
+      where: { id: { in: contactIds }, companyId: session.activeCompanyId },
       select: { id: true, name: true, email: true },
     });
 
@@ -236,7 +242,7 @@ export async function getTopProducts(): Promise<{
   }[];
 }> {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "sales.view")) {
+  if (!session || !hasPermission(session.permissions, "sales.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -250,6 +256,7 @@ export async function getTopProducts(): Promise<{
       },
       where: {
         salesInvoice: {
+          companyId: session.activeCompanyId,
           status: {
             notIn: [SalesInvoiceStatus.DRAFT, SalesInvoiceStatus.CANCELLED],
           },
@@ -271,7 +278,7 @@ export async function getTopProducts(): Promise<{
       .filter((id): id is string => id !== null);
 
     const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, companyId: session.activeCompanyId },
       select: { id: true, name: true, sku: true },
     });
 
@@ -296,13 +303,14 @@ export async function getTopProducts(): Promise<{
 
 export async function getOutstandingSummary() {
   const session = await getSession();
-  if (!session || !hasPermission(session.permissions, "sales.view")) {
+  if (!session || !hasPermission(session.permissions, "sales.view") || !session.activeCompanyId) {
     return { success: false, error: "Unauthorized" };
   }
 
   try {
     const outstandingInvoices = await prisma.salesInvoice.findMany({
       where: {
+        companyId: session.activeCompanyId,
         status: {
           notIn: [SalesInvoiceStatus.DRAFT, SalesInvoiceStatus.CANCELLED, SalesInvoiceStatus.PAID],
         },

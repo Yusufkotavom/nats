@@ -6,12 +6,21 @@ import { generateDocumentNumber } from "@/lib/document-numbering";
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class SalesShipmentService {
-    static async create(data: SalesShipmentInput, userId: string) {
+    static async create(data: SalesShipmentInput, userId: string, companyId: string) {
+        const salesOrder = await prisma.salesOrder.findFirst({
+            where: { id: data.salesOrderId, companyId },
+            select: { id: true },
+        });
+        if (!salesOrder) {
+            throw new Error("Sales order not found in active company");
+        }
+
         const shipmentNumber = await this.generateShipmentNumber();
 
         return await prisma.$transaction(async (tx) => {
             const result = await tx.salesShipment.create({
                 data: {
+                    companyId,
                     shipmentNumber,
                     contactId: data.contactId,
                     salesOrderId: data.salesOrderId,
@@ -56,9 +65,9 @@ export class SalesShipmentService {
         });
     }
 
-    static async delete(id: string) {
-        const currentShipment = await prisma.salesShipment.findUnique({
-            where: { id },
+    static async delete(id: string, companyId: string) {
+        const currentShipment = await prisma.salesShipment.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentShipment) {

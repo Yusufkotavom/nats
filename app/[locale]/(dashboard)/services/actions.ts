@@ -606,7 +606,12 @@ export async function updateServiceOrderStatus(
   const session = await getSession();
   assertAccess(session);
 
-  const result = await POSServiceWorkflowService.transitionStatus(orderId, status, session!.userId);
+  const result = await POSServiceWorkflowService.transitionStatus(
+    orderId,
+    status,
+    session!.userId,
+    session!.activeCompanyId,
+  );
   revalidateLocalizedPath("/services");
   return SuperJSON.serialize(result);
 }
@@ -622,6 +627,7 @@ export async function settleServiceOrder(
 
   const result = await POSServiceWorkflowService.settle(
     orderId,
+    session!.activeCompanyId,
     cashAccountId,
     amount,
     paymentMethod,
@@ -941,7 +947,12 @@ export async function updateServiceOrder(input: {
   const currentStatus = result.status as ServiceWorkflowStatus;
   const updatedOrder =
     currentStatus !== input.status
-      ? await POSServiceWorkflowService.transitionStatus(result.id, input.status, session!.userId)
+      ? await POSServiceWorkflowService.transitionStatus(
+          result.id,
+          input.status,
+          session!.userId,
+          session!.activeCompanyId,
+        )
       : result;
 
   revalidateLocalizedPath("/services");

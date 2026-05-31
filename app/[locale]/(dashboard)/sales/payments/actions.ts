@@ -54,9 +54,7 @@ export async function getSalesPayments(
   }
 
   const skip = (page - 1) * limit;
-  const where: Prisma.SalesPaymentWhereInput = {
-    AND: [{ companyId: session.activeCompanyId }],
-  };
+  const where: Prisma.SalesPaymentWhereInput = { companyId: session.activeCompanyId };
 
   if (search) {
     (where.AND as Prisma.SalesPaymentWhereInput[]).push({
@@ -106,7 +104,10 @@ export async function getSalesPayment(id: string) {
   }
 
   const payment = await prisma.salesPayment.findFirst({
-    where: { id, companyId: session.activeCompanyId },
+    where: {
+      id,
+      companyId: session.activeCompanyId,
+    },
     include: {
       contact: true,
       salesInvoice: true,
@@ -121,6 +122,7 @@ export async function getSalesPayment(id: string) {
       attachments: true,
     },
   });
+  if (!payment) return null;
   return SuperJSON.serialize(payment);
 }
 
@@ -201,7 +203,10 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
       if (!session.activeCompanyId) throw new Error("No active company selected");
 
       const payment = await prisma.salesPayment.findFirst({
-        where: { id, companyId: session.activeCompanyId },
+        where: {
+          id,
+          companyId: session.activeCompanyId,
+        },
         include: {
           salesInvoice: true,
           cashAccount: true,
@@ -291,7 +296,10 @@ export const deleteSalesPayment = authorizedAction(
       if (!session.activeCompanyId) throw new Error("No active company selected");
 
       const payment = await prisma.salesPayment.findFirst({
-        where: { id, companyId: session.activeCompanyId },
+        where: {
+          id,
+          companyId: session.activeCompanyId,
+        },
         include: {
           salesInvoice: {
             include: { payments: true },
@@ -362,7 +370,10 @@ export const updateSalesPayment = authorizedAction(
       if (!session.activeCompanyId) throw new Error("No active company selected");
 
       const existingPayment = await prisma.salesPayment.findFirst({
-        where: { id, companyId: session.activeCompanyId },
+        where: {
+          id,
+          companyId: session.activeCompanyId,
+        },
         include: { salesInvoice: { include: { payments: true } } },
       });
 

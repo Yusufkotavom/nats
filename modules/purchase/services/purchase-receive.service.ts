@@ -54,9 +54,9 @@ export class PurchaseReceiveService {
         });
     }
 
-    static async delete(id: string) {
-        const currentReceive = await prisma.purchaseReceive.findUnique({
-            where: { id },
+    static async delete(id: string, companyId: string) {
+        const currentReceive = await prisma.purchaseReceive.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentReceive) {

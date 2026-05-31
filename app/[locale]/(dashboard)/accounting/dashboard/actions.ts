@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import { getSession } from "@/lib/auth/auth";
 
 /**
  * Fetch dashboard summary metrics.
@@ -13,6 +14,11 @@ import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
  */
 export async function getDashboardSummary() {
   return authorizedAction("reports.view", async () => {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      return { success: true, data: { totalRevenue: 0, totalExpenses: 0, netIncome: 0, accountsReceivable: 0, accountsPayable: 0 } };
+    }
+    const companyId = session.activeCompanyId;
     const now = new Date();
     const start = startOfMonth(now);
     const end = endOfMonth(now);
@@ -23,6 +29,7 @@ export async function getDashboardSummary() {
       by: ["accountId"],
       where: {
         journalEntry: {
+          companyId,
           status: "posted",
           transactionDate: {
             gte: start,
@@ -43,6 +50,7 @@ export async function getDashboardSummary() {
 
     const accountTypes = await prisma.account.findMany({
       where: {
+        companyId,
         id: { in: plAgg.map((p) => p.accountId) },
       },
       select: { id: true, type: true },
@@ -71,6 +79,7 @@ export async function getDashboardSummary() {
     // We calculate the cumulative balance for Asset accounts with "Receivable" and Liability accounts with "Payable"
     const arApAccounts = await prisma.account.findMany({
       where: {
+        companyId,
         OR: [
           {
             name: { contains: "Receivable", mode: "insensitive" },
@@ -96,6 +105,7 @@ export async function getDashboardSummary() {
       by: ["accountId"],
       where: {
         journalEntry: {
+          companyId,
           status: "posted",
           // No date filter, we want cumulative balance
         },
@@ -147,6 +157,11 @@ export async function getDashboardSummary() {
  */
 export async function getFinancialTrends() {
   return authorizedAction("reports.view", async () => {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      return { success: true, data: [] };
+    }
+    const companyId = session.activeCompanyId;
     const now = new Date();
     const months = 6;
     const trends = [];
@@ -161,6 +176,7 @@ export async function getFinancialTrends() {
         by: ["accountId"],
         where: {
           journalEntry: {
+            companyId,
             status: "posted",
             transactionDate: {
               gte: start,
@@ -181,7 +197,7 @@ export async function getFinancialTrends() {
 
       const accountIds = agg.map((a) => a.accountId);
       const accounts = await prisma.account.findMany({
-        where: { id: { in: accountIds } },
+        where: { id: { in: accountIds }, companyId },
         select: { id: true, type: true },
       });
       const typeMap = new Map(accounts.map((a) => [a.id, a.type]));
@@ -221,6 +237,11 @@ export async function getFinancialTrends() {
  */
 export async function getExpenseBreakdown() {
   return authorizedAction("reports.view", async () => {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      return { success: true, data: [] };
+    }
+    const companyId = session.activeCompanyId;
     const now = new Date();
     const start = startOfMonth(now);
     const end = endOfMonth(now);
@@ -229,6 +250,7 @@ export async function getExpenseBreakdown() {
       by: ["accountId"],
       where: {
         journalEntry: {
+          companyId,
           status: "posted",
           transactionDate: {
             gte: start,
@@ -246,7 +268,7 @@ export async function getExpenseBreakdown() {
     });
 
     const accounts = await prisma.account.findMany({
-      where: { id: { in: agg.map((a) => a.accountId) } },
+      where: { id: { in: agg.map((a) => a.accountId) }, companyId },
       select: { id: true, name: true },
     });
     const nameMap = new Map(accounts.map((a) => [a.id, a.name]));
@@ -277,10 +299,15 @@ export async function getExpenseBreakdown() {
  */
 export async function getRecentTransactions() {
   return authorizedAction("reports.view", async () => {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      return { success: true, data: [] };
+    }
+    const companyId = session.activeCompanyId;
     const transactions = await prisma.journalEntry.findMany({
       take: 5,
       orderBy: { transactionDate: "desc" },
-      where: { status: "posted" },
+      where: { status: "posted", companyId },
       include: {
         lines: {
           take: 2, // Just to show some details if needed

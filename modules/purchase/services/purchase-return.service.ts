@@ -7,7 +7,7 @@ const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
 export class PurchaseReturnService {
     static async create(data: PurchaseReturnInput, userId: string, companyId: string) {
-        await this.assertUniqueReturnNumber(data.returnNumber);
+        await this.assertUniqueReturnNumber(data.returnNumber, companyId);
 
         const itemsWithCalculations = data.items.map((item) => {
             const calculated = CalculationService.calculateLineItem({
@@ -83,9 +83,9 @@ export class PurchaseReturnService {
         });
     }
 
-    static async update(id: string, data: PurchaseReturnInput) {
-        const currentReturn = await prisma.purchaseReturn.findUnique({
-            where: { id },
+    static async update(id: string, data: PurchaseReturnInput, companyId: string) {
+        const currentReturn = await prisma.purchaseReturn.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentReturn) {
@@ -154,9 +154,9 @@ export class PurchaseReturnService {
         });
     }
 
-    static async delete(id: string) {
-        const currentReturn = await prisma.purchaseReturn.findUnique({
-            where: { id },
+    static async delete(id: string, companyId: string) {
+        const currentReturn = await prisma.purchaseReturn.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentReturn) {
@@ -174,9 +174,10 @@ export class PurchaseReturnService {
 
     private static async assertUniqueReturnNumber(
         returnNumber: string,
+        companyId: string,
     ): Promise<void> {
-        const existing = await prisma.purchaseReturn.findUnique({
-            where: { returnNumber },
+        const existing = await prisma.purchaseReturn.findFirst({
+            where: { returnNumber, companyId },
         });
 
         if (existing) {

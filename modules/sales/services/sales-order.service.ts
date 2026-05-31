@@ -58,9 +58,9 @@ export class SalesOrderService {
     });
   }
 
-  static async update(id: string, data: SalesOrderInput, userId: string) {
-    const currentOrder = await prisma.salesOrder.findUnique({
-      where: { id },
+  static async update(id: string, data: SalesOrderInput, userId: string, companyId: string) {
+    const currentOrder = await prisma.salesOrder.findFirst({
+      where: { id, companyId },
     });
 
     if (!currentOrder) {
@@ -107,9 +107,9 @@ export class SalesOrderService {
     });
   }
 
-  static async delete(id: string) {
-    const currentOrder = await prisma.salesOrder.findUnique({
-      where: { id },
+  static async delete(id: string, companyId: string) {
+    const currentOrder = await prisma.salesOrder.findFirst({
+      where: { id, companyId },
     });
 
     if (!currentOrder) {
@@ -125,9 +125,9 @@ export class SalesOrderService {
     });
   }
 
-  static async issue(id: string, userId: string) {
-    const currentOrder = await prisma.salesOrder.findUnique({
-      where: { id },
+  static async issue(id: string, userId: string, companyId: string) {
+    const currentOrder = await prisma.salesOrder.findFirst({
+      where: { id, companyId },
     });
 
     if (!currentOrder) {
@@ -151,9 +151,9 @@ export class SalesOrderService {
     });
   }
 
-  static async cancel(id: string, userId: string) {
-    const currentOrder = await prisma.salesOrder.findUnique({
-      where: { id },
+  static async cancel(id: string, userId: string, companyId: string) {
+    const currentOrder = await prisma.salesOrder.findFirst({
+      where: { id, companyId },
     });
 
     if (!currentOrder) {
@@ -174,9 +174,9 @@ export class SalesOrderService {
     });
   }
 
-  static async close(id: string, userId: string) {
-    const currentOrder = await prisma.salesOrder.findUnique({
-      where: { id },
+  static async close(id: string, userId: string, companyId: string) {
+    const currentOrder = await prisma.salesOrder.findFirst({
+      where: { id, companyId },
     });
 
     if (!currentOrder) {

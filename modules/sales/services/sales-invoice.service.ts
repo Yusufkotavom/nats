@@ -11,10 +11,25 @@ type CreateSalesInvoiceInput = Omit<SalesInvoiceInput, "invoiceNumber"> & {
 };
 
 export class SalesInvoiceService {
+    private static async assertSalesOrderBelongsToCompany(
+        salesOrderId: string | undefined,
+        companyId: string,
+    ): Promise<void> {
+        if (!salesOrderId) return;
+        const order = await prisma.salesOrder.findFirst({
+            where: { id: salesOrderId, companyId },
+            select: { id: true },
+        });
+        if (!order) {
+            throw new Error("Sales order not found in active company");
+        }
+    }
+
     static async create(data: CreateSalesInvoiceInput, userId: string, companyId: string) {
         const invoiceNumber = data.invoiceNumber || (await this.generateInvoiceNumber());
 
         await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
+        await this.assertSalesOrderBelongsToCompany(data.salesOrderId, companyId);
 
         const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
@@ -84,6 +99,7 @@ export class SalesInvoiceService {
         if (data.invoiceNumber && data.invoiceNumber !== currentInvoice.invoiceNumber) {
             await this.assertUniqueInvoiceNumber(data.invoiceNumber, companyId, id);
         }
+        await this.assertSalesOrderBelongsToCompany(data.salesOrderId, companyId);
 
         // 3. Calculate Totals
         const taxRates = await prisma.taxRate.findMany();

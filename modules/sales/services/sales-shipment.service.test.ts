@@ -29,6 +29,7 @@ vi.mock("@/lib/document-numbering", () => ({
 }));
 
 const prismaMock = vi.hoisted(() => ({
+    salesOrder: { findFirst: vi.fn() },
     salesShipment: { count: vi.fn() },
     documentNumbering: {
         findUnique: vi.fn(),
@@ -61,6 +62,7 @@ describe("SalesShipmentService", () => {
 
     describe("create", () => {
         it("creates shipment and enqueues outbox event", async () => {
+            prismaMock.salesOrder.findFirst.mockResolvedValue({ id: "order-001" });
             prismaMock.salesShipment.count.mockResolvedValue(0);
 
             const createdShipment = {
@@ -77,7 +79,7 @@ describe("SalesShipmentService", () => {
                 return (cb as any)(tx);
             });
 
-            const result = await SalesShipmentService.create(MOCK_SHIPMENT_INPUT, MOCK_USER_ID);
+            const result = await SalesShipmentService.create(MOCK_SHIPMENT_INPUT, MOCK_USER_ID, "comp-1");
 
             expect(result.id).toBe("shp-001");
             expect(enqueueIntegrationEventMock).toHaveBeenCalledWith(
@@ -95,6 +97,7 @@ describe("SalesShipmentService", () => {
         });
 
         it("auto-generates shipment number", async () => {
+            prismaMock.salesOrder.findFirst.mockResolvedValue({ id: "order-001" });
             const createdShipment = {
                 id: "shp-002",
                 shipmentNumber: "SHP-2602-0006",
@@ -109,7 +112,7 @@ describe("SalesShipmentService", () => {
                 return (cb as any)(tx);
             });
 
-            const result = await SalesShipmentService.create(MOCK_SHIPMENT_INPUT, MOCK_USER_ID);
+            const result = await SalesShipmentService.create(MOCK_SHIPMENT_INPUT, MOCK_USER_ID, "comp-1");
 
             expect(result.shipmentNumber).toBe("SHP-2602-0006");
         });

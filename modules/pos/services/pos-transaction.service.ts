@@ -732,6 +732,7 @@ export class POSTransactionService {
 
         return await tx.salesPayment.create({
             data: {
+                companyId: params.companyId,
                 paymentNumber,
                 contactId: params.contactId,
                 amount: params.paymentAmount,

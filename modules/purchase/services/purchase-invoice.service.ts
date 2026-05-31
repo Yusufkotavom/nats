@@ -9,7 +9,7 @@ const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 export class PurchaseInvoiceService {
     static async create(data: PurchaseInvoiceInput, userId: string, companyId: string) {
         const invoiceNumber = data.invoiceNumber || (await this.generateInvoiceNumber());
-        await this.assertUniqueInvoiceNumber(invoiceNumber, data.contactId);
+        await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
 
         const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
@@ -62,9 +62,9 @@ export class PurchaseInvoiceService {
         });
     }
 
-    static async update(id: string, data: PurchaseInvoiceInput) {
-        const currentInvoice = await prisma.purchaseInvoice.findUnique({
-            where: { id },
+    static async update(id: string, data: PurchaseInvoiceInput, companyId: string) {
+        const currentInvoice = await prisma.purchaseInvoice.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentInvoice) {
@@ -77,8 +77,8 @@ export class PurchaseInvoiceService {
 
         const invoiceNumber = data.invoiceNumber || currentInvoice.invoiceNumber;
 
-        if (invoiceNumber !== currentInvoice.invoiceNumber || data.contactId !== currentInvoice.contactId) {
-            await this.assertUniqueInvoiceNumber(invoiceNumber, data.contactId);
+        if (invoiceNumber !== currentInvoice.invoiceNumber) {
+            await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
         }
 
         const taxRates = await prisma.taxRate.findMany();
@@ -123,9 +123,9 @@ export class PurchaseInvoiceService {
         return await generateDocumentNumber("PURCHASE_INVOICE", "Purchase Invoice", "PI-");
     }
 
-    static async delete(id: string) {
-        const currentInvoice = await prisma.purchaseInvoice.findUnique({
-            where: { id },
+    static async delete(id: string, companyId: string) {
+        const currentInvoice = await prisma.purchaseInvoice.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentInvoice) {
@@ -143,15 +143,10 @@ export class PurchaseInvoiceService {
 
     private static async assertUniqueInvoiceNumber(
         invoiceNumber: string,
-        contactId: string,
+        companyId: string,
     ): Promise<void> {
-        const existing = await prisma.purchaseInvoice.findUnique({
-            where: {
-                contactId_invoiceNumber: {
-                    contactId,
-                    invoiceNumber,
-                },
-            },
+        const existing = await prisma.purchaseInvoice.findFirst({
+            where: { invoiceNumber, companyId },
         });
 
         if (existing) {

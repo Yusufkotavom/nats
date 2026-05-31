@@ -117,7 +117,7 @@ describe("POSServiceWorkflowService", () => {
     });
 
     await expect(
-      POSServiceWorkflowService.transitionStatus("svc-1", "CLOSED", "user-1"),
+      POSServiceWorkflowService.transitionStatus("svc-1", "CLOSED", "user-1", "cmp-1"),
     ).rejects.toThrow("Invalid status transition NEW -> CLOSED");
   });
 
@@ -134,7 +134,7 @@ describe("POSServiceWorkflowService", () => {
     });
 
     await expect(
-      POSServiceWorkflowService.transitionStatus("svc-1", "CLOSED", "user-1"),
+      POSServiceWorkflowService.transitionStatus("svc-1", "CLOSED", "user-1", "cmp-1"),
     ).rejects.toThrow("Service order can only be closed when invoice is fully paid");
   });
 

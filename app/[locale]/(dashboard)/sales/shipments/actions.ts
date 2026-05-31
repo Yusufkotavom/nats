@@ -177,8 +177,9 @@ export const createSalesShipment = authorizedAction(
     try {
       const session = await getSession();
       if (!session) throw new Error("Unauthorized");
+      if (!session.activeCompanyId) throw new Error("No active company selected");
 
-      const result = await SalesShipmentService.create(data, session.userId);
+      const result = await SalesShipmentService.create(data, session.userId, session.activeCompanyId);
 
       revalidateLocalizedPath("/sales/shipments");
       return { success: true, data: SuperJSON.serialize(result) };
@@ -270,8 +271,8 @@ export const updateSalesShipment = authorizedAction(
 
           // Check SO status
           if (data.salesOrderId) {
-            const so = await tx.salesOrder.findUnique({
-              where: { id: data.salesOrderId },
+            const so = await tx.salesOrder.findFirst({
+              where: { id: data.salesOrderId, companyId: session.activeCompanyId },
               include: { items: true },
             });
 
@@ -310,7 +311,9 @@ export const updateSalesShipment = authorizedAction(
           let totalCogs = 0;
 
           for (const item of movementItemsBase) {
-            const product = await tx.product.findUnique({ where: { id: item.productId } });
+            const product = await tx.product.findFirst({
+              where: { id: item.productId, companyId: session.activeCompanyId },
+            });
             const unitCost = product ? Number(product.averageCost) : 0;
 
             movementItems.push({

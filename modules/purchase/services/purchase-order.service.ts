@@ -56,8 +56,8 @@ export class PurchaseOrderService {
     }
 
     static async update(id: string, data: PurchaseOrderInput, userId: string, companyId: string) {
-        const currentOrder = await prisma.purchaseOrder.findUnique({
-            where: { id },
+        const currentOrder = await prisma.purchaseOrder.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentOrder) {
@@ -66,11 +66,6 @@ export class PurchaseOrderService {
 
         if (currentOrder.status !== INITIAL_DRAFT_STATUS) {
             throw new Error("Only Draft orders can be modified. Please Cancel or create a new order.");
-        }
-
-        // Verify companyId matches
-        if (currentOrder.companyId !== companyId) {
-            throw new Error("Unauthorized: Order belongs to different company");
         }
 
         const { itemsData, totals } = this.calculateItemsAndTotals(data);
@@ -108,17 +103,12 @@ export class PurchaseOrderService {
     }
 
     static async issue(id: string, companyId: string) {
-        const currentOrder = await prisma.purchaseOrder.findUnique({
-            where: { id },
+        const currentOrder = await prisma.purchaseOrder.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentOrder) {
             throw new Error("Order not found");
-        }
-
-        // Verify companyId matches
-        if (currentOrder.companyId !== companyId) {
-            throw new Error("Unauthorized: Order belongs to different company");
         }
 
         if (currentOrder.status !== "DRAFT") {
@@ -137,17 +127,12 @@ export class PurchaseOrderService {
     }
 
     static async cancel(id: string, companyId: string) {
-        const currentOrder = await prisma.purchaseOrder.findUnique({
-            where: { id },
+        const currentOrder = await prisma.purchaseOrder.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentOrder) {
             throw new Error("Order not found");
-        }
-
-        // Verify companyId matches
-        if (currentOrder.companyId !== companyId) {
-            throw new Error("Unauthorized: Order belongs to different company");
         }
 
         if (!["DRAFT", "ISSUED"].includes(currentOrder.status)) {
@@ -163,17 +148,12 @@ export class PurchaseOrderService {
     }
 
     static async close(id: string, userId: string, companyId: string) {
-        const currentOrder = await prisma.purchaseOrder.findUnique({
-            where: { id },
+        const currentOrder = await prisma.purchaseOrder.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentOrder) {
             throw new Error("Order not found");
-        }
-
-        // Verify companyId matches
-        if (currentOrder.companyId !== companyId) {
-            throw new Error("Unauthorized: Order belongs to different company");
         }
 
         if (!["ISSUED", "PARTIALLY_RECEIVED"].includes(currentOrder.status)) {
@@ -191,17 +171,12 @@ export class PurchaseOrderService {
     }
 
     static async delete(id: string, companyId: string) {
-        const currentOrder = await prisma.purchaseOrder.findUnique({
-            where: { id },
+        const currentOrder = await prisma.purchaseOrder.findFirst({
+            where: { id, companyId },
         });
 
         if (!currentOrder) {
             throw new Error("Order not found");
-        }
-
-        // Verify companyId matches
-        if (currentOrder.companyId !== companyId) {
-            throw new Error("Unauthorized: Order belongs to different company");
         }
 
         if (currentOrder.status !== "DRAFT") {

@@ -44,6 +44,7 @@ export class SalesPaymentService {
         return await prisma.$transaction(async (tx) => {
             const payment = await tx.salesPayment.create({
                 data: {
+                    companyId,
                     paymentNumber,
                     contactId: data.contactId,
                     salesInvoiceId: data.salesInvoiceId,

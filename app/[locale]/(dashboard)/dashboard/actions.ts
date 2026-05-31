@@ -5,6 +5,7 @@ import {
     SalesInvoiceStatus,
     PurchaseInvoiceStatus,
 } from "@/prisma/generated/prisma/enums";
+import { getSession } from "@/lib/auth/auth";
 
 const CANCELLED_SALES_STATUSES: SalesInvoiceStatus[] = [SalesInvoiceStatus.CANCELLED];
 const CANCELLED_PURCHASE_STATUSES: PurchaseInvoiceStatus[] = [PurchaseInvoiceStatus.CANCELED];
@@ -31,6 +32,20 @@ function getMonthLabel(date: Date): string {
 }
 
 export async function getMainDashboardStats() {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+        return {
+            totalRevenue: 0,
+            totalExpenses: 0,
+            accountsReceivable: 0,
+            accountsPayable: 0,
+            recentSalesOrders: [],
+            recentPurchaseOrders: [],
+            monthlyTrend: [],
+        };
+    }
+
+    const companyId = session.activeCompanyId;
     const now = new Date();
     const { start: monthStart, end: monthEnd } = getMonthDateRange(now);
 
@@ -43,13 +58,13 @@ export async function getMainDashboardStats() {
         recentPurchaseOrders,
         monthlyTrend,
     ] = await Promise.all([
-        getSalesRevenueThisMonth(monthStart, monthEnd),
-        getPurchaseExpenseThisMonth(monthStart, monthEnd),
-        getAccountsReceivable(),
-        getAccountsPayable(),
-        getRecentSalesOrders(),
-        getRecentPurchaseOrders(),
-        getMonthlyTrend(now),
+        getSalesRevenueThisMonth(companyId, monthStart, monthEnd),
+        getPurchaseExpenseThisMonth(companyId, monthStart, monthEnd),
+        getAccountsReceivable(companyId),
+        getAccountsPayable(companyId),
+        getRecentSalesOrders(companyId),
+        getRecentPurchaseOrders(companyId),
+        getMonthlyTrend(companyId, now),
     ]);
 
     return {
@@ -63,9 +78,10 @@ export async function getMainDashboardStats() {
     };
 }
 
-async function getSalesRevenueThisMonth(monthStart: Date, monthEnd: Date) {
+async function getSalesRevenueThisMonth(companyId: string, monthStart: Date, monthEnd: Date) {
     const result = await prisma.salesInvoice.aggregate({
         where: {
+            companyId,
             invoiceDate: { gte: monthStart, lte: monthEnd },
             status: { notIn: CANCELLED_SALES_STATUSES },
         },
@@ -74,9 +90,10 @@ async function getSalesRevenueThisMonth(monthStart: Date, monthEnd: Date) {
     return Number(result._sum?.totalAmount ?? 0);
 }
 
-async function getPurchaseExpenseThisMonth(monthStart: Date, monthEnd: Date) {
+async function getPurchaseExpenseThisMonth(companyId: string, monthStart: Date, monthEnd: Date) {
     const result = await prisma.purchaseInvoice.aggregate({
         where: {
+            companyId,
             invoiceDate: { gte: monthStart, lte: monthEnd },
             status: { notIn: CANCELLED_PURCHASE_STATUSES },
         },
@@ -85,39 +102,41 @@ async function getPurchaseExpenseThisMonth(monthStart: Date, monthEnd: Date) {
     return Number(result._sum?.totalAmount ?? 0);
 }
 
-async function getAccountsReceivable() {
+async function getAccountsReceivable(companyId: string) {
     const result = await prisma.salesInvoice.aggregate({
-        where: { status: { in: OUTSTANDING_SALES_STATUSES } },
+        where: { companyId, status: { in: OUTSTANDING_SALES_STATUSES } },
         _sum: { balanceDue: true },
     });
     return Number(result._sum?.balanceDue ?? 0);
 }
 
-async function getAccountsPayable() {
+async function getAccountsPayable(companyId: string) {
     const result = await prisma.purchaseInvoice.aggregate({
-        where: { status: { in: OUTSTANDING_PURCHASE_STATUSES } },
+        where: { companyId, status: { in: OUTSTANDING_PURCHASE_STATUSES } },
         _sum: { totalAmount: true },
     });
     return Number(result._sum?.totalAmount ?? 0);
 }
 
-async function getRecentSalesOrders() {
+async function getRecentSalesOrders(companyId: string) {
     return prisma.salesOrder.findMany({
+        where: { companyId },
         include: { contact: true },
         orderBy: { orderDate: "desc" },
         take: RECENT_ORDERS_LIMIT,
     });
 }
 
-async function getRecentPurchaseOrders() {
+async function getRecentPurchaseOrders(companyId: string) {
     return prisma.purchaseOrder.findMany({
+        where: { companyId },
         include: { contact: true },
         orderBy: { orderDate: "desc" },
         take: RECENT_ORDERS_LIMIT,
     });
 }
 
-async function getMonthlyTrend(now: Date) {
+async function getMonthlyTrend(companyId: string, now: Date) {
     const months: { month: string; revenue: number; expenses: number }[] = [];
 
     for (let i = MONTHLY_TREND_MONTHS - 1; i >= 0; i--) {
@@ -127,6 +146,7 @@ async function getMonthlyTrend(now: Date) {
         const [salesAgg, purchaseAgg] = await Promise.all([
             prisma.salesInvoice.aggregate({
                 where: {
+                    companyId,
                     invoiceDate: { gte: start, lte: end },
                     status: { notIn: CANCELLED_SALES_STATUSES },
                 },
@@ -134,6 +154,7 @@ async function getMonthlyTrend(now: Date) {
             }),
             prisma.purchaseInvoice.aggregate({
                 where: {
+                    companyId,
                     invoiceDate: { gte: start, lte: end },
                     status: { notIn: CANCELLED_PURCHASE_STATUSES },
                 },
