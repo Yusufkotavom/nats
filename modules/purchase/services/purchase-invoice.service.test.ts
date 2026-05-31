@@ -14,6 +14,7 @@ vi.mock("@/lib/document-numbering", () => ({
 const prismaMock = vi.hoisted(() => ({
     purchaseInvoice: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
     },
     taxRate: {
         findMany: vi.fn(),
@@ -68,7 +69,7 @@ describe("PurchaseInvoiceService", () => {
 
     describe("create", () => {
         it("creates invoice successfully when number is unique", async () => {
-            prismaMock.purchaseInvoice.findUnique.mockResolvedValue(null);
+            prismaMock.purchaseInvoice.findFirst.mockResolvedValue(null);
             prismaMock.taxRate.findMany.mockResolvedValue([]);
 
             const createdInvoice = {
@@ -90,22 +91,22 @@ describe("PurchaseInvoiceService", () => {
                 return (cb as any)(tx);
             });
 
-            const result = await PurchaseInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID);
+            const result = await PurchaseInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID, "cmp-1");
 
             expect(result.id).toBe("inv-001");
         });
 
         it("throws when invoice number already exists", async () => {
-            prismaMock.purchaseInvoice.findUnique.mockResolvedValue({ id: "existing" });
+            prismaMock.purchaseInvoice.findFirst.mockResolvedValue({ id: "existing" });
             prismaMock.taxRate.findMany.mockResolvedValue([]);
 
             await expect(
-                PurchaseInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID),
-            ).rejects.toThrow("Invoice number already exists for this vendor");
+                PurchaseInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID, "cmp-1"),
+            ).rejects.toThrow("Invoice number already exists");
         });
 
         it("generates invoice number when not provided", async () => {
-            prismaMock.purchaseInvoice.findUnique.mockResolvedValue(null);
+            prismaMock.purchaseInvoice.findFirst.mockResolvedValue(null);
             prismaMock.taxRate.findMany.mockResolvedValue([]);
 
             const createdInvoice = {
@@ -130,6 +131,7 @@ describe("PurchaseInvoiceService", () => {
             const { invoiceNumber } = await PurchaseInvoiceService.create(
                 { ...MOCK_INVOICE_INPUT, invoiceNumber: undefined },
                 MOCK_USER_ID,
+                "cmp-1",
             );
 
             expect(generateDocumentNumberMock).toHaveBeenCalledWith(
@@ -141,7 +143,7 @@ describe("PurchaseInvoiceService", () => {
         });
 
         it("enqueues PURCHASE_INVOICE_CREATED integration event", async () => {
-            prismaMock.purchaseInvoice.findUnique.mockResolvedValue(null);
+            prismaMock.purchaseInvoice.findFirst.mockResolvedValue(null);
             prismaMock.taxRate.findMany.mockResolvedValue([]);
 
             const createdInvoice = {
@@ -166,6 +168,7 @@ describe("PurchaseInvoiceService", () => {
             await PurchaseInvoiceService.create(
                 { ...MOCK_INVOICE_INPUT, invoiceNumber: "INV-002" },
                 MOCK_USER_ID,
+                "cmp-1",
             );
 
             expect(enqueueIntegrationEventMock).toHaveBeenCalledWith(

@@ -75,6 +75,7 @@ import {
   normalizePhoneForWhatsApp,
 } from "@/lib/communication/company-communication";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
+import { TableOverflow } from "@/components/ui/table-overflow";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -920,19 +921,20 @@ export function SalesInvoiceForm({
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table className="min-w-[920px]">
+                  <TableOverflow minWidthClassName="min-w-[1100px]">
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
-                        <TableHead>{tCommon("description")}</TableHead>
+                        <TableHead className="min-w-[220px] whitespace-nowrap">{tCommon("description")}</TableHead>
                         {/* Removed Account Header to match cells */}
-                        <TableHead className="w-[100px]">{tCommon("quantity")}</TableHead>
-                        <TableHead className="w-[120px]">{tCommon("price")}</TableHead>
-                        <TableHead className="w-[120px]">
+                        <TableHead className="w-[110px] whitespace-nowrap">{tCommon("quantity")}</TableHead>
+                        <TableHead className="w-[150px] whitespace-nowrap">{tCommon("price")}</TableHead>
+                        <TableHead className="w-[130px] whitespace-nowrap">
                           {tCommon("discount")} (%)
                         </TableHead>
-                        <TableHead className="w-[180px]">{tCommon("tax_rate")}</TableHead>
-                        <TableHead className="w-[100px]">{tCommon("total")}</TableHead>
+                        <TableHead className="w-[260px] whitespace-nowrap">{tCommon("tax_rate")}</TableHead>
+                        <TableHead className="w-[140px] whitespace-nowrap">{tCommon("total")}</TableHead>
                         {!readonly && (
                           <TableHead className="w-[50px]"></TableHead>
                         )}
@@ -945,7 +947,7 @@ export function SalesInvoiceForm({
                       >
                         {formData.items.map((item, index) => (
                           <SortableTableRow key={item.id} id={item.id}>
-                            <TableCell>
+                            <TableCell className="min-w-[220px]">
                               <CustomInput
                                 value={item.description}
                                 onChange={(e) =>
@@ -1002,9 +1004,10 @@ export function SalesInvoiceForm({
                                 disabled={readonly}
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="w-[260px]">
+                              <div className="flex items-center gap-2">
                               <select
-                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-10 w-full min-w-[160px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 value={item.taxRateId || ""}
                                 onChange={(e) =>
                                   handleItemChange(
@@ -1035,10 +1038,11 @@ export function SalesInvoiceForm({
                                     )
                                   }
                                   disabled={readonly}
-                                  className="mt-1"
+                                  className="w-[88px]"
                                   placeholder={tCommon("amount")}
                                 />
                               )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
@@ -1065,6 +1069,7 @@ export function SalesInvoiceForm({
                       </SortableContext>
                     </TableBody>
                   </Table>
+                  </TableOverflow>
                 </DndContext>
                 {formData.items.length === 0 && (
                   <div className="py-8 text-center text-muted-foreground">

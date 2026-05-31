@@ -69,6 +69,7 @@ import {
   normalizePhoneForWhatsApp,
 } from "@/lib/communication/company-communication";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
+import { TableOverflow } from "@/components/ui/table-overflow";
 
 type DashboardTab = "orders" | "invoices" | "payments" | "returns_warranty";
 
@@ -1334,8 +1335,8 @@ export function ServicesDashboard({
                 <Label>Ordered Items</Label>
                 <Button type="button" variant="outline" onClick={addEditItem}>Tambah Item</Button>
               </div>
-              <div className="overflow-x-auto">
-              <Table>
+              <TableOverflow minWidthClassName="min-w-[760px]">
+              <Table className="w-full">
                 <TableHeader>
                   <TableRow className="bg-white/80">
                     <TableHead>Product</TableHead>
@@ -1386,7 +1387,7 @@ export function ServicesDashboard({
                   )}
                 </TableBody>
               </Table>
-              </div>
+              </TableOverflow>
             </div>
             <div className="grid gap-2 rounded-md border border-slate-200 bg-slate-50/40 p-3">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700">

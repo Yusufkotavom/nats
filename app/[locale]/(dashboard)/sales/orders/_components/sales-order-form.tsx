@@ -82,6 +82,7 @@ import { Paperclip } from "lucide-react";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { TableOverflow } from "@/components/ui/table-overflow";
 import {
   PageFormActions,
   PageFormContent,
@@ -620,7 +621,7 @@ export function SalesOrderForm({
       <form onSubmit={handleSubmit}>
         <PageFormContent className="mt-4 grid min-w-0 gap-4 border-none bg-transparent p-0 shadow-none">
           <div className="space-y-4">
-            <Card className="min-w-0">
+            <Card className="min-w-0 overflow-hidden">
               <CardContent>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
@@ -757,13 +758,14 @@ export function SalesOrderForm({
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{t("ordered_items")}</CardTitle>
               </CardHeader>
-              <CardContent className="min-w-0 overflow-x-auto p-0">
+              <CardContent className="min-w-0 p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table className="w-full min-w-[860px]">
+                  <TableOverflow minWidthClassName="min-w-[860px]">
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
@@ -868,6 +870,7 @@ export function SalesOrderForm({
                       </SortableContext>
                     </TableBody>
                   </Table>
+                  </TableOverflow>
                 </DndContext>
                 {formData.items.length === 0 && (
                   <div className="py-8 text-center text-muted-foreground">

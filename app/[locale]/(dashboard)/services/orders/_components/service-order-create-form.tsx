@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { Trash2, UserRound, Wrench, Wallet, NotebookPen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableOverflow } from "@/components/ui/table-overflow";
 import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
@@ -327,8 +328,8 @@ export function ServiceOrderCreateForm({
           <Label>Ordered Items</Label>
           <Button type="button" variant="outline" onClick={handleAddItem}>Tambah Item</Button>
         </div>
-        <div className="overflow-x-auto">
-        <Table>
+        <TableOverflow minWidthClassName="min-w-[900px]">
+        <Table className="w-full">
           <TableHeader>
                      <TableRow className="bg-white/80">
               <TableHead>Product</TableHead>
@@ -410,7 +411,7 @@ export function ServiceOrderCreateForm({
             )}
           </TableBody>
         </Table>
-        </div>
+        </TableOverflow>
         <div className="rounded-md border border-emerald-200 bg-white px-3 py-2 text-right text-sm font-semibold text-emerald-700">
           Grand Total: {grandTotal.toLocaleString()}
         </div>

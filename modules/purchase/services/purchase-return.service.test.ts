@@ -9,6 +9,7 @@ vi.mock("@/modules/integration/outbox", () => ({
 const prismaMock = vi.hoisted(() => ({
     purchaseReturn: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
     },
     $transaction: vi.fn(),
 }));
@@ -37,7 +38,7 @@ describe("PurchaseReturnService", () => {
 
     describe("create", () => {
         it("creates return with DRAFT status and calculated total", async () => {
-            prismaMock.purchaseReturn.findUnique.mockResolvedValue(null);
+            prismaMock.purchaseReturn.findFirst.mockResolvedValue(null);
 
             const createdReturn = {
                 id: "ret-001",
@@ -58,22 +59,22 @@ describe("PurchaseReturnService", () => {
                 return (cb as any)(tx);
             });
 
-            const result = await PurchaseReturnService.create(MOCK_RETURN_INPUT, MOCK_USER_ID);
+            const result = await PurchaseReturnService.create(MOCK_RETURN_INPUT, MOCK_USER_ID, "cmp-1");
 
             expect(result.id).toBe("ret-001");
             expect(result.totalAmount).toBe(350);
         });
 
         it("throws when return number already exists", async () => {
-            prismaMock.purchaseReturn.findUnique.mockResolvedValue({ id: "existing" });
+            prismaMock.purchaseReturn.findFirst.mockResolvedValue({ id: "existing" });
 
             await expect(
-                PurchaseReturnService.create(MOCK_RETURN_INPUT, MOCK_USER_ID),
+                PurchaseReturnService.create(MOCK_RETURN_INPUT, MOCK_USER_ID, "cmp-1"),
             ).rejects.toThrow("Return number already exists");
         });
 
         it("enqueues PURCHASE_RETURN_CREATED integration event", async () => {
-            prismaMock.purchaseReturn.findUnique.mockResolvedValue(null);
+            prismaMock.purchaseReturn.findFirst.mockResolvedValue(null);
 
             const createdReturn = {
                 id: "ret-002",
@@ -97,6 +98,7 @@ describe("PurchaseReturnService", () => {
             await PurchaseReturnService.create(
                 { ...MOCK_RETURN_INPUT, returnNumber: "RET-002" },
                 MOCK_USER_ID,
+                "cmp-1",
             );
 
             expect(enqueueIntegrationEventMock).toHaveBeenCalledWith(
