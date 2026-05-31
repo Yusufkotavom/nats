@@ -18,7 +18,10 @@ export function PageFormHeader({
 }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("flex items-center justify-between gap-4", className)}
+      className={cn(
+        "flex flex-col items-start justify-between gap-3 md:flex-row md:items-center md:gap-4",
+        className,
+      )}
       {...props}
     />
   );
@@ -44,7 +47,15 @@ export function PageFormActions({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  return <div className={cn("flex justify-end gap-2", className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        "flex w-full flex-wrap items-center justify-start gap-2 md:w-auto md:justify-end",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function PageFormContent({
@@ -54,7 +65,7 @@ export function PageFormContent({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm p-6",
+        "rounded-lg border bg-card p-4 text-card-foreground shadow-sm md:p-6",
         className
       )}
       {...props}

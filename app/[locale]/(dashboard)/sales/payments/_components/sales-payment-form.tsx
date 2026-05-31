@@ -15,6 +15,7 @@ import {
   getCashAccounts,
   createSalesPayment,
   updateSalesPayment,
+  postSalesPayment,
 } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
 import { format } from "date-fns";
@@ -73,6 +74,7 @@ export function SalesPaymentForm({
   const t = useTranslations("Sales");
   const tCommon = useTranslations("Common");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const formatCurrency = useFormatCurrency();
 
   const [formData, setFormData] = useState<SalesPaymentInput>({
@@ -235,6 +237,37 @@ export function SalesPaymentForm({
     }
   };
 
+  const handlePost = async () => {
+    if (!initialData) return;
+    try {
+      setIsPosting(true);
+      const result = await postSalesPayment(initialData.id);
+      if (!result.success) {
+        toast({
+          variant: "destructive",
+          title: tCommon("error"),
+          description: result.error || tCommon("something_went_wrong"),
+        });
+        return;
+      }
+
+      toast({
+        title: tCommon("success"),
+        description: t("post_success"),
+      });
+      router.push("/sales/payments");
+      router.refresh();
+    } catch {
+      toast({
+        variant: "destructive",
+        title: tCommon("error"),
+        description: tCommon("something_went_wrong"),
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
   if ((isLoadingInvoices || isLoadingAccounts) && !readonly) {
     return (
       <div className="flex justify-center p-8">
@@ -253,7 +286,7 @@ export function SalesPaymentForm({
       <form onSubmit={handleSubmit}>
         <PageFormHeader>
           <PageFormTitle title={initialData ? (readonly ? t("view_payment") : t("edit_payment")) : t("new_payment")} />
-          <PageFormActions>
+          <PageFormActions className="w-full flex-wrap justify-start md:w-auto md:justify-end">
             <Button
               type="button"
               variant="outline"
@@ -268,6 +301,12 @@ export function SalesPaymentForm({
                 >
                   Outbox
                 </Link>
+              </Button>
+            ) : null}
+            {initialData && !readonly ? (
+              <Button type="button" variant="outline" onClick={handlePost} disabled={isPosting || isSubmitting}>
+                {(isPosting || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t("post")}
               </Button>
             ) : null}
             {!readonly && (

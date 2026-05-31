@@ -565,8 +565,8 @@ export function SalesInvoiceForm({
       <form onSubmit={handleSubmit}>
         <PageFormHeader>
           <PageFormTitle title={isEditing ? "Edit Sales Invoice" : "New Sales Invoice"} />
-          <PageFormActions>
-            <div className="flex flex-wrap gap-2">
+          <PageFormActions className="w-full justify-start md:w-auto md:justify-end">
+            <div className="flex w-full flex-wrap gap-2 [&>button]:w-full sm:[&>button]:w-auto">
             {invoice?.salesOrderId && (
               <Button asChild type="button" variant="outline" size="sm">
                 <Link href={`/sales/shipments/new?salesOrderId=${invoice.salesOrderId}`}>
@@ -909,7 +909,7 @@ export function SalesInvoiceForm({
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table>
+                  <Table className="min-w-[920px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
@@ -1066,6 +1066,7 @@ export function SalesInvoiceForm({
                     variant="outline"
                     disabled={readonly}
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={handleAddItem}
                   >
                     <PlusIcon /> Add Item

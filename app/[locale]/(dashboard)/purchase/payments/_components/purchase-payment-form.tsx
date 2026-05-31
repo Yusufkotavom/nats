@@ -228,7 +228,7 @@ export function PurchasePaymentForm({
       <form onSubmit={handleSubmit}>
         <PageFormHeader>
           <PageFormTitle title={initialData ? "View Payment" : "New Payment"} />
-          <PageFormActions>
+          <PageFormActions className="w-full justify-start md:w-auto md:justify-end">
             <Button
               type="button"
               variant="outline"

@@ -492,8 +492,8 @@ export function SalesOrderForm({
             )}
           </div>
         </div>
-        <PageFormActions>
-          <div className="flex flex-wrap gap-2">
+        <PageFormActions className="w-full justify-start md:w-auto md:justify-end">
+          <div className="flex w-full flex-wrap gap-2 [&>button]:w-full sm:[&>button]:w-auto">
           {/* Action Buttons */}
           {isDraft && !readonly && (
             <>
@@ -763,7 +763,7 @@ export function SalesOrderForm({
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table>
+                  <Table className="min-w-[860px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
@@ -880,6 +880,7 @@ export function SalesOrderForm({
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={isReadOnly}
                   onClick={handleAddItem}
                 >
