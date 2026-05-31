@@ -75,6 +75,7 @@ export function SalesPaymentForm({
   const tCommon = useTranslations("Common");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
+  const [submitMode, setSubmitMode] = useState<"save" | "saveAndPost">("save");
   const formatCurrency = useFormatCurrency();
 
   const [formData, setFormData] = useState<SalesPaymentInput>({
@@ -207,6 +208,25 @@ export function SalesPaymentForm({
           "json" in result.data
             ? SuperJSON.deserialize<{ id: string }>(result.data as SuperJSONResult)
             : null;
+
+        if (!initialData && submitMode === "saveAndPost" && createdPayment?.id) {
+          const postResult = await postSalesPayment(createdPayment.id);
+          if (!postResult.success) {
+            toast({
+              variant: "destructive",
+              title: tCommon("error"),
+              description: postResult.error || tCommon("something_went_wrong"),
+            });
+            router.push(`/sales/payments/${createdPayment.id}/edit`);
+            router.refresh();
+            return;
+          }
+          toast({ title: tCommon("success"), description: t("post_success") });
+          router.push("/sales/payments");
+          router.refresh();
+          return;
+        }
+
         toast({
           title: "Success",
           description: initialData
@@ -310,13 +330,26 @@ export function SalesPaymentForm({
               </Button>
             ) : null}
             {!readonly && (
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isPosting} onClick={() => setSubmitMode("save") }>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 {initialData ? t("update_payment") : t("save_payment")}
               </Button>
             )}
+            {!readonly && !initialData && formData.salesInvoiceId ? (
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={isSubmitting || isPosting}
+                onClick={() => setSubmitMode("saveAndPost")}
+              >
+                {(isSubmitting || isPosting) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {t("save_payment")} + {t("post")}
+              </Button>
+            ) : null}
           </PageFormActions>
         </PageFormHeader>
         <PageFormContent className="grid gap-6 md:grid-cols-2 pt-6 mt-4">

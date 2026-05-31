@@ -483,7 +483,7 @@ export function PurchaseOrderForm({
             )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 text-sm">
+        <div className="flex w-full flex-wrap gap-2 text-sm [&>button]:w-full sm:[&>button]:w-auto">
           {/* Action Buttons */}
           {isDraft && !readonly && (
             <>
@@ -588,9 +588,9 @@ export function PurchaseOrderForm({
             <AlertDescription>{budgetWarning}</AlertDescription>
           </Alert>
         )}
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           <div className="space-y-4">
-            <Card>
+            <Card className="min-w-0">
               <CardContent>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
@@ -719,17 +719,17 @@ export function PurchaseOrderForm({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="min-w-0">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Ordered Items</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-x-auto p-0">
+              <CardContent className="min-w-0 overflow-x-auto p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table>
+                  <Table className="w-full min-w-[860px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
@@ -846,6 +846,7 @@ export function PurchaseOrderForm({
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={isReadOnly}
                   onClick={handleAddItem}
                 >

@@ -618,9 +618,9 @@ export function SalesOrderForm({
         </PageFormActions>
       </PageFormHeader>
       <form onSubmit={handleSubmit}>
-        <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
+        <PageFormContent className="mt-4 grid min-w-0 gap-4 border-none bg-transparent p-0 shadow-none">
           <div className="space-y-4">
-            <Card>
+            <Card className="min-w-0">
               <CardContent>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
@@ -757,13 +757,13 @@ export function SalesOrderForm({
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{t("ordered_items")}</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-x-auto p-0">
+              <CardContent className="min-w-0 overflow-x-auto p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table className="min-w-[860px]">
+                  <Table className="w-full min-w-[860px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>

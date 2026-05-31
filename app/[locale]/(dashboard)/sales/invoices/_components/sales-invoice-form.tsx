@@ -147,7 +147,7 @@ export function SalesInvoiceForm({
   >({
     invoiceNumber: invoice?.invoiceNumber || "",
     contactId: invoice?.contactId || "",
-    salesOrderId: invoice?.salesOrderId || undefined,
+    salesOrderId: invoice?.salesOrderId || initialSalesOrderId || undefined,
     invoiceDate: invoice?.invoiceDate
       ? new Date(invoice.invoiceDate)
       : new Date(),
@@ -253,9 +253,20 @@ export function SalesInvoiceForm({
           }));
 
           setFormData((prev) => ({ ...prev, items: newItems }));
+        } else {
+          toast({
+            title: "Sales order not found",
+            description: "Order tidak ditemukan pada company aktif",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error("Failed to fetch SO details", error);
+        toast({
+          title: "Failed to load order",
+          description: "Gagal memuat detail sales order",
+          variant: "destructive",
+        });
       }
     }
   };
@@ -645,9 +656,9 @@ export function SalesInvoiceForm({
             </div>
           </PageFormActions>
         </PageFormHeader>
-        <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
+        <PageFormContent className="mt-4 grid min-w-0 gap-4 border-none bg-transparent p-0 shadow-none">
           <div className="space-y-4">
-            <Card>
+            <Card className="min-w-0">
               <CardContent className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <CustomSelect
                   label={t("sales_order_optional")}
@@ -899,11 +910,11 @@ export function SalesInvoiceForm({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="min-w-0">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{tCommon("products")}</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-x-auto p-0">
+              <CardContent className="min-w-0 overflow-x-auto p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
