@@ -218,6 +218,10 @@ Seluruh operasional service kini dipusatkan di route dashboard `/services` denga
   - total & sisa tagihan,
   - link dokumen invoice (`SALES_INVOICE`) dan nota (`POS_RECEIPT`) dari reporting preview route existing.
 - Tidak ada campaign engine/scheduler tambahan di fase ini; hanya one-click communication dari surface Sales.
+- Kontrak UX komunikasi lintas modul kini diseragamkan:
+  - user mengirim notifikasi via popup preview manual (bukan auto-send di server),
+  - source template tetap dari `Admin > Settings > Communication`,
+  - `ContactCommunicationLog` dicatat saat aksi kirim dijalankan user di popup.
 
 Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.service.ts`):
 - Service + BOM aktif: konsumsi komponen BOM.

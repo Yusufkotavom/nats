@@ -119,8 +119,8 @@ Produk service dapat dijual walau stok produk service nol.
 7. Jika masih ada sisa tagihan, klik **Pelunasan** sampai `remaining = 0`.
 8. Setelah invoice lunas, status bisa ditutup ke `CLOSED`.
 
-### Notifikasi WA Otomatis untuk Service (MVP)
-Untuk customer yang punya nomor WhatsApp/email, sistem otomatis membuka draft pesan update pada momen:
+### Notifikasi WA Manual Popup (Service + POS)
+Untuk customer yang punya nomor WhatsApp valid, sistem menampilkan popup manual kirim pesan pada momen operasional utama:
 
 1. **Service order dibuat** (termasuk info DP jika ada).
 2. Setelah create sukses, sistem menampilkan popup manual kirim notifikasi customer (preview pesan dari `Admin > Settings > Communication`, event `SERVICE_CREATED`).
@@ -131,7 +131,7 @@ Untuk customer yang punya nomor WhatsApp/email, sistem otomatis membuka draft pe
 
 Jika channel WA/email tidak tersedia, sistem menampilkan warning agar data contact dilengkapi.
 
-Setiap aksi kirim WA/update service di atas juga dicatat sebagai log komunikasi agar jejak follow-up tidak hilang.
+Setiap aksi kirim WA di popup akan dicatat ke log komunikasi agar jejak follow-up tidak hilang.
 Status follow-up dapat dipantau bertahap (`Queued`, `Sent`, `Delivered`, `Read`, `Failed`) dari modul Contact.
 
 ## Quick Contact & Quick Inform (Marketing Assist)

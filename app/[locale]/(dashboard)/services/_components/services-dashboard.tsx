@@ -56,7 +56,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Phone, Printer, Trash2, MessageCircle } from "lucide-react";
+import { MoreHorizontal, Phone, Printer, Trash2, MessageCircle, Wrench, NotebookPen, CircleDashed } from "lucide-react";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
@@ -1310,7 +1310,10 @@ export function ServicesDashboard({
                 ) : null}
               </div>
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 rounded-md border border-indigo-200 bg-indigo-50/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-indigo-700">
+                <CircleDashed className="h-4 w-4" /> Status Workflow
+              </div>
               <Label>Status</Label>
               <Select value={editStatusValue} onValueChange={(value) => setEditStatusValue(value as ServiceOrderStatus)}>
                 <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
@@ -1323,7 +1326,10 @@ export function ServicesDashboard({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 rounded-md border border-emerald-200 bg-emerald-50/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+                <Wrench className="h-4 w-4" /> Item Service
+              </div>
               <div className="flex items-center justify-between">
                 <Label>Ordered Items</Label>
                 <Button type="button" variant="outline" onClick={addEditItem}>Tambah Item</Button>
@@ -1331,7 +1337,7 @@ export function ServicesDashboard({
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-white/80">
                     <TableHead>Product</TableHead>
                     <TableHead className="w-[110px]">Quantity</TableHead>
                     <TableHead className="w-[220px]">Price</TableHead>
@@ -1340,7 +1346,7 @@ export function ServicesDashboard({
                 </TableHeader>
                 <TableBody>
                   {editItems.length === 0 ? (
-                    <TableRow>
+                    <TableRow className="bg-emerald-50/50">
                       <TableCell colSpan={4} className="text-muted-foreground">No items added.</TableCell>
                     </TableRow>
                   ) : (
@@ -1382,9 +1388,12 @@ export function ServicesDashboard({
               </Table>
               </div>
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-2 rounded-md border border-slate-200 bg-slate-50/40 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <NotebookPen className="h-4 w-4" /> Catatan
+              </div>
               <Label>Catatan</Label>
-              <Textarea value={editNotesValue} onChange={(event) => setEditNotesValue(event.target.value)} />
+              <Textarea className="bg-white" value={editNotesValue} onChange={(event) => setEditNotesValue(event.target.value)} />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => closeEditDialog()}>Batal</Button>

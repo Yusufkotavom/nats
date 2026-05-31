@@ -50,9 +50,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { QuickContactDialog } from "./quick-contact-dialog";
-import { buildWhatsAppUrl } from "./contact-communication";
+import { normalizePhoneForWhatsApp } from "./contact-communication";
 import { SuperJSON } from "@/lib/superjson";
 import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
+import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -119,6 +120,13 @@ export function CartView({
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastInvoiceId, setLastInvoiceId] = useState<string | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyContext, setNotifyContext] = useState<{
+    contactId: string;
+    sourceId: string;
+  } | null>(null);
   const router = useRouter();
 
   const { data: contacts = [] } = useQuery({
@@ -285,22 +293,20 @@ export function CartView({
             setLastInvoiceId(result.data.invoiceId);
             setIsReceiptOpen(true);
           } else {
-            const shouldSend = await confirm({
-              title: "Kirim info pembayaran ke customer?",
-              description: `Kirim WhatsApp ke ${invoice.contact.name || "Customer"} sekarang.`,
-            });
-
-            if (shouldSend) {
-              const waUrl = buildWhatsAppUrl(invoice.contact.phone, preview.message);
-
-              if (waUrl) {
-                window.open(waUrl, "_blank", "noopener,noreferrer");
-              } else {
-                toast({
-                  variant: "destructive",
-                  title: "Nomor WhatsApp customer tidak valid",
-                });
-              }
+            const normalized = normalizePhoneForWhatsApp(invoice.contact.phone);
+            if (normalized && latestPayment?.id && invoice.contact.id) {
+              setNotifyPhone(normalized);
+              setNotifyMessage(preview.message);
+              setNotifyContext({
+                contactId: invoice.contact.id,
+                sourceId: latestPayment.id,
+              });
+              setNotifyOpen(true);
+            } else {
+              toast({
+                variant: "destructive",
+                title: "Nomor WhatsApp customer tidak valid",
+              });
             }
 
             setLastInvoiceId(result.data.invoiceId);
@@ -488,10 +494,10 @@ export function CartView({
     setDiscountOpen(true);
   };
 
-  const openGlobalDiscount = () => {
+  function openGlobalDiscount() {
     setSelectedItemId(null);
     setDiscountOpen(true);
-  };
+  }
 
   const startEditPrice = (itemId: string, currentPrice: number) => {
     setEditingPriceItemId(itemId);
@@ -883,6 +889,23 @@ export function CartView({
           queryClient.invalidateQueries({ queryKey: ["pos-contacts"] });
           setSelectedContactId(contact.id);
         }}
+      />
+      <WhatsAppNotificationDialog
+        open={notifyOpen}
+        onOpenChange={setNotifyOpen}
+        phone={notifyPhone}
+        message={notifyMessage}
+        onMessageChange={setNotifyMessage}
+        context={
+          notifyContext
+            ? {
+                contactId: notifyContext.contactId,
+                eventType: "POS_PAYMENT_POSTED",
+                sourceType: "POS_PAYMENT",
+                sourceId: notifyContext.sourceId,
+              }
+            : null
+        }
       />
     </div>
   );

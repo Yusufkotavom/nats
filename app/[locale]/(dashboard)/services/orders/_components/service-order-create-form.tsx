@@ -24,7 +24,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trash2 } from "lucide-react";
+import { Trash2, UserRound, Wrench, Wallet, NotebookPen } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
@@ -94,6 +95,13 @@ export function ServiceOrderCreateForm({
   compact?: boolean;
   onSuccess?: () => void;
 }) {
+  const sectionTone = {
+    customer: "border-primary/20 bg-primary/5",
+    items: "border-emerald-200 bg-emerald-50/40",
+    payment: "border-amber-200 bg-amber-50/40",
+    notes: "border-slate-200 bg-slate-50/40",
+  } as const;
+
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -259,46 +267,62 @@ export function ServiceOrderCreateForm({
 
   return (
     <div className="grid gap-4">
-      <div className="grid gap-2">
-        <Label>Customer</Label>
-        <div className="flex gap-2">
-          <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih customer" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="walk-in">Walk-in Customer</SelectItem>
-              {contacts.map((contact) => (
-                <SelectItem key={contact.id} value={contact.id}>{contact.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
-            <DialogTrigger asChild>
-              <Button type="button" variant="outline">Quick Add</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Quick Add Customer</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-2">
-                <Label>Nama</Label>
-                <Input value={quickName} onChange={(event) => setQuickName(event.target.value)} />
-                <Label>No. HP</Label>
-                <Input value={quickPhone} onChange={(event) => setQuickPhone(event.target.value)} />
-                <Label>Email</Label>
-                <Input value={quickEmail} onChange={(event) => setQuickEmail(event.target.value)} />
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setQuickOpen(false)}>Batal</Button>
-                  <Button onClick={handleQuickAdd}>Simpan</Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+      <Card className={sectionTone.customer}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <UserRound className="h-4 w-4" /> Informasi Customer
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="grid gap-2">
+            <Label>Customer</Label>
+            <div className="flex gap-2">
+              <Select value={customerId} onValueChange={setCustomerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih customer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walk-in">Walk-in Customer</SelectItem>
+                  {contacts.map((contact) => (
+                    <SelectItem key={contact.id} value={contact.id}>{contact.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline">Quick Add</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Quick Add Customer</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2">
+                    <Label>Nama</Label>
+                    <Input value={quickName} onChange={(event) => setQuickName(event.target.value)} />
+                    <Label>No. HP</Label>
+                    <Input value={quickPhone} onChange={(event) => setQuickPhone(event.target.value)} />
+                    <Label>Email</Label>
+                    <Input value={quickEmail} onChange={(event) => setQuickEmail(event.target.value)} />
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setQuickOpen(false)}>Batal</Button>
+                      <Button onClick={handleQuickAdd}>Simpan</Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+          </CardContent>
+      </Card>
 
-      <div className="grid gap-2">
+      <Card className={sectionTone.items}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Wrench className="h-4 w-4" /> Item Service
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+      <div className="grid gap-3">
         <div className="flex items-center justify-between">
           <Label>Ordered Items</Label>
           <Button type="button" variant="outline" onClick={handleAddItem}>Tambah Item</Button>
@@ -306,7 +330,7 @@ export function ServiceOrderCreateForm({
         <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow>
+                     <TableRow className="bg-white/80">
               <TableHead>Product</TableHead>
               <TableHead className="w-[110px] text-right">Quantity</TableHead>
               <TableHead className="w-[240px] text-right">Price</TableHead>
@@ -316,7 +340,7 @@ export function ServiceOrderCreateForm({
           </TableHeader>
           <TableBody>
             {lines.length === 0 ? (
-              <TableRow>
+                     <TableRow className="bg-emerald-50/50">
                 <TableCell colSpan={5} className="text-muted-foreground">No items added.</TableCell>
               </TableRow>
             ) : (
@@ -387,9 +411,20 @@ export function ServiceOrderCreateForm({
           </TableBody>
         </Table>
         </div>
-        <div className="text-right text-sm font-semibold">Grand Total: {grandTotal.toLocaleString()}</div>
+        <div className="rounded-md border border-emerald-200 bg-white px-3 py-2 text-right text-sm font-semibold text-emerald-700">
+          Grand Total: {grandTotal.toLocaleString()}
+        </div>
       </div>
+      </CardContent>
+      </Card>
 
+      <Card className={sectionTone.payment}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Wallet className="h-4 w-4" /> Pembayaran & Jadwal
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label>Down Payment</Label>
@@ -428,8 +463,17 @@ export function ServiceOrderCreateForm({
           <Input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} />
         </div>
       </div>
+      </CardContent>
+      </Card>
 
-      <div className="grid gap-2 rounded-md border p-3">
+      <Card className={sectionTone.notes}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <NotebookPen className="h-4 w-4" /> Catatan Order
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+      <div className="grid gap-2 rounded-md border bg-white p-3">
         <Label>Catatan</Label>
         <Textarea
           className="min-h-[96px]"
@@ -438,6 +482,8 @@ export function ServiceOrderCreateForm({
           onChange={(event) => setNotes(event.target.value)}
         />
       </div>
+      </CardContent>
+      </Card>
 
       <div className="flex justify-end gap-2">
         {!compact ? (

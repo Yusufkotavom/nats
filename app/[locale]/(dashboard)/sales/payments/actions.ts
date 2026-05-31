@@ -12,8 +12,6 @@ import { SalesPaymentInput } from "./types";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
 import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
-import { createContactCommunicationLog, getCompanyCommunicationTemplate } from "@/app/[locale]/communications/actions";
-import { normalizePhoneForWhatsApp, renderCommunicationTemplate } from "@/lib/communication/company-communication";
 import {
   enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
@@ -23,6 +21,15 @@ type PostSalesPaymentResult = {
   processed: boolean;
   alreadyQueued?: boolean;
   outboxId?: string;
+  communicationCandidate?: {
+    contactId: string;
+    customerName: string;
+    customerPhone: string | null;
+    paymentId: string;
+    paymentNumber: string;
+    amount: string;
+    remainingAmount: string;
+  };
 };
 
 export async function getSalesPayments(
@@ -235,39 +242,36 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
 
       const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
-      const template = await getCompanyCommunicationTemplate("SALES_PAYMENT_POSTED");
-      if (template.isEnabled) {
-        const contact = await prisma.contact.findFirst({
-          where: { id: payment.contactId, companyId: session.activeCompanyId },
-          select: { id: true, name: true, phone: true },
-        });
-        if (contact) {
-          const normalized = normalizePhoneForWhatsApp(contact.phone);
-          const message = renderCommunicationTemplate(template.template, {
-            customer_name: contact.name || "Pelanggan",
-            doc_number: payment.paymentNumber,
-            amount: payment.amount.toString(),
-            remaining_amount: payment.salesInvoice.balanceDue.toString(),
-          });
-          await createContactCommunicationLog({
-            contactId: contact.id,
-            eventType: "SALES_PAYMENT_POSTED",
-            sourceType: "SALES_PAYMENT",
-            sourceId: payment.id,
-            target: normalized || undefined,
-            message,
-            status: normalized ? "SENT" : "FAILED",
-            errorMessage: normalized ? undefined : "Customer phone missing or invalid",
-          });
-        }
-      }
+      const contact = payment.contactId
+        ? await prisma.contact.findFirst({
+            where: { id: payment.contactId, companyId: session.activeCompanyId },
+            select: { id: true, name: true, phone: true },
+          })
+        : null;
 
       revalidateLocalizedPaths([
         "/sales/payments",
         "/sales/invoices",
         `/sales/payments/${id}`,
       ]);
-      return { success: true, data: { outboxId: outbox.id, ...processed } };
+      return {
+        success: true,
+        data: {
+          outboxId: outbox.id,
+          ...processed,
+          communicationCandidate: contact
+            ? {
+                contactId: contact.id,
+                customerName: contact.name || "Pelanggan",
+                customerPhone: contact.phone || null,
+                paymentId: payment.id,
+                paymentNumber: payment.paymentNumber,
+                amount: payment.amount.toString(),
+                remainingAmount: payment.salesInvoice.balanceDue.toString(),
+              }
+            : undefined,
+        },
+      };
     } catch (error) {
       console.error("Failed to post Payment:", error);
       return {

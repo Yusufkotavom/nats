@@ -38,8 +38,11 @@ import {
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatDate, useFormatCurrency } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
+import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
+import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 
 export default function SalesPaymentsPage() {
   const t = useTranslations("Sales");
@@ -48,7 +51,14 @@ export default function SalesPaymentsPage() {
   const page = Number(searchParams.get("page")) || 1;
   const search = searchParams.get("search") || "";
   const formatDate = useFormatDate();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyContext, setNotifyContext] = useState<{
+    contactId: string;
+    sourceId: string;
+  } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["sales-payments", page, search],
@@ -85,6 +95,32 @@ export default function SalesPaymentsPage() {
         try {
           const result = await postSalesPayment(id);
           if (result.success) {
+            const candidate = result.data?.communicationCandidate;
+            if (candidate) {
+              const normalized = normalizePhoneForWhatsApp(candidate.customerPhone);
+              if (normalized) {
+                const preview = await buildCompanyCommunicationPreview({
+                  eventKey: "SALES_PAYMENT_POSTED",
+                  vars: {
+                    customer_name: candidate.customerName,
+                    doc_number: candidate.paymentNumber,
+                    amount: Number(candidate.amount || 0).toLocaleString("id-ID"),
+                    remaining_amount: Number(candidate.remainingAmount || 0).toLocaleString("id-ID"),
+                  },
+                });
+
+                if (preview.isEnabled) {
+                  setNotifyPhone(normalized);
+                  setNotifyMessage(preview.message);
+                  setNotifyContext({
+                    contactId: candidate.contactId,
+                    sourceId: candidate.paymentId,
+                  });
+                  setNotifyOpen(true);
+                }
+              }
+            }
+
             toast({
               title: tCommon("success"),
               description: result.data?.processed ? (
@@ -115,7 +151,7 @@ export default function SalesPaymentsPage() {
               variant: "destructive",
             });
           }
-        } catch (error) {
+        } catch {
           toast({
             title: tCommon("error"),
             description: t("post_error"),
@@ -143,7 +179,7 @@ export default function SalesPaymentsPage() {
             title: tCommon("success"),
             description: t("delete_success_payment"),
           });
-        } catch (error) {
+        } catch {
           toast({
             title: tCommon("error"),
             description: t("delete_error_payment"),
@@ -309,6 +345,23 @@ export default function SalesPaymentsPage() {
           />
         )}
       </PageListContent>
+      <WhatsAppNotificationDialog
+        open={notifyOpen}
+        onOpenChange={setNotifyOpen}
+        phone={notifyPhone}
+        message={notifyMessage}
+        onMessageChange={setNotifyMessage}
+        context={
+          notifyContext
+            ? {
+                contactId: notifyContext.contactId,
+                eventType: "SALES_PAYMENT_POSTED",
+                sourceType: "SALES_PAYMENT",
+                sourceId: notifyContext.sourceId,
+              }
+            : null
+        }
+      />
     </PageListLayout>
   );
 }
