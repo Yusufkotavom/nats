@@ -8,6 +8,7 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import {
@@ -46,6 +47,13 @@ import { UnifiedPaymentMethod } from "@/lib/payments/payment-methods";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableOverflow } from "@/components/ui/table-overflow";
+import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SalesPaymentFormProps {
   initialData?: SalesPaymentWithDetails;
@@ -78,10 +86,11 @@ export function SalesPaymentForm({
   const router = useRouter();
   const t = useTranslations("Sales");
   const tCommon = useTranslations("Common");
+  const confirm = useConfirm();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPosting, setIsPosting] = useState(false);
-  const [submitMode, setSubmitMode] = useState<"save" | "saveAndPost">("save");
   const formatCurrency = useFormatCurrency();
+  const [postActionOpen, setPostActionOpen] = useState(false);
+  const [postActionPaymentId, setPostActionPaymentId] = useState<string | null>(initialData?.id || null);
 
   const [formData, setFormData] = useState<SalesPaymentInput>({
     paymentNumber: initialData?.paymentNumber || "",
@@ -117,8 +126,17 @@ export function SalesPaymentForm({
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
   const [autoCreateShipment, setAutoCreateShipment] = useState(true);
-  const [warrantyModeEnabled, setWarrantyModeEnabled] = useState(true);
-  const [warrantyMode, setWarrantyMode] = useState<"NO_WARRANTY" | "COMPANY_POLICY">("NO_WARRANTY");
+  const [warrantyMode, setWarrantyMode] = useState<
+    | "WARRANTY_1W"
+    | "WARRANTY_2W"
+    | "WARRANTY_3W"
+    | "WARRANTY_4W"
+    | "WARRANTY_1M"
+    | "WARRANTY_2M"
+    | "WARRANTY_3M"
+    | "WARRANTY_6M"
+    | "WARRANTY_12M"
+  >("WARRANTY_1M");
   const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
@@ -168,7 +186,11 @@ export function SalesPaymentForm({
   const selectedInvoice =
     (initialData?.salesInvoice as any) ||
     ((invoicesData || []).find((inv) => inv.id === formData.salesInvoiceId) as any);
-  const isServiceContext = true;
+  const totalInvoiceAmount = selectedInvoice ? Number(selectedInvoice.totalAmount || 0) : 0;
+  const totalPaidAmount = selectedInvoice
+    ? (selectedInvoice.payments || []).reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+    : 0;
+  const remainingAmount = Math.max(totalInvoiceAmount - totalPaidAmount, 0);
 
   useEffect(() => {
     if (!initialData && initialSalesInvoiceId && !formData.salesInvoiceId) {
@@ -215,6 +237,20 @@ export function SalesPaymentForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (readonly) return;
+    const shouldProceed = await confirm({
+      title: "Konfirmasi Save & Post Payment",
+      description: [
+        `Invoice: ${selectedInvoice?.invoiceNumber || "-"}`,
+        `Customer: ${selectedInvoice?.contact?.name || "-"}`,
+        `Jumlah item produk/jasa: ${selectedInvoice?.items?.length || 0}`,
+        `Total invoice: ${formatCurrency(totalInvoiceAmount)}`,
+        `Sisa tagihan: ${formatCurrency(remainingAmount)}`,
+        `Nominal dibayarkan: ${formatCurrency(Number(formData.amount || 0))}`,
+        "Aksi ini akan menyimpan payment lalu langsung posting jurnal.",
+      ].join("\n"),
+      confirmText: "Save & Post",
+    });
+    if (!shouldProceed) return;
 
     try {
       setIsSubmitting(true);
@@ -243,27 +279,26 @@ export function SalesPaymentForm({
             ? SuperJSON.deserialize<{ id: string }>(result.data as SuperJSONResult)
             : null;
 
-        if (!initialData && submitMode === "saveAndPost" && createdPayment?.id) {
-          const postResult = await postSalesPayment(createdPayment.id);
+        const paymentIdToPost = createdPayment?.id || initialData?.id || null;
+        if (paymentIdToPost) {
+          const postResult = await postSalesPayment(paymentIdToPost);
           if (!postResult.success) {
             toast({
               variant: "destructive",
               title: tCommon("error"),
               description: postResult.error || tCommon("something_went_wrong"),
             });
-            router.push(`/sales/payments/${createdPayment.id}/edit`);
+            router.push(`/sales/payments/${paymentIdToPost}/edit`);
             router.refresh();
             return;
           }
-          if (isServiceContext && warrantyModeEnabled) {
-            await applyServiceWarrantyFromPayment({
-              paymentId: createdPayment.id,
-              mode: warrantyMode,
-            });
-          }
-          toast({ title: tCommon("success"), description: t("post_success") });
-          router.push(`/sales/payments/${createdPayment.id}`);
-          router.refresh();
+          await applyServiceWarrantyFromPayment({
+            paymentId: paymentIdToPost,
+            mode: warrantyMode,
+          });
+          setPostActionPaymentId(paymentIdToPost);
+          setPostActionOpen(true);
+          toast({ title: tCommon("success"), description: "Payment berhasil disimpan dan diposting." });
           return;
         }
 
@@ -273,13 +308,6 @@ export function SalesPaymentForm({
             ? "Payment updated successfully"
             : "Payment created successfully",
         });
-        if (createdPayment?.id) {
-          router.push(`/sales/payments/${createdPayment.id}`);
-        } else if (initialData?.id) {
-          router.push(`/sales/payments/${initialData.id}`);
-        } else {
-          router.push("/sales/payments/new");
-        }
         router.refresh();
       } else {
         toast({
@@ -299,43 +327,13 @@ export function SalesPaymentForm({
     }
   };
 
-  const handlePost = async () => {
-    if (!initialData) return;
-    const confirmed = window.confirm(
-      "Posting pembayaran akan membuat jurnal dan data tidak bisa diedit lagi. Lanjutkan?",
-    );
-    if (!confirmed) return;
-    try {
-      setIsPosting(true);
-      const result = await postSalesPayment(initialData.id);
-      if (!result.success) {
-        toast({
-          variant: "destructive",
-          title: tCommon("error"),
-          description: result.error || tCommon("something_went_wrong"),
-        });
-        return;
-      }
-
-      if (isServiceContext && warrantyModeEnabled) {
-        await applyServiceWarrantyFromPayment({ paymentId: initialData.id, mode: warrantyMode });
-      }
-
-      toast({
-        title: tCommon("success"),
-        description: t("post_success"),
-      });
-      router.push("/sales/payments");
-      router.refresh();
-    } catch {
-      toast({
-        variant: "destructive",
-        title: tCommon("error"),
-        description: tCommon("something_went_wrong"),
-      });
-    } finally {
-      setIsPosting(false);
-    }
+  const customerPhone = normalizePhoneForWhatsApp(
+    selectedInvoice?.contact?.phone || initialData?.contact?.phone || null,
+  );
+  const handleNotifyCustomer = () => {
+    if (!customerPhone) return;
+    const message = `Halo ${selectedInvoice?.contact?.name || initialData?.contact?.name || "Customer"}, pembayaran untuk invoice ${selectedInvoice?.invoiceNumber || initialData?.salesInvoice?.invoiceNumber || "-"} sebesar ${formatCurrency(Number(formData.amount || 0))} sudah kami terima.`;
+    window.open(`https://wa.me/${customerPhone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
   if ((isLoadingInvoices || isLoadingAccounts) && !readonly) {
@@ -383,33 +381,14 @@ export function SalesPaymentForm({
                 {tCommon("print")}
               </Button>
             ) : null}
-            {initialData && !readonly ? (
-              <Button type="button" variant="outline" onClick={handlePost} disabled={isPosting || isSubmitting}>
-                {(isPosting || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t("post")}
-              </Button>
-            ) : null}
             {!readonly && (
-              <Button type="submit" disabled={isSubmitting || isPosting} onClick={() => setSubmitMode("save") }>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {initialData ? t("update_payment") : t("save_payment")}
+                Save & Post
               </Button>
             )}
-            {!readonly && !initialData && formData.salesInvoiceId ? (
-              <Button
-                type="submit"
-                variant="outline"
-                disabled={isSubmitting || isPosting}
-                onClick={() => setSubmitMode("saveAndPost")}
-              >
-                {(isSubmitting || isPosting) && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {t("save_payment")} + {t("post")}
-              </Button>
-            ) : null}
           </PageFormActions>
         </PageFormHeader>
         <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden pt-6 md:grid-cols-2">
@@ -495,25 +474,35 @@ export function SalesPaymentForm({
 
           <div className="md:col-span-2 rounded-md border p-3">
             <div className="mb-2 font-medium">Garansi</div>
-            <label className="mb-2 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={warrantyModeEnabled}
-                onChange={(event) => setWarrantyModeEnabled(event.target.checked)}
-              />
-              Aktifkan garansi untuk payment ini
-            </label>
-            {warrantyModeEnabled ? (
-              <SearchableSelect
-                value={warrantyMode}
-                onValueChange={(value) => setWarrantyMode((value as "NO_WARRANTY" | "COMPANY_POLICY") || "NO_WARRANTY")}
-                options={[
-                  { value: "NO_WARRANTY", label: "No Garansi" },
-                  { value: "COMPANY_POLICY", label: "Garansi Sesuai Kebijakan" },
-                ]}
-                placeholder="Pilih mode garansi"
-              />
-            ) : null}
+            <SearchableSelect
+              value={warrantyMode}
+              onValueChange={(value) =>
+                setWarrantyMode(
+                  (value as
+                    | "WARRANTY_1W"
+                    | "WARRANTY_2W"
+                    | "WARRANTY_3W"
+                    | "WARRANTY_4W"
+                    | "WARRANTY_1M"
+                    | "WARRANTY_2M"
+                    | "WARRANTY_3M"
+                    | "WARRANTY_6M"
+                    | "WARRANTY_12M") || "WARRANTY_1M",
+                )
+              }
+              options={[
+                { value: "WARRANTY_1W", label: "1 Minggu" },
+                { value: "WARRANTY_2W", label: "2 Minggu" },
+                { value: "WARRANTY_3W", label: "3 Minggu" },
+                { value: "WARRANTY_4W", label: "4 Minggu" },
+                { value: "WARRANTY_1M", label: "1 Bulan" },
+                { value: "WARRANTY_2M", label: "2 Bulan" },
+                { value: "WARRANTY_3M", label: "3 Bulan" },
+                { value: "WARRANTY_6M", label: "6 Bulan" },
+                { value: "WARRANTY_12M", label: "12 Bulan" },
+              ]}
+              placeholder="Pilih durasi garansi"
+            />
           </div>
 
           <CustomInput
@@ -708,15 +697,54 @@ export function SalesPaymentForm({
           return res;
         }}
       />
-      {initialData ? (
+      {postActionPaymentId ? (
         <ReportPreviewDialog
           isOpen={isReportPreviewOpen}
           onOpenChange={setIsReportPreviewOpen}
           code="SALES_PAYMENT"
-          input={{ paymentId: initialData.id }}
-          title={`Sales Payment #${initialData.paymentNumber}`}
+          input={{ paymentId: postActionPaymentId }}
+          title={`Sales Payment`}
         />
       ) : null}
+      <Dialog open={postActionOpen} onOpenChange={setPostActionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pembayaran Berhasil Diposting</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReportPreviewOpen(true)}
+            >
+              <PrinterIcon className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleNotifyCustomer}
+              disabled={!customerPhone}
+            >
+              WA Customer
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setPostActionOpen(false);
+                if (postActionPaymentId) {
+                  router.push(`/sales/payments/${postActionPaymentId}`);
+                } else {
+                  router.push("/sales/payments");
+                }
+                router.refresh();
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageFormLayout>
   );
 }

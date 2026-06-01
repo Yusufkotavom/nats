@@ -159,6 +159,108 @@ export async function createCompanyAsPlatformAdmin(input: {
   return { success: true };
 }
 
+export async function cloneCompanyAsPlatformAdmin(companyId: string) {
+  await assertPlatformSuperAdmin();
+  const source = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { id: true, name: true, code: true },
+  });
+  if (!source) {
+    return { success: false, error: "Company not found" };
+  }
+  return createCompanyAsPlatformAdmin({
+    name: `${source.name} Copy`,
+    code: `${source.code}-${Date.now().toString().slice(-4)}`,
+  });
+}
+
+export async function updateCompanyAsPlatformAdmin(input: {
+  companyId: string;
+  name: string;
+  code: string;
+  status: "ACTIVE" | "SUSPENDED" | "PENDING_SETUP";
+}) {
+  await assertPlatformSuperAdmin();
+  const name = input.name.trim();
+  const code = input.code.trim().toLowerCase();
+  if (!name) return { success: false, error: "Company name is required" };
+  if (!code) return { success: false, error: "Company code is required" };
+
+  const existing = await prisma.company.findFirst({
+    where: {
+      code,
+      id: { not: input.companyId },
+    },
+    select: { id: true },
+  });
+  if (existing) return { success: false, error: "Company code already exists" };
+
+  await prisma.company.update({
+    where: { id: input.companyId },
+    data: {
+      name,
+      code,
+      status: input.status as CompanyStatus,
+    },
+  });
+
+  revalidateLocalizedPath("/admin/companies");
+  revalidateLocalizedPath(`/admin/companies/${input.companyId}`);
+  return { success: true };
+}
+
+export async function getCompanyForPlatformAdmin(companyId: string) {
+  await assertPlatformSuperAdmin();
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    include: {
+      profile: true,
+      subscriptions: {
+        include: {
+          plan: true,
+          invoices: {
+            orderBy: { createdAt: "desc" },
+            take: 25,
+          },
+        },
+        take: 1,
+      },
+      _count: { select: { memberships: true } },
+    },
+  });
+  if (!company) return null;
+
+  return {
+    id: company.id,
+    code: company.code,
+    name: company.name,
+    status: company.status,
+    profileEmail: company.profile?.email || null,
+    profilePhone: company.profile?.phone || null,
+    memberCount: company._count.memberships,
+    createdAt: company.createdAt,
+    subscription: company.subscriptions[0]
+      ? {
+          id: company.subscriptions[0].id,
+          status: company.subscriptions[0].status,
+          planId: company.subscriptions[0].planId,
+          planName: company.subscriptions[0].plan?.name || null,
+          startDate: company.subscriptions[0].startDate,
+          endDate: company.subscriptions[0].endDate,
+          nextBillingDate: company.subscriptions[0].nextBillingDate,
+          autoRenew: company.subscriptions[0].autoRenew,
+        }
+      : null,
+    invoices: company.subscriptions[0]?.invoices?.map((inv) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      status: inv.status,
+      dueDate: inv.dueDate,
+      totalAmount: Number(inv.totalAmount),
+    })) || [],
+  };
+}
+
 function startOfMonthUtc(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0));
 }

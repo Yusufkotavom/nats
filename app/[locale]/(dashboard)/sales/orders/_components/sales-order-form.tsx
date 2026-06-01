@@ -159,6 +159,7 @@ export function SalesOrderForm({
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
+  const [confirmActionOpen, setConfirmActionOpen] = useState(false);
   const [customerOptions, setCustomerOptions] = useState(
     customers.map((c) => ({
       value: c.id,
@@ -373,51 +374,6 @@ export function SalesOrderForm({
           const createdOrder = result.data
             ? SuperJSON.deserialize<{ id: string }>(result.data)
             : null;
-          if (createdOrder?.id && autoCreateInvoicePayment && downPaymentAmount > 0) {
-            const invoiceResult = await createSalesInvoice({
-              invoiceNumber: "",
-              contactId: formData.contactId,
-              salesOrderId: createdOrder.id,
-              invoiceDate: new Date(),
-              dueDate: new Date(),
-              notes: "Auto-created from Sales Order with DP",
-              items: formData.items.map((item) => ({
-                description: products.find((p) => p.id === item.productId)?.name || "Item",
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                discount: 0,
-                tax: 0,
-                productId: item.productId,
-              })),
-              globalDiscount: 0,
-              totalTax: 0,
-              shippingCost: 0,
-              attachmentIds: [],
-              departmentId: formData.departmentId || undefined,
-              projectId: formData.projectId || undefined,
-            });
-
-            if (invoiceResult.success && invoiceResult.data) {
-              const createdInvoice = SuperJSON.deserialize<{ id: string }>(invoiceResult.data as SuperJSONResult);
-              const selectedMethod = paymentMethodOptions.find((m) => m.id === paymentMethodId);
-              if (createdInvoice?.id && selectedMethod && paymentMethodId) {
-                await createSalesPayment({
-                  paymentNumber: "",
-                  contactId: formData.contactId,
-                  salesInvoiceId: createdInvoice.id,
-                  paymentDate: new Date(),
-                  amount: downPaymentAmount,
-                  reference: createdOrder.id,
-                  notes: "Auto DP Payment",
-                  method: selectedMethod.method,
-                  cashAccountId: paymentMethodId,
-                  attachmentIds: [],
-                  departmentId: formData.departmentId || null,
-                  projectId: formData.projectId || null,
-                });
-              }
-            }
-          }
           if (createdOrder?.id) {
             router.push(`/sales/orders/${createdOrder.id}/edit`);
           } else {
@@ -438,13 +394,107 @@ export function SalesOrderForm({
     }
   };
 
+  const createInvoiceAndDpAfterConfirm = async (salesOrderId: string) => {
+    if (!autoCreateInvoicePayment || downPaymentAmount <= 0) return;
+    if (!order) return;
+    if ((order.invoices?.length || 0) > 0) {
+      await alert({
+        title: "Info",
+        description: "Invoice sudah ada. Auto Pembayaran/Down Payment tidak dijalankan untuk menghindari duplikasi.",
+      });
+      return;
+    }
+
+    const invoiceResult = await createSalesInvoice({
+      invoiceNumber: "",
+      contactId: formData.contactId,
+      salesOrderId,
+      invoiceDate: new Date(),
+      dueDate: new Date(),
+      notes: "Auto-created after Sales Order confirmation",
+      items: formData.items.map((item) => ({
+        description: products.find((p) => p.id === item.productId)?.name || "Item",
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: 0,
+        tax: 0,
+        productId: item.productId,
+      })),
+      globalDiscount: 0,
+      totalTax: 0,
+      shippingCost: 0,
+      attachmentIds: [],
+      departmentId: formData.departmentId || undefined,
+      projectId: formData.projectId || undefined,
+    });
+
+    if (!invoiceResult.success || !invoiceResult.data) {
+      await alert({
+        title: "Warning",
+        description: "Sales Order berhasil dikonfirmasi, tetapi auto pembuatan invoice gagal.",
+      });
+      return;
+    }
+
+    const createdInvoice = SuperJSON.deserialize<{ id: string }>(
+      invoiceResult.data as SuperJSONResult,
+    );
+    const selectedMethod = paymentMethodOptions.find((m) => m.id === paymentMethodId);
+
+    if (!createdInvoice?.id || !selectedMethod || !paymentMethodId) {
+      await alert({
+        title: "Warning",
+        description: "Invoice berhasil dibuat, tetapi metode Pembayaran/Down Payment belum valid.",
+      });
+      return;
+    }
+
+    const normalizedOrderTotal = Number(totalAmount || 0);
+    const normalizedDp = Number(downPaymentAmount || 0);
+    const payableAmount = Math.min(normalizedDp, normalizedOrderTotal);
+    if (payableAmount <= 0) {
+      await alert({
+        title: "Info",
+        description: "Nominal Pembayaran/Down Payment diabaikan karena total invoice tidak memiliki sisa tagihan.",
+      });
+      return;
+    }
+
+    const paymentResult = await createSalesPayment({
+      paymentNumber: "",
+      contactId: formData.contactId,
+      salesInvoiceId: createdInvoice.id,
+      paymentDate: new Date(),
+      amount: payableAmount,
+      reference: salesOrderId,
+      notes: "Auto down payment after Sales Order confirmation",
+      method: selectedMethod.method,
+      cashAccountId: paymentMethodId,
+      attachmentIds: [],
+      departmentId: formData.departmentId || null,
+      projectId: formData.projectId || null,
+    });
+
+    if (!paymentResult.success) {
+      await alert({
+        title: "Warning",
+        description: "Invoice berhasil dibuat, tetapi auto Pembayaran/Down Payment gagal.",
+      });
+    }
+  };
+
   const handleConfirm = async () => {
     if (!order) return;
     if (
       await confirm({
         title: "Confirm Sales Order",
-        description:
-          "Are you sure you want to confirm this SO? This will make it immutable and ready to be processed.",
+        description: [
+          `Sales Order: ${order.orderNumber || "-"}`,
+          `Customer: ${order.contact?.name || "-"}`,
+          `Jumlah item produk/jasa: ${formData.items.length}`,
+          `Nominal transaksi: ${formatCurrency(totalAmount)}`,
+          "Aksi ini akan mengunci SO (tidak bisa edit seperti draft).",
+        ].join("\n"),
         confirmText: "Confirm Order",
       })
     ) {
@@ -459,6 +509,7 @@ export function SalesOrderForm({
         const confirmed = result.data
           ? SuperJSON.deserialize<{ status?: string; orderNumber?: string }>(result.data)
           : null;
+        await createInvoiceAndDpAfterConfirm(order.id);
         setFormData((prev) => ({
           ...prev,
           status: (confirmed?.status as "DRAFT" | "CONFIRMED" | "PARTIALLY_SHIPPED" | "SHIPPED" | "CLOSED" | "CANCELLED") || "CONFIRMED",
@@ -466,10 +517,7 @@ export function SalesOrderForm({
 
         router.refresh();
 
-        await alert({
-          title: "Sales Order Confirmed",
-          description: "Gunakan tombol Print dan Notify Customer di kanan atas untuk aksi lanjutan.",
-        });
+        setConfirmActionOpen(true);
       } finally {
         setIsLoading(false);
       }
@@ -1038,7 +1086,7 @@ export function SalesOrderForm({
             {!readonly ? (
               <Card>
                 <CardHeader>
-                <CardTitle>Auto Invoice + DP</CardTitle>
+                <CardTitle>Pembayaran/Down Payment</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <label className="flex items-center gap-2 text-sm">
@@ -1047,7 +1095,7 @@ export function SalesOrderForm({
                       checked={autoCreateInvoicePayment}
                       onChange={(event) => setAutoCreateInvoicePayment(event.target.checked)}
                     />
-                    Langsung buat invoice & catat uang muka (DP)
+                    Buat invoice & catat pembayaran/down payment setelah konfirmasi
                   </label>
                   {autoCreateInvoicePayment ? (
                     <div className="grid gap-2 sm:grid-cols-2">
@@ -1220,6 +1268,25 @@ export function SalesOrderForm({
         }}
         readonly={isReadOnly}
       />
+      <Dialog open={confirmActionOpen} onOpenChange={setConfirmActionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sales Order Berhasil Dikonfirmasi</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button type="button" variant="outline" onClick={() => setIsReportPreviewOpen(true)}>
+              <PrinterIcon className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+            <Button type="button" variant="outline" onClick={handleNotifyCustomer} disabled={!order?.contact?.phone}>
+              WA Customer
+            </Button>
+            <Button type="button" onClick={() => setConfirmActionOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageFormLayout >
   );
 }

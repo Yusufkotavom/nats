@@ -42,6 +42,16 @@ function addMonthsSafe(source: Date, months: number) {
   return date;
 }
 
+function parseWarrantyCoverageFromNotes(notes?: string | null): { duration: number; unit: "DAY" | "MONTH" } | null {
+  if (!notes) return null;
+  const match = notes.match(/WARRANTY_COVERAGE:(\d+):(DAY|MONTH)/i);
+  if (!match) return null;
+  const duration = Number(match[1] || 0);
+  const unit = String(match[2] || "").toUpperCase() === "MONTH" ? "MONTH" : "DAY";
+  if (!Number.isFinite(duration) || duration <= 0) return null;
+  return { duration, unit };
+}
+
 async function ensureServiceWarrantyCase(companyId: string, serviceOrderId: string, userId: string) {
   const [order, profile] = await Promise.all([
     prisma.pOSServiceOrder.findFirst({
@@ -590,13 +600,6 @@ export async function getServiceAfterSales(
   });
   const invoiceMap = new Map(invoices.map((i) => [i.id, i.invoiceNumber]));
 
-  const warrantyProfile = await prisma.companyProfile.findUnique({
-    where: { companyId },
-    select: { serviceWarrantyDuration: true, serviceWarrantyUnit: true },
-  });
-  const warrantyDuration = warrantyProfile?.serviceWarrantyDuration || 0;
-  const warrantyUnit = warrantyProfile?.serviceWarrantyUnit || "DAY";
-
   const rows: ServiceAfterSalesCaseListItem[] = cases.map((item) => {
     const isWarranty = item.reason?.toUpperCase().includes("WARRANTY");
     let warrantyEndsAt: Date | null = null;
@@ -604,10 +607,11 @@ export async function getServiceAfterSales(
     let warrantyRemainingMonths: number | null = null;
     let warrantyExpired = false;
 
-    if (isWarranty && warrantyDuration > 0) {
-      warrantyEndsAt = warrantyUnit === "MONTH"
-        ? addMonthsSafe(item.returnDate, warrantyDuration)
-        : new Date(item.returnDate.getTime() + warrantyDuration * 24 * 60 * 60 * 1000);
+    const parsedCoverage = parseWarrantyCoverageFromNotes(item.notes);
+    if (isWarranty && parsedCoverage && parsedCoverage.duration > 0) {
+      warrantyEndsAt = parsedCoverage.unit === "MONTH"
+        ? addMonthsSafe(item.returnDate, parsedCoverage.duration)
+        : new Date(item.returnDate.getTime() + parsedCoverage.duration * 24 * 60 * 60 * 1000);
       const diffMs = warrantyEndsAt.getTime() - Date.now();
       const remainingDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
       warrantyRemainingDays = remainingDays;

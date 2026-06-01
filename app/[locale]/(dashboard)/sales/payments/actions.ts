@@ -368,10 +368,7 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
 
 export const applyServiceWarrantyFromPayment = authorizedAction(
   "sales.payments",
-  async (input: { paymentId: string; mode: "NO_WARRANTY" | "COMPANY_POLICY" }) => {
-    if (input.mode === "NO_WARRANTY") {
-      return { success: true, data: { created: false, reason: "NO_WARRANTY", id: null } };
-    }
+  async (input: { paymentId: string; mode: "WARRANTY_1W" | "WARRANTY_2W" | "WARRANTY_3W" | "WARRANTY_4W" | "WARRANTY_1M" | "WARRANTY_2M" | "WARRANTY_3M" | "WARRANTY_6M" | "WARRANTY_12M" }) => {
 
     const session = await getSession();
     if (!session) throw new Error("Unauthorized");
@@ -400,10 +397,18 @@ export const applyServiceWarrantyFromPayment = authorizedAction(
       return { success: true, data: { created: false, reason: "NO_SALES_ORDER", id: null } };
     }
 
-    const isService = payment.salesInvoice.salesOrder.items.some((item) => item.product?.isService);
-    if (!isService) {
-      return { success: true, data: { created: false, reason: "NOT_SERVICE_ORDER", id: null } };
-    }
+    const coverageByMode: Record<typeof input.mode, { duration: number; unit: "DAY" | "MONTH" }> = {
+      WARRANTY_1W: { duration: 7, unit: "DAY" },
+      WARRANTY_2W: { duration: 14, unit: "DAY" },
+      WARRANTY_3W: { duration: 21, unit: "DAY" },
+      WARRANTY_4W: { duration: 28, unit: "DAY" },
+      WARRANTY_1M: { duration: 1, unit: "MONTH" },
+      WARRANTY_2M: { duration: 2, unit: "MONTH" },
+      WARRANTY_3M: { duration: 3, unit: "MONTH" },
+      WARRANTY_6M: { duration: 6, unit: "MONTH" },
+      WARRANTY_12M: { duration: 12, unit: "MONTH" },
+    };
+    const coverage = coverageByMode[input.mode];
 
     const existing = await prisma.salesReturn.findFirst({
       where: {
@@ -426,7 +431,7 @@ export const applyServiceWarrantyFromPayment = authorizedAction(
         salesInvoiceId: payment.salesInvoiceId,
         returnDate: new Date(),
         reason: "WARRANTY",
-        notes: `Auto warranty case from payment ${payment.paymentNumber}`,
+        notes: `Auto warranty case from payment ${payment.paymentNumber}. WARRANTY_COVERAGE:${coverage.duration}:${coverage.unit}`,
         items: payment.salesInvoice.items.filter((item) => !!item.productId).map((item) => ({
           productId: item.productId as string,
           quantity: item.quantity,

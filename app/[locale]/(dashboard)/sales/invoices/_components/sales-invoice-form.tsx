@@ -76,6 +76,7 @@ import {
 } from "@/lib/communication/company-communication";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 import { TableOverflow } from "@/components/ui/table-overflow";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProductWithDetails } from "@/app/[locale]/(dashboard)/inventory/types";
 
 interface SalesInvoiceFormProps {
@@ -142,6 +143,7 @@ export function SalesInvoiceForm({
     sourceId: string;
   } | null>(null);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
+  const [postActionOpen, setPostActionOpen] = useState(false);
   const hasAppliedInitialSalesOrder = useRef(false);
   const [invoiceDateInput, setInvoiceDateInput] = useState(
     invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), inputDateFormat) : format(new Date(), inputDateFormat),
@@ -452,10 +454,20 @@ export function SalesInvoiceForm({
 
   const handlePost = async () => {
     if (!invoice) return;
+    const summaryItemsCount = invoice.items?.length || 0;
+    const summaryTotal = Number(invoice.totalAmount || 0);
+    const summaryRemaining = Number(invoice.balanceDue || 0);
     if (
       !(await confirm({
         title: "Post Invoice",
-        description: "Are you sure you want to post this invoice? This will create a journal entry and cannot be undone.",
+        description: [
+          `Invoice: ${invoice.invoiceNumber}`,
+          `Customer: ${invoice.contact?.name || "-"}`,
+          `Jumlah item produk/jasa: ${summaryItemsCount}`,
+          `Nominal transaksi: ${formatCurrency(summaryTotal)}`,
+          `Sisa tagihan saat ini: ${formatCurrency(summaryRemaining)}`,
+          "Aksi ini akan membuat jurnal dan tidak bisa dibatalkan.",
+        ].join("\n"),
       }))
     ) {
       return;
@@ -488,11 +500,7 @@ export function SalesInvoiceForm({
           ),
         });
         router.refresh();
-
-        await alert({
-          title: "Invoice Issued",
-          description: "Gunakan tombol Print dan Send WhatsApp untuk aksi lanjutan.",
-        });
+        setPostActionOpen(true);
       } else {
         toast({
           title: "Error",
@@ -1223,6 +1231,25 @@ export function SalesInvoiceForm({
           title={`Invoice #${invoice.invoiceNumber}`}
         />
       )}
+      <Dialog open={postActionOpen} onOpenChange={setPostActionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invoice Berhasil Diposting</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button type="button" variant="outline" onClick={() => setIsReportPreviewOpen(true)}>
+              <PrinterIcon className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+            <Button type="button" variant="outline" onClick={handleSendInvoiceWhatsApp}>
+              WA Customer
+            </Button>
+            <Button type="button" onClick={() => setPostActionOpen(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageFormLayout>
   );
 }

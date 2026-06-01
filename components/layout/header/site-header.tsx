@@ -63,10 +63,31 @@ export function SiteHeader() {
     });
 
   return (
-    <header className="sticky top-0 z-10 bg-background flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+    <header className="sticky top-0 z-10 bg-background shrink-0 border-b transition-[width,height] ease-linear">
+      <div className="flex h-(--header-height) w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
-
+        <div className="ml-auto flex items-center gap-2">
+          <LanguageSwitcher />
+          <ThemeCustomizer />
+          <ModeToggle />
+        </div>
+      </div>
+      <div className="border-t px-4 py-2 lg:hidden">
+        <div className="overflow-x-auto">
+          <Breadcrumb className="min-w-max">
+            <BreadcrumbList className="flex-nowrap">
+              {breadcrumbs.length > 0 ? (
+                breadcrumbs
+              ) : (
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{t('Common.home')}</BreadcrumbPage>
+                </BreadcrumbItem>
+              )}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </div>
+      <div className="hidden px-4 py-2 lg:block lg:px-6">
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbs.length > 0 ? (
@@ -78,11 +99,6 @@ export function SiteHeader() {
             )}
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="ml-auto flex items-center gap-2">
-          <LanguageSwitcher />
-          <ThemeCustomizer />
-          <ModeToggle />
-        </div>
       </div>
     </header>
   );

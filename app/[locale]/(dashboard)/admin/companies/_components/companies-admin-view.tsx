@@ -7,6 +7,7 @@ import {
   assignPlanToCompany,
   createCompanyAsPlatformAdmin,
   createPlatformPlan,
+  cloneCompanyAsPlatformAdmin,
   generateSubscriptionInvoiceForCompany,
   markSubscriptionInvoicePaid,
   runSubscriptionAutoBillingNow,
@@ -33,6 +34,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 
 type CompanyRow = {
   id: string;
@@ -327,32 +335,46 @@ export function CompaniesAdminView({
                       <TableCell>{fmtDate(company.subscription?.nextBillingDate)}</TableCell>
                       <TableCell>{company.memberCount}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" onClick={() => openEdit(company)}>
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={company.status === "ACTIVE" ? "destructive" : "default"}
-                            disabled={isPending}
-                            onClick={() =>
-                              runAction(
-                                () =>
-                                  setCompanyStatusAsPlatformAdmin(
-                                    company.id,
-                                    company.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE",
-                                  ),
-                                {
-                                  successTitle:
-                                    company.status === "ACTIVE"
-                                      ? "Company suspended"
-                                      : "Company activated",
-                                },
-                              )
-                            }
-                          >
-                            {company.status === "ACTIVE" ? "Suspend" : "Activate"}
-                          </Button>
+                        <div className="flex justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/companies/${company.id}`}>Edit (Page)</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  runAction(
+                                    () => cloneCompanyAsPlatformAdmin(company.id),
+                                    { successTitle: "Company cloned" },
+                                  )
+                                }
+                              >
+                                Clone Company
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  runAction(
+                                    () =>
+                                      setCompanyStatusAsPlatformAdmin(
+                                        company.id,
+                                        company.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE",
+                                      ),
+                                    {
+                                      successTitle:
+                                        company.status === "ACTIVE" ? "Company suspended" : "Company activated",
+                                    },
+                                  )
+                                }
+                              >
+                                {company.status === "ACTIVE" ? "Suspend" : "Activate"}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
