@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SuperJSON } from "@/lib/superjson";
@@ -27,9 +28,6 @@ import {
 import { Trash2, UserRound, Wrench, Wallet, NotebookPen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TableOverflow } from "@/components/ui/table-overflow";
-import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
-import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
-import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 
 type ServiceLine = {
   id: string;
@@ -120,14 +118,29 @@ export function ServiceOrderCreateForm({
   const [quickName, setQuickName] = useState("");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
-  const [notifyOpen, setNotifyOpen] = useState(false);
-  const [notifyPreview, setNotifyPreview] = useState("");
-  const [notifyPhone, setNotifyPhone] = useState("");
-  const [notifyMeta, setNotifyMeta] = useState<{ contactId: string; orderId: string }>({ contactId: "", orderId: "" });
 
   const dpAccountOptions = useMemo(
     () => paymentMethodOptions.filter((item) => item.method === downPaymentMethod),
     [paymentMethodOptions, downPaymentMethod],
+  );
+
+  const customerOptions = useMemo(
+    () => [
+      { value: "walk-in", label: "Walk-in Customer" },
+      ...contacts.map((contact) => ({ value: contact.id, label: contact.name })),
+    ],
+    [contacts],
+  );
+
+  const productOptions = useMemo(
+    () =>
+      products.map((product) => ({
+        value: product.id,
+        label: product.name,
+        subtitle: product.isService ? "Service" : "Non-service",
+        meta: Number(product.price || 0).toLocaleString("id-ID"),
+      })),
+    [products],
   );
 
   const grandTotal = useMemo(
@@ -196,30 +209,9 @@ export function ServiceOrderCreateForm({
         })),
       });
 
-      const created = SuperJSON.deserialize<CreatedServiceOrderPayload>(raw as any);
+      SuperJSON.deserialize<CreatedServiceOrderPayload>(raw as any);
 
       toast({ title: "Service order berhasil dibuat" });
-
-      const normalized = normalizePhoneForWhatsApp(created.customerPhone);
-      if (created.customerId && normalized) {
-        const preview = await buildCompanyCommunicationPreview({
-          eventKey: "SERVICE_CREATED",
-          vars: {
-            customer_name: created.customerName,
-            doc_number: created.orderNumber,
-            amount: Number(created.totalAmount || 0).toLocaleString("id-ID"),
-            remaining_amount: Number(created.remainingAmount || 0).toLocaleString("id-ID"),
-            date: new Date(created.createdAt).toLocaleDateString("id-ID"),
-            status: created.status,
-          },
-        });
-        if (preview.isEnabled) {
-          setNotifyPreview(preview.message);
-          setNotifyPhone(normalized);
-          setNotifyMeta({ contactId: created.customerId, orderId: created.id });
-          setNotifyOpen(true);
-        }
-      }
 
       onSuccess?.();
       if (!compact) {
@@ -278,17 +270,12 @@ export function ServiceOrderCreateForm({
           <div className="grid gap-2">
             <Label>Customer</Label>
             <div className="flex gap-2">
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="walk-in">Walk-in Customer</SelectItem>
-                  {contacts.map((contact) => (
-                    <SelectItem key={contact.id} value={contact.id}>{contact.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={customerOptions}
+                value={customerId}
+                onValueChange={(value) => setCustomerId(value || "walk-in")}
+                placeholder="Pilih customer"
+              />
               <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
                 <DialogTrigger asChild>
                   <Button type="button" variant="outline">Quick Add</Button>
@@ -352,21 +339,12 @@ export function ServiceOrderCreateForm({
                   <Fragment key={line.id}>
                     <TableRow>
                       <TableCell>
-                        <Select
-                          value={line.productId}
-                          onValueChange={(value) => handleLineChange(line.id, { productId: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih produk/service" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name}{product.isService ? " (Service)" : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          options={productOptions}
+                          value={line.productId || null}
+                          onValueChange={(value) => handleLineChange(line.id, { productId: value || "" })}
+                          placeholder="Pilih produk/service"
+                        />
                         {selected?.isService ? null : (
                           <p className="mt-1 text-xs text-muted-foreground">Item tambahan non-service</p>
                         )}
@@ -493,23 +471,6 @@ export function ServiceOrderCreateForm({
         <Button onClick={handleCreate} disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button>
       </div>
 
-      <WhatsAppNotificationDialog
-        open={notifyOpen}
-        onOpenChange={setNotifyOpen}
-        phone={notifyPhone}
-        message={notifyPreview}
-        onMessageChange={setNotifyPreview}
-        context={
-          notifyMeta.contactId && notifyMeta.orderId
-            ? {
-                contactId: notifyMeta.contactId,
-                eventType: "SERVICE_CREATED",
-                sourceType: "SERVICE_ORDER",
-                sourceId: notifyMeta.orderId,
-              }
-            : null
-        }
-      />
     </div>
   );
 }

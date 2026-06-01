@@ -105,6 +105,9 @@ export function ServiceInvoicesList() {
             <DropdownMenuItem asChild>
               <Link href={`/sales/invoices/${item.id}`}>Open Invoice</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/sales/payments/new?salesInvoiceId=${item.id}`}>Create Payment</Link>
+            </DropdownMenuItem>
             {Number(item.balanceDue) > 0 ? (
               <DropdownMenuItem onClick={() => handleSettle(item)}>
                 Settle Payment

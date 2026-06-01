@@ -155,6 +155,16 @@ export function ServiceOrdersList() {
             <DropdownMenuItem asChild>
               <Link href={`/services/pipeline/${item.id}`}>Open in Pipeline</Link>
             </DropdownMenuItem>
+            {item.salesInvoiceId ? (
+              <DropdownMenuItem asChild>
+                <Link href={`/sales/invoices/${item.salesInvoiceId}`}>Open Invoice</Link>
+              </DropdownMenuItem>
+            ) : null}
+            {item.salesInvoiceId ? (
+              <DropdownMenuItem asChild>
+                <Link href={`/sales/payments/new?salesInvoiceId=${item.salesInvoiceId}`}>Create Payment</Link>
+              </DropdownMenuItem>
+            ) : null}
             {nextStatusOptions(item.status).map((nextStatus) => (
               <DropdownMenuItem key={nextStatus} onClick={() => handleUpdateStatus(item.id, nextStatus)}>
                 Mark as {nextStatus}

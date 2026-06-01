@@ -68,7 +68,6 @@ import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/
 import {
   normalizePhoneForWhatsApp,
 } from "@/lib/communication/company-communication";
-import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 import { TableOverflow } from "@/components/ui/table-overflow";
 
 type DashboardTab = "orders" | "invoices" | "payments" | "returns_warranty";
@@ -190,14 +189,6 @@ export function ServicesDashboard({
     customerName: string;
     customerPhone: string | null;
   }>({ contactId: null, customerName: "", customerPhone: null });
-  const [notifyOpen, setNotifyOpen] = useState(false);
-  const [notifyMessage, setNotifyMessage] = useState("");
-  const [notifyPhone, setNotifyPhone] = useState("");
-  const [notifyMeta, setNotifyMeta] = useState<{
-    eventType: "SERVICE_CREATED" | "SERVICE_STATUS_UPDATED" | "SERVICE_PAYMENT_RECEIVED";
-    sourceId: string;
-    contactId: string;
-  } | null>(null);
 
   const { toast } = useToast();
   const t = useTranslations("Services");
@@ -365,14 +356,7 @@ export function ServicesDashboard({
       toast({ title: "Template notifikasi event ini sedang nonaktif", variant: "destructive" });
       return;
     }
-    setNotifyPhone(normalized);
-    setNotifyMessage(preview.message);
-    setNotifyMeta({
-      eventType: eventKey === "SERVICE_CREATED" ? "SERVICE_CREATED" : "SERVICE_STATUS_UPDATED",
-      sourceId: order.id,
-      contactId: order.contactId,
-    });
-    setNotifyOpen(true);
+    window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(preview.message)}`, "_blank", "noopener,noreferrer");
   };
 
   const openServiceNotification = async (input: {
@@ -414,10 +398,7 @@ export function ServicesDashboard({
     });
     if (!preview.isEnabled) return;
 
-    setNotifyPhone(normalized);
-    setNotifyMessage(preview.message);
-    setNotifyMeta({ eventType: input.eventType, sourceId: input.sourceId, contactId: input.contactId });
-    setNotifyOpen(true);
+    window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(preview.message)}`, "_blank", "noopener,noreferrer");
   };
 
   const openCall = (order: ServiceOrderListItem) => {
@@ -1164,24 +1145,6 @@ export function ServicesDashboard({
         {tab === "payments" ? <DataTable data={paymentsQuery.data?.rows ?? []} columns={paymentColumns} isLoading={paymentsQuery.isLoading} emptyMessage="Belum ada pembayaran service" pagination={{ totalEntries: paymentsQuery.data?.total ?? 0, pageSize: 10, currentPage: page, onPageChange: setPage }} /> : null}
         {tab === "returns_warranty" ? <DataTable data={afterSalesQuery.data?.rows ?? []} columns={afterSalesColumns} isLoading={afterSalesQuery.isLoading} emptyMessage="Belum ada case return/garansi" pagination={{ totalEntries: afterSalesQuery.data?.total ?? 0, pageSize: 10, currentPage: page, onPageChange: setPage }} /> : null}
       </PageListContent>
-
-      <WhatsAppNotificationDialog
-        open={notifyOpen}
-        onOpenChange={setNotifyOpen}
-        phone={notifyPhone}
-        message={notifyMessage}
-        onMessageChange={setNotifyMessage}
-        context={
-          notifyMeta
-            ? {
-                contactId: notifyMeta.contactId,
-                eventType: notifyMeta.eventType,
-                sourceType: "SERVICE_ORDER",
-                sourceId: notifyMeta.sourceId,
-              }
-            : null
-        }
-      />
 
       <ReportPreviewDialog
         isOpen={previewOpen}
