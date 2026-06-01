@@ -48,9 +48,9 @@ export function SalesPipelineTopbar({ data, active }: Props) {
         Sales Pipeline
       </div>
       <div className="overflow-x-auto">
-      <div className="inline-flex min-w-full gap-2 md:grid md:grid-cols-4 md:gap-2">
+      <div className="inline-flex min-w-max gap-2">
         <Step
-          label="Sales Order"
+          label="Order"
           href={data.orderId ? `/sales/orders/${data.orderId}/edit` : null}
           active={active === "order"}
           status={data.orderStatus}

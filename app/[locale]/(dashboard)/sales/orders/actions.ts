@@ -193,24 +193,25 @@ export async function getServiceMetaBySalesOrderId(salesOrderId: string) {
     return null;
   }
 
-  const serviceOrder = await prisma.pOSServiceOrder.findFirst({
+  const salesOrder = await prisma.salesOrder.findFirst({
     where: {
-      salesOrderId,
+      id: salesOrderId,
       companyId: session.activeCompanyId,
     },
     select: {
       id: true,
-      status: true,
-      targetDate: true,
+      isServiceOrder: true,
+      serviceWorkflowStatus: true,
+      expectedDate: true,
     },
   });
 
-  if (!serviceOrder) return null;
+  if (!salesOrder) return null;
   return SuperJSON.serialize({
-    isServiceOrder: true,
-    serviceOrderId: serviceOrder.id,
-    serviceStatus: serviceOrder.status,
-    serviceTargetDate: serviceOrder.targetDate,
+    isServiceOrder: salesOrder.isServiceOrder,
+    serviceOrderId: salesOrder.id,
+    serviceStatus: salesOrder.serviceWorkflowStatus,
+    serviceTargetDate: salesOrder.expectedDate,
   });
 }
 
@@ -221,13 +222,14 @@ export const updateLinkedServiceStatus = authorizedAction(
     if (!session) throw new Error("Unauthorized");
     if (!session.activeCompanyId) throw new Error("No active company selected");
 
-    const updated = await prisma.pOSServiceOrder.updateMany({
+    const updated = await prisma.salesOrder.updateMany({
       where: {
-        salesOrderId: input.salesOrderId,
+        id: input.salesOrderId,
         companyId: session.activeCompanyId,
       },
       data: {
-        status: input.status,
+        isServiceOrder: true,
+        serviceWorkflowStatus: input.status,
       },
     });
 

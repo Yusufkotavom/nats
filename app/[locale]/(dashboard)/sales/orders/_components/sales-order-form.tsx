@@ -141,6 +141,7 @@ export function SalesOrderForm({
   const [serviceStatus, setServiceStatus] = useState<"NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED">(
     parsedServiceMeta?.serviceStatus || "NEW",
   );
+  const [isServiceOrder, setIsServiceOrder] = useState<boolean>(parsedServiceMeta?.isServiceOrder || Boolean(order?.isServiceOrder));
   const isEditing = !!order;
   const confirm = useConfirm();
   const alert = useAlert();
@@ -194,6 +195,11 @@ export function SalesOrderForm({
     expectedDate: order?.expectedDate ? new Date(order.expectedDate) : null,
     notes: order?.notes || "",
     status: order?.status || "DRAFT",
+    isServiceOrder: order?.isServiceOrder || parsedServiceMeta?.isServiceOrder || false,
+    serviceWorkflowStatus:
+      (order?.serviceWorkflowStatus as "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED" | null) ||
+      parsedServiceMeta?.serviceStatus ||
+      null,
     items:
       order?.items.map((item) => ({
         id: generateId(),
@@ -495,8 +501,9 @@ export function SalesOrderForm({
   const handleServiceStatusChange = async (
     nextStatus: "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED",
   ) => {
-    if (!order?.id || !parsedServiceMeta?.isServiceOrder) return;
+    if (!order?.id || !isServiceOrder) return;
     setServiceStatus(nextStatus);
+    setFormData((prev) => ({ ...prev, serviceWorkflowStatus: nextStatus }));
     const result = await updateLinkedServiceStatus({ salesOrderId: order.id, status: nextStatus });
     if (!result.success) {
       toast({ variant: "destructive", title: "Error", description: result.error || "Gagal update status service" });
@@ -896,44 +903,6 @@ export function SalesOrderForm({
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Mode Service</label>
-                        <div>
-                          {parsedServiceMeta?.isServiceOrder ? (
-                            <Badge variant="secondary">Yes</Badge>
-                          ) : (
-                            <Badge variant="outline">No</Badge>
-                          )}
-                        </div>
-                      </div>
-                      {parsedServiceMeta?.isServiceOrder ? (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Service Status</label>
-                          <SearchableSelect
-                            value={serviceStatus}
-                            onValueChange={(value) => {
-                              if (value) {
-                                handleServiceStatusChange(
-                                  value as "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED",
-                                );
-                              }
-                            }}
-                            options={[
-                              { value: "NEW", label: "NEW" },
-                              { value: "PROCESSING", label: "PROCESSING" },
-                              { value: "READY", label: "READY" },
-                              { value: "DONE", label: "DONE" },
-                              { value: "CLOSED", label: "CLOSED" },
-                              { value: "CANCELLED", label: "CANCELLED" },
-                            ]}
-                            placeholder="Service status"
-                            disabled={readonly || isLoading}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-
                     {showDimensionFields ? (
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <div className="space-y-2">
@@ -1004,7 +973,69 @@ export function SalesOrderForm({
               </CardContent>
             </Card>
 
-            {!isEditing && !readonly ? (
+            {!readonly ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mode Service</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={isServiceOrder}
+                      onChange={(event) => {
+                        const checked = event.target.checked;
+                        setIsServiceOrder(checked);
+                        setFormData((prev) => ({
+                          ...prev,
+                          isServiceOrder: checked,
+                          serviceWorkflowStatus: checked
+                            ? prev.serviceWorkflowStatus || serviceStatus || "NEW"
+                            : null,
+                        }));
+                      }}
+                      disabled={isReadOnly}
+                    />
+                    Aktifkan mode service untuk order ini
+                  </label>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <span>Status:</span>
+                    <Badge variant={isServiceOrder ? "secondary" : "outline"}>{isServiceOrder ? "Yes" : "No"}</Badge>
+                  </div>
+
+                  {isServiceOrder ? (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Service Status</label>
+                      <SearchableSelect
+                        value={serviceStatus}
+                        onValueChange={(value) => {
+                          if (!value) return;
+                          const next = value as "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED";
+                          setServiceStatus(next);
+                          setFormData((prev) => ({ ...prev, serviceWorkflowStatus: next }));
+                          if (isEditing) {
+                            void handleServiceStatusChange(next);
+                          }
+                        }}
+                        options={[
+                          { value: "NEW", label: "NEW" },
+                          { value: "PROCESSING", label: "PROCESSING" },
+                          { value: "READY", label: "READY" },
+                          { value: "DONE", label: "DONE" },
+                          { value: "CLOSED", label: "CLOSED" },
+                          { value: "CANCELLED", label: "CANCELLED" },
+                        ]}
+                        placeholder="Service status"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {!readonly ? (
               <Card>
                 <CardHeader>
                 <CardTitle>Auto Invoice + DP</CardTitle>

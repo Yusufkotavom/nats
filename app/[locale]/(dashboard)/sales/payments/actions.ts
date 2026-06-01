@@ -29,6 +29,8 @@ type PostSalesPaymentResult = {
     paymentNumber: string;
     amount: string;
     remainingAmount: string;
+    isServiceOrder: boolean;
+    serviceStatus: string | null;
   };
 };
 
@@ -274,7 +276,16 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
           companyId: session.activeCompanyId,
         },
         include: {
-          salesInvoice: true,
+          salesInvoice: {
+            include: {
+              salesOrder: {
+                select: {
+                  isServiceOrder: true,
+                  serviceWorkflowStatus: true,
+                },
+              },
+            },
+          },
           cashAccount: true,
         },
       });
@@ -339,6 +350,8 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
                 paymentNumber: payment.paymentNumber,
                 amount: payment.amount.toString(),
                 remainingAmount: payment.salesInvoice.balanceDue.toString(),
+                isServiceOrder: Boolean(payment.salesInvoice.salesOrder?.isServiceOrder),
+                serviceStatus: payment.salesInvoice.salesOrder?.serviceWorkflowStatus || null,
               }
             : undefined,
         },

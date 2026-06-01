@@ -604,6 +604,8 @@ export function SalesInvoiceForm({
         doc_url: invoiceUrl,
         status: invoice.status,
         date: formatDate(invoice.invoiceDate),
+        is_service: invoice.salesOrder?.isServiceOrder ? "Yes" : "No",
+        service_status: invoice.salesOrder?.serviceWorkflowStatus || "-",
       },
     });
     if (!preview.isEnabled) {
@@ -636,7 +638,7 @@ export function SalesInvoiceForm({
             )}
             {invoice && (
               <Button asChild type="button" variant="outline" size="sm">
-                <Link href={existingPaymentId ? `/sales/payments/${existingPaymentId}/edit` : `/sales/payments/new?salesInvoiceId=${invoice.id}`}>
+                <Link href={existingPaymentId ? `/sales/payments/${existingPaymentId}` : `/sales/payments/new?salesInvoiceId=${invoice.id}`}>
                   {existingPaymentId ? "Open Payment" : "Create Payment"}
                 </Link>
               </Button>

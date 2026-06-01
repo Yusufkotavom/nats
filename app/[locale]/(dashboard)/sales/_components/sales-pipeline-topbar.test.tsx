@@ -20,7 +20,7 @@ describe("SalesPipelineTopbar", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: /sales order/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /order/i })).toHaveAttribute(
       "href",
       "/sales/orders/so-1/edit",
     );

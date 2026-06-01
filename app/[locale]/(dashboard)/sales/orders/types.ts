@@ -44,6 +44,8 @@ export type SalesOrderInput = {
   expectedDate?: Date | null;
   notes?: string | null;
   status?: SalesOrderStatus;
+  isServiceOrder?: boolean;
+  serviceWorkflowStatus?: "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED" | null;
   items: SalesOrderItemInput[];
   attachmentIds?: string[];
   departmentId?: string | null;

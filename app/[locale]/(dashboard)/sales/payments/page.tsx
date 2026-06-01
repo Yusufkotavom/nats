@@ -106,6 +106,8 @@ export default function SalesPaymentsPage() {
                     doc_number: candidate.paymentNumber,
                     amount: Number(candidate.amount || 0).toLocaleString("id-ID"),
                     remaining_amount: Number(candidate.remainingAmount || 0).toLocaleString("id-ID"),
+                    is_service: candidate.isServiceOrder ? "Yes" : "No",
+                    service_status: candidate.serviceStatus || "-",
                   },
                 });
 
