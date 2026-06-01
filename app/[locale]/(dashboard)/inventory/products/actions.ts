@@ -214,6 +214,16 @@ export async function getProductsByIds(ids: string[]) {
 
 import { ProductService } from "@/modules/inventory/services/product.service";
 
+function mapProductError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      return "SKU already exists. Please use a different SKU.";
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return "Failed to save product";
+}
+
 export const createProduct = authorizedAction(
   "products.create",
   async (data: ProductInput) => {
@@ -234,7 +244,7 @@ export const createProduct = authorizedAction(
       };
     } catch (error) {
       console.error("Failed to create product:", error);
-      return { success: false, error: "Failed to create product" };
+      return { success: false, error: mapProductError(error) };
     }
   },
 );
@@ -259,7 +269,7 @@ export const updateProduct = authorizedAction(
       };
     } catch (error) {
       console.error("Failed to update product:", error);
-      return { success: false, error: "Failed to update product" };
+      return { success: false, error: mapProductError(error) };
     }
   },
 );

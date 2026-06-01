@@ -123,6 +123,11 @@ export default function SalesInvoicesPage() {
       header: t("invoice_number"),
       accessorKey: "invoiceNumber",
       className: "font-medium",
+      cell: (item) => (
+        <Link href={`/sales/invoices/${item.id}/edit`} className="text-primary hover:underline">
+          {item.invoiceNumber}
+        </Link>
+      ),
     },
     {
       header: tCommon("customer"),

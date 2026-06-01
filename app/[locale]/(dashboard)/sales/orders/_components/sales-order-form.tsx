@@ -92,6 +92,7 @@ import {
   PageFormTitle,
 } from "@/components/layout/page/form-layout";
 import { useTranslations } from "next-intl";
+import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 
 interface SalesOrderFormProps {
   order?: SuperJSONResult;
@@ -159,7 +160,7 @@ export function SalesOrderForm({
   const [quickPhone, setQuickPhone] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
   const [quickAddress, setQuickAddress] = useState("");
-  const [autoCreateInvoicePayment, setAutoCreateInvoicePayment] = useState(false);
+  const [autoCreateInvoicePayment, setAutoCreateInvoicePayment] = useState(true);
   const [downPaymentAmount, setDownPaymentAmount] = useState(0);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ id: string; name: string; method: "CASH" | "BANK" }>>([]);
@@ -433,7 +434,20 @@ export function SalesOrderForm({
           return;
         }
 
+        const confirmed = result.data
+          ? SuperJSON.deserialize<{ status?: string; orderNumber?: string }>(result.data)
+          : null;
+        setFormData((prev) => ({
+          ...prev,
+          status: (confirmed?.status as "DRAFT" | "CONFIRMED" | "PARTIALLY_SHIPPED" | "SHIPPED" | "CLOSED" | "CANCELLED") || "CONFIRMED",
+        }));
+
         router.refresh();
+
+        await alert({
+          title: "Sales Order Confirmed",
+          description: "Gunakan tombol Print dan Notify Customer di kanan atas untuk aksi lanjutan.",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -460,6 +474,15 @@ export function SalesOrderForm({
         setIsLoading(false);
       }
     }
+  };
+
+  const handleNotifyCustomer = () => {
+    if (!order) return;
+    const phone = order.contact?.phone ? normalizePhoneForWhatsApp(order.contact.phone) : null;
+    if (!phone) return;
+    const message = `Halo ${order.contact?.name || "Customer"}, Sales Order ${order.orderNumber} saat ini berstatus ${formData.status}. Total: ${formatCurrency(totalAmount)}.`;
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleClose = async () => {
@@ -686,37 +709,6 @@ export function SalesOrderForm({
             </Button>
           )}
 
-          {!isEditing && !readonly ? (
-            <div className="w-full rounded-md border p-3 text-sm">
-              <label className="mb-2 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={autoCreateInvoicePayment}
-                  onChange={(event) => setAutoCreateInvoicePayment(event.target.checked)}
-                />
-                Auto create invoice + DP payment
-              </label>
-              {autoCreateInvoicePayment ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <CurrencyInput
-                    value={downPaymentAmount}
-                    onChange={(value) => setDownPaymentAmount(Number(value) || 0)}
-                    placeholder="DP amount"
-                  />
-                  <SearchableSelect
-                    value={paymentMethodId}
-                    onValueChange={(value) => setPaymentMethodId(value || "")}
-                    options={paymentMethodOptions.map((method) => ({
-                      value: method.id,
-                      label: `[${method.method}] ${method.name}`,
-                    }))}
-                    placeholder="Select payment method"
-                  />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
           {/* Allow cancelling Drafts too */}
           {isDraft && isEditing && !readonly && (
             <Button
@@ -748,6 +740,15 @@ export function SalesOrderForm({
                 input={{ orderId: order.id }}
                 title={`Sales Order #${order.orderNumber}`}
               />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleNotifyCustomer}
+                disabled={!order.contact?.phone}
+              >
+                Notify Customer
+              </Button>
             </>
           )}
 
@@ -934,6 +935,42 @@ export function SalesOrderForm({
                 </div>
               </CardContent>
             </Card>
+
+            {!isEditing && !readonly ? (
+              <Card>
+                <CardHeader>
+                <CardTitle>Auto Invoice + DP</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={autoCreateInvoicePayment}
+                      onChange={(event) => setAutoCreateInvoicePayment(event.target.checked)}
+                    />
+                    Langsung buat invoice & catat uang muka (DP)
+                  </label>
+                  {autoCreateInvoicePayment ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <CurrencyInput
+                        value={downPaymentAmount}
+                        onChange={(value) => setDownPaymentAmount(Number(value) || 0)}
+                        placeholder="Nominal uang muka (DP)"
+                      />
+                      <SearchableSelect
+                        value={paymentMethodId}
+                        onValueChange={(value) => setPaymentMethodId(value || "")}
+                        options={paymentMethodOptions.map((method) => ({
+                          value: method.id,
+                          label: `[${method.method}] ${method.name}`,
+                        }))}
+                        placeholder="Pilih metode pembayaran DP"
+                      />
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ) : null}
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">

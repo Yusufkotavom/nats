@@ -253,7 +253,7 @@ export function SalesPaymentForm({
             return;
           }
           toast({ title: tCommon("success"), description: t("post_success") });
-          router.push("/sales/payments");
+          router.push(`/sales/payments/${createdPayment.id}`);
           router.refresh();
           return;
         }
@@ -265,9 +265,9 @@ export function SalesPaymentForm({
             : "Payment created successfully",
         });
         if (createdPayment?.id) {
-          router.push(`/sales/payments/${createdPayment.id}/edit`);
+          router.push(`/sales/payments/${createdPayment.id}`);
         } else {
-          router.push("/sales/payments");
+          router.push("/sales/payments/new");
         }
         router.refresh();
       } else {
@@ -415,15 +415,15 @@ export function SalesPaymentForm({
             />
           </div>
 
-          <div className="md:col-span-2 rounded-md border p-3 text-sm">
+          <div className="md:col-span-2 rounded-md border p-3 text-sm min-w-0 overflow-hidden">
             <div className="mb-2 font-medium">Order Context</div>
             <div className="grid gap-2 sm:grid-cols-2">
-              <div>Invoice: {selectedInvoice?.invoiceNumber || "-"}</div>
-              <div>Sales Order: {selectedInvoice?.salesOrder?.orderNumber || "-"}</div>
-              <div>Customer: {selectedInvoice?.contact?.name || "-"}</div>
-              <div>Due Date: {selectedInvoice?.dueDate ? format(new Date(selectedInvoice.dueDate), "yyyy-MM-dd") : "-"}</div>
-              <div>Total Invoice: {selectedInvoice?.totalAmount ? formatCurrency(Number(selectedInvoice.totalAmount)) : "-"}</div>
-              <div>
+              <div className="break-words">Invoice: {selectedInvoice?.invoiceNumber || "-"}</div>
+              <div className="break-words">Sales Order: {selectedInvoice?.salesOrder?.orderNumber || "-"}</div>
+              <div className="break-words">Customer: {selectedInvoice?.contact?.name || "-"}</div>
+              <div className="break-words">Due Date: {selectedInvoice?.dueDate ? format(new Date(selectedInvoice.dueDate), "yyyy-MM-dd") : "-"}</div>
+              <div className="break-words">Total Invoice: {selectedInvoice?.totalAmount ? formatCurrency(Number(selectedInvoice.totalAmount)) : "-"}</div>
+              <div className="break-words">
                 Remaining: {selectedInvoice
                   ? formatCurrency(Number(selectedInvoice.totalAmount) - (selectedInvoice.payments || []).reduce((sum: number, p: any) => sum + Number(p.amount), 0))
                   : "-"}
@@ -431,10 +431,10 @@ export function SalesPaymentForm({
             </div>
           </div>
 
-          <div className="md:col-span-2 rounded-md border p-3 text-sm">
+          <div className="md:col-span-2 rounded-md border p-3 text-sm min-w-0 overflow-hidden">
             <div className="mb-2 font-medium">Order Items</div>
             {selectedInvoice?.items?.length ? (
-              <TableOverflow minWidthClassName="min-w-[720px]">
+              <TableOverflow minWidthClassName="min-w-[640px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -447,7 +447,7 @@ export function SalesPaymentForm({
                 <TableBody>
                   {selectedInvoice.items.map((item: any, idx: number) => (
                     <TableRow key={item.id || idx}>
-                      <TableCell>{item.product?.name || item.description || "-"}</TableCell>
+                      <TableCell className="max-w-[260px] whitespace-normal break-words">{item.product?.name || item.description || "-"}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(item.unitPrice || 0))}</TableCell>
                       <TableCell className="text-right">{formatCurrency(Number(item.totalPrice || Number(item.quantity || 0) * Number(item.unitPrice || 0)))}</TableCell>

@@ -11,6 +11,7 @@ import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration
 import { getSalesPipelineBridgeByContext } from "../../../_lib/pipeline-bridge";
 import { SalesPipelineTopbar } from "../../../_components/sales-pipeline-topbar";
 import { getProducts } from "@/app/[locale]/(dashboard)/inventory/products/actions";
+import { SuperJSON } from "@/lib/superjson";
 
 export const metadata: Metadata = {
   title: "Edit Sales Invoice | NATS",
@@ -39,6 +40,8 @@ export default async function EditSalesInvoicePage({ params }: PageProps) {
     notFound();
   }
 
+  const invoiceData = SuperJSON.deserialize<{ status?: string }>(invoice as any);
+
   return (
     <>
       <SalesPipelineTopbar data={pipeline} active="invoice" />
@@ -50,6 +53,7 @@ export default async function EditSalesInvoicePage({ params }: PageProps) {
         projects={projects.projects}
         taxRates={taxRates}
         products={productsResult.products}
+        readonly={invoiceData?.status !== "DRAFT"}
       />
     </>
   );

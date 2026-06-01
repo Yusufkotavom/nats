@@ -265,6 +265,31 @@ export function SalesShipmentForm({
         }
     };
 
+    const handlePostShipment = async () => {
+        if (!shipment) return;
+        setLoading(true);
+        const submissionData = {
+            ...formData,
+            status: "COMPLETED" as const,
+            items: formData.items.map(({ id, ...rest }) => rest),
+            attachmentIds: attachments.map((a) => a.id),
+        };
+        try {
+            const result = await updateSalesShipment(shipment.id, submissionData);
+            if (!result.success) throw new Error(result.error);
+            toast({ title: "Success", description: "Sales shipment posted successfully" });
+            router.refresh();
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: (error as Error).message || "Failed to post shipment",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const getProductName = (productId: string) => {
         const so = salesOrders.find((s) => s.id === formData.salesOrderId);
         if (so) {
@@ -346,6 +371,16 @@ export function SalesShipmentForm({
                                 <Button type="submit" disabled={loading}>
                                     {loading ? tCommon("saving") : shipment ? tCommon("update") : tCommon("create")}
                                 </Button>
+                                {shipment && shipment.status === "DRAFT" ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={loading}
+                                        onClick={handlePostShipment}
+                                    >
+                                        {loading ? tCommon("saving") : "Post Shipment"}
+                                    </Button>
+                                ) : null}
                             </>
                         )}
                         {readonly && (

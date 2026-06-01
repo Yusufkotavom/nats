@@ -115,6 +115,8 @@ export function SalesInvoiceForm({
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!invoice;
+  const existingShipmentId = invoice?.salesOrder?.shipments?.[0]?.id;
+  const existingPaymentId = invoice?.payments?.[0]?.id;
   const formatDate = useFormatDate();
   const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
@@ -487,45 +489,10 @@ export function SalesInvoiceForm({
         });
         router.refresh();
 
-        const openFollowUps = await confirm({
+        await alert({
           title: "Invoice Issued",
-          description:
-            "Invoice sudah ISSUED. Buka aksi lanjutan (WA konfirmasi, create payment, create shipping) di tab baru?",
-          confirmText: "Open Actions",
+          description: "Gunakan tombol Print dan Send WhatsApp untuk aksi lanjutan.",
         });
-
-        if (openFollowUps) {
-          const locale = pathname.split("/").filter(Boolean)[0] || "id";
-          const baseUrl = window.location.origin;
-
-          if (invoice.contact?.phone) {
-            const normalized = normalizePhoneForWhatsApp(invoice.contact.phone);
-            if (normalized) {
-              const invoiceUrl = `${baseUrl}/${locale}/reporting/preview?code=SALES_INVOICE&invoiceId=${invoice.id}`;
-              const preview = await buildCompanyCommunicationPreview({
-                eventKey: "SALES_INVOICE_ISSUED",
-                vars: {
-                  customer_name: invoice.contact.name,
-                  doc_number: invoice.invoiceNumber,
-                  amount: Number(invoice.totalAmount || 0).toLocaleString("id-ID"),
-                  remaining_amount: Number(invoice.balanceDue || 0).toLocaleString("id-ID"),
-                  doc_url: invoiceUrl,
-                  status: "ISSUED",
-                  date: formatDate(invoice.invoiceDate),
-                },
-              });
-              if (preview.isEnabled && preview.message.trim()) {
-                const waUrl = `https://wa.me/${normalized}?text=${encodeURIComponent(preview.message)}`;
-                window.open(waUrl, "_blank", "noopener,noreferrer");
-              }
-            }
-          }
-
-          window.open(`/sales/payments/new?salesInvoiceId=${invoice.id}`, "_blank", "noopener,noreferrer");
-          if (invoice.salesOrderId) {
-            window.open(`/sales/shipments/new?salesOrderId=${invoice.salesOrderId}`, "_blank", "noopener,noreferrer");
-          }
-        }
       } else {
         toast({
           title: "Error",
@@ -662,15 +629,15 @@ export function SalesInvoiceForm({
             <div className="flex w-full flex-wrap gap-2 [&>button]:w-full sm:[&>button]:w-auto">
             {invoice?.salesOrderId && (
               <Button asChild type="button" variant="outline" size="sm">
-                <Link href={`/sales/shipments/new?salesOrderId=${invoice.salesOrderId}`}>
-                  Create Shipment
+                <Link href={existingShipmentId ? `/sales/shipments/${existingShipmentId}/edit` : `/sales/shipments/new?salesOrderId=${invoice.salesOrderId}`}>
+                  {existingShipmentId ? "Open Shipment" : "Create Shipment"}
                 </Link>
               </Button>
             )}
             {invoice && (
               <Button asChild type="button" variant="outline" size="sm">
-                <Link href={`/sales/payments/new?salesInvoiceId=${invoice.id}`}>
-                  Create Payment
+                <Link href={existingPaymentId ? `/sales/payments/${existingPaymentId}/edit` : `/sales/payments/new?salesInvoiceId=${invoice.id}`}>
+                  {existingPaymentId ? "Open Payment" : "Create Payment"}
                 </Link>
               </Button>
             )}

@@ -110,10 +110,15 @@ export async function getSalesInvoice(id: string) {
     where: { id, companyId: session.activeCompanyId },
     include: {
       contact: true,
-      salesOrder: true,
+      salesOrder: {
+        include: {
+          shipments: true,
+        },
+      },
       department: true,
       project: true,
       items: true,
+      payments: true,
       attachments: true,
     },
   });

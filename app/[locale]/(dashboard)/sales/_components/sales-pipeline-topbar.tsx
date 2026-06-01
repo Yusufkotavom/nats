@@ -43,11 +43,12 @@ function Step({
 
 export function SalesPipelineTopbar({ data, active }: Props) {
   return (
-    <div className="mb-4 rounded-lg border bg-card p-3">
-      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="mb-4 rounded-lg border bg-card p-2 md:p-3">
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Sales Pipeline
       </div>
-      <div className="grid gap-2 md:grid-cols-4">
+      <div className="overflow-x-auto">
+      <div className="inline-flex min-w-full gap-2 md:grid md:grid-cols-4 md:gap-2">
         <Step
           label="Sales Order"
           href={data.orderId ? `/sales/orders/${data.orderId}/edit` : null}
@@ -71,6 +72,7 @@ export function SalesPipelineTopbar({ data, active }: Props) {
           href={data.paymentId ? `/sales/payments/${data.paymentId}/edit` : null}
           active={active === "payment"}
         />
+      </div>
       </div>
     </div>
   );

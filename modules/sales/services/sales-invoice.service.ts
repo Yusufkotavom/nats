@@ -100,6 +100,9 @@ export class SalesInvoiceService {
         if (data.invoiceNumber && data.invoiceNumber !== currentInvoice.invoiceNumber) {
             await this.assertUniqueInvoiceNumber(data.invoiceNumber, companyId, id);
         }
+        if (currentInvoice.journalEntryId && data.status === "DRAFT") {
+            throw new Error("Posted invoice cannot be reverted to DRAFT");
+        }
         await this.assertSalesOrderBelongsToCompany(data.salesOrderId, companyId);
         await this.assertNoOtherInvoiceForSalesOrder(data.salesOrderId, companyId, id);
 

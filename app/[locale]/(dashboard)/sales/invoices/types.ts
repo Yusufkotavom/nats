@@ -37,7 +37,11 @@ export interface SalesInvoiceInput {
 export type SalesInvoiceWithDetails = Prisma.SalesInvoiceGetPayload<{
   include: {
     contact: true;
-    salesOrder: true;
+    salesOrder: {
+      include: {
+        shipments: true;
+      };
+    };
     department: true;
     project: true;
     items: true;
