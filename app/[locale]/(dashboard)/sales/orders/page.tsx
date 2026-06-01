@@ -34,9 +34,11 @@ import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function SalesOrdersPage() {
     const t = useTranslations("Sales");
@@ -86,6 +88,22 @@ export default function SalesOrdersPage() {
     const formatCurrency = useFormatCurrency();
     const formatDate = useFormatDate();
     const confirm = useConfirm();
+    const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+        orderNumber: true,
+        orderDate: true,
+        customer: true,
+        customerPhone: false,
+        products: true,
+        expectedDate: true,
+        status: true,
+        totalAmount: true,
+        subtotal: false,
+        taxAmount: false,
+        discountAmount: false,
+        createdBy: false,
+        confirmedAt: false,
+        closedAt: false,
+    });
 
     const handleDeleteClick = async (id: string) => {
         if (
@@ -134,8 +152,11 @@ export default function SalesOrdersPage() {
         }
     };
 
-    const columns: Column<SalesOrderWithDetails>[] = [
+    const allColumns: Array<{ key: string; label: string; column: Column<SalesOrderWithDetails> }> = [
         {
+            key: "orderNumber",
+            label: "No SO",
+            column: {
             header: t("order_number"),
             accessorKey: "orderNumber",
             className: "font-medium",
@@ -144,13 +165,19 @@ export default function SalesOrdersPage() {
                     {item.orderNumber}
                 </Link>
             ),
-        },
+        }},
         {
+            key: "orderDate",
+            label: tCommon("date"),
+            column: {
             header: tCommon("date"),
             accessorKey: "orderDate",
             cell: (item) => formatDate(item.orderDate),
-        },
+        }},
         {
+            key: "customer",
+            label: tCommon("customer"),
+            column: {
             header: tCommon("customer"),
             cell: (item) =>
                 item.contact ? (
@@ -163,14 +190,39 @@ export default function SalesOrdersPage() {
                 ) : (
                     "-"
                 ),
+        }},
+        {
+            key: "customerPhone",
+            label: "No HP Customer",
+            column: {
+                header: "No HP",
+                cell: (item) => item.contact?.phone || "-",
+            },
         },
         {
+            key: "products",
+            label: "Produk/Jasa",
+            column: {
+                header: "Produk/Jasa",
+                cell: (item) =>
+                    item.items?.length
+                        ? item.items.map((line) => line.product?.name || "-").slice(0, 3).join(", ") + (item.items.length > 3 ? ` +${item.items.length - 3}` : "")
+                        : "-",
+            },
+        },
+        {
+            key: "expectedDate",
+            label: t("expected_date"),
+            column: {
             header: t("expected_date"),
             accessorKey: "expectedDate",
             cell: (item) =>
                 item.expectedDate ? formatDate(item.expectedDate) : "-",
-        },
+        }},
         {
+            key: "status",
+            label: tCommon("status"),
+            column: {
             header: tCommon("status"),
             accessorKey: "status",
             cell: (item) => (
@@ -178,15 +230,75 @@ export default function SalesOrdersPage() {
                     {item.status.replace("_", " ")}
                 </Badge>
             ),
-        },
+        }},
         {
+            key: "totalAmount",
+            label: t("total_amount"),
+            column: {
             header: t("total_amount"),
             accessorKey: "totalAmount",
             className: "text-right",
             headerClassName: "text-right",
             cell: (item) => formatCurrency(Number(item.totalAmount)),
+        }},
+        {
+            key: "subtotal",
+            label: "Subtotal",
+            column: {
+                header: "Subtotal",
+                className: "text-right",
+                headerClassName: "text-right",
+                cell: (item) => formatCurrency(Number(item.subtotal || 0)),
+            },
         },
         {
+            key: "taxAmount",
+            label: "Pajak",
+            column: {
+                header: "Pajak",
+                className: "text-right",
+                headerClassName: "text-right",
+                cell: (item) => formatCurrency(Number(item.taxAmount || 0)),
+            },
+        },
+        {
+            key: "discountAmount",
+            label: "Diskon",
+            column: {
+                header: "Diskon",
+                className: "text-right",
+                headerClassName: "text-right",
+                cell: (item) => formatCurrency(Number(item.discountAmount || 0)),
+            },
+        },
+        {
+            key: "createdBy",
+            label: "User",
+            column: {
+                header: "User",
+                cell: (item) => item.createdById || "System",
+            },
+        },
+        {
+            key: "confirmedAt",
+            label: "Confirmed At",
+            column: {
+                header: "Confirmed",
+                cell: (item) => (item.confirmedAt ? formatDate(item.confirmedAt) : "-"),
+            },
+        },
+        {
+            key: "closedAt",
+            label: "Closed At",
+            column: {
+                header: "Closed",
+                cell: (item) => (item.closedAt ? formatDate(item.closedAt) : "-"),
+            },
+        },
+        {
+            key: "actions",
+            label: "Actions",
+            column: {
             header: "",
             className: "w-[80px]",
             cell: (order) => (
@@ -228,8 +340,14 @@ export default function SalesOrdersPage() {
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),
-        },
+        }},
     ];
+
+    const columns: Column<SalesOrderWithDetails>[] = useMemo(() => {
+        return allColumns
+            .filter((entry) => entry.key === "actions" || visibleColumns[entry.key] !== false)
+            .map((entry) => entry.column);
+    }, [allColumns, visibleColumns]);
 
     return (
         <PageListLayout>
@@ -247,6 +365,26 @@ export default function SalesOrdersPage() {
             </PageListHeader>
             <PageListFilter>
                 <SalesOrderFilters />
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" type="button">Pilih Kolom</Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 space-y-2">
+                        {allColumns
+                            .filter((entry) => entry.key !== "actions")
+                            .map((entry) => (
+                                <label key={entry.key} className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={visibleColumns[entry.key] !== false}
+                                        onCheckedChange={(checked) =>
+                                            setVisibleColumns((prev) => ({ ...prev, [entry.key]: checked === true }))
+                                        }
+                                    />
+                                    {entry.label}
+                                </label>
+                            ))}
+                    </PopoverContent>
+                </Popover>
             </PageListFilter>
 
             <PageListContent>

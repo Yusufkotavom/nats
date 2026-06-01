@@ -16,6 +16,7 @@ import {
   createSalesPayment,
   updateSalesPayment,
   postSalesPayment,
+  ensureSalesShipmentForInvoice,
 } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
 import { format } from "date-fns";
@@ -112,6 +113,7 @@ export function SalesPaymentForm({
   );
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
+  const [autoCreateShipment, setAutoCreateShipment] = useState(true);
   const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
@@ -216,6 +218,9 @@ export function SalesPaymentForm({
       if (initialData) {
         result = await updateSalesPayment(initialData.id, payload);
       } else {
+        if (autoCreateShipment && payload.salesInvoiceId) {
+          await ensureSalesShipmentForInvoice(payload.salesInvoiceId);
+        }
         result = await createSalesPayment(payload);
       }
 
@@ -402,6 +407,19 @@ export function SalesPaymentForm({
               disabled={readonly || !!initialData}
             />
           </div>
+
+          {!initialData ? (
+            <div className="md:col-span-2 rounded-md border p-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={autoCreateShipment}
+                  onChange={(event) => setAutoCreateShipment(event.target.checked)}
+                />
+                Auto create shipping (default on)
+              </label>
+            </div>
+          ) : null}
 
           <CustomInput
             label={t("payment_number")}

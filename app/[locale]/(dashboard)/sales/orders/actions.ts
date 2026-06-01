@@ -79,6 +79,12 @@ export async function getSalesOrders(
         department: true,
         project: true,
         attachments: true,
+        invoices: {
+          include: {
+            payments: true,
+          },
+        },
+        shipments: true,
         items: {
           include: {
             product: {
@@ -120,6 +126,12 @@ export async function getSalesOrder(id: string) {
       department: true,
       project: true,
       attachments: true,
+      invoices: {
+        include: {
+          payments: true,
+        },
+      },
+      shipments: true,
       items: {
         include: {
           product: {

@@ -63,6 +63,8 @@ import {
   closeSalesOrder,
   createSalesOrderQuickContact,
 } from "../actions";
+import { createSalesInvoice } from "../../invoices/actions";
+import { createSalesPayment, getCashAccounts } from "../../payments/actions";
 import { SalesOrderInput, SalesOrderWithDetails } from "../types";
 import { format } from "date-fns";
 import { cn, generateId } from "@/lib/utils";
@@ -157,6 +159,10 @@ export function SalesOrderForm({
   const [quickPhone, setQuickPhone] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
   const [quickAddress, setQuickAddress] = useState("");
+  const [autoCreateInvoicePayment, setAutoCreateInvoicePayment] = useState(false);
+  const [downPaymentAmount, setDownPaymentAmount] = useState(0);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [paymentMethodOptions, setPaymentMethodOptions] = useState<Array<{ id: string; name: string; method: "CASH" | "BANK" }>>([]);
 
 
   const [formData, setFormData] = useState<
@@ -244,6 +250,22 @@ export function SalesOrderForm({
     0,
   );
 
+  useEffect(() => {
+    const loadPaymentMethods = async () => {
+      try {
+        const raw = await getCashAccounts();
+        const parsed = SuperJSON.deserialize<{ methods: Array<{ id: string; name: string; method: "CASH" | "BANK" }> }>(raw as unknown as SuperJSONResult);
+        setPaymentMethodOptions(parsed.methods || []);
+        if (!paymentMethodId && parsed.methods?.length) {
+          setPaymentMethodId(parsed.methods[0].id);
+        }
+      } catch {
+        setPaymentMethodOptions([]);
+      }
+    };
+    void loadPaymentMethods();
+  }, [paymentMethodId]);
+
   const handleQuickAddCustomer = async () => {
     if (!quickName.trim()) {
       await alert({ title: "Error", description: "Customer name is required" });
@@ -328,6 +350,51 @@ export function SalesOrderForm({
           const createdOrder = result.data
             ? SuperJSON.deserialize<{ id: string }>(result.data)
             : null;
+          if (createdOrder?.id && autoCreateInvoicePayment && downPaymentAmount > 0) {
+            const invoiceResult = await createSalesInvoice({
+              invoiceNumber: "",
+              contactId: formData.contactId,
+              salesOrderId: createdOrder.id,
+              invoiceDate: new Date(),
+              dueDate: new Date(),
+              notes: "Auto-created from Sales Order with DP",
+              items: formData.items.map((item) => ({
+                description: products.find((p) => p.id === item.productId)?.name || "Item",
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount: 0,
+                tax: 0,
+                productId: item.productId,
+              })),
+              globalDiscount: 0,
+              totalTax: 0,
+              shippingCost: 0,
+              attachmentIds: [],
+              departmentId: formData.departmentId || undefined,
+              projectId: formData.projectId || undefined,
+            });
+
+            if (invoiceResult.success && invoiceResult.data) {
+              const createdInvoice = SuperJSON.deserialize<{ id: string }>(invoiceResult.data as SuperJSONResult);
+              const selectedMethod = paymentMethodOptions.find((m) => m.id === paymentMethodId);
+              if (createdInvoice?.id && selectedMethod && paymentMethodId) {
+                await createSalesPayment({
+                  paymentNumber: "",
+                  contactId: formData.contactId,
+                  salesInvoiceId: createdInvoice.id,
+                  paymentDate: new Date(),
+                  amount: downPaymentAmount,
+                  reference: createdOrder.id,
+                  notes: "Auto DP Payment",
+                  method: selectedMethod.method,
+                  cashAccountId: paymentMethodId,
+                  attachmentIds: [],
+                  departmentId: formData.departmentId || null,
+                  projectId: formData.projectId || null,
+                });
+              }
+            }
+          }
           if (createdOrder?.id) {
             router.push(`/sales/orders/${createdOrder.id}/edit`);
           } else {
@@ -366,15 +433,7 @@ export function SalesOrderForm({
           return;
         }
 
-        const shouldCreateInvoice = await confirm({
-          title: "Create Invoice",
-          description:
-            "Sales Order sudah dikonfirmasi. Buat Sales Invoice sekarang?",
-          confirmText: "Create Invoice",
-        });
-        if (shouldCreateInvoice) {
-          router.push(`/sales/invoices/new?salesOrderId=${order.id}`);
-        }
+        router.refresh();
       } finally {
         setIsLoading(false);
       }
@@ -444,6 +503,9 @@ export function SalesOrderForm({
     ? "Draft"
     : order?.orderNumber;
   const showDimensionFields = departments.length > 0 || projects.length > 0;
+  const firstInvoice = order?.invoices?.[0];
+  const firstShipment = order?.shipments?.[0];
+  const firstPayment = firstInvoice?.payments?.[0];
 
   return (
     <PageFormLayout>
@@ -573,18 +635,26 @@ export function SalesOrderForm({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.push(`/sales/shipments/new?salesOrderId=${order.id}`)}
+                    onClick={() => router.push(firstShipment ? `/sales/shipments/${firstShipment.id}/edit` : `/sales/shipments/new?salesOrderId=${order.id}`)}
                     disabled={isLoading}
                   >
-                    Create Shipment
+                    {firstShipment ? "Open Shipment" : "Create Shipment"}
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.push(`/sales/invoices/new?salesOrderId=${order.id}`)}
+                    onClick={() => router.push(firstInvoice ? `/sales/invoices/${firstInvoice.id}/edit` : `/sales/invoices/new?salesOrderId=${order.id}`)}
                     disabled={isLoading}
                   >
-                    Create Invoice
+                    {firstInvoice ? "Open Invoice" : "Create Invoice"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push(firstPayment ? `/sales/payments/${firstPayment.id}/edit` : firstInvoice ? `/sales/payments/new?salesInvoiceId=${firstInvoice.id}` : `/sales/invoices/new?salesOrderId=${order.id}`)}
+                    disabled={isLoading}
+                  >
+                    {firstPayment ? "Open Payment" : "Create Payment"}
                   </Button>
                 </>
               ) : null}
@@ -615,6 +685,37 @@ export function SalesOrderForm({
               Finish
             </Button>
           )}
+
+          {!isEditing && !readonly ? (
+            <div className="w-full rounded-md border p-3 text-sm">
+              <label className="mb-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={autoCreateInvoicePayment}
+                  onChange={(event) => setAutoCreateInvoicePayment(event.target.checked)}
+                />
+                Auto create invoice + DP payment
+              </label>
+              {autoCreateInvoicePayment ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <CurrencyInput
+                    value={downPaymentAmount}
+                    onChange={(value) => setDownPaymentAmount(Number(value) || 0)}
+                    placeholder="DP amount"
+                  />
+                  <SearchableSelect
+                    value={paymentMethodId}
+                    onValueChange={(value) => setPaymentMethodId(value || "")}
+                    options={paymentMethodOptions.map((method) => ({
+                      value: method.id,
+                      label: `[${method.method}] ${method.name}`,
+                    }))}
+                    placeholder="Select payment method"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Allow cancelling Drafts too */}
           {isDraft && isEditing && !readonly && (

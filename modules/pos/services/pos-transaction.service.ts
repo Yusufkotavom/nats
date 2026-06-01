@@ -179,6 +179,8 @@ export class POSTransactionService {
 
             const movementItems = await resolveStockConsumptionItems(tx, shipment.items);
 
+            await this.completeSalesOrderIfShippedAndPaid(tx, salesOrder.id);
+
             if (movementItems.length > 0) {
                 await InventoryService.createInventoryMovement(tx, {
                     type: MovementType.OUT,
@@ -474,6 +476,10 @@ export class POSTransactionService {
                 },
             });
 
+            if (newStatus === "PAID" && invoice.salesOrderId) {
+                await this.completeSalesOrderIfShippedAndPaid(tx, invoice.salesOrderId);
+            }
+
             const paymentOutbox = await this.enqueuePaymentEvent(tx, {
                 payment,
                 cashierId: session.cashierId,
@@ -526,6 +532,39 @@ export class POSTransactionService {
         }
 
         return total;
+    }
+
+    private static async completeSalesOrderIfShippedAndPaid(
+        tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+        salesOrderId: string,
+    ): Promise<void> {
+        const [order, invoice, completedShipment] = await Promise.all([
+            tx.salesOrder.findUnique({
+                where: { id: salesOrderId },
+                select: { id: true, status: true, closedAt: true, closedById: true, confirmedById: true },
+            }),
+            tx.salesInvoice.findFirst({
+                where: { salesOrderId },
+                select: { status: true },
+            }),
+            tx.salesShipment.findFirst({
+                where: { salesOrderId, status: "COMPLETED" },
+                select: { id: true },
+            }),
+        ]);
+
+        if (!order || order.status === "CLOSED" || order.status === "CANCELLED") return;
+        if (!completedShipment) return;
+        if (!invoice || invoice.status !== "PAID") return;
+
+        await tx.salesOrder.update({
+            where: { id: salesOrderId },
+            data: {
+                status: "CLOSED",
+                closedAt: order.closedAt ?? new Date(),
+                closedById: order.closedById ?? order.confirmedById ?? undefined,
+            },
+        });
     }
 
     private static async validateSession(

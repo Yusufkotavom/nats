@@ -165,6 +165,7 @@ export async function getCashAccounts() {
 
 import { salesPaymentSchema } from "@/lib/validation/schemas";
 import { SalesPaymentService } from "@/modules/sales/services/sales-payment.service";
+import { SalesShipmentService } from "@/modules/sales/services/sales-shipment.service";
 
 export const createSalesPayment = authorizedAction(
   "sales.payments",
@@ -192,6 +193,54 @@ export const createSalesPayment = authorizedAction(
       };
     }
   }
+);
+
+export const ensureSalesShipmentForInvoice = authorizedAction(
+  "sales.edit",
+  async (salesInvoiceId: string) => {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+    if (!session.activeCompanyId) throw new Error("No active company selected");
+
+    const invoice = await prisma.salesInvoice.findFirst({
+      where: { id: salesInvoiceId, companyId: session.activeCompanyId },
+      include: {
+        salesOrder: {
+          include: {
+            items: true,
+            shipments: true,
+          },
+        },
+      },
+    });
+
+    if (!invoice) throw new Error("Invoice not found");
+    if (!invoice.salesOrderId || !invoice.salesOrder) {
+      throw new Error("Invoice is not linked to sales order");
+    }
+
+    if (invoice.salesOrder.shipments.length > 0) {
+      return { success: true, data: { created: false, shipmentId: invoice.salesOrder.shipments[0]?.id } };
+    }
+
+    const shipment = await SalesShipmentService.create(
+      {
+        salesOrderId: invoice.salesOrderId,
+        contactId: invoice.contactId,
+        shipmentDate: new Date(),
+        notes: `Auto shipment from payment flow for invoice ${invoice.invoiceNumber}`,
+        items: invoice.salesOrder.items.map((item) => ({
+          salesOrderItemId: item.id,
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      },
+      session.userId,
+      session.activeCompanyId,
+    );
+
+    return { success: true, data: { created: true, shipmentId: shipment.id } };
+  },
 );
 
 export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string]>(

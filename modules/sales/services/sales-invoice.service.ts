@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { enqueueIntegrationEvent } from "@/modules/integration/outbox";
+import { enqueueIntegrationEvent, enqueueIntegrationEventOnce } from "@/modules/integration/outbox";
 import { SalesInvoiceInput } from "@/app/[locale]/(dashboard)/sales/invoices/types";
 import { CalculationService } from "@/lib/utils/calculation-service";
 import { generateDocumentNumber } from "@/lib/document-numbering";
@@ -30,6 +30,7 @@ export class SalesInvoiceService {
 
         await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
         await this.assertSalesOrderBelongsToCompany(data.salesOrderId, companyId);
+        await this.assertNoOtherInvoiceForSalesOrder(data.salesOrderId, companyId);
 
         const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
@@ -100,6 +101,7 @@ export class SalesInvoiceService {
             await this.assertUniqueInvoiceNumber(data.invoiceNumber, companyId, id);
         }
         await this.assertSalesOrderBelongsToCompany(data.salesOrderId, companyId);
+        await this.assertNoOtherInvoiceForSalesOrder(data.salesOrderId, companyId, id);
 
         // 3. Calculate Totals
         const taxRates = await prisma.taxRate.findMany();
@@ -141,6 +143,33 @@ export class SalesInvoiceService {
                 },
             });
 
+            if (result.status !== "DRAFT" || currentInvoice.journalEntryId) {
+                await enqueueIntegrationEventOnce(tx, {
+                    topic: "sales",
+                    type: "SALES_INVOICE_ISSUED",
+                    aggregateType: "SalesInvoice",
+                    aggregateId: result.id,
+                    payload: {
+                        invoiceId: result.id,
+                        invoiceNumber: result.invoiceNumber,
+                        invoiceDate: result.invoiceDate.toISOString(),
+                        contactId: result.contactId,
+                        userId: "system",
+                        totalAmount: result.totalAmount.toString(),
+                        globalDiscount: result.globalDiscount?.toString(),
+                        shippingCost: result.shippingCost?.toString(),
+                        items: itemsData.map((item) => ({
+                            description: item.description,
+                            quantity: item.quantity,
+                            unitPrice: item.unitPrice.toString(),
+                            discount: item.discount?.toString(),
+                            tax: item.tax?.toString(),
+                            accountId: item.accountId ?? undefined,
+                        })),
+                    },
+                });
+            }
+
             return result;
         });
     }
@@ -178,6 +207,21 @@ export class SalesInvoiceService {
 
         if (existing && existing.id !== excludeId) {
             throw new Error("Invoice number already exists");
+        }
+    }
+
+    private static async assertNoOtherInvoiceForSalesOrder(
+        salesOrderId: string | undefined,
+        companyId: string,
+        excludeId?: string,
+    ): Promise<void> {
+        if (!salesOrderId) return;
+        const existing = await prisma.salesInvoice.findFirst({
+            where: { salesOrderId, companyId },
+            select: { id: true },
+        });
+        if (existing && existing.id !== excludeId) {
+            throw new Error("Sales order already has an invoice");
         }
     }
 
