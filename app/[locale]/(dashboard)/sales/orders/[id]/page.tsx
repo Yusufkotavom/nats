@@ -10,6 +10,8 @@ import { SuperJSONResult } from "superjson";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 import { getSalesPipelineBridgeByContext } from "../../_lib/pipeline-bridge";
 import { SalesPipelineTopbar } from "../../_components/sales-pipeline-topbar";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function Page({
   params,
@@ -33,6 +35,11 @@ export default async function Page({
   return (
     <>
       <SalesPipelineTopbar data={pipeline} active="order" />
+      <div className="mb-3 flex justify-end">
+        <Button asChild>
+          <Link href={`/sales/orders/${id}/edit`}>Edit</Link>
+        </Button>
+      </div>
       <SalesOrderForm
         order={orderResult as unknown as SuperJSONResult}
         customers={customers.data}

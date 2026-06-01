@@ -43,6 +43,8 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SuperJSONResult } from "superjson";
 import { UnifiedPaymentMethod } from "@/lib/payments/payment-methods";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableOverflow } from "@/components/ui/table-overflow";
 
 interface SalesPaymentFormProps {
   initialData?: SalesPaymentWithDetails;
@@ -159,6 +161,11 @@ export function SalesPaymentForm({
       }),
     [invoicesData, formatCurrency],
   );
+
+  const selectedInvoice = useMemo(() => {
+    if (initialData?.salesInvoice) return initialData.salesInvoice as any;
+    return (invoicesData || []).find((inv) => inv.id === formData.salesInvoiceId) as any;
+  }, [initialData?.salesInvoice, invoicesData, formData.salesInvoiceId]);
 
   useEffect(() => {
     if (!initialData && initialSalesInvoiceId && !formData.salesInvoiceId) {
@@ -406,6 +413,52 @@ export function SalesPaymentForm({
               placeholder={t("placeholder_select_invoice")}
               disabled={readonly || !!initialData}
             />
+          </div>
+
+          <div className="md:col-span-2 rounded-md border p-3 text-sm">
+            <div className="mb-2 font-medium">Order Context</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>Invoice: {selectedInvoice?.invoiceNumber || "-"}</div>
+              <div>Sales Order: {selectedInvoice?.salesOrder?.orderNumber || "-"}</div>
+              <div>Customer: {selectedInvoice?.contact?.name || "-"}</div>
+              <div>Due Date: {selectedInvoice?.dueDate ? format(new Date(selectedInvoice.dueDate), "yyyy-MM-dd") : "-"}</div>
+              <div>Total Invoice: {selectedInvoice?.totalAmount ? formatCurrency(Number(selectedInvoice.totalAmount)) : "-"}</div>
+              <div>
+                Remaining: {selectedInvoice
+                  ? formatCurrency(Number(selectedInvoice.totalAmount) - (selectedInvoice.payments || []).reduce((sum: number, p: any) => sum + Number(p.amount), 0))
+                  : "-"}
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-2 rounded-md border p-3 text-sm">
+            <div className="mb-2 font-medium">Order Items</div>
+            {selectedInvoice?.items?.length ? (
+              <TableOverflow minWidthClassName="min-w-[720px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produk/Jasa</TableHead>
+                    <TableHead className="text-right">Qty</TableHead>
+                    <TableHead className="text-right">Harga</TableHead>
+                    <TableHead className="text-right">Subtotal</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedInvoice.items.map((item: any, idx: number) => (
+                    <TableRow key={item.id || idx}>
+                      <TableCell>{item.product?.name || item.description || "-"}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(item.unitPrice || 0))}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(item.totalPrice || Number(item.quantity || 0) * Number(item.unitPrice || 0)))}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              </TableOverflow>
+            ) : (
+              <div className="text-muted-foreground">Belum ada item.</div>
+            )}
           </div>
 
           {!initialData ? (

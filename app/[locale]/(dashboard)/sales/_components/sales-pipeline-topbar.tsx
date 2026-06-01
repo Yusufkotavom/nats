@@ -50,25 +50,25 @@ export function SalesPipelineTopbar({ data, active }: Props) {
       <div className="grid gap-2 md:grid-cols-4">
         <Step
           label="Sales Order"
-          href={data.orderId ? `/sales/orders/${data.orderId}` : null}
+          href={data.orderId ? `/sales/orders/${data.orderId}/edit` : null}
           active={active === "order"}
           status={data.orderStatus}
         />
         <Step
           label="Shipment"
-          href={data.shipmentId ? `/sales/shipments/${data.shipmentId}` : null}
+          href={data.shipmentId ? `/sales/shipments/${data.shipmentId}/edit` : null}
           active={active === "shipment"}
           status={data.shipmentStatus}
         />
         <Step
           label="Invoice"
-          href={data.invoiceId ? `/sales/invoices/${data.invoiceId}` : null}
+          href={data.invoiceId ? `/sales/invoices/${data.invoiceId}/edit` : null}
           active={active === "invoice"}
           status={data.invoiceStatus}
         />
         <Step
           label="Payment"
-          href={data.paymentId ? `/sales/payments/${data.paymentId}` : null}
+          href={data.paymentId ? `/sales/payments/${data.paymentId}/edit` : null}
           active={active === "payment"}
         />
       </div>

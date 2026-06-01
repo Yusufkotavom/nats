@@ -143,6 +143,44 @@ export class SalesInvoiceService {
                 },
             });
 
+            if (result.salesOrderId) {
+                const orderTotals = itemsData.reduce(
+                    (acc, item) => {
+                        const lineTotal = Number(item.totalPrice || 0);
+                        const tax = Number(item.tax || 0);
+                        acc.subtotal += lineTotal;
+                        acc.taxAmount += tax;
+                        return acc;
+                    },
+                    { subtotal: 0, taxAmount: 0 },
+                );
+
+                await tx.salesOrderItem.deleteMany({ where: { salesOrderId: result.salesOrderId } });
+                await tx.salesOrderItem.createMany({
+                    data: itemsData
+                        .filter((item) => !!item.productId)
+                        .map((item) => ({
+                            salesOrderId: result.salesOrderId as string,
+                            productId: item.productId as string,
+                            quantity: item.quantity,
+                            unitPrice: item.unitPrice,
+                            totalPrice: Number(item.totalPrice || item.quantity * item.unitPrice),
+                        })),
+                });
+
+                await tx.salesOrder.update({
+                    where: { id: result.salesOrderId },
+                    data: {
+                        contactId: result.contactId,
+                        totalAmount: Number(result.totalAmount),
+                        subtotal: orderTotals.subtotal,
+                        taxAmount: orderTotals.taxAmount,
+                        departmentId: result.departmentId,
+                        projectId: result.projectId,
+                    },
+                });
+            }
+
             if (result.status !== "DRAFT" || currentInvoice.journalEntryId) {
                 await enqueueIntegrationEventOnce(tx, {
                     topic: "sales",

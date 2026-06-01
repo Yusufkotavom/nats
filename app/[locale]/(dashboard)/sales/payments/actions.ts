@@ -110,7 +110,18 @@ export async function getSalesPayment(id: string) {
     },
     include: {
       contact: true,
-      salesInvoice: true,
+      salesInvoice: {
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+          salesOrder: true,
+          contact: true,
+          payments: true,
+        },
+      },
       cashAccount: true,
       journalEntry: {
         include: {
@@ -144,6 +155,11 @@ export async function getUnpaidSalesInvoices() {
       contact: true,
       salesOrder: true,
       payments: true,
+      items: {
+        include: {
+          product: true,
+        },
+      },
     },
     orderBy: { dueDate: "asc" },
   });

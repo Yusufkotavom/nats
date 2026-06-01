@@ -232,6 +232,21 @@ export default function SalesOrdersPage() {
             ),
         }},
         {
+            key: "paymentSummary",
+            label: "Pembayaran",
+            column: {
+                header: "Pembayaran",
+                cell: (item) => {
+                    const invoice = item.invoices?.[0];
+                    if (!invoice) return "Belum ada invoice";
+                    const paid = (invoice.payments || []).reduce((sum, p) => sum + Number(p.amount || 0), 0);
+                    const total = Number(invoice.totalAmount || 0);
+                    const remaining = Math.max(total - paid, 0);
+                    return `${formatCurrency(paid)} / ${formatCurrency(total)} (${remaining > 0 ? "Belum lunas" : "Lunas"})`;
+                },
+            },
+        },
+        {
             key: "totalAmount",
             label: t("total_amount"),
             column: {

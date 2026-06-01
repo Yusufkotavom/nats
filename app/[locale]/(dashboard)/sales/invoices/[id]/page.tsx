@@ -11,6 +11,8 @@ import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration
 import { getSalesPipelineBridgeByContext } from "../../_lib/pipeline-bridge";
 import { SalesPipelineTopbar } from "../../_components/sales-pipeline-topbar";
 import { getProducts } from "@/app/[locale]/(dashboard)/inventory/products/actions";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "View Sales Invoice | NATS",
@@ -42,6 +44,11 @@ export default async function ViewSalesInvoicePage({ params }: PageProps) {
   return (
     <>
       <SalesPipelineTopbar data={pipeline} active="invoice" />
+      <div className="mb-3 flex justify-end">
+        <Button asChild>
+          <Link href={`/sales/invoices/${id}/edit`}>Edit</Link>
+        </Button>
+      </div>
       <SalesInvoiceForm
         invoice={invoice}
         customers={customers.data}
