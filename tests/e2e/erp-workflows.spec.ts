@@ -15,10 +15,22 @@ async function openNewForm(page: Page, path: string) {
   await page.goto(path);
   await expect(page).toHaveURL(new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   await expect(page.locator("form").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /buat|simpan|save|create|post/i }).first()).toBeVisible();
 }
 
-test("sales workflows forms are accessible", async ({ page }) => {
+test("sales list and form coverage", async ({ page }) => {
   await login(page);
+
+  await page.goto("/sales/orders");
+  await expect(page).toHaveURL(/\/sales\/orders/);
+  await page.goto("/sales/invoices");
+  await expect(page).toHaveURL(/\/sales\/invoices/);
+  await page.goto("/sales/shipments");
+  await expect(page).toHaveURL(/\/sales\/shipments/);
+  await page.goto("/sales/payments");
+  await expect(page).toHaveURL(/\/sales\/payments/);
+  await page.goto("/sales/returns");
+  await expect(page).toHaveURL(/\/sales\/returns/);
 
   await openNewForm(page, "/sales/orders/new");
   await openNewForm(page, "/sales/invoices/new");
@@ -27,8 +39,19 @@ test("sales workflows forms are accessible", async ({ page }) => {
   await openNewForm(page, "/sales/returns/new");
 });
 
-test("purchase workflows forms are accessible", async ({ page }) => {
+test("purchase list and form coverage", async ({ page }) => {
   await login(page);
+
+  await page.goto("/purchase/orders");
+  await expect(page).toHaveURL(/\/purchase\/orders/);
+  await page.goto("/purchase/invoices");
+  await expect(page).toHaveURL(/\/purchase\/invoices/);
+  await page.goto("/purchase/receives");
+  await expect(page).toHaveURL(/\/purchase\/receives/);
+  await page.goto("/purchase/payments");
+  await expect(page).toHaveURL(/\/purchase\/payments/);
+  await page.goto("/purchase/returns");
+  await expect(page).toHaveURL(/\/purchase\/returns/);
 
   await openNewForm(page, "/purchase/orders/new");
   await openNewForm(page, "/purchase/invoices/new");
