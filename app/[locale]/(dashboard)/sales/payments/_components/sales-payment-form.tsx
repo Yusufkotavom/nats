@@ -17,6 +17,7 @@ import {
   updateSalesPayment,
   postSalesPayment,
   ensureSalesShipmentForInvoice,
+  applyServiceWarrantyFromPayment,
 } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
 import { format } from "date-fns";
@@ -116,6 +117,8 @@ export function SalesPaymentForm({
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
   const [autoCreateShipment, setAutoCreateShipment] = useState(true);
+  const [warrantyModeEnabled, setWarrantyModeEnabled] = useState(true);
+  const [warrantyMode, setWarrantyMode] = useState<"NO_WARRANTY" | "COMPANY_POLICY">("NO_WARRANTY");
   const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
@@ -165,6 +168,10 @@ export function SalesPaymentForm({
   const selectedInvoice =
     (initialData?.salesInvoice as any) ||
     ((invoicesData || []).find((inv) => inv.id === formData.salesInvoiceId) as any);
+  const isServiceContext = useMemo(() => {
+    const items = selectedInvoice?.items || [];
+    return items.some((item: any) => item.product?.isService === true);
+  }, [selectedInvoice]);
 
   useEffect(() => {
     if (!initialData && initialSalesInvoiceId && !formData.salesInvoiceId) {
@@ -251,6 +258,12 @@ export function SalesPaymentForm({
             router.refresh();
             return;
           }
+          if (isServiceContext && warrantyModeEnabled) {
+            await applyServiceWarrantyFromPayment({
+              paymentId: createdPayment.id,
+              mode: warrantyMode,
+            });
+          }
           toast({ title: tCommon("success"), description: t("post_success") });
           router.push(`/sales/payments/${createdPayment.id}`);
           router.refresh();
@@ -265,6 +278,8 @@ export function SalesPaymentForm({
         });
         if (createdPayment?.id) {
           router.push(`/sales/payments/${createdPayment.id}`);
+        } else if (initialData?.id) {
+          router.push(`/sales/payments/${initialData.id}`);
         } else {
           router.push("/sales/payments/new");
         }
@@ -289,6 +304,10 @@ export function SalesPaymentForm({
 
   const handlePost = async () => {
     if (!initialData) return;
+    const confirmed = window.confirm(
+      "Posting pembayaran akan membuat jurnal dan data tidak bisa diedit lagi. Lanjutkan?",
+    );
+    if (!confirmed) return;
     try {
       setIsPosting(true);
       const result = await postSalesPayment(initialData.id);
@@ -299,6 +318,10 @@ export function SalesPaymentForm({
           description: result.error || tCommon("something_went_wrong"),
         });
         return;
+      }
+
+      if (isServiceContext && warrantyModeEnabled) {
+        await applyServiceWarrantyFromPayment({ paymentId: initialData.id, mode: warrantyMode });
       }
 
       toast({
@@ -470,6 +493,31 @@ export function SalesPaymentForm({
                 />
                 Auto create shipping (default on)
               </label>
+            </div>
+          ) : null}
+
+          {isServiceContext ? (
+            <div className="md:col-span-2 rounded-md border p-3">
+              <div className="mb-2 font-medium">Garansi Service</div>
+              <label className="mb-2 flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={warrantyModeEnabled}
+                  onChange={(event) => setWarrantyModeEnabled(event.target.checked)}
+                />
+                Aktifkan modul garansi
+              </label>
+              {warrantyModeEnabled ? (
+                <SearchableSelect
+                  value={warrantyMode}
+                  onValueChange={(value) => setWarrantyMode((value as "NO_WARRANTY" | "COMPANY_POLICY") || "NO_WARRANTY")}
+                  options={[
+                    { value: "NO_WARRANTY", label: "No Garansi" },
+                    { value: "COMPANY_POLICY", label: "Garansi Sesuai Kebijakan" },
+                  ]}
+                  placeholder="Pilih mode garansi"
+                />
+              ) : null}
             </div>
           ) : null}
 

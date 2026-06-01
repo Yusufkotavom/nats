@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { getSalesOrder } from "../actions";
+import { getSalesOrder, getServiceMetaBySalesOrderId } from "../actions";
 import { SalesOrderForm } from "../_components/sales-order-form";
 import { notFound } from "next/navigation";
 import { getContacts } from "@/app/[locale]/(dashboard)/general/contacts/actions";
@@ -32,6 +32,8 @@ export default async function Page({
     notFound();
   }
 
+  const serviceMeta = await getServiceMetaBySalesOrderId(id);
+
   return (
     <>
       <SalesPipelineTopbar data={pipeline} active="order" />
@@ -47,6 +49,7 @@ export default async function Page({
         departments={departments}
         projects={projects.projects}
         readonly
+        serviceMeta={serviceMeta as unknown as SuperJSONResult}
       />
     </>
   );

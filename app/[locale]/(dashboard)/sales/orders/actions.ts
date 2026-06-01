@@ -187,6 +187,58 @@ export const createSalesOrderQuickContact = authorizedAction(
   },
 );
 
+export async function getServiceMetaBySalesOrderId(salesOrderId: string) {
+  const session = await getSession();
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "sales.view")) {
+    return null;
+  }
+
+  const serviceOrder = await prisma.pOSServiceOrder.findFirst({
+    where: {
+      salesOrderId,
+      companyId: session.activeCompanyId,
+    },
+    select: {
+      id: true,
+      status: true,
+      targetDate: true,
+    },
+  });
+
+  if (!serviceOrder) return null;
+  return SuperJSON.serialize({
+    isServiceOrder: true,
+    serviceOrderId: serviceOrder.id,
+    serviceStatus: serviceOrder.status,
+    serviceTargetDate: serviceOrder.targetDate,
+  });
+}
+
+export const updateLinkedServiceStatus = authorizedAction(
+  "sales.edit",
+  async (input: { salesOrderId: string; status: "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED" }) => {
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+    if (!session.activeCompanyId) throw new Error("No active company selected");
+
+    const updated = await prisma.pOSServiceOrder.updateMany({
+      where: {
+        salesOrderId: input.salesOrderId,
+        companyId: session.activeCompanyId,
+      },
+      data: {
+        status: input.status,
+      },
+    });
+
+    revalidateLocalizedPath(`/sales/orders/${input.salesOrderId}`);
+    revalidateLocalizedPath(`/sales/orders/${input.salesOrderId}/edit`);
+    revalidateLocalizedPath("/sales/orders");
+
+    return { success: true, data: updated.count };
+  },
+);
+
 // Helper to generate SO Number
 async function generateSONumber() {
   return await generateDocumentNumber("SALES_ORDER", "Sales Order", "SO-");

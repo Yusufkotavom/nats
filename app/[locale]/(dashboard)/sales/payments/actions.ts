@@ -182,6 +182,7 @@ export async function getCashAccounts() {
 import { salesPaymentSchema } from "@/lib/validation/schemas";
 import { SalesPaymentService } from "@/modules/sales/services/sales-payment.service";
 import { SalesShipmentService } from "@/modules/sales/services/sales-shipment.service";
+import { SalesReturnService } from "@/modules/sales/services/sales-return.service";
 
 export const createSalesPayment = authorizedAction(
   "sales.payments",
@@ -350,6 +351,80 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
       };
     }
   }
+);
+
+export const applyServiceWarrantyFromPayment = authorizedAction(
+  "sales.payments",
+  async (input: { paymentId: string; mode: "NO_WARRANTY" | "COMPANY_POLICY" }) => {
+    if (input.mode === "NO_WARRANTY") {
+      return { success: true, data: { created: false, reason: "NO_WARRANTY", id: null } };
+    }
+
+    const session = await getSession();
+    if (!session) throw new Error("Unauthorized");
+    if (!session.activeCompanyId) throw new Error("No active company selected");
+
+    const payment = await prisma.salesPayment.findFirst({
+      where: { id: input.paymentId, companyId: session.activeCompanyId },
+      include: {
+        salesInvoice: {
+          include: {
+            salesOrder: {
+              include: {
+                items: {
+                  include: { product: true },
+                },
+              },
+            },
+            items: true,
+          },
+        },
+      },
+    });
+
+    if (!payment) throw new Error("Payment not found");
+    if (!payment.salesInvoice?.salesOrderId || !payment.salesInvoice.salesOrder) {
+      return { success: true, data: { created: false, reason: "NO_SALES_ORDER", id: null } };
+    }
+
+    const isService = payment.salesInvoice.salesOrder.items.some((item) => item.product?.isService);
+    if (!isService) {
+      return { success: true, data: { created: false, reason: "NOT_SERVICE_ORDER", id: null } };
+    }
+
+    const existing = await prisma.salesReturn.findFirst({
+      where: {
+        companyId: session.activeCompanyId,
+        salesOrderId: payment.salesInvoice.salesOrderId,
+        salesInvoiceId: payment.salesInvoiceId,
+        reason: "WARRANTY",
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return { success: true, data: { created: false, reason: "ALREADY_EXISTS", id: null } };
+    }
+
+    const created = await SalesReturnService.create(
+      {
+        returnNumber: "",
+        contactId: payment.contactId,
+        salesOrderId: payment.salesInvoice.salesOrderId,
+        salesInvoiceId: payment.salesInvoiceId,
+        returnDate: new Date(),
+        reason: "WARRANTY",
+        notes: `Auto warranty case from payment ${payment.paymentNumber}`,
+        items: payment.salesInvoice.items.filter((item) => !!item.productId).map((item) => ({
+          productId: item.productId as string,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+        })),
+      },
+      session.userId,
+    );
+
+    return { success: true, data: { created: true, reason: "CREATED", id: null } };
+  },
 );
 
 export const deleteSalesPayment = authorizedAction(

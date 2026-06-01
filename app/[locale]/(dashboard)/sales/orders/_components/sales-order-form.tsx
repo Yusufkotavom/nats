@@ -62,6 +62,7 @@ import {
   cancelSalesOrder,
   closeSalesOrder,
   createSalesOrderQuickContact,
+  updateLinkedServiceStatus,
 } from "../actions";
 import { createSalesInvoice } from "../../invoices/actions";
 import { createSalesPayment, getCashAccounts } from "../../payments/actions";
@@ -84,6 +85,7 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TableOverflow } from "@/components/ui/table-overflow";
+import { Badge } from "@/components/ui/badge";
 import {
   PageFormActions,
   PageFormContent,
@@ -93,9 +95,11 @@ import {
 } from "@/components/layout/page/form-layout";
 import { useTranslations } from "next-intl";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
+import { useToast } from "@/hooks/use-toast";
 
 interface SalesOrderFormProps {
   order?: SuperJSONResult;
+  serviceMeta?: SuperJSONResult;
   customers: Awaited<ReturnType<typeof getContacts>>["data"];
   products: Awaited<ReturnType<typeof getProducts>>["products"];
   departments?: Department[];
@@ -105,6 +109,7 @@ interface SalesOrderFormProps {
 
 export function SalesOrderForm({
   order: serializedOrder,
+  serviceMeta,
   customers,
   products: serializedProducts,
   departments = [],
@@ -114,17 +119,28 @@ export function SalesOrderForm({
   const order = serializedOrder
     ? SuperJSON.deserialize<SalesOrderWithDetails>(serializedOrder)
     : undefined;
+  const parsedServiceMeta = serviceMeta
+    ? SuperJSON.deserialize<{
+        isServiceOrder: boolean;
+        serviceOrderId: string;
+        serviceStatus: "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED";
+      }>(serviceMeta)
+    : null;
   const products =
     serializedProducts && "json" in serializedProducts
       ? SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts)
       : [];
 
   const router = useRouter();
+  const { toast } = useToast();
   const t = useTranslations("Sales");
   const tCommon = useTranslations("Common");
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
   const [isLoading, setIsLoading] = useState(false);
+  const [serviceStatus, setServiceStatus] = useState<"NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED">(
+    parsedServiceMeta?.serviceStatus || "NEW",
+  );
   const isEditing = !!order;
   const confirm = useConfirm();
   const alert = useAlert();
@@ -474,6 +490,20 @@ export function SalesOrderForm({
         setIsLoading(false);
       }
     }
+  };
+
+  const handleServiceStatusChange = async (
+    nextStatus: "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED",
+  ) => {
+    if (!order?.id || !parsedServiceMeta?.isServiceOrder) return;
+    setServiceStatus(nextStatus);
+    const result = await updateLinkedServiceStatus({ salesOrderId: order.id, status: nextStatus });
+    if (!result.success) {
+      toast({ variant: "destructive", title: "Error", description: result.error || "Gagal update status service" });
+      return;
+    }
+    toast({ title: "Success", description: `Status service: ${nextStatus}` });
+    router.refresh();
   };
 
   const handleNotifyCustomer = () => {
@@ -864,6 +894,44 @@ export function SalesOrderForm({
                         }
                         disabled={isReadOnly}
                       />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Mode Service</label>
+                        <div>
+                          {parsedServiceMeta?.isServiceOrder ? (
+                            <Badge variant="secondary">Yes</Badge>
+                          ) : (
+                            <Badge variant="outline">No</Badge>
+                          )}
+                        </div>
+                      </div>
+                      {parsedServiceMeta?.isServiceOrder ? (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Service Status</label>
+                          <SearchableSelect
+                            value={serviceStatus}
+                            onValueChange={(value) => {
+                              if (value) {
+                                handleServiceStatusChange(
+                                  value as "NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED",
+                                );
+                              }
+                            }}
+                            options={[
+                              { value: "NEW", label: "NEW" },
+                              { value: "PROCESSING", label: "PROCESSING" },
+                              { value: "READY", label: "READY" },
+                              { value: "DONE", label: "DONE" },
+                              { value: "CLOSED", label: "CLOSED" },
+                              { value: "CANCELLED", label: "CANCELLED" },
+                            ]}
+                            placeholder="Service status"
+                            disabled={readonly || isLoading}
+                          />
+                        </div>
+                      ) : null}
                     </div>
 
                     {showDimensionFields ? (
