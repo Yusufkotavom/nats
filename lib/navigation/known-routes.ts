@@ -29,6 +29,7 @@ export const KNOWN_STATIC_APP_ROUTES = new Set<string>([
   "/admin/settings/communication",
   "/admin/settings/data-reset",
   "/admin/settings/document-numbering",
+  "/admin/settings/documents",
   "/admin/settings/pos",
   "/admin/users",
   "/ai/chat",

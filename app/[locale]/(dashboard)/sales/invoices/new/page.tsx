@@ -7,6 +7,7 @@ import { getContacts } from "@/app/[locale]/(dashboard)/general/contacts/actions
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration/taxes/actions";
+import { getProducts } from "@/app/[locale]/(dashboard)/inventory/products/actions";
 
 export const metadata: Metadata = {
   title: "New Sales Invoice | NATS",
@@ -21,12 +22,13 @@ export default async function NewSalesInvoicePage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const initialSalesOrderId = resolvedSearchParams?.salesOrderId || undefined;
 
-  const [customers, salesOrders, departments, projects, taxRates] = await Promise.all([
+  const [customers, salesOrders, departments, projects, taxRates, productsResult] = await Promise.all([
     getContacts({ type: ContactType.CUSTOMER }),
     getSalesOrdersForSelect(),
     getDepartments(),
     getProjects(),
     getTaxRates(),
+    getProducts(1, 500),
   ]);
 
   return (
@@ -36,6 +38,7 @@ export default async function NewSalesInvoicePage({
       departments={departments}
       projects={projects.projects}
       taxRates={taxRates}
+      products={productsResult.products}
       initialSalesOrderId={initialSalesOrderId}
     />
   );

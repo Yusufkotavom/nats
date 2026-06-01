@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { ContactType, Prisma } from "@/prisma/generated/prisma/client";
 import { authorizedAction } from "@/lib/permissions/protected-action";
 import { getSession } from "@/lib/auth/auth";
 import { SalesOrderInput } from "./types";
@@ -137,6 +137,43 @@ export async function getSalesOrder(id: string) {
 
   return SuperJSON.serialize(order);
 }
+
+export const createSalesOrderQuickContact = authorizedAction(
+  "sales.create",
+  async (input: { name: string; phone?: string; email?: string; address?: string }) => {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      throw new Error("No active company selected");
+    }
+
+    const name = input.name.trim();
+    const phone = input.phone?.trim() || null;
+    const email = input.email?.trim() || null;
+    const address = input.address?.trim() || null;
+
+    if (!name) {
+      throw new Error("Customer name is required");
+    }
+
+    const contact = await prisma.contact.create({
+      data: {
+        companyId: session.activeCompanyId,
+        type: ContactType.CUSTOMER,
+        name,
+        phone,
+        email,
+        address,
+        isActive: true,
+        taxExempt: false,
+      },
+      select: { id: true, name: true, phone: true, email: true, address: true },
+    });
+
+    revalidateLocalizedPath("/general/contacts");
+    revalidateLocalizedPath("/sales/orders");
+    return { success: true, data: SuperJSON.serialize(contact) };
+  },
+);
 
 // Helper to generate SO Number
 async function generateSONumber() {

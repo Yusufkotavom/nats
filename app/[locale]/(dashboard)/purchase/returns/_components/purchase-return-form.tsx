@@ -31,7 +31,6 @@ import {
 import { Trash2, ArrowLeft } from "lucide-react";
 import { createPurchaseReturn, updatePurchaseReturn } from "../actions";
 import { PurchaseReturnInput, PurchaseReturnWithDetails } from "../types";
-import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/hooks/use-toast";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SortableTableRow } from "@/components/ui/sortable-row";
@@ -48,7 +47,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface PurchaseReturnFormProps {
   returnItem?: SuperJSONResult;
-  vendors: { id: string; name: string }[];
+  vendors: { id: string; name: string; phone?: string | null; address?: string | null }[];
   purchaseOrders: SuperJSONResult | any[];
   purchaseInvoices: SuperJSONResult | any[];
   departments?: Department[];
@@ -149,6 +148,33 @@ export function PurchaseReturnForm({
     }
     return [];
   }, [formData.contactId, purchaseInvoices]);
+  const vendorOptions = useMemo(
+    () =>
+      vendors.map((v) => ({
+        value: v.id,
+        label: v.name,
+        subtitle: [v.phone, v.address].filter(Boolean).join(" • "),
+      })),
+    [vendors],
+  );
+  const purchaseOrderOptions = useMemo(
+    () =>
+      filteredPurchaseOrders.map((po) => ({
+        value: po.id,
+        label: po.orderNumber,
+        subtitle: po.contact?.name || "-",
+      })),
+    [filteredPurchaseOrders],
+  );
+  const purchaseInvoiceOptions = useMemo(
+    () =>
+      filteredPurchaseInvoices.map((pi) => ({
+        value: pi.id,
+        label: pi.invoiceNumber,
+        subtitle: pi.contact?.name || "-",
+      })),
+    [filteredPurchaseInvoices],
+  );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -334,8 +360,8 @@ export function PurchaseReturnForm({
           )}
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-8 w-full">
-        <div className="grid gap-4 md:grid-cols-2">
+      <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full space-y-8 overflow-x-hidden">
+        <div className="grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden md:grid-cols-2">
           <div className="space-y-2">
             <Label>Return Number</Label>
             <CustomInput
@@ -351,10 +377,10 @@ export function PurchaseReturnForm({
 
           <div className="space-y-2">
             <Label>Vendor</Label>
-            <CustomSelect
-              defaultValue={formData.contactId}
-              onValueChange={(val: any) => handleContactChange(val)}
-              options={vendors.map((v) => ({ label: v.name, value: v.id }))}
+            <SearchableSelect
+              value={formData.contactId}
+              onValueChange={(val) => handleContactChange(val || "")}
+              options={vendorOptions}
               disabled={readonly}
               placeholder="Select vendor..."
             />
@@ -362,13 +388,10 @@ export function PurchaseReturnForm({
 
           <div className="space-y-2">
             <Label>Purchase Order (Optional)</Label>
-            <CustomSelect
+            <SearchableSelect
               value={formData.purchaseOrderId || ""}
-              onValueChange={(val: any) => handlePurchaseOrderChange(val)}
-              options={filteredPurchaseOrders.map((po) => ({
-                label: po.orderNumber,
-                value: po.id,
-              }))}
+              onValueChange={(val) => handlePurchaseOrderChange(val || "")}
+              options={purchaseOrderOptions}
               disabled={readonly || !formData.contactId}
               placeholder="Select PO..."
             />
@@ -376,22 +399,19 @@ export function PurchaseReturnForm({
 
           <div className="space-y-2">
             <Label>Purchase Invoice (Optional)</Label>
-            <CustomSelect
+            <SearchableSelect
               value={formData.purchaseInvoiceId || ""}
-              onValueChange={(val: any) =>
-                setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
+              onValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, purchaseInvoiceId: val || undefined }))
               }
-              options={filteredPurchaseInvoices.map((pi) => ({
-                label: pi.invoiceNumber,
-                value: pi.id,
-              }))}
+              options={purchaseInvoiceOptions}
               disabled={readonly || !formData.contactId}
               placeholder="Select Invoice..."
             />
           </div>
 
           {showDimensionFields ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Department</Label>
                 <SearchableSelect
@@ -425,7 +445,7 @@ export function PurchaseReturnForm({
             </div>
           ) : null}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Return Date</Label>
               <CustomInput
@@ -448,11 +468,10 @@ export function PurchaseReturnForm({
 
           <div className="space-y-2">
             <Label>Status</Label>
-            <CustomSelect
+            <SearchableSelect
               value={formData.status || "DRAFT"}
-               
-              onValueChange={(val: any) =>
-                setFormData((prev) => ({ ...prev, status: val }))
+              onValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, status: val as any }))
               }
               options={[
                 { label: "Draft", value: "DRAFT" },

@@ -27,6 +27,7 @@ export const adminPlugin: ModulePlugin = {
             { title: "Admin.users", url: "/admin/users" },
             { title: "Admin.roles", url: "/admin/roles" },
             { title: "System.document-numbering", url: "/admin/settings/document-numbering" },
+            { title: "Document Settings", url: "/admin/settings/documents" },
             { title: "System.files", url: "/general/files" },
           ],
         },

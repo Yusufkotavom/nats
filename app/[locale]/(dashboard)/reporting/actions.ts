@@ -82,6 +82,9 @@ export async function getReportData(code: string, input: any) {
     const reportTemplate = await prisma.reportTemplate.findUnique({
       where: { code },
     });
+    if (reportTemplate && !reportTemplate.isActive) {
+      throw new Error(`Report template ${code} is inactive`);
+    }
 
     const config = {
       ...((reportTemplate?.config as Record<string, any>) || {}),

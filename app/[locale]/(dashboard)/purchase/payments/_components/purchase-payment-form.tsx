@@ -4,9 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CustomInput } from "@/components/ui/custom-input";
-import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
-import { SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -124,6 +122,33 @@ export function PurchasePaymentForm({
     () => cashAccountsData?.methods || [],
     [cashAccountsData?.methods],
   );
+  const invoiceOptions = useMemo(
+    () =>
+      (invoicesData || []).map((invoice) => {
+        const totalPaid = invoice.payments.reduce(
+          (sum: number, p: any) => sum + Number(p.amount),
+          0,
+        );
+        const remaining = Number(invoice.totalAmount) - totalPaid;
+        return {
+          value: invoice.id,
+          label: invoice.invoiceNumber,
+          subtitle: `${invoice.contact.name} • Due ${formatDate(invoice.dueDate)}`,
+          meta: `Rem ${remaining.toFixed(2)}`,
+        };
+      }),
+    [invoicesData, formatDate],
+  );
+  const paymentMethodOptions = useMemo(
+    () =>
+      paymentMethods.map((method) => ({
+        value: method.id,
+        label: `[${method.method}] ${method.name}`,
+        subtitle: `${method.glCode} • ${method.glName}`,
+        meta: method.isDefault ? "Default" : undefined,
+      })),
+    [paymentMethods],
+  );
 
   useEffect(() => {
     if (!initialData && formData.purchaseInvoiceId && invoicesData) {
@@ -225,7 +250,7 @@ export function PurchasePaymentForm({
 
   return (
     <PageFormLayout>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full overflow-x-hidden">
         <PageFormHeader>
           <PageFormTitle title={initialData ? "View Payment" : "New Payment"} />
           <PageFormActions className="w-full justify-start md:w-auto md:justify-end">
@@ -255,31 +280,19 @@ export function PurchasePaymentForm({
             )}
           </PageFormActions>
         </PageFormHeader>
-        <PageFormContent className="grid gap-6 md:grid-cols-2 pt-6 mt-4">
-          <CustomSelect
-            label="Invoice"
-            value={formData.purchaseInvoiceId}
-            onValueChange={(val) =>
-              setFormData((prev) => ({ ...prev, purchaseInvoiceId: val }))
-            }
-            placeholder="Select invoice to pay"
-            disabled={readonly}
-          >
-            {invoicesData?.map((invoice) => {
-              const totalPaid = invoice.payments.reduce(
-                (sum: number, p: any) => sum + Number(p.amount),
-                0,
-              );
-              const remaining = Number(invoice.totalAmount) - totalPaid;
-              return (
-                <SelectItem key={invoice.id} value={invoice.id}>
-                  {invoice.invoiceNumber} - {invoice.contact.name} (Due:{" "}
-                  {formatDate(invoice.dueDate)}) - Rem:{" "}
-                  {remaining.toFixed(2)}
-                </SelectItem>
-              );
-            })}
-          </CustomSelect>
+        <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden pt-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Invoice</label>
+            <SearchableSelect
+              value={formData.purchaseInvoiceId}
+              onValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, purchaseInvoiceId: val || "" }))
+              }
+              options={invoiceOptions}
+              placeholder="Select invoice to pay"
+              disabled={readonly}
+            />
+          </div>
 
           <CustomInput
             label="Payment Number"
@@ -300,34 +313,34 @@ export function PurchasePaymentForm({
             disabled={readonly}
           />
 
-          <CustomSelect
-            label="Payment Method"
-            value={formData.cashAccountId}
-            onValueChange={(val) =>
-              setFormData((prev) => {
-                const selected = paymentMethods.find((method) => method.id === val);
-                return {
-                  ...prev,
-                  cashAccountId: val,
-                  method: (selected?.method || "CASH") as UnifiedPaymentMethod,
-                };
-              })
-            }
-            placeholder="Select payment method"
-            disabled={readonly}
-          >
-            {readonly && initialData?.cashAccount ? (
-              <SelectItem value={initialData.cashAccount.id}>
-                {initialData.cashAccount.name}
-              </SelectItem>
-            ) : (
-              paymentMethods.map((method) => (
-                <SelectItem key={method.id} value={method.id}>
-                  [{method.method}] {method.name}
-                </SelectItem>
-              ))
-            )}
-          </CustomSelect>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Payment Method</label>
+            <SearchableSelect
+              value={formData.cashAccountId}
+              onValueChange={(val) =>
+                setFormData((prev) => {
+                  const selected = paymentMethods.find((method) => method.id === val);
+                  return {
+                    ...prev,
+                    cashAccountId: val || "",
+                    method: (selected?.method || "CASH") as UnifiedPaymentMethod,
+                  };
+                })
+              }
+              options={
+                readonly && initialData?.cashAccount
+                  ? [
+                      {
+                        value: initialData.cashAccount.id,
+                        label: initialData.cashAccount.name,
+                      },
+                    ]
+                  : paymentMethodOptions
+              }
+              placeholder="Select payment method"
+              disabled={readonly}
+            />
+          </div>
 
           <CustomInput
             label="Cash/Bank Account"
@@ -366,7 +379,7 @@ export function PurchasePaymentForm({
           />
 
           {showDimensionFields ? (
-            <div className="col-span-2 grid grid-cols-2 gap-4">
+            <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Department</label>
                 <SearchableSelect

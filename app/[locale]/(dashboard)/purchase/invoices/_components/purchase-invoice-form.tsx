@@ -60,25 +60,32 @@ import { useCompanyProfile } from "@/components/providers/session-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { TableOverflow } from "@/components/ui/table-overflow";
+import { ProductWithDetails } from "@/app/[locale]/(dashboard)/inventory/types";
+import { useFormatCurrency } from "@/hooks";
 
 interface PurchaseInvoiceFormProps {
   invoice?: SuperJSONResult | null;
-  vendors: { id: string; name: string }[];
+  vendors: { id: string; name: string; phone?: string | null; address?: string | null }[];
   purchaseOrders: SuperJSONResult;
+  products?: SuperJSONResult | ProductWithDetails[];
   taxRates: TaxRate[];
   departments?: Department[];
   projects?: Project[];
   readonly?: boolean;
+  initialPurchaseOrderId?: string;
 }
 
 export function PurchaseInvoiceForm({
   invoice: serializedInvoice,
   vendors,
   purchaseOrders: serializedPurchaseOrders,
+  products: serializedProducts,
   taxRates,
   departments = [],
   projects = [],
   readonly = false,
+  initialPurchaseOrderId,
 }: PurchaseInvoiceFormProps) {
   const invoice = serializedInvoice
     ? SuperJSON.deserialize<PurchaseInvoiceWithDetails>(serializedInvoice)
@@ -86,6 +93,11 @@ export function PurchaseInvoiceForm({
   const purchaseOrders = SuperJSON.deserialize<PurchaseOrderWithDetails[]>(
     serializedPurchaseOrders,
   );
+  const products = Array.isArray(serializedProducts)
+    ? serializedProducts
+    : serializedProducts
+      ? SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts as SuperJSONResult)
+      : [];
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +121,7 @@ export function PurchaseInvoiceForm({
     })) || []
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const formatCurrency = useFormatCurrency();
 
   const [formData, setFormData] = useState<
     Omit<PurchaseInvoiceInput, "items"> & {
@@ -458,7 +471,29 @@ export function PurchaseInvoiceForm({
   const filteredPurchaseOrders = formData.contactId
     ? purchaseOrders.filter((po) => po.contactId === formData.contactId)
     : purchaseOrders;
+  const vendorOptions = vendors.map((v) => ({
+    value: v.id,
+    label: v.name,
+    subtitle: [v.phone, v.address].filter(Boolean).join(" • "),
+  }));
+  const purchaseOrderOptions = filteredPurchaseOrders.map((po) => ({
+    value: po.id,
+    label: po.orderNumber,
+    subtitle: po.contact?.name || "-",
+    meta: formatCurrency(Number(po.totalAmount || 0)),
+  }));
+  const productOptions = products.map((p) => ({
+    value: p.id,
+    label: p.name,
+    subtitle: p.category?.name || p.sku || "-",
+    meta: formatCurrency(Number(p.price || 0)),
+  }));
   const showDimensionFields = departments.length > 0 || projects.length > 0;
+
+  useEffect(() => {
+    if (isEditing || !initialPurchaseOrderId || formData.purchaseOrderId) return;
+    void handlePurchaseOrderChange(initialPurchaseOrderId);
+  }, [initialPurchaseOrderId, isEditing, formData.purchaseOrderId]);
 
   return (
     <div className="flex-1 space-y-4 px-4">
@@ -510,35 +545,26 @@ export function PurchaseInvoiceForm({
 
         </div>
       </div>
-      <form id="purchase-invoice-form" onSubmit={handleSubmit}>
-        <div className="grid gap-4">
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <CustomSelect
-                  label="Purchase Order (Optional)"
-                  value={formData.purchaseOrderId || "none"}
-                  onValueChange={(val) =>
-                    handlePurchaseOrderChange(val === "none" ? "" : val)
-                  }
-                  placeholder="Select Purchase Order"
-                  disabled={readonly}
-                >
-                  <SelectItem value="none">None</SelectItem>
-                  {filteredPurchaseOrders.map((po) => (
-                    <SelectItem key={po.id} value={po.id}>
-                      <div className="flex items-center">
-                        <span>{po.orderNumber}</span>
-                        <span className="text-muted-foreground ml-2">
-                          ({po.contact.name})
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
+      <form id="purchase-invoice-form" onSubmit={handleSubmit} className="w-full min-w-0 max-w-full overflow-x-hidden">
+        <div className="grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden">
+          <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
+            <Card className="w-full min-w-0 max-w-full overflow-hidden">
+              <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Purchase Order (Optional)</Label>
+                  <SearchableSelect
+                    value={formData.purchaseOrderId || ""}
+                    onValueChange={(val) =>
+                      handlePurchaseOrderChange(val || "")
+                    }
+                    options={purchaseOrderOptions}
+                    placeholder="Select Purchase Order"
+                    disabled={readonly}
+                  />
+                </div>
 
                 {showDimensionFields ? (
-                  <div className="col-span-2 grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 md:col-span-2 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Department</Label>
                       <SearchableSelect
@@ -575,25 +601,22 @@ export function PurchaseInvoiceForm({
                   disabled={readonly}
                 />
 
-                <CustomSelect
-                  value={formData.contactId}
-                  label="Vendor"
-                  onValueChange={(val) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      contactId: val,
-                      purchaseOrderId: undefined,
-                    }));
-                  }}
-                  placeholder="Select Vendor"
-                  disabled={readonly || !!formData.purchaseOrderId}
-                >
-                  {vendors.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name}
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
+                <div className="space-y-2">
+                  <Label>Vendor</Label>
+                  <SearchableSelect
+                    value={formData.contactId}
+                    onValueChange={(val) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        contactId: val || "",
+                        purchaseOrderId: undefined,
+                      }));
+                    }}
+                    options={vendorOptions}
+                    placeholder="Select Vendor"
+                    disabled={readonly || !!formData.purchaseOrderId}
+                  />
+                </div>
 
                 <div className="space-y-1">
                   <Label>Invoice Date</Label>
@@ -732,7 +755,7 @@ export function PurchaseInvoiceForm({
                   placeholder="Add notes here..."
                   disabled={readonly}
                 />
-                <div className="col-span-2">
+                <div className="md:col-span-2">
                   <div className="flex flex-col gap-2">
                     <Button
                       type="button"
@@ -765,29 +788,32 @@ export function PurchaseInvoiceForm({
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="w-full min-w-0 max-w-full overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Products</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="min-w-0 p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table>
+                  <TableOverflow
+                    className="max-w-[calc(100vw-2rem)]"
+                    minWidthClassName="min-w-[980px] md:min-w-[1100px]"
+                  >
+                  <Table className="w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-[200px]">Account</TableHead>
-                        <TableHead className="w-[100px]">Qty</TableHead>
-                        <TableHead className="w-[120px]">Unit Price</TableHead>
-                        <TableHead className="w-[120px]">
+                        <TableHead className="min-w-[220px] whitespace-nowrap">Product</TableHead>
+                        <TableHead className="w-[100px] whitespace-nowrap">Qty</TableHead>
+                        <TableHead className="w-[120px] whitespace-nowrap">Unit Price</TableHead>
+                        <TableHead className="w-[120px] whitespace-nowrap">
                           Discount (%)
                         </TableHead>
-                        <TableHead className="w-[180px]">Tax Rate</TableHead>
-                        <TableHead className="w-[100px]">Total</TableHead>
+                        <TableHead className="w-[180px] whitespace-nowrap">Tax Rate</TableHead>
+                        <TableHead className="w-[100px] whitespace-nowrap">Total</TableHead>
                         {!readonly && (
                           <TableHead className="w-[50px]"></TableHead>
                         )}
@@ -800,16 +826,17 @@ export function PurchaseInvoiceForm({
                       >
                         {formData.items.map((item, index) => (
                           <SortableTableRow key={item.id} id={item.id}>
-                            <TableCell>
-                              <CustomInput
-                                value={item.description}
-                                onChange={(e) =>
-                                  handleItemChange(
-                                    index,
-                                    "description",
-                                    e.target.value,
-                                  )
-                                }
+                            <TableCell className="min-w-[220px]">
+                              <SearchableSelect
+                                value={item.description || ""}
+                                onValueChange={(val) => {
+                                  const selected = products.find((p) => p.id === val);
+                                  if (!selected) return;
+                                  handleItemChange(index, "description", selected.name);
+                                  handleItemChange(index, "unitPrice", Number(selected.cost || 0));
+                                }}
+                                options={productOptions}
+                                placeholder="Select Product"
                                 disabled={readonly}
                               />
                             </TableCell>
@@ -920,6 +947,7 @@ export function PurchaseInvoiceForm({
                       </SortableContext>
                     </TableBody>
                   </Table>
+                  </TableOverflow>
                 </DndContext>
                 {formData.items.length === 0 && (
                   <div className="py-8 text-center text-muted-foreground">

@@ -38,6 +38,8 @@ export default async function EditSalesShipmentPage({
         customers={contactsResult.data.map((c) => ({
           id: c.id,
           name: c.name,
+          phone: c.phone,
+          address: c.address,
         }))}
         salesOrders={salesOrdersResult as unknown as SuperJSONResult}
         departments={departments}

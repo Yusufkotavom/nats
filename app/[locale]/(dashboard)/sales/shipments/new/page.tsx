@@ -24,9 +24,11 @@ export default async function NewSalesShipmentPage({
   return (
     <SalesShipmentForm
       customers={contactsResult.data.map((c) => ({
-        id: c.id,
-        name: c.name,
-      }))}
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+          address: c.address,
+        }))}
       salesOrders={salesOrdersResult as unknown as SuperJSONResult}
       departments={departments}
       projects={projects.projects}

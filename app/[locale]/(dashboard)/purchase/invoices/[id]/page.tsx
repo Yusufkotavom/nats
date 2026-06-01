@@ -9,6 +9,7 @@ import { getContacts } from "@/app/[locale]/(dashboard)/general/contacts/actions
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration/taxes/actions";
+import { getProducts } from "@/app/[locale]/(dashboard)/inventory/products/actions";
 
 export const metadata: Metadata = {
   title: "View Purchase Invoice | NATS",
@@ -23,13 +24,14 @@ interface PageProps {
 
 export default async function ViewPurchaseInvoicePage(props: PageProps) {
   const params = await props.params;
-  const [invoice, vendors, purchaseOrders, departments, projects, taxRates] = await Promise.all([
+  const [invoice, vendors, purchaseOrders, departments, projects, taxRates, productsResult] = await Promise.all([
     getPurchaseInvoice(params.id),
     getContacts({ type: ContactType.VENDOR }),
     getPurchaseOrdersForSelect(),
     getDepartments(),
     getProjects(),
     getTaxRates(),
+    getProducts(1, 500),
   ]);
 
   if (!invoice) {
@@ -41,6 +43,7 @@ export default async function ViewPurchaseInvoicePage(props: PageProps) {
       invoice={invoice}
       vendors={vendors.data}
       purchaseOrders={purchaseOrders}
+      products={productsResult.products}
       departments={departments}
       projects={projects.projects}
       taxRates={taxRates}

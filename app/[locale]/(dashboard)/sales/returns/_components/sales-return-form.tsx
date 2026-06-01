@@ -28,7 +28,7 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Trash2, ArrowLeft, Paperclip, ArrowLeftSquare } from "lucide-react";
+import { Trash2, ArrowLeft, Paperclip, ArrowLeftSquare, PrinterIcon } from "lucide-react";
 import { createSalesReturn, updateSalesReturn } from "../actions";
 import { SalesReturnInput, SalesReturnWithDetails } from "../types";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -54,10 +54,11 @@ import {
 } from "@/components/layout/page/form-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslations } from "next-intl";
+import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 
 interface SalesReturnFormProps {
     returnItem?: SuperJSONResult;
-    customers: { id: string; name: string }[];
+    customers: { id: string; name: string; phone?: string | null; address?: string | null }[];
     salesOrders: SuperJSONResult | any[];
     salesInvoices: SuperJSONResult | any[];
     departments?: Department[];
@@ -93,6 +94,7 @@ export function SalesReturnForm({
         })) || [],
     );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+  const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
   const showDimensionFields = departments.length > 0 || projects.length > 0;
 
     const salesOrders = useMemo(
@@ -161,6 +163,32 @@ export function SalesReturnForm({
         }
         return [];
     }, [formData.contactId, salesInvoices]);
+    const customerOptions = useMemo(
+        () => customers.map((c) => ({
+            value: c.id,
+            label: c.name,
+            subtitle: [c.phone, c.address].filter(Boolean).join(" • "),
+        })),
+        [customers],
+    );
+    const salesOrderOptions = useMemo(
+        () => filteredSalesOrders.map((so) => ({
+            value: so.id,
+            label: so.orderNumber,
+            subtitle: so.items.slice(0, 2).map((i) => i.product?.name || "-").join(", "),
+            meta: formatCurrency(Number(so.totalAmount || 0)),
+        })),
+        [filteredSalesOrders, formatCurrency],
+    );
+    const salesInvoiceOptions = useMemo(
+        () => filteredSalesInvoices.map((si) => ({
+            value: si.id,
+            label: si.invoiceNumber,
+            subtitle: si.contact?.name || "-",
+            meta: formatCurrency(Number(si.totalAmount || 0)),
+        })),
+        [filteredSalesInvoices, formatCurrency],
+    );
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -309,6 +337,16 @@ export function SalesReturnForm({
             <PageFormHeader>
                 <PageFormTitle title={returnItem ? t("edit_return") : t("new_return")} />
                 <PageFormActions>
+                    {returnItem ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsReportPreviewOpen(true)}
+                        >
+                            <PrinterIcon className="mr-2 h-4 w-4" />
+                            {tCommon("print")}
+                        </Button>
+                    ) : null}
                     {!readonly && (
                         <>
                             <Button
@@ -343,9 +381,9 @@ export function SalesReturnForm({
                     )}
                 </PageFormActions>
             </PageFormHeader>
-            <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
-                <form onSubmit={handleSubmit} className="space-y-8 w-full">
-                    <Card>
+            <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden border-none bg-transparent p-0 shadow-none">
+                <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full space-y-8 overflow-x-hidden">
+                    <Card className="w-full min-w-0 max-w-full overflow-hidden">
                         <CardContent>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <CustomInput
@@ -358,43 +396,43 @@ export function SalesReturnForm({
                                     disabled={readonly}
                                 />
 
-                                <CustomSelect
-                                    label={t("customer")}
-                                    defaultValue={formData.contactId}
-                                    onValueChange={(val: any) => handleContactChange(val)}
-                                    options={customers.map((c) => ({ label: c.name, value: c.id }))}
-                                    disabled={readonly}
-                                    placeholder={t("placeholder_select_customer")}
-                                />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t("customer")}</label>
+                                    <SearchableSelect
+                                        value={formData.contactId}
+                                        onValueChange={(val) => handleContactChange(val || "")}
+                                        options={customerOptions}
+                                        disabled={readonly}
+                                        placeholder={t("placeholder_select_customer")}
+                                    />
+                                </div>
 
-                                <CustomSelect
-                                    label={t("sales_order_optional")}
-                                    value={formData.salesOrderId || ""}
-                                    onValueChange={(val: any) => handleSalesOrderChange(val)}
-                                    options={filteredSalesOrders.map((so) => ({
-                                        label: so.orderNumber,
-                                        value: so.id,
-                                    }))}
-                                    disabled={readonly || !formData.contactId}
-                                    placeholder={t("placeholder_select_so")}
-                                />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t("sales_order_optional")}</label>
+                                    <SearchableSelect
+                                        value={formData.salesOrderId || ""}
+                                        onValueChange={(val) => handleSalesOrderChange(val || "")}
+                                        options={salesOrderOptions}
+                                        disabled={readonly || !formData.contactId}
+                                        placeholder={t("placeholder_select_so")}
+                                    />
+                                </div>
 
-                                <CustomSelect
-                                    label={t("sales_invoice_optional")}
-                                    value={formData.salesInvoiceId || ""}
-                                    onValueChange={(val: any) =>
-                                        setFormData((prev) => ({ ...prev, salesInvoiceId: val }))
-                                    }
-                                    options={filteredSalesInvoices.map((si) => ({
-                                        label: si.invoiceNumber,
-                                        value: si.id,
-                                    }))}
-                                    disabled={readonly || !formData.contactId}
-                                    placeholder={t("placeholder_select_invoice")}
-                                />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">{t("sales_invoice_optional")}</label>
+                                    <SearchableSelect
+                                        value={formData.salesInvoiceId || ""}
+                                        onValueChange={(val) =>
+                                            setFormData((prev) => ({ ...prev, salesInvoiceId: val || "" }))
+                                        }
+                                        options={salesInvoiceOptions}
+                                        disabled={readonly || !formData.contactId}
+                                        placeholder={t("placeholder_select_invoice")}
+                                    />
+                                </div>
 
                                 {showDimensionFields ? (
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium">{t("department")}</label>
                                             <SearchableSelect
@@ -610,6 +648,15 @@ export function SalesReturnForm({
                 }}
                 readonly={readonly}
             />
+            {returnItem ? (
+                <ReportPreviewDialog
+                    isOpen={isReportPreviewOpen}
+                    onOpenChange={setIsReportPreviewOpen}
+                    code="SALES_RETURN"
+                    input={{ returnId: returnItem.id }}
+                    title={`Sales Return #${returnItem.returnNumber}`}
+                />
+            ) : null}
         </PageFormLayout >
     );
 }

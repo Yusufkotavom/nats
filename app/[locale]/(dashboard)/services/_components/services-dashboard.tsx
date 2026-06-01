@@ -1335,7 +1335,7 @@ export function ServicesDashboard({
                 <Label>Ordered Items</Label>
                 <Button type="button" variant="outline" onClick={addEditItem}>Tambah Item</Button>
               </div>
-              <TableOverflow minWidthClassName="min-w-[760px]">
+              <TableOverflow className="max-w-[calc(100vw-2rem)]" minWidthClassName="min-w-[760px]">
               <Table className="w-full">
                 <TableHeader>
                   <TableRow className="bg-white/80">

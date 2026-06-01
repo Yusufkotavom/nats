@@ -22,6 +22,8 @@ import {
 export interface SearchableSelectOption {
   value: string;
   label: string;
+  subtitle?: string;
+  meta?: string;
 }
 
 export interface SearchableSelectProps {
@@ -90,13 +92,29 @@ export function SearchableSelect({
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.label}
+                  value={[option.label, option.subtitle, option.meta]
+                    .filter(Boolean)
+                    .join(" ")}
                   onSelect={() => {
                     onValueChange(option.value);
                     setOpen(false);
                   }}
                 >
-                  {option.label}
+                  <div className="flex w-full items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate">{option.label}</div>
+                      {option.subtitle ? (
+                        <div className="truncate text-xs text-muted-foreground">
+                          {option.subtitle}
+                        </div>
+                      ) : null}
+                    </div>
+                    {option.meta ? (
+                      <div className="shrink-0 text-xs text-muted-foreground">
+                        {option.meta}
+                      </div>
+                    ) : null}
+                  </div>
                 </CommandItem>
               ))}
             </CommandGroup>

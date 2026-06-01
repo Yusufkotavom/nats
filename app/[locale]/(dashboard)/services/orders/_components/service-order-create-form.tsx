@@ -328,7 +328,7 @@ export function ServiceOrderCreateForm({
           <Label>Ordered Items</Label>
           <Button type="button" variant="outline" onClick={handleAddItem}>Tambah Item</Button>
         </div>
-        <TableOverflow minWidthClassName="min-w-[900px]">
+        <TableOverflow className="max-w-[calc(100vw-2rem)]" minWidthClassName="min-w-[900px]">
         <Table className="w-full">
           <TableHeader>
                      <TableRow className="bg-white/80">

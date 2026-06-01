@@ -255,6 +255,29 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
   - form page penuh `/services/orders/new` untuk pengalaman setara modul transaksi `sales`.
 - Pada `/services/returns-warranty`, create case `RETURN/WARRANTY` sekarang membentuk dokumen `SalesReturn` yang terhubung ke service order/invoice terkait.
 - Print dari modul service sekarang memakai dokumen private sendiri (`SERVICE_WORK_ORDER`, `SERVICE_INVOICE`) melalui registry reporting, bukan langsung menampilkan template sales/receipt mentah.
+
+## Centralized Document Settings
+
+- Pengaturan template dokumen kini punya satu pusat di `Admin > Settings > Documents` (`/admin/settings/documents`).
+- Halaman ini mengelola `ReportTemplate` lintas `report code` (nama, deskripsi, status aktif, page size, orientation, theme) dan bootstrap otomatis code dari `modules/reporting/server-registry.ts`.
+- Runtime `reporting/actions.ts` menghormati status template (`isActive`): template nonaktif tidak bisa dipreview/print sampai diaktifkan kembali.
+
+## Sales Print Coverage
+
+- Registry reporting sales kini mencakup: `SALES_ORDER`, `SALES_INVOICE`, `SALES_SHIPMENT`, `SALES_PAYMENT`, `SALES_RETURN`.
+- Seluruh flow Sales order-to-cash sekarang memiliki route print via `/reporting/preview`:
+  - `/reporting/preview?code=SALES_ORDER&orderId=...`
+  - `/reporting/preview?code=SALES_INVOICE&invoiceId=...`
+  - `/reporting/preview?code=SALES_SHIPMENT&shipmentId=...`
+  - `/reporting/preview?code=SALES_PAYMENT&paymentId=...`
+  - `/reporting/preview?code=SALES_RETURN&returnId=...`
+
+## Sales Picker Standard
+
+- Form Sales distandarkan memakai `SearchableSelect` dengan opsi kaya (`label`, `subtitle`, `meta`) untuk entitas data besar (customer/product/order/invoice) agar tetap usable saat data mencapai ratusan-ribuan record.
+- Enrichment default:
+  - Customer: `nama • no hp • alamat`
+  - Product: `nama • kategori • harga`
 - Service order mendukung `Update Harga` setelah order berjalan (misalnya setelah DP sudah diterima): perubahan akan sinkron ke item + total pada `POSServiceOrder`, `SalesOrder`, dan `SalesInvoice` agar nilai tagihan/sisa bayar tetap konsisten.
 - Company setting menambahkan `serviceUniversalNote` sebagai catatan default lintas dokumen service (disclaimer/ketentuan), dipakai di PDF service order dan service invoice.
 - Company setting `Admin > Settings > POS` sekarang juga mengelola `Service Quick Inform Settings`:

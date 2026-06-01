@@ -13,7 +13,6 @@ import {
 import { CustomInput } from "@/components/ui/custom-input";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
-import { SelectItem } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Table,
@@ -62,7 +61,6 @@ import {
   issuePurchaseOrder,
   cancelPurchaseOrder,
   closePurchaseOrder,
-  getPurchaseOrder,
 } from "../actions";
 import { PurchaseOrderInput } from "../types";
 import { format } from "date-fns";
@@ -274,7 +272,14 @@ export function PurchaseOrderForm({
 
       if (result.success) {
         if (!isEditing) {
-          router.push("/purchase/orders");
+          const created = result.data
+            ? SuperJSON.deserialize<{ id: string }>(result.data)
+            : null;
+          if (created?.id) {
+            router.push(`/purchase/orders/${created.id}/edit`);
+          } else {
+            router.push("/purchase/orders");
+          }
         } else {
           // Stay on page but show success? Or redirect?
           // Revalidation happens in action, so UI updates.
@@ -303,8 +308,24 @@ export function PurchaseOrderForm({
       setIsLoading(true);
       try {
         const result = await issuePurchaseOrder(order.id);
-        if (!result.success)
+        if (!result.success) {
           await alert({ title: "Error", description: result.error });
+          return;
+        }
+
+        setFormData((prev) => ({ ...prev, status: "ISSUED" }));
+        router.refresh();
+
+        const shouldCreateInvoice = await confirm({
+          title: "Create Invoice",
+          description:
+            "Purchase Order sudah di-issue. Buat Purchase Invoice sekarang?",
+          confirmText: "Create Invoice",
+        });
+
+        if (shouldCreateInvoice) {
+          router.push(`/purchase/invoices/new?purchaseOrderId=${order.id}`);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -581,7 +602,7 @@ export function PurchaseOrderForm({
           </Button>
         </div>
       </div>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full overflow-x-hidden">
         {budgetWarning && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
@@ -589,27 +610,28 @@ export function PurchaseOrderForm({
             <AlertDescription>{budgetWarning}</AlertDescription>
           </Alert>
         )}
-        <div className="grid min-w-0 gap-4">
-          <div className="space-y-4">
-            <Card className="min-w-0 overflow-hidden">
+        <div className="grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden">
+          <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
+            <Card className="w-full min-w-0 max-w-full overflow-hidden">
               <CardContent>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <CustomSelect
-                      value={formData.contactId}
-                      label="Vendor"
-                      onValueChange={(val) =>
-                        setFormData((prev) => ({ ...prev, contactId: val }))
-                      }
-                      placeholder="Select Vendor"
-                      disabled={isReadOnly}
-                    >
-                      {vendors.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.name}
-                        </SelectItem>
-                      ))}
-                    </CustomSelect>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Vendor</label>
+                      <SearchableSelect
+                        value={formData.contactId}
+                        onValueChange={(val) =>
+                          setFormData((prev) => ({ ...prev, contactId: val || "" }))
+                        }
+                        options={vendors.map((v) => ({
+                          value: v.id,
+                          label: v.name,
+                          subtitle: [v.phone, v.address].filter(Boolean).join(" • "),
+                        }))}
+                        placeholder="Select Vendor"
+                        disabled={isReadOnly}
+                      />
+                    </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <CustomInput
                         type="date"
@@ -730,7 +752,10 @@ export function PurchaseOrderForm({
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <TableOverflow minWidthClassName="min-w-[860px]">
+                  <TableOverflow
+                    className="max-w-[calc(100vw-2rem)]"
+                    minWidthClassName="min-w-[760px] md:min-w-[860px]"
+                  >
                   <Table className="w-full">
                     <TableHeader>
                       <TableRow>
@@ -751,26 +776,20 @@ export function PurchaseOrderForm({
                         {formData.items.map((item, index) => (
                           <SortableTableRow key={item.id} id={item.id}>
                             <TableCell>
-                              <CustomSelect
+                              <SearchableSelect
                                 value={item.productId}
                                 onValueChange={(val) =>
-                                  handleItemChange(index, "productId", val)
+                                  handleItemChange(index, "productId", val || "")
                                 }
+                                options={products.map((p) => ({
+                                  value: p.id,
+                                  label: p.name,
+                                  subtitle: p.category?.name || p.sku || "-",
+                                  meta: formatCurrency(Number(p.price || 0)),
+                                }))}
                                 placeholder="Select Product"
                                 disabled={isReadOnly}
-                              >
-                                {products?.map(
-                                  (p: {
-                                    id: string;
-                                    name: string;
-                                    sku: string;
-                                  }) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.name} ({p.sku})
-                                    </SelectItem>
-                                  ),
-                                )}
-                              </CustomSelect>
+                              />
                             </TableCell>
                             <TableCell>
                               <CustomInput

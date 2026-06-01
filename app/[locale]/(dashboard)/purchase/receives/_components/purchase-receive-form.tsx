@@ -58,6 +58,7 @@ import { uploadFile } from "@/app/[locale]/(dashboard)/general/files/actions";
 import { Paperclip } from "lucide-react";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { TableOverflow } from "@/components/ui/table-overflow";
 
 interface ProductForSelect {
   id: string;
@@ -170,6 +171,25 @@ export function PurchaseReceiveForm({
     receive?.status || "DRAFT",
   );
   const FORM_ID = "purchase-receive-form";
+  const filteredPurchaseOrders = formData.contactId
+    ? purchaseOrders.filter((po) => po.contactId === formData.contactId)
+    : purchaseOrders;
+  const vendorOptions = vendors.map((v) => ({
+    value: v.id,
+    label: v.name,
+    subtitle: [v.phone, v.address].filter(Boolean).join(" • "),
+  }));
+  const purchaseOrderOptions = filteredPurchaseOrders.map((po) => ({
+    value: po.id,
+    label: po.orderNumber,
+    subtitle: po.contact?.name || "-",
+  }));
+  const productOptions = products.map((p) => ({
+    value: p.id,
+    label: p.name,
+    subtitle: p.sku || "-",
+    meta: p.purchaseUnit?.symbol || p.baseUnit?.symbol || "",
+  }));
 
   // When Purchase Order is selected, populate items
   const handlePurchaseOrderChange = async (poId: string) => {
@@ -290,11 +310,6 @@ export function PurchaseReceiveForm({
     await submitReceive("COMPLETED");
   };
 
-  // Filter purchase orders based on selected vendor
-  const filteredPurchaseOrders = formData.contactId
-    ? purchaseOrders.filter((po) => po.contactId === formData.contactId)
-    : purchaseOrders;
-
   return (
     <div className="flex-1 space-y-4 px-4">
       <div className="flex items-center justify-between space-y-2">
@@ -346,43 +361,30 @@ export function PurchaseReceiveForm({
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Vendor</Label>
-                  <CustomSelect
+                  <SearchableSelect
                     value={formData.contactId}
                     onValueChange={(val) => {
                       setFormData((prev) => ({
                         ...prev,
-                        contactId: val,
+                        contactId: val || "",
                         purchaseOrderId: undefined,
                       }));
                     }}
+                    options={vendorOptions}
                     placeholder="Select Vendor"
                     disabled={readonly || !!formData.purchaseOrderId} // Disable if PO selected (unless we want to allow changing vendor which clears PO)
-                  >
-                    {vendors.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </CustomSelect>
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label>Purchase Order (Optional)</Label>
-                  <CustomSelect
-                    value={formData.purchaseOrderId || "none"}
-                    onValueChange={(val) =>
-                      handlePurchaseOrderChange(val === "none" ? "" : val)
-                    }
+                  <SearchableSelect
+                    value={formData.purchaseOrderId || ""}
+                    onValueChange={(val) => handlePurchaseOrderChange(val || "")}
+                    options={purchaseOrderOptions}
                     placeholder="Select Purchase Order"
                     disabled={readonly}
-                  >
-                    <SelectItem value="none">None</SelectItem>
-                    {filteredPurchaseOrders.map((po) => (
-                      <SelectItem key={po.id} value={po.id}>
-                        {po.orderNumber} ({po.contact.name})
-                      </SelectItem>
-                    ))}
-                  </CustomSelect>
+                  />
                 </div>
 
                 {showDimensionFields ? (
@@ -513,7 +515,8 @@ export function PurchaseReceiveForm({
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <Table>
+                  <TableOverflow minWidthClassName="min-w-[760px]">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
@@ -531,21 +534,17 @@ export function PurchaseReceiveForm({
                         {formData.items.map((item, index) => (
                           <SortableTableRow key={item.id} id={item.id}>
                             <TableCell>
-                              <CustomSelect
+                              <SearchableSelect
                                 value={item.productId}
                                 onValueChange={(val) =>
-                                  handleItemChange(index, "productId", val)
+                                  handleItemChange(index, "productId", val || "")
                                 }
+                                options={productOptions}
                                 disabled={
                                   readonly || !!item.purchaseOrderItemId
                                 }
-                              >
-                                {products?.map((p) => (
-                                  <SelectItem key={p.id} value={p.id}>
-                                    {p.name} ({p.sku})
-                                  </SelectItem>
-                                ))}
-                              </CustomSelect>
+                                placeholder="Select Product"
+                              />
                             </TableCell>
                             <TableCell>
                               <CustomInput
@@ -580,6 +579,7 @@ export function PurchaseReceiveForm({
                       </SortableContext>
                     </TableBody>
                   </Table>
+                  </TableOverflow>
                 </DndContext>
                 {formData.items.length === 0 && (
                   <div className="py-8 text-center text-muted-foreground">

@@ -28,10 +28,9 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Trash2, ArrowLeft, Paperclip } from "lucide-react";
+import { Trash2, ArrowLeft, Paperclip, PrinterIcon } from "lucide-react";
 import { createSalesShipment, updateSalesShipment } from "../actions";
 import { SalesShipmentInput, SalesShipmentWithDetails } from "../types";
-import { CustomSelect } from "@/components/ui/custom-select";
 import { useToast } from "@/hooks/use-toast";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
 import { SortableTableRow } from "@/components/ui/sortable-row";
@@ -51,10 +50,11 @@ import {
     PageFormTitle,
 } from "@/components/layout/page/form-layout";
 import { useTranslations } from "next-intl";
+import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 
 interface SalesShipmentFormProps {
     shipment?: SuperJSONResult;
-    customers: { id: string; name: string }[];
+    customers: { id: string; name: string; phone?: string | null; address?: string | null }[];
     salesOrders: SuperJSONResult;
     departments?: Department[];
     projects?: Project[];
@@ -89,6 +89,7 @@ export function SalesShipmentForm({
         })) || [],
     );
     const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
+    const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
     const hasAppliedInitialSalesOrder = useRef(false);
     const showDimensionFields = departments.length > 0 || projects.length > 0;
 
@@ -137,6 +138,22 @@ export function SalesShipmentForm({
         }
         return [];
     }, [formData.contactId, salesOrders]);
+    const customerOptions = useMemo(
+        () => customers.map((c) => ({
+            value: c.id,
+            label: c.name,
+            subtitle: [c.phone, c.address].filter(Boolean).join(" • "),
+        })),
+        [customers],
+    );
+    const salesOrderOptions = useMemo(
+        () => filteredSalesOrders.map((so) => ({
+            value: so.id,
+            label: so.orderNumber,
+            subtitle: so.items.slice(0, 2).map((i) => i.product?.name || "-").join(", "),
+        })),
+        [filteredSalesOrders],
+    );
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -294,10 +311,20 @@ export function SalesShipmentForm({
 
     return (
         <PageFormLayout>
-            <form onSubmit={handleSubmit} className="space-y-8 w-full">
+            <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full space-y-8 overflow-x-hidden">
                 <PageFormHeader>
                     <PageFormTitle title={shipment ? t("edit_shipment") : t("new_shipment")} />
                     <PageFormActions>
+                        {shipment ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsReportPreviewOpen(true)}
+                            >
+                                <PrinterIcon className="mr-2 h-4 w-4" />
+                                {tCommon("print")}
+                            </Button>
+                        ) : null}
                         {!readonly && (
                             <>
                                 <Button
@@ -332,37 +359,38 @@ export function SalesShipmentForm({
                         )}
                     </PageFormActions>
                 </PageFormHeader>
-                <PageFormContent className="grid gap-4 mt-4 p-0 bg-transparent border-none shadow-none">
-                <div className="grid gap-4 md:grid-cols-2">
+                <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden border-none bg-transparent p-0 shadow-none">
+                <div className="grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden md:grid-cols-2">
                         <CustomInput
                             label={t("shipment_number")}
                             value={shipment?.shipmentNumber || t("placeholder_auto_generate")}
                             disabled={true}
                         />
 
-                        <CustomSelect
-                            label={t("customer")}
-                            defaultValue={formData.contactId}
-                            onValueChange={(val: any) => handleContactChange(val)}
-                            options={customers.map((c) => ({ label: c.name, value: c.id }))}
-                            disabled={readonly}
-                            placeholder={t("placeholder_select_customer")}
-                        />
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">{t("customer")}</label>
+                            <SearchableSelect
+                                value={formData.contactId}
+                                onValueChange={(val) => handleContactChange(val || "")}
+                                options={customerOptions}
+                                disabled={readonly}
+                                placeholder={t("placeholder_select_customer")}
+                            />
+                        </div>
 
-                        <CustomSelect
-                            label={t("sales_order_optional")}
-                            value={formData.salesOrderId || ""}
-                            onValueChange={(val: any) => handleSalesOrderChange(val)}
-                            options={filteredSalesOrders.map((so) => ({
-                                label: so.orderNumber,
-                                value: so.id,
-                            }))}
-                            disabled={readonly || !formData.contactId}
-                            placeholder={t("placeholder_select_so")}
-                        />
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">{t("sales_order_optional")}</label>
+                            <SearchableSelect
+                                value={formData.salesOrderId || ""}
+                                onValueChange={(val) => handleSalesOrderChange(val || "")}
+                                options={salesOrderOptions}
+                                disabled={readonly || !formData.contactId}
+                                placeholder={t("placeholder_select_so")}
+                            />
+                        </div>
 
                     {showDimensionFields ? (
-                        <div className="col-span-2 grid grid-cols-2 gap-4">
+                        <div className="col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">{t("department")}</label>
                                     <SearchableSelect
@@ -534,6 +562,15 @@ export function SalesShipmentForm({
                 }}
                 readonly={readonly}
             />
+            {shipment ? (
+                <ReportPreviewDialog
+                    isOpen={isReportPreviewOpen}
+                    onOpenChange={setIsReportPreviewOpen}
+                    code="SALES_SHIPMENT"
+                    input={{ shipmentId: shipment.id }}
+                    title={`Sales Shipment #${shipment.shipmentNumber}`}
+                />
+            ) : null}
         </PageFormLayout>
     );
 }

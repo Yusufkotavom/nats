@@ -42,7 +42,7 @@ import {
 import { TaxRate } from "@/prisma/generated/prisma/client";
 import { SalesInvoiceWithDetails, SalesInvoiceInput } from "../types";
 import { SalesOrderWithDetails } from "../../orders/types";
-import { useFormatDate } from "@/hooks";
+import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { format, parse, isValid } from "date-fns";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { SortableTableRow } from "@/components/ui/sortable-row";
@@ -76,11 +76,13 @@ import {
 } from "@/lib/communication/company-communication";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 import { TableOverflow } from "@/components/ui/table-overflow";
+import { ProductWithDetails } from "@/app/[locale]/(dashboard)/inventory/types";
 
 interface SalesInvoiceFormProps {
   invoice?: SuperJSONResult | null;
-  customers: { id: string; name: string }[];
+  customers: { id: string; name: string; phone?: string | null; address?: string | null }[];
   salesOrders: SuperJSONResult;
+  products: SuperJSONResult | ProductWithDetails[];
   taxRates: TaxRate[];
   departments?: Department[];
   projects?: Project[];
@@ -92,6 +94,7 @@ export function SalesInvoiceForm({
   invoice: serializedInvoice,
   customers,
   salesOrders: serializedSalesOrders,
+  products: serializedProducts,
   taxRates,
   departments = [],
   projects = [],
@@ -104,12 +107,16 @@ export function SalesInvoiceForm({
   const salesOrders = SuperJSON.deserialize<SalesOrderWithDetails[]>(
     serializedSalesOrders,
   );
+  const products = Array.isArray(serializedProducts)
+    ? serializedProducts
+    : SuperJSON.deserialize<ProductWithDetails[]>(serializedProducts as SuperJSONResult);
 
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!invoice;
   const formatDate = useFormatDate();
+  const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
   const { toast } = useToast();
   const t = useTranslations("Sales");
@@ -245,6 +252,7 @@ export function SalesInvoiceForm({
           // Populate items from SO
           const newItems = fullSo.items.map((item) => ({
             id: generateId(),
+            productId: item.productId,
             description: item.product?.name || "Item",
             quantity: item.quantity,
             unitPrice: Number(item.unitPrice), // Assuming unitPrice exists on SO Item
@@ -279,6 +287,7 @@ export function SalesInvoiceForm({
         ...prev.items,
         {
           id: generateId(),
+          productId: "",
           description: "",
           quantity: 1,
           unitPrice: 0,
@@ -304,6 +313,14 @@ export function SalesInvoiceForm({
   ) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
+
+    if (field === "productId") {
+      const product = products.find((p: { id: string }) => p.id === value);
+      if (product) {
+        newItems[index].description = product.name;
+        newItems[index].unitPrice = Number(product.price || 0);
+      }
+    }
     setFormData((prev) => ({ ...prev, items: newItems }));
   };
 
@@ -343,6 +360,7 @@ export function SalesInvoiceForm({
     }, 0);
 
     if (Math.abs(calculatedTotalTax - formData.totalTax) > 0.001) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData((prev) => ({ ...prev, totalTax: calculatedTotalTax }));
     }
   }, [formData.items, formData.totalTax, taxRates]);
@@ -468,6 +486,46 @@ export function SalesInvoiceForm({
           ),
         });
         router.refresh();
+
+        const openFollowUps = await confirm({
+          title: "Invoice Issued",
+          description:
+            "Invoice sudah ISSUED. Buka aksi lanjutan (WA konfirmasi, create payment, create shipping) di tab baru?",
+          confirmText: "Open Actions",
+        });
+
+        if (openFollowUps) {
+          const locale = pathname.split("/").filter(Boolean)[0] || "id";
+          const baseUrl = window.location.origin;
+
+          if (invoice.contact?.phone) {
+            const normalized = normalizePhoneForWhatsApp(invoice.contact.phone);
+            if (normalized) {
+              const invoiceUrl = `${baseUrl}/${locale}/reporting/preview?code=SALES_INVOICE&invoiceId=${invoice.id}`;
+              const preview = await buildCompanyCommunicationPreview({
+                eventKey: "SALES_INVOICE_ISSUED",
+                vars: {
+                  customer_name: invoice.contact.name,
+                  doc_number: invoice.invoiceNumber,
+                  amount: Number(invoice.totalAmount || 0).toLocaleString("id-ID"),
+                  remaining_amount: Number(invoice.balanceDue || 0).toLocaleString("id-ID"),
+                  doc_url: invoiceUrl,
+                  status: "ISSUED",
+                  date: formatDate(invoice.invoiceDate),
+                },
+              });
+              if (preview.isEnabled && preview.message.trim()) {
+                const waUrl = `https://wa.me/${normalized}?text=${encodeURIComponent(preview.message)}`;
+                window.open(waUrl, "_blank", "noopener,noreferrer");
+              }
+            }
+          }
+
+          window.open(`/sales/payments/new?salesInvoiceId=${invoice.id}`, "_blank", "noopener,noreferrer");
+          if (invoice.salesOrderId) {
+            window.open(`/sales/shipments/new?salesOrderId=${invoice.salesOrderId}`, "_blank", "noopener,noreferrer");
+          }
+        }
       } else {
         toast({
           title: "Error",
@@ -490,6 +548,29 @@ export function SalesInvoiceForm({
   const filteredSalesOrders = formData.contactId
     ? salesOrders.filter((so) => so.contactId === formData.contactId)
     : salesOrders;
+  const salesOrderOptions = filteredSalesOrders.map((so) => {
+    const topItems = so.items.slice(0, 2).map((item) => item.product?.name || "Item").join(", ");
+    const moreCount = Math.max(0, so.items.length - 2);
+    const itemsLabel = `${topItems}${moreCount > 0 ? ` +${moreCount}` : ""}`;
+    return {
+      value: so.id,
+      label: so.orderNumber,
+      subtitle: `${so.contact?.name || "-"} • ${itemsLabel || "-"}`,
+      meta: formatCurrency(Number(so.totalAmount || 0)),
+    };
+  });
+  const customerOptions = customers.map((c) => ({
+    value: c.id,
+    label: c.name,
+    subtitle: [c.phone, c.address].filter(Boolean).join(" • "),
+  }));
+  const productOptions = products.map((p) => ({
+    value: p.id,
+    label: p.name,
+    subtitle: p.category?.name || p.sku || "-",
+    meta: formatCurrency(Number(p.price || 0)),
+  }));
+  
   const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   useEffect(() => {
@@ -574,7 +655,7 @@ export function SalesInvoiceForm({
 
   return (
     <PageFormLayout>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full overflow-x-hidden">
         <PageFormHeader>
           <PageFormTitle title={isEditing ? "Edit Sales Invoice" : "New Sales Invoice"} />
           <PageFormActions className="w-full justify-start md:w-auto md:justify-end">
@@ -657,31 +738,20 @@ export function SalesInvoiceForm({
             </div>
           </PageFormActions>
         </PageFormHeader>
-        <PageFormContent className="mt-4 grid min-w-0 gap-4 border-none bg-transparent p-0 shadow-none">
-          <div className="space-y-4">
-            <Card className="min-w-0">
+        <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden border-none bg-transparent p-0 shadow-none">
+          <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
+            <Card className="w-full min-w-0 max-w-full overflow-hidden">
               <CardContent className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <CustomSelect
-                  label={t("sales_order_optional")}
-                  value={formData.salesOrderId || "none"}
-                  onValueChange={(val) =>
-                    handleSalesOrderChange(val === "none" ? "" : val)
-                  }
-                  placeholder="Select Sales Order"
-                  disabled={readonly}
-                >
-                  <SelectItem value="none">None</SelectItem>
-                  {filteredSalesOrders.map((so) => (
-                    <SelectItem key={so.id} value={so.id}>
-                      <div className="flex items-center">
-                        <span>{so.orderNumber}</span>
-                        <span className="text-muted-foreground ml-2">
-                          ({so.contact.name})
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t("sales_order_optional")}</label>
+                  <SearchableSelect
+                    value={formData.salesOrderId || ""}
+                    onValueChange={(val) => handleSalesOrderChange(val || "")}
+                    options={salesOrderOptions}
+                    placeholder="Select Sales Order"
+                    disabled={readonly}
+                  />
+                </div>
 
                 {showDimensionFields ? (
                   <div className="col-span-1 grid grid-cols-1 gap-4 md:col-span-2 sm:grid-cols-2">
@@ -721,25 +791,22 @@ export function SalesInvoiceForm({
                   disabled={readonly}
                 />
 
-                <CustomSelect
-                  value={formData.contactId}
-                  label={t("customer")}
-                  onValueChange={(val) => {
-                    setFormData((prev) => ({
-                      ...prev,
-                      contactId: val,
-                      salesOrderId: undefined,
-                    }));
-                  }}
-                  placeholder="Select Customer"
-                  disabled={readonly || !!formData.salesOrderId}
-                >
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </CustomSelect>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">{t("customer")}</label>
+                  <SearchableSelect
+                    value={formData.contactId}
+                    onValueChange={(val) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        contactId: val || "",
+                        salesOrderId: undefined,
+                      }));
+                    }}
+                    options={customerOptions}
+                    placeholder="Select Customer"
+                    disabled={readonly || !!formData.salesOrderId}
+                  />
+                </div>
 
                 <div className="space-y-1">
                   <Label>{t("invoice_date")}</Label>
@@ -878,7 +945,7 @@ export function SalesInvoiceForm({
                   placeholder="Add notes here..."
                   disabled={readonly}
                 />
-                <div className="col-span-2">
+                <div className="md:col-span-2">
                   <div className="flex flex-col gap-2">
                     <Button
                       type="button"
@@ -911,22 +978,25 @@ export function SalesInvoiceForm({
               </CardContent>
             </Card>
 
-            <Card className="min-w-0">
+            <Card className="min-w-0 overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{tCommon("products")}</CardTitle>
               </CardHeader>
-              <CardContent className="min-w-0 overflow-x-auto p-0">
+              <CardContent className="min-w-0 p-0">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <TableOverflow minWidthClassName="min-w-[1100px]">
+                  <TableOverflow
+                    className="max-w-[calc(100vw-2rem)]"
+                    minWidthClassName="min-w-[980px] md:min-w-[1100px]"
+                  >
                   <Table className="w-full">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
-                        <TableHead className="min-w-[220px] whitespace-nowrap">{tCommon("description")}</TableHead>
+                        <TableHead className="min-w-[220px] whitespace-nowrap">{tCommon("product")}</TableHead>
                         {/* Removed Account Header to match cells */}
                         <TableHead className="w-[110px] whitespace-nowrap">{tCommon("quantity")}</TableHead>
                         <TableHead className="w-[150px] whitespace-nowrap">{tCommon("price")}</TableHead>
@@ -948,15 +1018,13 @@ export function SalesInvoiceForm({
                         {formData.items.map((item, index) => (
                           <SortableTableRow key={item.id} id={item.id}>
                             <TableCell className="min-w-[220px]">
-                              <CustomInput
-                                value={item.description}
-                                onChange={(e) =>
-                                  handleItemChange(
-                                    index,
-                                    "description",
-                                    e.target.value,
-                                  )
+                              <SearchableSelect
+                                value={item.productId || ""}
+                                onValueChange={(val) =>
+                                  handleItemChange(index, "productId", val || "")
                                 }
+                                options={productOptions}
+                                placeholder={tCommon("placeholder_select_product")}
                                 disabled={readonly}
                               />
                             </TableCell>

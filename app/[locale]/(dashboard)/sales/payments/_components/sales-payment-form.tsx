@@ -19,7 +19,7 @@ import {
 } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
 import { format } from "date-fns";
-import { Loader2, Paperclip } from "lucide-react";
+import { Loader2, Paperclip, PrinterIcon } from "lucide-react";
 import {
   PageFormActions,
   PageFormContent,
@@ -41,6 +41,7 @@ import { Department, Project } from "@/prisma/generated/prisma/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SuperJSONResult } from "superjson";
 import { UnifiedPaymentMethod } from "@/lib/payments/payment-methods";
+import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 
 interface SalesPaymentFormProps {
   initialData?: SalesPaymentWithDetails;
@@ -110,6 +111,7 @@ export function SalesPaymentForm({
     })) || []
   );
   const [attachmentDialogOpen, setAttachmentDialogOpen] = useState(false);
+  const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
   const showDimensionFields = departments.length > 0 || projects.length > 0;
 
   const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
@@ -137,6 +139,23 @@ export function SalesPaymentForm({
   const paymentMethods = useMemo(
     () => cashAccountsData?.methods || [],
     [cashAccountsData?.methods],
+  );
+  const invoiceOptions = useMemo(
+    () =>
+      (invoicesData || []).map((invoice) => {
+        const totalPaid = invoice.payments.reduce(
+          (sum: number, p: any) => sum + Number(p.amount),
+          0
+        );
+        const remaining = Number(invoice.totalAmount) - totalPaid;
+        return {
+          value: invoice.id,
+          label: invoice.invoiceNumber,
+          subtitle: invoice.contact?.name || "-",
+          meta: `Due ${formatCurrency(remaining)}`,
+        };
+      }),
+    [invoicesData, formatCurrency],
   );
 
   useEffect(() => {
@@ -303,7 +322,7 @@ export function SalesPaymentForm({
 
   return (
     <PageFormLayout>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full overflow-x-hidden">
         <PageFormHeader>
           <PageFormTitle title={initialData ? (readonly ? t("view_payment") : t("edit_payment")) : t("new_payment")} />
           <PageFormActions className="w-full flex-wrap justify-start md:w-auto md:justify-end">
@@ -321,6 +340,16 @@ export function SalesPaymentForm({
                 >
                   Outbox
                 </Link>
+              </Button>
+            ) : null}
+            {initialData ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsReportPreviewOpen(true)}
+              >
+                <PrinterIcon className="mr-2 h-4 w-4" />
+                {tCommon("print")}
               </Button>
             ) : null}
             {initialData && !readonly ? (
@@ -352,36 +381,27 @@ export function SalesPaymentForm({
             ) : null}
           </PageFormActions>
         </PageFormHeader>
-        <PageFormContent className="grid gap-6 md:grid-cols-2 pt-6 mt-4">
-          <CustomSelect
-            label={t("invoice")}
-            value={formData.salesInvoiceId}
-            onValueChange={(val) =>
-              setFormData((prev) => ({ ...prev, salesInvoiceId: val }))
-            }
-            placeholder={t("placeholder_select_invoice")}
-            disabled={readonly || !!initialData} // Disable changing invoice on edit for safety
-          >
-            {initialData && readonly && initialData.salesInvoice ? (
-              <SelectItem value={initialData.salesInvoice.id}>
-                {initialData.salesInvoice.invoiceNumber} - {initialData.contact?.name}
-              </SelectItem>
-            ) : (
-              invoicesData?.map((invoice) => {
-                const totalPaid = invoice.payments.reduce(
-                  (sum: number, p: any) => sum + Number(p.amount),
-                  0
-                );
-                const remaining = Number(invoice.totalAmount) - totalPaid;
-                return (
-                  <SelectItem key={invoice.id} value={invoice.id}>
-                    {invoice.invoiceNumber} - {invoice.contact.name} (Due:{" "}
-                    {formatCurrency(remaining)})
-                  </SelectItem>
-                );
-              })
-            )}
-          </CustomSelect>
+        <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-6 overflow-x-hidden pt-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("invoice")}</label>
+            <SearchableSelect
+              value={formData.salesInvoiceId}
+              onValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, salesInvoiceId: val || "" }))
+              }
+              options={
+                initialData && readonly && initialData.salesInvoice
+                  ? [{
+                      value: initialData.salesInvoice.id,
+                      label: initialData.salesInvoice.invoiceNumber,
+                      subtitle: initialData.contact?.name || "-",
+                    }]
+                  : invoiceOptions
+              }
+              placeholder={t("placeholder_select_invoice")}
+              disabled={readonly || !!initialData}
+            />
+          </div>
 
           <CustomInput
             label={t("payment_number")}
@@ -465,7 +485,7 @@ export function SalesPaymentForm({
           />
 
           {showDimensionFields ? (
-            <div className="md:col-span-2 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:col-span-2 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t("department")}</label>
                 <SearchableSelect
@@ -575,6 +595,15 @@ export function SalesPaymentForm({
           return res;
         }}
       />
+      {initialData ? (
+        <ReportPreviewDialog
+          isOpen={isReportPreviewOpen}
+          onOpenChange={setIsReportPreviewOpen}
+          code="SALES_PAYMENT"
+          input={{ paymentId: initialData.id }}
+          title={`Sales Payment #${initialData.paymentNumber}`}
+        />
+      ) : null}
     </PageFormLayout>
   );
 }

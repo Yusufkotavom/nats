@@ -121,7 +121,7 @@ export async function getSalesInvoice(id: string) {
   return SuperJSON.serialize(invoice);
 }
 
-export async function getSalesOrdersForSelect() {
+export async function getSalesOrdersForSelect(currentInvoiceId?: string) {
   const session = await getSession();
   if (!session || !hasPermission(session.permissions, "sales.view")) {
     return SuperJSON.serialize([]);
@@ -134,6 +134,12 @@ export async function getSalesOrdersForSelect() {
     where: {
       companyId: session.activeCompanyId,
       status: { in: ["CONFIRMED", "SHIPPED", "PARTIALLY_SHIPPED", "CLOSED"] },
+      OR: [
+        { invoices: { none: {} } },
+        ...(currentInvoiceId
+          ? [{ invoices: { some: { id: currentInvoiceId } } }]
+          : []),
+      ],
     },
     orderBy: { createdAt: "desc" },
     include: {
@@ -263,14 +269,18 @@ export const postSalesInvoice = authorizedAction<PostSalesInvoiceResult, [string
         });
       });
 
+      // Force inline processing for explicit "Post Invoice" action so status
+      // moves to ISSUED immediately even when background worker is disabled.
+      const processed = await maybeProcessIntegrationOutboxEvent(outbox.id, {
+        forceInline: true,
+      });
+
       if (outbox.alreadyQueued) {
         return {
           success: true,
-          data: { processed: false as const, alreadyQueued: true as const, outboxId: outbox.id },
+          data: { ...processed, alreadyQueued: true as const, outboxId: outbox.id },
         };
       }
-
-      const processed = await maybeProcessIntegrationOutboxEvent(outbox.id);
 
       revalidateLocalizedPath("/sales/invoices");
       revalidateLocalizedPath(`/sales/invoices/${id}`);

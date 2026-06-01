@@ -10,6 +10,7 @@ import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/
 import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration/taxes/actions";
 import { getSalesPipelineBridgeByContext } from "../../../_lib/pipeline-bridge";
 import { SalesPipelineTopbar } from "../../../_components/sales-pipeline-topbar";
+import { getProducts } from "@/app/[locale]/(dashboard)/inventory/products/actions";
 
 export const metadata: Metadata = {
   title: "Edit Sales Invoice | NATS",
@@ -23,14 +24,15 @@ interface PageProps {
 export default async function EditSalesInvoicePage({ params }: PageProps) {
   const { id } = await params;
 
-  const [customers, salesOrders, invoice, departments, projects, taxRates, pipeline] = await Promise.all([
+  const [customers, salesOrders, invoice, departments, projects, taxRates, pipeline, productsResult] = await Promise.all([
     getContacts({ type: ContactType.CUSTOMER }),
-    getSalesOrdersForSelect(),
+    getSalesOrdersForSelect(id),
     getSalesInvoice(id),
     getDepartments(),
     getProjects(),
     getTaxRates(),
     getSalesPipelineBridgeByContext({ kind: "invoice", id }),
+    getProducts(1, 500),
   ]);
 
   if (!invoice) {
@@ -47,6 +49,7 @@ export default async function EditSalesInvoicePage({ params }: PageProps) {
         departments={departments}
         projects={projects.projects}
         taxRates={taxRates}
+        products={productsResult.products}
       />
     </>
   );

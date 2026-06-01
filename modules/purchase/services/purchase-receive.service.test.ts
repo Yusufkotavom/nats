@@ -46,6 +46,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 import { PurchaseReceiveService } from "./purchase-receive.service";
 
 const MOCK_USER_ID = "user-001";
+const MOCK_COMPANY_ID = "company-001";
 
 const MOCK_RECEIVE_INPUT = {
     contactId: "contact-001",
@@ -84,7 +85,7 @@ describe("PurchaseReceiveService", () => {
                 return (cb as any)(tx);
             });
 
-            const result = await PurchaseReceiveService.create(MOCK_RECEIVE_INPUT, MOCK_USER_ID);
+            const result = await PurchaseReceiveService.create(MOCK_RECEIVE_INPUT, MOCK_USER_ID, MOCK_COMPANY_ID);
 
             expect(result.id).toBe("rcv-001");
         });
@@ -108,7 +109,7 @@ describe("PurchaseReceiveService", () => {
                 return (cb as any)(tx);
             });
 
-            await PurchaseReceiveService.create(MOCK_RECEIVE_INPUT, MOCK_USER_ID);
+            await PurchaseReceiveService.create(MOCK_RECEIVE_INPUT, MOCK_USER_ID, MOCK_COMPANY_ID);
 
             expect(enqueueIntegrationEventMock).toHaveBeenCalledWith(
                 expect.anything(),

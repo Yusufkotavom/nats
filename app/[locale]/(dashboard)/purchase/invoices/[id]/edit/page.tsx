@@ -10,6 +10,7 @@ import { SuperJSON } from "@/lib/superjson";
 import { PurchaseInvoiceWithDetails } from "../../types";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 import { getTaxRates } from "@/app/[locale]/(dashboard)/accounting/configuration/taxes/actions";
+import { getProducts } from "@/app/[locale]/(dashboard)/inventory/products/actions";
 
 export const metadata: Metadata = {
   title: "Edit Purchase Invoice | NATS",
@@ -24,7 +25,7 @@ interface PageProps {
 
 export default async function EditPurchaseInvoicePage(props: PageProps) {
   const params = await props.params;
-  const [serializedInvoice, vendors, serializedPurchaseOrders, departments, projects, taxRates] =
+  const [serializedInvoice, vendors, serializedPurchaseOrders, departments, projects, taxRates, productsResult] =
     await Promise.all([
       getPurchaseInvoice(params.id),
       getContacts({ type: ContactType.VENDOR }),
@@ -32,6 +33,7 @@ export default async function EditPurchaseInvoicePage(props: PageProps) {
       getDepartments(),
       getProjects(),
       getTaxRates(),
+      getProducts(1, 500),
     ]);
 
   if (!serializedInvoice) {
@@ -58,6 +60,7 @@ export default async function EditPurchaseInvoicePage(props: PageProps) {
       invoice={serializedInvoice}
       vendors={vendors.data}
       purchaseOrders={serializedPurchaseOrders}
+      products={productsResult.products}
       departments={departments}
       projects={projects.projects}
       taxRates={taxRates}

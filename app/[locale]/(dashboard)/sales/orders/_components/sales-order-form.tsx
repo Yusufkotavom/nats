@@ -11,9 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CustomInput } from "@/components/ui/custom-input";
-import { CustomSelect } from "@/components/ui/custom-select";
 import { CustomTextarea } from "@/components/ui/custom-textarea";
-import { SelectItem } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Table,
@@ -63,6 +61,7 @@ import {
   confirmSalesOrder,
   cancelSalesOrder,
   closeSalesOrder,
+  createSalesOrderQuickContact,
 } from "../actions";
 import { SalesOrderInput, SalesOrderWithDetails } from "../types";
 import { format } from "date-fns";
@@ -140,6 +139,24 @@ export function SalesOrderForm({
   );
   const [isAttachmentDialogOpen, setIsAttachmentDialogOpen] = useState(false);
   const [isReportPreviewOpen, setIsReportPreviewOpen] = useState(false);
+  const [customerOptions, setCustomerOptions] = useState(
+    customers.map((c) => ({
+      value: c.id,
+      label: c.name,
+      subtitle: [c.phone, c.address].filter(Boolean).join(" • "),
+    })),
+  );
+  const productOptions = products.map((p) => ({
+    value: p.id,
+    label: p.name,
+    subtitle: p.category?.name || p.sku || "-",
+    meta: formatCurrency(Number(p.price || 0)),
+  }));
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickEmail, setQuickEmail] = useState("");
+  const [quickAddress, setQuickAddress] = useState("");
 
 
   const [formData, setFormData] = useState<
@@ -226,6 +243,39 @@ export function SalesOrderForm({
     (sum, item) => sum + item.quantity * item.unitPrice,
     0,
   );
+
+  const handleQuickAddCustomer = async () => {
+    if (!quickName.trim()) {
+      await alert({ title: "Error", description: "Customer name is required" });
+      return;
+    }
+
+    try {
+      const raw = await createSalesOrderQuickContact({
+        name: quickName.trim(),
+        phone: quickPhone.trim() || undefined,
+        email: quickEmail.trim() || undefined,
+        address: quickAddress.trim() || undefined,
+      });
+      const contact = SuperJSON.deserialize<{ id: string; name: string; phone?: string | null; address?: string | null }>(raw as any);
+      setCustomerOptions((prev) => [{
+        value: contact.id,
+        label: contact.name,
+        subtitle: [contact.phone, contact.address].filter(Boolean).join(" • "),
+      }, ...prev]);
+      setFormData((prev) => ({ ...prev, contactId: contact.id }));
+      setQuickName("");
+      setQuickPhone("");
+      setQuickEmail("");
+      setQuickAddress("");
+      setQuickOpen(false);
+    } catch (error) {
+      await alert({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create customer",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -618,30 +668,60 @@ export function SalesOrderForm({
           </div>
         </PageFormActions>
       </PageFormHeader>
-      <form onSubmit={handleSubmit}>
-        <PageFormContent className="mt-4 grid min-w-0 gap-4 border-none bg-transparent p-0 shadow-none">
-          <div className="space-y-4">
-            <Card className="min-w-0 overflow-hidden">
+      <form onSubmit={handleSubmit} className="w-full min-w-0 max-w-full overflow-x-hidden">
+        <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden border-none bg-transparent p-0 shadow-none">
+          <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
+            <Card className="w-full min-w-0 max-w-full overflow-hidden">
               <CardContent>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">{t("customer")}</label>
-                      <SearchableSelect
-                        value={formData.contactId || ""}
-                        onValueChange={(val) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            contactId: val || "",
-                          }))
-                        }
-                        options={customers.map((c) => ({
-                          value: c.id,
-                          label: c.name,
-                        }))}
-                        placeholder={t("placeholder_select_customer")}
-                        disabled={isReadOnly}
-                      />
+                      <div className="flex gap-2">
+                        <SearchableSelect
+                          className="flex-1"
+                          value={formData.contactId || ""}
+                          onValueChange={(val) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              contactId: val || "",
+                            }))
+                          }
+                          options={customerOptions}
+                          placeholder={t("placeholder_select_customer")}
+                          disabled={isReadOnly}
+                        />
+                        {!isReadOnly && (
+                          <Dialog open={quickOpen} onOpenChange={setQuickOpen}>
+                            <DialogTrigger asChild>
+                              <Button type="button" variant="outline">Quick Add</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Quick Add Customer</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-2">
+                                <label className="text-sm font-medium">Name</label>
+                                <CustomInput value={quickName} onChange={(e) => setQuickName(e.target.value)} />
+                                <label className="text-sm font-medium">Phone</label>
+                                <CustomInput value={quickPhone} onChange={(e) => setQuickPhone(e.target.value)} />
+                                <label className="text-sm font-medium">Email</label>
+                                <CustomInput value={quickEmail} onChange={(e) => setQuickEmail(e.target.value)} />
+                                <label className="text-sm font-medium">Address</label>
+                                <CustomTextarea
+                                  value={quickAddress}
+                                  onChange={(e) => setQuickAddress(e.target.value)}
+                                  className="min-h-[84px]"
+                                />
+                                <div className="flex justify-end gap-2 pt-2">
+                                  <Button type="button" variant="outline" onClick={() => setQuickOpen(false)}>Cancel</Button>
+                                  <Button type="button" onClick={handleQuickAddCustomer}>Save</Button>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <CustomInput
@@ -764,7 +844,10 @@ export function SalesOrderForm({
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
-                  <TableOverflow minWidthClassName="min-w-[860px]">
+                  <TableOverflow
+                    className="max-w-[calc(100vw-2rem)]"
+                    minWidthClassName="min-w-[760px] md:min-w-[860px]"
+                  >
                   <Table className="w-full">
                     <TableHeader>
                       <TableRow>
@@ -785,26 +868,15 @@ export function SalesOrderForm({
                         {formData.items.map((item, index) => (
                           <SortableTableRow key={item.id} id={item.id}>
                             <TableCell>
-                              <CustomSelect
+                              <SearchableSelect
                                 value={item.productId}
                                 onValueChange={(val) =>
-                                  handleItemChange(index, "productId", val)
+                                  handleItemChange(index, "productId", val || "")
                                 }
+                                options={productOptions}
                                 placeholder={tCommon("placeholder_select_product")}
                                 disabled={isReadOnly}
-                              >
-                                {products?.map(
-                                  (p: {
-                                    id: string;
-                                    name: string;
-                                    sku: string;
-                                  }) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.name}
-                                    </SelectItem>
-                                  ),
-                                )}
-                              </CustomSelect>
+                              />
                             </TableCell>
                             <TableCell>
                               <CustomInput
