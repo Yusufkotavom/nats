@@ -22,19 +22,19 @@ describe("SalesPipelineTopbar", () => {
 
     expect(screen.getByRole("link", { name: /sales order/i })).toHaveAttribute(
       "href",
-      "/sales/orders/so-1",
+      "/sales/orders/so-1/edit",
     );
     expect(screen.getByRole("link", { name: /shipment/i })).toHaveAttribute(
       "href",
-      "/sales/shipments/sh-1",
+      "/sales/shipments/sh-1/edit",
     );
     expect(screen.getByRole("link", { name: /invoice/i })).toHaveAttribute(
       "href",
-      "/sales/invoices/inv-1",
+      "/sales/invoices/inv-1/edit",
     );
     expect(screen.getByRole("link", { name: /payment/i })).toHaveAttribute(
       "href",
-      "/sales/payments/pay-1",
+      "/sales/payments/pay-1/edit",
     );
   });
 

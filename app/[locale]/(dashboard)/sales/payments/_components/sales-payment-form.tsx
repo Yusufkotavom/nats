@@ -162,10 +162,9 @@ export function SalesPaymentForm({
     [invoicesData, formatCurrency],
   );
 
-  const selectedInvoice = useMemo(() => {
-    if (initialData?.salesInvoice) return initialData.salesInvoice as any;
-    return (invoicesData || []).find((inv) => inv.id === formData.salesInvoiceId) as any;
-  }, [initialData?.salesInvoice, invoicesData, formData.salesInvoiceId]);
+  const selectedInvoice =
+    (initialData?.salesInvoice as any) ||
+    ((invoicesData || []).find((inv) => inv.id === formData.salesInvoiceId) as any);
 
   useEffect(() => {
     if (!initialData && initialSalesInvoiceId && !formData.salesInvoiceId) {

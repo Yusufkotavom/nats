@@ -28,6 +28,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   salesInvoice: {
     create: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
   },
@@ -39,6 +40,7 @@ const prismaMock = vi.hoisted(() => ({
   },
   pOSServiceOrder: {
     findMany: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -109,7 +111,7 @@ describe("POSServiceWorkflowService", () => {
   });
 
   it("rejects invalid status transition", async () => {
-    prismaMock.pOSServiceOrder.findUnique.mockResolvedValue({
+    prismaMock.pOSServiceOrder.findFirst.mockResolvedValue({
       id: "svc-1",
       status: "NEW",
       salesInvoiceId: "inv-1",
@@ -122,13 +124,13 @@ describe("POSServiceWorkflowService", () => {
   });
 
   it("blocks closing service order when invoice is not fully paid", async () => {
-    prismaMock.pOSServiceOrder.findUnique.mockResolvedValue({
+    prismaMock.pOSServiceOrder.findFirst.mockResolvedValue({
       id: "svc-1",
       status: "DONE",
       salesInvoiceId: "inv-1",
       items: [],
     });
-    prismaMock.salesInvoice.findUnique.mockResolvedValue({
+    prismaMock.salesInvoice.findFirst.mockResolvedValue({
       id: "inv-1",
       status: "ISSUED",
     });

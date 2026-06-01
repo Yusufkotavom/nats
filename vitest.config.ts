@@ -18,6 +18,7 @@ export default defineConfig({
         inline: ['next-intl', 'next'],
       },
     },
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**', '.next/**'],
   },
   resolve: {
     alias: {

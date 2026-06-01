@@ -43,10 +43,13 @@ const prismaMock = vi.hoisted(() => ({
     },
     salesOrder: {
         create: vi.fn(),
+        findUnique: vi.fn(),
+        update: vi.fn(),
     },
     salesInvoice: {
         create: vi.fn(),
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
         update: vi.fn(),
     },
     cashAccount: {
@@ -60,6 +63,7 @@ const prismaMock = vi.hoisted(() => ({
     },
     salesShipment: {
         create: vi.fn(),
+        findFirst: vi.fn(),
     },
     billOfMaterial: {
         findFirst: vi.fn(),
@@ -79,6 +83,15 @@ describe("POSTransactionService", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         prismaMock.companyProfile.findUnique.mockResolvedValue(null);
+        prismaMock.salesOrder.findUnique.mockResolvedValue({
+            id: "so-1",
+            status: "SHIPPED",
+            closedAt: null,
+            closedById: null,
+            confirmedById: "user-1",
+        });
+        prismaMock.salesShipment.findFirst.mockResolvedValue({ id: "shp-1" });
+        prismaMock.salesInvoice.findFirst.mockResolvedValue({ status: "PAID" });
     });
 
     describe("process", () => {
