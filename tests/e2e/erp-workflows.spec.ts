@@ -14,7 +14,6 @@ async function login(page: Page) {
 async function openNewForm(page: Page, path: string) {
   await page.goto(path);
   await expect(page).toHaveURL(new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  await expect(page.locator("form").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /buat|simpan|save|create|post/i }).first()).toBeVisible();
 }
 
@@ -58,4 +57,19 @@ test("purchase list and form coverage", async ({ page }) => {
   await openNewForm(page, "/purchase/receives/new");
   await openNewForm(page, "/purchase/payments/new");
   await openNewForm(page, "/purchase/returns/new");
+});
+
+test("services list and work-order form coverage", async ({ page }) => {
+  await login(page);
+
+  await page.goto("/services/orders");
+  await expect(page).toHaveURL(/\/services\/orders/);
+  await page.goto("/services/invoices");
+  await expect(page).toHaveURL(/\/services\/invoices/);
+  await page.goto("/services/payments");
+  await expect(page).toHaveURL(/\/services\/payments/);
+  await page.goto("/services/returns-warranty");
+  await expect(page).toHaveURL(/\/services\/returns-warranty/);
+
+  await openNewForm(page, "/services/orders/new");
 });

@@ -159,7 +159,16 @@ export async function getSalesOrdersForSelect() {
     orderBy: { createdAt: "desc" },
     include: {
       contact: true,
-      items: true,
+      items: {
+        include: {
+          product: {
+            include: {
+              baseUnit: true,
+              salesUnit: true,
+            },
+          },
+        },
+      },
     },
   });
   return SuperJSON.serialize(orders);

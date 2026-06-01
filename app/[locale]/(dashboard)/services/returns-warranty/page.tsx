@@ -1,7 +1,7 @@
-import { ServicesDashboard } from "../_components/services-dashboard";
+import { ServiceReturnsWarrantyList } from "./_components/service-returns-warranty-list";
 
 export const dynamic = "force-dynamic";
 
 export default function ServiceReturnsWarrantyPage() {
-  return <ServicesDashboard initialTab="returns_warranty" lockTab />;
+  return <ServiceReturnsWarrantyList />;
 }

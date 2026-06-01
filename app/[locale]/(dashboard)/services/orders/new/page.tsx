@@ -1,4 +1,4 @@
-import { createServiceOrder, createServiceQuickContact, getServiceCreateMeta, getServicePaymentMethods } from "../../actions";
+import { createServiceOrder, createServiceQuickContact, getServiceCreateMeta, getServicePaymentMethods } from "../actions";
 import { SuperJSON } from "@/lib/superjson";
 import { ServiceOrderForm } from "../_components/service-order-form";
 

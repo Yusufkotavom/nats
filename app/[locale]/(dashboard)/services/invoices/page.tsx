@@ -1,7 +1,7 @@
-import { ServicesDashboard } from "../_components/services-dashboard";
+import { ServiceInvoicesList } from "./_components/service-invoices-list";
 
 export const dynamic = "force-dynamic";
 
 export default function ServiceInvoicesPage() {
-  return <ServicesDashboard initialTab="invoices" lockTab />;
+  return <ServiceInvoicesList />;
 }

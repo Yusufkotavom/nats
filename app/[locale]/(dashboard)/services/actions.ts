@@ -32,6 +32,68 @@ type AuthSession = NonNullable<Awaited<ReturnType<typeof getSession>>> & {
   userId: string;
 };
 
+function addMonthsSafe(source: Date, months: number) {
+  const date = new Date(source);
+  const originalDay = date.getDate();
+  date.setMonth(date.getMonth() + months);
+  if (date.getDate() < originalDay) {
+    date.setDate(0);
+  }
+  return date;
+}
+
+async function ensureServiceWarrantyCase(companyId: string, serviceOrderId: string, userId: string) {
+  const [order, profile] = await Promise.all([
+    prisma.pOSServiceOrder.findFirst({
+      where: { id: serviceOrderId, companyId },
+      include: { items: true },
+    }),
+    prisma.companyProfile.findUnique({
+      where: { companyId },
+      select: { serviceWarrantyDuration: true, serviceWarrantyUnit: true },
+    }),
+  ]);
+
+  if (!order || !order.contactId || !order.salesOrderId || !order.salesInvoiceId) return;
+  const duration = profile?.serviceWarrantyDuration || 0;
+  const unit = profile?.serviceWarrantyUnit || "DAY";
+  if (duration <= 0) return;
+
+  const existingWarranty = await prisma.salesReturn.findFirst({
+    where: {
+      companyId,
+      salesOrderId: order.salesOrderId,
+      salesInvoiceId: order.salesInvoiceId,
+      reason: "WARRANTY",
+    },
+    select: { id: true },
+  });
+  if (existingWarranty) return;
+
+  const warrantyStart = order.closedAt ?? new Date();
+  const warrantyEnd = unit === "MONTH"
+    ? addMonthsSafe(warrantyStart, duration)
+    : new Date(warrantyStart.getTime() + duration * 24 * 60 * 60 * 1000);
+
+  await SalesReturnService.create(
+    {
+      returnNumber: "",
+      contactId: order.contactId,
+      salesOrderId: order.salesOrderId,
+      salesInvoiceId: order.salesInvoiceId,
+      returnDate: warrantyStart,
+      reason: "WARRANTY",
+      notes: `Auto warranty case. Coverage: ${duration} ${unit.toLowerCase()}(s), valid until ${warrantyEnd.toISOString().slice(0, 10)}.`,
+      items: order.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+      })),
+    },
+    userId,
+  );
+}
+
 function assertAccess(
   session: Awaited<ReturnType<typeof getSession>>,
 ): asserts session is AuthSession {
@@ -528,21 +590,51 @@ export async function getServiceAfterSales(
   });
   const invoiceMap = new Map(invoices.map((i) => [i.id, i.invoiceNumber]));
 
-  const rows: ServiceAfterSalesCaseListItem[] = cases.map((item) => ({
-    id: item.id,
-    returnNumber: item.returnNumber,
-    caseType: item.reason?.toUpperCase().includes("WARRANTY") ? "WARRANTY" : "RETURN",
-    serviceOrderNumber:
-      (item.salesOrderId ? orderBySalesOrder.get(item.salesOrderId) : null) ||
-      (item.salesInvoiceId ? orderByInvoice.get(item.salesInvoiceId) : null) ||
-      "-",
-    invoiceNumber: item.salesInvoiceId ? (invoiceMap.get(item.salesInvoiceId) ?? null) : null,
-    customerName: item.contact.name,
-    status: String(item.status),
-    totalAmount: item.totalAmount.toString(),
-    returnDate: item.returnDate,
-    notes: item.notes,
-  }));
+  const warrantyProfile = await prisma.companyProfile.findUnique({
+    where: { companyId },
+    select: { serviceWarrantyDuration: true, serviceWarrantyUnit: true },
+  });
+  const warrantyDuration = warrantyProfile?.serviceWarrantyDuration || 0;
+  const warrantyUnit = warrantyProfile?.serviceWarrantyUnit || "DAY";
+
+  const rows: ServiceAfterSalesCaseListItem[] = cases.map((item) => {
+    const isWarranty = item.reason?.toUpperCase().includes("WARRANTY");
+    let warrantyEndsAt: Date | null = null;
+    let warrantyRemainingDays: number | null = null;
+    let warrantyRemainingMonths: number | null = null;
+    let warrantyExpired = false;
+
+    if (isWarranty && warrantyDuration > 0) {
+      warrantyEndsAt = warrantyUnit === "MONTH"
+        ? addMonthsSafe(item.returnDate, warrantyDuration)
+        : new Date(item.returnDate.getTime() + warrantyDuration * 24 * 60 * 60 * 1000);
+      const diffMs = warrantyEndsAt.getTime() - Date.now();
+      const remainingDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+      warrantyRemainingDays = remainingDays;
+      warrantyRemainingMonths = Number((remainingDays / 30).toFixed(1));
+      warrantyExpired = remainingDays < 0;
+    }
+
+    return {
+      id: item.id,
+      returnNumber: item.returnNumber,
+      caseType: isWarranty ? "WARRANTY" : "RETURN",
+      serviceOrderNumber:
+        (item.salesOrderId ? orderBySalesOrder.get(item.salesOrderId) : null) ||
+        (item.salesInvoiceId ? orderByInvoice.get(item.salesInvoiceId) : null) ||
+        "-",
+      invoiceNumber: item.salesInvoiceId ? (invoiceMap.get(item.salesInvoiceId) ?? null) : null,
+      customerName: item.contact.name,
+      status: String(item.status),
+      totalAmount: item.totalAmount.toString(),
+      returnDate: item.returnDate,
+      notes: item.notes,
+      warrantyEndsAt,
+      warrantyRemainingDays,
+      warrantyRemainingMonths,
+      warrantyExpired,
+    };
+  });
 
   return {
     data: rows,
@@ -612,6 +704,9 @@ export async function updateServiceOrderStatus(
     session!.userId,
     session!.activeCompanyId,
   );
+  if (status === "CLOSED") {
+    await ensureServiceWarrantyCase(session.activeCompanyId, orderId, session.userId);
+  }
   revalidateLocalizedPath("/services");
   return SuperJSON.serialize(result);
 }
@@ -632,6 +727,13 @@ export async function settleServiceOrder(
     amount,
     paymentMethod,
   );
+  const paidInvoice = await prisma.salesInvoice.findFirst({
+    where: { id: result.salesInvoiceId, companyId: session.activeCompanyId },
+    select: { status: true },
+  });
+  if (paidInvoice?.status === "PAID") {
+    await ensureServiceWarrantyCase(session.activeCompanyId, orderId, session.userId);
+  }
   revalidateLocalizedPath("/services");
   return SuperJSON.serialize(result);
 }

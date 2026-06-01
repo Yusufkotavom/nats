@@ -269,7 +269,7 @@ export function SalesShipmentForm({
         const so = salesOrders.find((s) => s.id === formData.salesOrderId);
         if (so) {
             const item = so.items.find((i) => i.productId === productId);
-            if (item) return item.product.name;
+            if (item?.product?.name) return item.product.name;
         }
         if (shipment) {
             const item = shipment.items.find((i) => i.productId === productId);
@@ -282,7 +282,7 @@ export function SalesShipmentForm({
         const so = salesOrders.find((s) => s.id === formData.salesOrderId);
         if (so) {
             const item = so.items.find((i) => i.productId === productId);
-            if (item)
+            if (item?.product)
                 return (
                     item.product.salesUnit?.symbol || item.product.baseUnit?.symbol
                 );

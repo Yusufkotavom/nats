@@ -66,4 +66,8 @@ export type ServiceAfterSalesCaseListItem = {
   totalAmount: string;
   returnDate: Date;
   notes?: string | null;
+  warrantyEndsAt?: Date | null;
+  warrantyRemainingDays?: number | null;
+  warrantyRemainingMonths?: number | null;
+  warrantyExpired?: boolean;
 };
