@@ -94,6 +94,8 @@ import {
   PageFormTitle,
 } from "@/components/layout/page/form-layout";
 import { useTranslations } from "next-intl";
+import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
+import { buildCompanyCommunicationPreview, createPublicTrackingLink } from "@/app/[locale]/communications/actions";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 import { useToast } from "@/hooks/use-toast";
 
@@ -138,6 +140,13 @@ export function SalesOrderForm({
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
   const [isLoading, setIsLoading] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyContext, setNotifyContext] = useState<{
+    contactId: string;
+    sourceId: string;
+  }>();
   const [serviceStatus, setServiceStatus] = useState<"NEW" | "PROCESSING" | "READY" | "DONE" | "CLOSED" | "CANCELLED">(
     parsedServiceMeta?.serviceStatus || "NEW",
   );
@@ -561,13 +570,52 @@ export function SalesOrderForm({
     router.refresh();
   };
 
-  const handleNotifyCustomer = () => {
+  const handleNotifyCustomer = async () => {
     if (!order) return;
     const phone = order.contact?.phone ? normalizePhoneForWhatsApp(order.contact.phone) : null;
-    if (!phone) return;
-    const message = `Halo ${order.contact?.name || "Customer"}, Sales Order ${order.orderNumber} saat ini berstatus ${formData.status}. Total: ${formatCurrency(totalAmount)}.`;
-    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(waUrl, "_blank", "noopener,noreferrer");
+    if (!phone) {
+      toast({ variant: "destructive", title: "Error", description: "Nomor WhatsApp tidak tersedia atau format tidak valid." });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const locale = window.location.pathname.split("/").filter(Boolean)[0] || "id";
+      const trackingLink = await createPublicTrackingLink({
+        baseUrl: window.location.origin,
+        locale,
+        sourceType: "SALES_ORDER",
+        sourceId: order.id,
+        contactId: order.contactId,
+      });
+
+      const preview = await buildCompanyCommunicationPreview({
+        eventKey: "SALES_ORDER_CREATED",
+        vars: {
+          customer_name: order.contact?.name || "Customer",
+          doc_number: order.orderNumber,
+          amount: formatCurrency(totalAmount),
+          status: formData.status,
+          doc_url: trackingLink.url,
+          public_tracking_url: trackingLink.url,
+          public_invoice_url: trackingLink.url,
+        },
+      });
+
+      if (!preview.isEnabled) {
+        toast({ variant: "destructive", title: "Error", description: "Template komunikasi SALES_ORDER_CREATED sedang nonaktif" });
+        return;
+      }
+
+      setNotifyPhone(phone);
+      setNotifyMessage(preview.message);
+      setNotifyContext({ contactId: order.contactId, sourceId: order.id });
+      setNotifyOpen(true);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Gagal memuat template WhatsApp." });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = async () => {
@@ -1287,6 +1335,23 @@ export function SalesOrderForm({
           </div>
         </DialogContent>
       </Dialog>
-    </PageFormLayout >
+      <WhatsAppNotificationDialog
+        open={notifyOpen}
+        onOpenChange={setNotifyOpen}
+        phone={notifyPhone}
+        message={notifyMessage}
+        onMessageChange={setNotifyMessage}
+        context={
+          notifyContext
+            ? {
+                contactId: notifyContext.contactId,
+                eventType: "SALES_ORDER_CREATED",
+                sourceType: "SALES_ORDER",
+                sourceId: notifyContext.sourceId,
+              }
+            : null
+        }
+      />
+    </PageFormLayout>
   );
 }

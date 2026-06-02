@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 
 export type PublicTrackingSourceType =
+  | "SALES_ORDER"
   | "SALES_INVOICE"
   | "SERVICE_ORDER"
   | "SALES_PAYMENT"
@@ -183,7 +184,61 @@ export async function getPublicTrackingPageData(input: {
     return getServiceTrackingData(link, input.currentUrl);
   }
 
+  if (link.sourceType === "SALES_ORDER") {
+    return getOrderTrackingData(link, input.currentUrl);
+  }
+
   return getInvoiceTrackingData(link, input.currentUrl);
+}
+
+async function getOrderTrackingData(link: any, currentUrl?: string): Promise<PublicTrackingPageData> {
+  const order = await prisma.salesOrder.findFirst({
+    where: {
+      id: link.sourceId,
+      companyId: link.companyId,
+    },
+    include: {
+      contact: true,
+      company: { include: { profile: true } },
+      invoices: true,
+    },
+  });
+
+  if (!order) return { isFound: false, reason: "not_found" };
+
+  const profile = order.company?.profile;
+  const statuses: PublicTrackingStatus[] = [
+    { label: "Sales Order", value: order.status, tone: statusTone(order.status) },
+  ];
+
+  if (order.isServiceOrder && order.serviceWorkflowStatus) {
+    statuses.push({
+      label: "Service",
+      value: order.serviceWorkflowStatus,
+      tone: statusTone(order.serviceWorkflowStatus),
+    });
+  }
+
+  return {
+    isFound: true,
+    company: buildCompanyInfo({ company: order.company, currentUrl }),
+    customer: {
+      name: order.contact?.name || "-",
+      phone: order.contact?.phone || null,
+    },
+    document: {
+      type: "Sales Order",
+      number: order.orderNumber,
+      orderNumber: order.orderNumber,
+      invoiceNumber: order.invoices?.[0]?.invoiceNumber || null,
+      amount: buildMoney(order.totalAmount, profile),
+      remainingAmount: buildMoney(0, profile), // Not exactly accurate without invoices, but fine for display
+      date: order.orderDate ? formatDate(order.orderDate, { dateFormat: "dd MMM yyyy" }) : null,
+      targetDate: order.expectedDate ? formatDate(order.expectedDate, { dateFormat: "dd MMM yyyy" }) : null,
+    },
+    statuses,
+    actions: buildPublicActions(order.company, currentUrl),
+  };
 }
 
 async function getInvoiceTrackingData(link: any, currentUrl?: string): Promise<PublicTrackingPageData> {

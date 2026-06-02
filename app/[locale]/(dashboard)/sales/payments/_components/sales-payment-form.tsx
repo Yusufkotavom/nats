@@ -47,6 +47,8 @@ import { UnifiedPaymentMethod } from "@/lib/payments/payment-methods";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TableOverflow } from "@/components/ui/table-overflow";
+import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
+import { buildCompanyCommunicationPreview, createPublicTrackingLink } from "@/app/[locale]/communications/actions";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 import {
   Dialog,
@@ -88,6 +90,13 @@ export function SalesPaymentForm({
   const tCommon = useTranslations("Common");
   const confirm = useConfirm();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyContext, setNotifyContext] = useState<{
+    contactId: string;
+    sourceId: string;
+  }>();
   const formatCurrency = useFormatCurrency();
   const [postActionOpen, setPostActionOpen] = useState(false);
   const [postActionPaymentId, setPostActionPaymentId] = useState<string | null>(initialData?.id || null);
@@ -330,10 +339,64 @@ export function SalesPaymentForm({
   const customerPhone = normalizePhoneForWhatsApp(
     selectedInvoice?.contact?.phone || initialData?.contact?.phone || null,
   );
-  const handleNotifyCustomer = () => {
-    if (!customerPhone) return;
-    const message = `Halo ${selectedInvoice?.contact?.name || initialData?.contact?.name || "Customer"}, pembayaran untuk invoice ${selectedInvoice?.invoiceNumber || initialData?.salesInvoice?.invoiceNumber || "-"} sebesar ${formatCurrency(Number(formData.amount || 0))} sudah kami terima.`;
-    window.open(`https://wa.me/${customerPhone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+  const handleNotifyCustomer = async () => {
+    if (!customerPhone) {
+      toast({ variant: "destructive", title: "Error", description: "Nomor WhatsApp tidak tersedia atau format tidak valid." });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const locale = window.location.pathname.split("/").filter(Boolean)[0] || "id";
+      // Gunakan invoice yang dipilih atau dari initialData
+      const invoiceId = selectedInvoice?.id || initialData?.salesInvoiceId;
+      const contactId = selectedInvoice?.contactId || initialData?.contactId;
+      const paymentNumber = initialData?.paymentNumber || "-";
+      const remainingAmount = Number(selectedInvoice?.balanceDue || initialData?.salesInvoice?.balanceDue || 0) - Number(formData.amount || 0);
+      
+      let trackingUrl = "";
+      if (invoiceId && contactId) {
+        const link = await createPublicTrackingLink({
+          baseUrl: window.location.origin,
+          locale,
+          sourceType: "SALES_INVOICE",
+          sourceId: invoiceId,
+          contactId: contactId,
+        });
+        trackingUrl = link.url;
+      }
+
+      const preview = await buildCompanyCommunicationPreview({
+        eventKey: "SALES_PAYMENT_POSTED",
+        vars: {
+          customer_name: selectedInvoice?.contact?.name || initialData?.contact?.name || "Customer",
+          doc_number: paymentNumber,
+          amount: formatCurrency(Number(formData.amount || 0)),
+          remaining_amount: formatCurrency(Math.max(0, remainingAmount)),
+          doc_url: trackingUrl,
+          public_tracking_url: trackingUrl,
+          public_invoice_url: trackingUrl,
+          is_service: selectedInvoice?.salesOrder?.isServiceOrder ? "Yes" : "No",
+          service_status: selectedInvoice?.salesOrder?.serviceWorkflowStatus || "-",
+        },
+      });
+
+      if (!preview.isEnabled) {
+        toast({ variant: "destructive", title: "Error", description: "Template komunikasi SALES_PAYMENT_POSTED sedang nonaktif" });
+        return;
+      }
+
+      setNotifyPhone(customerPhone);
+      setNotifyMessage(preview.message);
+      if (initialData?.id && contactId) {
+        setNotifyContext({ contactId, sourceId: initialData.id });
+      }
+      setNotifyOpen(true);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Gagal memuat template WhatsApp." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if ((isLoadingInvoices || isLoadingAccounts) && !readonly) {
@@ -745,6 +808,23 @@ export function SalesPaymentForm({
           </div>
         </DialogContent>
       </Dialog>
+      <WhatsAppNotificationDialog
+        open={notifyOpen}
+        onOpenChange={setNotifyOpen}
+        phone={notifyPhone}
+        message={notifyMessage}
+        onMessageChange={setNotifyMessage}
+        context={
+          notifyContext
+            ? {
+                contactId: notifyContext.contactId,
+                eventType: "SALES_PAYMENT_POSTED",
+                sourceType: "SALES_PAYMENT",
+                sourceId: notifyContext.sourceId,
+              }
+            : null
+        }
+      />
     </PageFormLayout>
   );
 }

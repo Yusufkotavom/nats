@@ -7,6 +7,19 @@ export const COMPANY_COMMUNICATION_EVENTS: Array<{
   defaultTemplate: string;
 }> = [
   {
+    key: "SALES_ORDER_CREATED",
+    label: "Sales Order Created",
+    defaultEnabled: true,
+    defaultTemplate: `Halo {{customer_name}},
+
+*Order Dibuat*
+*Nomor SO:* {{doc_number}}
+*Status:* {{status}}
+*Total:* {{amount}}
+
+*Cek Progress:* {{doc_url}}`,
+  },
+  {
     key: "SALES_INVOICE_ISSUED",
     label: "Sales Invoice Issued",
     defaultEnabled: true,

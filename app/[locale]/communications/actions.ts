@@ -336,6 +336,7 @@ export async function upsertCompanyCommunicationTemplate(input: {
 }
 
 function mapEventKeyToContactEventType(eventKey: CompanyCommunicationEventKey): ContactCommunicationEventType {
+  if (eventKey === "SALES_ORDER_CREATED") return "SALES_ORDER_CREATED";
   if (eventKey === "SALES_INVOICE_ISSUED") return "SALES_INVOICE";
   if (eventKey === "SALES_PAYMENT_POSTED") return "SALES_PAYMENT_POSTED";
   if (eventKey === "POS_PAYMENT_POSTED") return "POS_PAYMENT_POSTED";

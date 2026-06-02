@@ -160,6 +160,7 @@ export const KNOWN_DYNAMIC_APP_ROUTE_PATTERNS = [
   "/production/orders/[id]",
   "/production/orders/[id]/edit",
   "/production/receipts/[id]",
+  "/public/t/[token]",
   "/purchase/invoices/[id]",
   "/purchase/invoices/[id]/edit",
   "/purchase/orders/[id]",
