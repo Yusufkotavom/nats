@@ -1,5 +1,6 @@
 "use server";
 
+import { getSession } from "@/lib/auth/auth";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
 import { prisma } from "@/lib/prisma";
 import {
@@ -800,8 +801,12 @@ export const createContact = authorizedAction(
   "contacts.create",
   async (data: CreateContactInput) => {
     try {
+      const session = await getSession();
       const contact = await prisma.contact.create({
-        data,
+        data: {
+          ...data,
+          companyId: session?.activeCompanyId ?? null,
+        },
       });
       revalidateLocalizedPath("/general/contacts");
       return { success: true, contact };
@@ -835,6 +840,11 @@ export const deleteContact = authorizedAction(
   "contacts.delete",
   async (id: string) => {
     try {
+      const session = await getSession();
+      const currentContact = await prisma.contact.findUnique({ where: { id } });
+      if (!currentContact || currentContact.companyId !== session?.activeCompanyId) {
+        return { success: false, error: "Not found or unauthorized" };
+      }
       await prisma.contact.delete({
         where: { id },
       });
