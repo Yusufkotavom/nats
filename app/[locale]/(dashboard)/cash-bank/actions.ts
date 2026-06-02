@@ -383,15 +383,32 @@ export async function deleteCashTransfer(id: string) {
 }
 
 export async function getTransfers(search: string = "") {
-  const where: Prisma.CashTransferWhereInput = search
-    ? {
-      OR: [
-        { description: { contains: search, mode: "insensitive" } },
-        { fromAccount: { name: { contains: search, mode: "insensitive" } } },
-        { toAccount: { name: { contains: search, mode: "insensitive" } } },
-      ],
-    }
-    : {};
+  const session = await getSession();
+  if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "cash_bank.view")) {
+    return SuperJSON.serialize([]);
+  }
+
+  const where: Prisma.CashTransferWhereInput = {
+    AND: [
+      {
+        OR: [
+          { fromAccount: { glAccount: { companyId: session.activeCompanyId } } },
+          { toAccount: { glAccount: { companyId: session.activeCompanyId } } },
+        ],
+      },
+      ...(search
+        ? [
+          {
+            OR: [
+              { description: { contains: search, mode: "insensitive" as const } },
+              { fromAccount: { name: { contains: search, mode: "insensitive" as const } } },
+              { toAccount: { name: { contains: search, mode: "insensitive" as const } } },
+            ],
+          },
+        ]
+        : []),
+    ],
+  };
 
   const transfers = await prisma.cashTransfer.findMany({
     where,

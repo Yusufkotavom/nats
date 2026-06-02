@@ -12,6 +12,7 @@ import { buildCompanyCommunicationPreview, upsertCompanyCommunicationTemplate } 
 import type { CompanyCommunicationEventKey } from "@/prisma/generated/prisma/client";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { WhatsAppMessagePreview } from "@/components/communication/whatsapp-message-preview";
 
 type Row = {
   eventKey: CompanyCommunicationEventKey;
@@ -45,7 +46,13 @@ export function CommunicationSettingsForm({ initialData }: { initialData: Row[] 
             doc_number: "DOC-001",
             amount: "150.000",
             remaining_amount: "0",
-            doc_url: "https://example.com/doc/001",
+            doc_url: "https://example.com/id/public/t/demo-001",
+            public_tracking_url: "https://example.com/id/public/t/demo-001",
+            public_invoice_url: "https://example.com/id/public/t/demo-001",
+            public_service_url: "https://example.com/id/public/t/demo-001",
+            date: "02 Jun 2026",
+            status: "ISSUED",
+            target_date: "04 Jun 2026",
             warranty_text: "7 hari",
           },
         });
@@ -130,6 +137,9 @@ export function CommunicationSettingsForm({ initialData }: { initialData: Row[] 
                   <DialogTitle>{row.label} Preview</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3">
+                  <WhatsAppMessagePreview
+                    message={activePreviewKey === row.eventKey ? previewMessage : ""}
+                  />
                   <Textarea
                     value={activePreviewKey === row.eventKey ? previewMessage : ""}
                     readOnly
@@ -148,6 +158,13 @@ export function CommunicationSettingsForm({ initialData }: { initialData: Row[] 
             </Dialog>
           </div>
         ))}
+
+        <div className="rounded-md border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
+          <div className="font-medium">URL customer yang dikirim via template sekarang sebaiknya memakai link publik.</div>
+          <div className="mt-1 text-amber-800">
+            Gunakan `{"{{doc_url}}"}` untuk link utama, atau pakai `{"{{public_tracking_url}}"}`, `{"{{public_invoice_url}}"}`, dan `{"{{public_service_url}}"}` bila ingin lebih eksplisit.
+          </div>
+        </div>
 
         <div className="text-xs text-muted-foreground">
           {t("communication_template_variables_hint")}

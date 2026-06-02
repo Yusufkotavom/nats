@@ -30,6 +30,9 @@ vi.mock("@/lib/document-numbering", () => ({
 }));
 
 const prismaMock = vi.hoisted(() => ({
+    salesOrder: {
+        findFirst: vi.fn(),
+    },
     salesInvoice: {
         findFirst: vi.fn(),
         count: vi.fn(),
@@ -72,6 +75,81 @@ describe("SalesInvoiceService", () => {
     });
 
     describe("create", () => {
+        it("creates a linked sales order when invoice is created without salesOrderId", async () => {
+            prismaMock.salesInvoice.findFirst.mockResolvedValue(null);
+            prismaMock.taxRate.findMany.mockResolvedValue([]);
+            generateDocumentNumberMock.mockResolvedValueOnce("SO-2606-0001");
+
+            const salesOrderCreate = vi.fn().mockResolvedValue({
+                id: "so-001",
+                orderNumber: "SO-2606-0001",
+                totalAmount: 200,
+            });
+            const salesInvoiceCreate = vi.fn().mockResolvedValue({
+                id: "inv-001",
+                invoiceNumber: "CUSTOM-001",
+                salesOrderId: "so-001",
+                totalAmount: 200,
+            });
+
+            prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
+                const tx = {
+                    salesOrder: {
+                        create: salesOrderCreate,
+                    },
+                    salesInvoice: {
+                        create: salesInvoiceCreate,
+                    },
+                    integrationOutbox: {
+                        create: vi.fn().mockResolvedValue({ id: "outbox-001" }),
+                    },
+                };
+
+                return (cb as any)(tx);
+            });
+
+            await SalesInvoiceService.create(
+                {
+                    ...MOCK_INVOICE_INPUT,
+                    invoiceNumber: "CUSTOM-001",
+                    items: [
+                        {
+                            ...MOCK_INVOICE_INPUT.items[0],
+                            productId: "prod-001",
+                        },
+                    ],
+                },
+                MOCK_USER_ID,
+                "company-1",
+            );
+
+            expect(salesOrderCreate).toHaveBeenCalledWith({
+                data: expect.objectContaining({
+                    companyId: "company-1",
+                    orderNumber: "SO-2606-0001",
+                    contactId: "contact-001",
+                    status: "DRAFT",
+                    totalAmount: 200,
+                    items: {
+                        create: [
+                            expect.objectContaining({
+                                productId: "prod-001",
+                                quantity: 2,
+                                unitPrice: 100,
+                            }),
+                        ],
+                    },
+                }),
+                include: { items: true },
+            });
+            expect(salesInvoiceCreate).toHaveBeenCalledWith({
+                data: expect.objectContaining({
+                    salesOrderId: "so-001",
+                }),
+                include: { items: true },
+            });
+        });
+
         it("generates invoice number when not provided", async () => {
             prismaMock.salesInvoice.count.mockResolvedValue(5);
             prismaMock.salesInvoice.findFirst.mockResolvedValue(null);
@@ -85,6 +163,13 @@ describe("SalesInvoiceService", () => {
 
             prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
                 const tx = {
+                    salesOrder: {
+                        create: vi.fn().mockResolvedValue({
+                            id: "so-001",
+                            orderNumber: "SO-2602-0001",
+                            totalAmount: 200,
+                        }),
+                    },
                     salesInvoice: {
                         create: vi.fn().mockResolvedValue(createdInvoice),
                     },
@@ -99,7 +184,8 @@ describe("SalesInvoiceService", () => {
             const result = await SalesInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID, "company-1");
 
             expect(result.id).toBe("inv-001");
-            expect(generateDocumentNumberMock).toHaveBeenCalledOnce();
+            expect(generateDocumentNumberMock).toHaveBeenCalledWith("SALES_INVOICE", "Sales Invoice", "INV-");
+            expect(generateDocumentNumberMock).toHaveBeenCalledWith("SALES_ORDER", "Sales Order", "SO-");
         });
 
         it("uses provided invoice number when given", async () => {
@@ -114,6 +200,13 @@ describe("SalesInvoiceService", () => {
 
             prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
                 const tx = {
+                    salesOrder: {
+                        create: vi.fn().mockResolvedValue({
+                            id: "so-002",
+                            orderNumber: "SO-2602-0002",
+                            totalAmount: 200,
+                        }),
+                    },
                     salesInvoice: {
                         create: vi.fn().mockResolvedValue(createdInvoice),
                     },
@@ -132,7 +225,8 @@ describe("SalesInvoiceService", () => {
             );
 
             expect(result.invoiceNumber).toBe("CUSTOM-001");
-            expect(generateDocumentNumberMock).not.toHaveBeenCalled();
+            expect(generateDocumentNumberMock).toHaveBeenCalledOnce();
+            expect(generateDocumentNumberMock).toHaveBeenCalledWith("SALES_ORDER", "Sales Order", "SO-");
         });
 
         it("throws when invoice number already exists", async () => {
@@ -158,6 +252,13 @@ describe("SalesInvoiceService", () => {
 
             prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
                 const tx = {
+                    salesOrder: {
+                        create: vi.fn().mockResolvedValue({
+                            id: "so-003",
+                            orderNumber: "SO-2602-0003",
+                            totalAmount: 200,
+                        }),
+                    },
                     salesInvoice: {
                         create: vi.fn().mockResolvedValue(createdInvoice),
                     },

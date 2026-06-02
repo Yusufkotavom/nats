@@ -110,7 +110,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                   (dialog.type === "confirm" ? "Are you sure?" : "Alert")}
               </AlertDialogTitle>
               {dialog.description && (
-                <AlertDialogDescription>
+                <AlertDialogDescription className="whitespace-pre-line">
                   {dialog.description}
                 </AlertDialogDescription>
               )}

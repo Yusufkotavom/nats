@@ -135,7 +135,8 @@ Reference: PO-2024-001
 ### 3.3 Post Invoice
 1. **Review semua data**
 2. **Klik "Post Invoice"**
-3. **Jurnal otomatis**:
+3. Popup konfirmasi menampilkan ringkasan multiline: nomor invoice, vendor, jumlah item, nominal transaksi, sisa tagihan, dan dampak posting jurnal.
+4. **Jurnal otomatis**:
    - Debit: Persediaan Bahan Baku Rp 3.140.000
    - Debit: PPN Masukan Rp 345.400
    - Kredit: Hutang Dagang Rp 3.485.400

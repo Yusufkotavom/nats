@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getSessionMock = vi.hoisted(() => vi.fn());
 const hasPermissionMock = vi.hoisted(() => vi.fn());
 const paymentMethodCatalogListMock = vi.hoisted(() => vi.fn());
+const cashTransferFindManyMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth/auth", () => ({
   getSession: () => getSessionMock(),
@@ -20,7 +21,11 @@ vi.mock("@/modules/cash-bank/services/payment-method-catalog.service", () => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: {},
+  prisma: {
+    cashTransfer: {
+      findMany: cashTransferFindManyMock,
+    },
+  },
 }));
 
 vi.mock("@/lib/revalidate-localized-path", () => ({
@@ -51,7 +56,7 @@ vi.mock("@/lib/subscription/write-guard", () => ({
   assertCompanyWriteAccess: vi.fn(),
 }));
 
-import { getOperationalPaymentMethodAccounts } from "./actions";
+import { getOperationalPaymentMethodAccounts, getTransfers } from "./actions";
 
 describe("cash-bank actions", () => {
   beforeEach(() => {
@@ -93,5 +98,38 @@ describe("cash-bank actions", () => {
       }),
     ]);
     expect(paymentMethodCatalogListMock).toHaveBeenCalledWith("company-1");
+  });
+
+  it("scopes transfer listing to active company cash accounts", async () => {
+    getSessionMock.mockResolvedValue({
+      activeCompanyId: "company-1",
+      permissions: ["cash_bank.view"],
+    });
+    hasPermissionMock.mockReturnValue(true);
+    cashTransferFindManyMock.mockResolvedValue([]);
+
+    await getTransfers("bank");
+
+    expect(cashTransferFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              OR: [
+                { fromAccount: { glAccount: { companyId: "company-1" } } },
+                { toAccount: { glAccount: { companyId: "company-1" } } },
+              ],
+            },
+            {
+              OR: [
+                { description: { contains: "bank", mode: "insensitive" } },
+                { fromAccount: { name: { contains: "bank", mode: "insensitive" } } },
+                { toAccount: { name: { contains: "bank", mode: "insensitive" } } },
+              ],
+            },
+          ],
+        },
+      }),
+    );
   });
 });

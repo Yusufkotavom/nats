@@ -27,6 +27,7 @@ export class SalesInvoiceService {
 
     static async create(data: CreateSalesInvoiceInput, userId: string, companyId: string) {
         const invoiceNumber = data.invoiceNumber || (await this.generateInvoiceNumber());
+        const autoOrderNumber = data.salesOrderId ? null : await this.generateSalesOrderNumber();
 
         await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
         await this.assertSalesOrderBelongsToCompany(data.salesOrderId, companyId);
@@ -36,12 +37,66 @@ export class SalesInvoiceService {
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
 
         return await prisma.$transaction(async (tx) => {
+            const autoSalesOrder = data.salesOrderId
+                ? null
+                : await tx.salesOrder.create({
+                    data: {
+                        companyId,
+                        orderNumber: autoOrderNumber as string,
+                        contactId: data.contactId,
+                        orderDate: data.invoiceDate,
+                        expectedDate: data.dueDate,
+                        notes: data.notes
+                            ? `Auto-created from direct invoice ${invoiceNumber}\n${data.notes}`
+                            : `Auto-created from direct invoice ${invoiceNumber}`,
+                        status: INITIAL_DRAFT_STATUS,
+                        totalAmount: totals.totalAmount.toNumber(),
+                        subtotal: totals.itemsTotal.toNumber(),
+                        taxAmount: totals.totalTax.toNumber(),
+                        discountAmount: data.globalDiscount || 0,
+                        departmentId: data.departmentId,
+                        projectId: data.projectId,
+                        createdById: userId,
+                        items: {
+                            create: itemsData
+                                .filter((item) => !!item.productId)
+                                .map((item) => ({
+                                    productId: item.productId as string,
+                                    quantity: item.quantity,
+                                    unitPrice: item.unitPrice,
+                                    totalPrice: Number(item.totalPrice || item.quantity * item.unitPrice),
+                                    taxRate: item.taxRateSnapshot,
+                                    taxRateId: item.taxRateId,
+                                    discountRate: item.discount,
+                                })),
+                        },
+                    },
+                    include: {
+                        items: true,
+                    },
+                });
+
+            if (autoSalesOrder) {
+                await enqueueIntegrationEvent(tx, {
+                    topic: "sales",
+                    type: "SALES_ORDER_CREATED",
+                    aggregateType: "sales_order",
+                    aggregateId: autoSalesOrder.id,
+                    payload: {
+                        salesOrderId: autoSalesOrder.id,
+                        orderNumber: autoSalesOrder.orderNumber,
+                        totalAmount: autoSalesOrder.totalAmount.toString(),
+                        userId,
+                    },
+                });
+            }
+
             const result = await tx.salesInvoice.create({
                 data: {
                     companyId,
                     invoiceNumber,
                     contactId: data.contactId,
-                    salesOrderId: data.salesOrderId,
+                    salesOrderId: data.salesOrderId || autoSalesOrder?.id,
                     invoiceDate: data.invoiceDate,
                     dueDate: data.dueDate,
                     notes: data.notes,
@@ -235,6 +290,10 @@ export class SalesInvoiceService {
 
     private static async generateInvoiceNumber(): Promise<string> {
         return await generateDocumentNumber("SALES_INVOICE", "Sales Invoice", "INV-");
+    }
+
+    private static async generateSalesOrderNumber(): Promise<string> {
+        return await generateDocumentNumber("SALES_ORDER", "Sales Order", "SO-");
     }
 
     private static async assertUniqueInvoiceNumber(

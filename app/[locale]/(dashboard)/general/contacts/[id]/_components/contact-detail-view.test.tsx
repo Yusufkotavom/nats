@@ -99,6 +99,14 @@ vi.mock("@/app/[locale]/communications/actions", () => ({
   updateContactCommunicationLogStatus: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../../_components/contact-dialog", () => ({
+  ContactDialog: ({
+    open,
+  }: {
+    open: boolean;
+  }) => (open ? <div>edit_contact</div> : null),
+}));
+
 describe("ContactDetailView transactions filter", () => {
   it("filters transaction rows by area", async () => {
     render(
@@ -193,5 +201,28 @@ describe("ContactDetailView transactions filter", () => {
     });
     expect(screen.getByText("SVC-001")).toBeInTheDocument();
     expect(screen.queryByText("CASH-001")).not.toBeInTheDocument();
+  });
+
+  it("opens existing contact dialog from detail header edit action", async () => {
+    render(
+      <ContactDetailView
+        contact={{
+          id: "c1",
+          name: "Customer 1",
+          type: "CUSTOMER",
+          email: "c1@example.com",
+          phone: "08123",
+          address: "Bandung",
+          isActive: true,
+          createdAt: new Date("2026-06-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-06-02T00:00:00.000Z"),
+        } as any}
+        messagingContext={null as any}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Contact" }));
+
+    expect(await screen.findByText("edit_contact")).toBeInTheDocument();
   });
 });

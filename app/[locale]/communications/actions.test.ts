@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getSessionMock = vi.hoisted(() => vi.fn());
+const requireActiveCompanyContextMock = vi.hoisted(() => vi.fn());
+const buildPublicTrackingUrlMock = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   contactCommunicationLog: {
     create: vi.fn(),
@@ -16,8 +18,16 @@ vi.mock("@/lib/auth/auth", () => ({
   getSession: getSessionMock,
 }));
 
+vi.mock("@/lib/company-context", () => ({
+  requireActiveCompanyContext: requireActiveCompanyContextMock,
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
+}));
+
+vi.mock("@/lib/public-tracking/customer-tracking", () => ({
+  buildPublicTrackingUrl: buildPublicTrackingUrlMock,
 }));
 
 import { createContactCommunicationLog } from "./actions";
@@ -36,6 +46,11 @@ describe("communications/actions createContactCommunicationLog", () => {
     prismaMock.contactMessageTemplate.upsert.mockResolvedValue({
       id: "tpl-1",
       updatedAt: new Date("2026-05-15T00:00:00.000Z"),
+    });
+    requireActiveCompanyContextMock.mockResolvedValue({ companyId: "company-1" });
+    buildPublicTrackingUrlMock.mockResolvedValue({
+      token: "token-1",
+      url: "https://restoran.devk.my.id/id/public/t/token-1",
     });
   });
 
@@ -130,5 +145,31 @@ describe("communications/actions createContactCommunicationLog", () => {
         where: { contactId: "contact-1" },
       }),
     );
+  });
+
+  it("creates a tenant-scoped public tracking link", async () => {
+    const { createPublicTrackingLink } = await import("./actions");
+
+    const result = await createPublicTrackingLink({
+      baseUrl: "https://restoran.devk.my.id",
+      locale: "id",
+      sourceType: "SALES_INVOICE",
+      sourceId: "invoice-1",
+      contactId: "contact-1",
+    });
+
+    expect(result).toEqual({
+      token: "token-1",
+      url: "https://restoran.devk.my.id/id/public/t/token-1",
+    });
+    expect(buildPublicTrackingUrlMock).toHaveBeenCalledWith({
+      baseUrl: "https://restoran.devk.my.id",
+      locale: "id",
+      companyId: "company-1",
+      sourceType: "SALES_INVOICE",
+      sourceId: "invoice-1",
+      contactId: "contact-1",
+      expiresAt: null,
+    });
   });
 });

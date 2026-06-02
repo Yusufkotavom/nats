@@ -17,6 +17,7 @@ import {
 } from "@/lib/communication/company-communication";
 import { requireActiveCompanyContext } from "@/lib/company-context";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
+import { buildPublicTrackingUrl, type PublicTrackingSourceType } from "@/lib/public-tracking/customer-tracking";
 
 type ContactCommunicationStatusInput =
   | "QUEUED"
@@ -383,4 +384,25 @@ export async function sendCompanyCommunicationTest(input: {
       ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`
       : null,
   };
+}
+
+export async function createPublicTrackingLink(input: {
+  baseUrl: string;
+  locale: string;
+  sourceType: PublicTrackingSourceType;
+  sourceId: string;
+  contactId?: string | null;
+  expiresAt?: Date | null;
+}) {
+  const { companyId } = await requireActiveCompanyContext();
+
+  return buildPublicTrackingUrl({
+    baseUrl: input.baseUrl,
+    locale: input.locale,
+    companyId,
+    sourceType: input.sourceType,
+    sourceId: input.sourceId,
+    contactId: input.contactId || null,
+    expiresAt: input.expiresAt || null,
+  });
 }

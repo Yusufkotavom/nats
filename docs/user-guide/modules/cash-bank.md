@@ -18,6 +18,7 @@ related: modules/sales,modules/purchase,modules/accounting
 - Pengelolaan akun kas/bank operasional sekarang dipusatkan di halaman `Payment Method` (`/payment-method`).
 - Halaman `Cash & Bank` tidak lagi menjadi tempat master akun agar tidak terjadi dual pengelolaan.
 - Form `Transaction` dan `Transfer` tetap memakai akun kas/bank yang sama di backend, tetapi pilihannya diambil dari katalog `Payment Method`.
+- List `Transfer` hanya menampilkan transfer yang terkait akun kas/bank milik company aktif.
 
 ## Validasi
 - Saldo akun berubah sesuai transaksi.
@@ -31,6 +32,8 @@ related: modules/sales,modules/purchase,modules/accounting
   - kategori,
   - nominal,
   - deskripsi.
+- Form menampilkan panel **Field utama yang wajib diisi** untuk akun kas/bank, kategori, dan nominal agar user langsung tahu input prioritas.
+- Deskripsi juga wajib diisi. Jika tombol create diklik saat deskripsi kosong, sistem menampilkan notifikasi jelas agar user mengisi tujuan transaksi, misalnya `Setoran penjualan shift pagi`.
 - Sistem otomatis membuat alokasi jurnal 1 baris ke akun kategori yang dipilih, tanpa wajib memilih akun GL manual per baris.
 
 ## Kategori & Mapping Akun

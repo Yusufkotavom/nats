@@ -50,6 +50,7 @@ import { generateId } from "@/lib/utils";
 import { SuperJSON } from "@/lib/superjson";
 import { SuperJSONResult } from "superjson";
 import { useConfirm } from "@/hooks/use-confirm";
+import { useAlert } from "@/hooks/use-alert";
 import { useToast } from "@/hooks/use-toast";
 import { AttachmentDialog, Attachment } from "@/components/ui/attachment-dialog";
 import { uploadFile } from "@/app/[locale]/(dashboard)/general/files/actions";
@@ -70,7 +71,7 @@ import { useCompanyProfile } from "@/components/providers/session-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { buildCompanyCommunicationPreview, createContactCommunicationLog } from "@/app/[locale]/communications/actions";
+import { buildCompanyCommunicationPreview, createContactCommunicationLog, createPublicTrackingLink } from "@/app/[locale]/communications/actions";
 import {
   normalizePhoneForWhatsApp,
 } from "@/lib/communication/company-communication";
@@ -89,6 +90,23 @@ interface SalesInvoiceFormProps {
   projects?: Project[];
   readonly?: boolean;
   initialSalesOrderId?: string;
+}
+
+export function buildSalesInvoiceDraftSavedDescription({
+  invoiceNumber,
+  customerName,
+}: {
+  invoiceNumber?: string | null;
+  customerName?: string | null;
+}) {
+  const invoiceLabel = invoiceNumber ? `Invoice ${invoiceNumber}` : "Invoice";
+  const customerLine = customerName ? ` untuk ${customerName}` : "";
+
+  return [
+    `${invoiceLabel}${customerLine} berhasil dibuat sebagai Draft.`,
+    "Silakan edit dan periksa lagi data invoice sebelum diposting.",
+    "Klik Post Invoice untuk membuat invoice resmi dan jurnal transaksi.",
+  ].join("\n");
 }
 
 export function SalesInvoiceForm({
@@ -121,6 +139,7 @@ export function SalesInvoiceForm({
   const formatDate = useFormatDate();
   const formatCurrency = useFormatCurrency();
   const confirm = useConfirm();
+  const alert = useAlert();
   const { toast } = useToast();
   const t = useTranslations("Sales");
   const tCommon = useTranslations("Common");
@@ -426,9 +445,20 @@ export function SalesInvoiceForm({
       if (result.success) {
         const createdInvoice =
           !isEditing && result.data
-            ? SuperJSON.deserialize<{ id: string }>(result.data)
+            ? SuperJSON.deserialize<{ id: string; invoiceNumber?: string | null }>(result.data)
             : null;
         if (createdInvoice?.id) {
+          const customerName =
+            customers.find((customer) => customer.id === formData.contactId)?.name ||
+            null;
+          await alert({
+            title: "Invoice Masih Draft",
+            description: buildSalesInvoiceDraftSavedDescription({
+              invoiceNumber: createdInvoice.invoiceNumber,
+              customerName,
+            }),
+            confirmText: "Mengerti",
+          });
           router.push(`/sales/invoices/${createdInvoice.id}/edit`);
         } else {
           router.push("/sales/invoices");
@@ -456,7 +486,11 @@ export function SalesInvoiceForm({
     if (!invoice) return;
     const summaryItemsCount = invoice.items?.length || 0;
     const summaryTotal = Number(invoice.totalAmount || 0);
-    const summaryRemaining = Number(invoice.balanceDue || 0);
+    const summaryPaid = (invoice.payments || []).reduce(
+      (sum, payment) => sum + Number(payment.amount || 0),
+      0,
+    );
+    const summaryRemaining = Math.max(summaryTotal - summaryPaid, 0);
     if (
       !(await confirm({
         title: "Post Invoice",
@@ -599,7 +633,14 @@ export function SalesInvoiceForm({
 
     const locale = pathname.split("/").filter(Boolean)[0] || "id";
     const baseUrl = window.location.origin;
-    const invoiceUrl = `${baseUrl}/${locale}/reporting/preview?code=SALES_INVOICE&invoiceId=${invoice.id}`;
+    const trackingLink = await createPublicTrackingLink({
+      baseUrl,
+      locale,
+      sourceType: "SALES_INVOICE",
+      sourceId: invoice.id,
+      contactId: invoice.contactId,
+    });
+    const invoiceUrl = trackingLink.url;
     const totalAmount = Number(invoice.totalAmount || 0);
     const balanceDue = Number(invoice.balanceDue || 0);
     const preview = await buildCompanyCommunicationPreview({
@@ -610,6 +651,8 @@ export function SalesInvoiceForm({
         amount: totalAmount.toLocaleString("id-ID"),
         remaining_amount: balanceDue.toLocaleString("id-ID"),
         doc_url: invoiceUrl,
+        public_tracking_url: invoiceUrl,
+        public_invoice_url: invoiceUrl,
         status: invoice.status,
         date: formatDate(invoice.invoiceDate),
         is_service: invoice.salesOrder?.isServiceOrder ? "Yes" : "No",

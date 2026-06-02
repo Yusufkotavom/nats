@@ -83,6 +83,7 @@ model Contact {
   employeeDetail   EmployeeDetail?
   communicationLogs    ContactCommunicationLog[]
   messageTemplates     ContactMessageTemplate[]
+  publicCustomerLinks  PublicCustomerLink[]
   company              Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
@@ -149,4 +150,24 @@ model CompanyCommunicationTemplate {
 
   @@unique([companyId, eventKey, channel])
   @@index([companyId])
+}
+
+model PublicCustomerLink {
+  id           String   @id @default(cuid())
+  companyId    String?
+  contactId    String?
+  sourceType   String
+  sourceId     String
+  tokenHash    String   @unique
+  expiresAt    DateTime?
+  revokedAt    DateTime?
+  lastViewedAt DateTime?
+  viewCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact      Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, sourceType, sourceId])
+  @@index([contactId, createdAt])
 }

@@ -23,6 +23,7 @@ type PostSalesPaymentResult = {
   outboxId?: string;
   communicationCandidate?: {
     contactId: string;
+    salesInvoiceId: string;
     customerName: string;
     customerPhone: string | null;
     paymentId: string;
@@ -341,9 +342,10 @@ export const postSalesPayment = authorizedAction<PostSalesPaymentResult, [string
         data: {
           outboxId: outbox.id,
           ...processed,
-          communicationCandidate: contact
+              communicationCandidate: contact
             ? {
                 contactId: contact.id,
+                salesInvoiceId: payment.salesInvoiceId,
                 customerName: contact.name || "Pelanggan",
                 customerPhone: contact.phone || null,
                 paymentId: payment.id,

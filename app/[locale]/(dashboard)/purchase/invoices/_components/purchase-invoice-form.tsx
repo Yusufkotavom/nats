@@ -442,10 +442,24 @@ export function PurchaseInvoiceForm({
 
   const handlePost = async () => {
     if (!invoice) return;
+    const summaryItemsCount = invoice.items?.length || 0;
+    const summaryTotal = Number(invoice.totalAmount || 0);
+    const summaryPaid = (invoice.payments || []).reduce(
+      (sum, payment) => sum + Number(payment.amount || 0),
+      0,
+    );
+    const summaryRemaining = Math.max(summaryTotal - summaryPaid, 0);
     if (
       !(await confirm({
         title: "Post Invoice",
-        description: "Are you sure you want to post this invoice? This will create a journal entry and cannot be undone.",
+        description: [
+          `Invoice: ${invoice.invoiceNumber}`,
+          `Vendor: ${invoice.contact?.name || "-"}`,
+          `Jumlah item produk/jasa: ${summaryItemsCount}`,
+          `Nominal transaksi: ${formatCurrency(summaryTotal)}`,
+          `Sisa tagihan saat ini: ${formatCurrency(summaryRemaining)}`,
+          "Aksi ini akan membuat jurnal dan tidak bisa dibatalkan.",
+        ].join("\n"),
       }))
     ) {
       return;

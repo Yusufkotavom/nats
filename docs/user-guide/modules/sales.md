@@ -166,10 +166,13 @@ PO Customer: PO-CATERING-001 (jika ada)
 **Total**: Rp 3.510.375
 
 ### 3.3 Post Invoice
-1. **Review semua data**
-2. **Klik "Post Invoice"**
-3. **Send invoice** ke customer (email/WhatsApp)
-4. **Jurnal otomatis**:
+1. Saat invoice baru dibuat, statusnya masih **Draft**. Popup informasi akan mengingatkan user untuk edit/review ulang sebelum invoice resmi dibuat.
+   Jika invoice dibuat langsung tanpa memilih Sales Order, sistem otomatis membuat Sales Order pendamping agar alur shipment, payment, return, dan pipeline tetap punya dokumen sumber.
+2. **Review semua data** di halaman edit/detail invoice.
+3. **Klik "Post Invoice"** untuk membuat invoice resmi dan jurnal transaksi.
+4. Popup konfirmasi menampilkan ringkasan multiline: nomor invoice, customer, jumlah item, nominal transaksi, sisa tagihan, dan dampak posting jurnal.
+5. **Send invoice** ke customer (email/WhatsApp)
+6. **Jurnal otomatis**:
    - Debit: Piutang Dagang Rp 3.510.375
    - Kredit: Penjualan Makanan Rp 3.162.500
    - Kredit: PPN Keluaran Rp 347.875
@@ -183,10 +186,11 @@ Di halaman detail/edit Sales Invoice, gunakan tombol **Kirim WA** untuk komunika
    - nomor invoice,
    - total invoice,
    - sisa tagihan,
-   - link **PDF Invoice**,
-   - link **Nota POS** (sebagai referensi transaksi).
+   - link **public tracking** customer untuk cek status invoice terbaru.
 
 Catatan:
+- Variabel `{{doc_url}}` dari template komunikasi sekarang diarahkan ke halaman publik `/id/public/t/[token]`, bukan ke route dashboard internal.
+- Halaman publik menampilkan data singkat customer, nomor dokumen/order, status invoice/service terkait, dan tombol WhatsApp support ke admin.
 - Fitur ini fokus untuk komunikasi operasional (info invoice/tagihan), bukan campaign promo.
 - Jika nomor telepon kosong/tidak valid, sistem menampilkan warning dan WA tidak dibuka.
 

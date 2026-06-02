@@ -113,8 +113,10 @@ Untuk customer yang punya nomor WhatsApp valid, sistem menampilkan popup manual 
 2. Setelah create sukses, sistem menampilkan popup manual kirim notifikasi customer (preview pesan dari `Admin > Settings > Communication`, event `SERVICE_CREATED`).
 3. Saat status service berubah ke tahap penting (`READY`, `DONE`, `CLOSED`), sistem menampilkan popup manual kirim notifikasi customer sesuai template event service.
 4. Saat pelunasan/payment dicatat, sistem menampilkan popup manual kirim notifikasi customer menggunakan template komunikasi pembayaran.
-2. **Status berubah ke READY/DONE** (pesan siap ambil).
-3. **Pelunasan/pembayaran diterima** (sebagai bukti pembayaran).
+
+Catatan:
+- Link yang dikirim ke customer kini memakai halaman publik token-based `/id/public/t/[token]`.
+- Halaman publik memuat header company, nama + nomor HP customer, nomor order/invoice, status service/invoice/payment, dan tombol WhatsApp support ke admin.
 
 Jika channel WA/email tidak tersedia, sistem menampilkan warning agar data contact dilengkapi.
 

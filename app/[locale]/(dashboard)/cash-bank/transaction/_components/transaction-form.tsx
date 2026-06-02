@@ -85,6 +85,7 @@ export function TransactionForm({
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [entryMode, setEntryMode] = useState<"SIMPLE" | "ADVANCED">(
     initialData?.allocations?.length && initialData.allocations.length > 1
       ? "ADVANCED"
@@ -187,6 +188,18 @@ export function TransactionForm({
         });
         return;
       }
+      if (!formData.description?.trim()) {
+        const message =
+          "Deskripsi wajib diisi. Tuliskan tujuan transaksi, contoh: Setoran penjualan shift pagi.";
+        setDescriptionError(message);
+        toast({
+          title: t("validation_error"),
+          description: message,
+          variant: "destructive",
+        });
+        return;
+      }
+      setDescriptionError(null);
 
       let allocationsToSubmit = formData.allocations;
       if (entryMode === "SIMPLE") {
@@ -210,7 +223,7 @@ export function TransactionForm({
           {
             accountId: formData.categoryAccountId,
             amount: Number(formData.amount || 0),
-            description: formData.description || "Transaksi Kas/Bank",
+            description: formData.description.trim(),
           },
         ];
       }
@@ -398,66 +411,96 @@ export function TransactionForm({
             placeholder={t("optional_reference")}
             disabled={readOnly}
           />
-          <div className="space-y-1">
-            <Label>{t("cash_bank_account")}</Label>
-            <SearchableSelect
-              value={formData.cashAccountId || ""}
-              onValueChange={(val) =>
-                setFormData({ ...formData, cashAccountId: val || "" })
-              }
-              options={paymentMethodAccounts.map((acc) => ({
-                label: acc.name,
-                value: acc.id,
-                subtitle: [acc.bankName, acc.accountNumber, acc.glName]
-                  .filter(Boolean)
-                  .join(" • "),
-                meta: acc.method,
-              }))}
-              placeholder={t("select_account")}
-              disabled={readOnly}
-            />
-          </div>
-
-          <CustomInput
-            label={t("description")}
-            value={formData.description || ""}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            placeholder={t("transaction_description")}
-            disabled={readOnly}
-          />
-          {entryMode === "SIMPLE" ? (
-            <>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-3">
-                  <Label>{t("category")}</Label>
-                  <Link href="/cash-bank/categories" className="text-xs text-primary hover:underline">
-                    {t("manage_categories")}
-                  </Link>
-                </div>
+          <section className="relative overflow-hidden rounded-2xl border border-amber-300/70 bg-gradient-to-br from-amber-50 via-orange-50 to-background p-4 shadow-sm sm:col-span-2 md:p-5">
+            <div className="pointer-events-none absolute -right-10 -top-10 size-28 rounded-full bg-amber-300/20 blur-2xl" />
+            <div className="relative mb-4 flex flex-col gap-1">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+                Field utama yang wajib diisi
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Isi bagian ini dulu agar transaksi kas/bank bisa diposting dengan kategori dan nominal yang jelas.
+              </div>
+            </div>
+            <div className="relative grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="space-y-1 rounded-xl border bg-background/80 p-3">
+                <Label>
+                  {t("cash_bank_account")} <span className="text-destructive">*</span>
+                </Label>
                 <SearchableSelect
-                  value={formData.categoryAccountId || ""}
+                  value={formData.cashAccountId || ""}
                   onValueChange={(val) =>
-                    setFormData({ ...formData, categoryAccountId: val || "" })
+                    setFormData({ ...formData, cashAccountId: val || "" })
                   }
-                  options={filteredCategoryOptions}
-                  placeholder={t("select_transaction_category")}
+                  options={paymentMethodAccounts.map((acc) => ({
+                    label: acc.name,
+                    value: acc.id,
+                    subtitle: [acc.bankName, acc.accountNumber, acc.glName]
+                      .filter(Boolean)
+                      .join(" • "),
+                    meta: acc.method,
+                  }))}
+                  placeholder={t("select_account")}
                   disabled={readOnly}
                 />
+                <p className="text-xs text-muted-foreground">Pilih sumber/tujuan uang.</p>
               </div>
-              <div className="space-y-1">
-                <Label>{t("amount")}</Label>
-                <CurrencyInput
-                  value={Number(formData.amount || 0)}
-                  onChange={(val) =>
-                    setFormData({ ...formData, amount: Number(val || 0) })
-                  }
-                  disabled={readOnly}
-                />
-              </div>
-            </>
-          ) : null}
+
+              {entryMode === "SIMPLE" ? (
+                <>
+                  <div className="space-y-1 rounded-xl border bg-background/80 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label>
+                        {t("category")} <span className="text-destructive">*</span>
+                      </Label>
+                      <Link href="/cash-bank/categories" className="text-xs text-primary hover:underline">
+                        {t("manage_categories")}
+                      </Link>
+                    </div>
+                    <SearchableSelect
+                      value={formData.categoryAccountId || ""}
+                      onValueChange={(val) =>
+                        setFormData({ ...formData, categoryAccountId: val || "" })
+                      }
+                      options={filteredCategoryOptions}
+                      placeholder={t("select_transaction_category")}
+                      disabled={readOnly}
+                    />
+                    <p className="text-xs text-muted-foreground">Tentukan kategori cashbank untuk jurnal.</p>
+                  </div>
+                  <div className="space-y-1 rounded-xl border bg-background/80 p-3">
+                    <Label>
+                      {t("amount")} <span className="text-destructive">*</span>
+                    </Label>
+                    <CurrencyInput
+                      value={Number(formData.amount || 0)}
+                      onChange={(val) =>
+                        setFormData({ ...formData, amount: Number(val || 0) })
+                      }
+                      disabled={readOnly}
+                    />
+                    <p className="text-xs text-muted-foreground">Masukkan nominal transaksi lebih dari 0.</p>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </section>
+
+          <div className="space-y-1 sm:col-span-2">
+            <CustomInput
+              label={`${t("description")} *`}
+              value={formData.description || ""}
+              onChange={(e) => {
+                setDescriptionError(null);
+                setFormData({ ...formData, description: e.target.value });
+              }}
+              placeholder={t("transaction_description")}
+              disabled={readOnly}
+              className={descriptionError ? "border-destructive" : undefined}
+            />
+            <p className={descriptionError ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+              {descriptionError || "Wajib diisi agar transaksi mudah diaudit dan tidak ambigu."}
+            </p>
+          </div>
 
           {showDimensionFields ? (
             <div className="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-2">

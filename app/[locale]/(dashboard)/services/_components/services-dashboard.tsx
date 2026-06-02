@@ -64,7 +64,7 @@ import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_compo
 import { SuperJSON } from "@/lib/superjson";
 import { ServiceOrderCreateForm } from "../orders/_components/service-order-create-form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
+import { buildCompanyCommunicationPreview, createPublicTrackingLink } from "@/app/[locale]/communications/actions";
 import {
   normalizePhoneForWhatsApp,
 } from "@/lib/communication/company-communication";
@@ -319,9 +319,14 @@ export function ServicesDashboard({
         : "-";
     const locale = window.location.pathname.split("/").filter(Boolean)[0] || "id";
     const origin = window.location.origin;
-    const invoiceUrl = order.salesInvoiceId
-      ? `${origin}/${locale}/reporting/preview?code=SERVICE_INVOICE&invoiceId=${order.salesInvoiceId}`
-      : "-";
+    const trackingLink = await createPublicTrackingLink({
+      baseUrl: origin,
+      locale,
+      sourceType: "SERVICE_ORDER",
+      sourceId: order.id,
+      contactId: order.contactId || null,
+    });
+    const invoiceUrl = trackingLink.url;
     const invoiceNumber = order.invoiceNumber || "-";
     const noInvoice = order.salesInvoiceId ? "" : "Belum ada invoice";
 
@@ -342,6 +347,8 @@ export function ServicesDashboard({
         status: order.status,
         invoice_number: invoiceNumber,
         invoice_url: invoiceUrl,
+        public_tracking_url: invoiceUrl,
+        public_service_url: invoiceUrl,
         no_invoice: noInvoice || "-",
         warranty_text: warrantyText,
         doc_url: invoiceUrl,
@@ -379,9 +386,14 @@ export function ServicesDashboard({
 
     const locale = window.location.pathname.split("/").filter(Boolean)[0] || "id";
     const origin = window.location.origin;
-    const invoiceUrl = input.invoiceNumber
-      ? `${origin}/${locale}/services/orders`
-      : "-";
+    const trackingLink = await createPublicTrackingLink({
+      baseUrl: origin,
+      locale,
+      sourceType: "SERVICE_ORDER",
+      sourceId: input.sourceId,
+      contactId: input.contactId,
+    });
+    const invoiceUrl = trackingLink.url;
 
     const preview = await buildCompanyCommunicationPreview({
       eventKey: input.eventKey,
@@ -394,6 +406,8 @@ export function ServicesDashboard({
         date: formatDate(input.createdAt || new Date()),
         warranty_text: "-",
         doc_url: invoiceUrl,
+        public_tracking_url: invoiceUrl,
+        public_service_url: invoiceUrl,
       },
     });
     if (!preview.isEnabled) return;

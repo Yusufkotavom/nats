@@ -10,50 +10,95 @@ export const COMPANY_COMMUNICATION_EVENTS: Array<{
     key: "SALES_INVOICE_ISSUED",
     label: "Sales Invoice Issued",
     defaultEnabled: true,
-    defaultTemplate:
-      "Halo {{customer_name}}, invoice {{doc_number}} sudah terbit. Total: {{amount}}. Sisa: {{remaining_amount}}. Invoice: {{doc_url}}",
+    defaultTemplate: `Halo {{customer_name}},
+
+*Invoice*
+*Nomor:* {{doc_number}}
+*Tanggal:* {{date}}
+*Status:* {{status}}
+*Total:* {{amount}}
+*Sisa Tagihan:* {{remaining_amount}}
+
+*Cek Detail:* {{doc_url}}`,
   },
   {
     key: "SALES_PAYMENT_POSTED",
     label: "Sales Payment Posted",
     defaultEnabled: true,
-    defaultTemplate:
-      "Halo {{customer_name}}, pembayaran {{doc_number}} sebesar {{amount}} sudah kami terima.",
+    defaultTemplate: `Halo {{customer_name}},
+
+*Pembayaran Diterima*
+*Nomor Pembayaran:* {{doc_number}}
+*Nominal Bayar:* {{amount}}
+*Sisa Tagihan:* {{remaining_amount}}
+
+*Cek Detail:* {{doc_url}}`,
   },
   {
     key: "SERVICE_CREATED",
     label: "Service Created",
     defaultEnabled: true,
-    defaultTemplate:
-      "Halo {{customer_name}}, WO {{doc_number}} sudah diterima. Total: {{amount}}. Sisa: {{remaining_amount}}.",
+    defaultTemplate: `Halo {{customer_name}},
+
+*Service Diterima*
+*Nomor WO:* {{doc_number}}
+*Tanggal:* {{date}}
+*Total:* {{amount}}
+*Sisa Tagihan:* {{remaining_amount}}
+*Estimasi:* {{target_date}}
+
+*Cek Progress:* {{doc_url}}`,
   },
   {
     key: "SERVICE_READY",
     label: "Service Ready",
     defaultEnabled: true,
-    defaultTemplate:
-      "Halo {{customer_name}}, WO {{doc_number}} sudah READY dan bisa diambil.",
+    defaultTemplate: `Halo {{customer_name}},
+
+*Service Ready*
+*Nomor WO:* {{doc_number}}
+*Status:* {{status}}
+
+Barang sudah siap dan bisa diambil.
+*Cek Progress:* {{doc_url}}`,
   },
   {
     key: "SERVICE_COST_DONE",
     label: "Service Cost Done",
     defaultEnabled: true,
-    defaultTemplate:
-      "Halo {{customer_name}}, konfirmasi biaya WO {{doc_number}}: {{amount}}.",
+    defaultTemplate: `Halo {{customer_name}},
+
+*Konfirmasi Biaya Service*
+*Nomor WO:* {{doc_number}}
+*Biaya:* {{amount}}
+*Sisa Tagihan:* {{remaining_amount}}
+
+*Cek Detail:* {{doc_url}}`,
   },
   {
     key: "SERVICE_PICKED_UP",
     label: "Service Picked Up",
     defaultEnabled: true,
-    defaultTemplate:
-      "Halo {{customer_name}}, WO {{doc_number}} sudah diambil. Garansi: {{warranty_text}}.",
+    defaultTemplate: `Halo {{customer_name}},
+
+*Service Selesai Diambil*
+*Nomor WO:* {{doc_number}}
+*Garansi:* {{warranty_text}}
+
+Terima kasih. Silakan simpan link ini untuk monitoring dokumen.
+*Cek Detail:* {{doc_url}}`,
   },
   {
     key: "POS_PAYMENT_POSTED",
     label: "POS Payment Posted",
     defaultEnabled: false,
-    defaultTemplate:
-      "Halo {{customer_name}}, pembayaran POS {{doc_number}} sebesar {{amount}} berhasil.",
+    defaultTemplate: `Halo {{customer_name}},
+
+*Pembayaran POS Berhasil*
+*Nomor:* {{doc_number}}
+*Nominal:* {{amount}}
+
+*Cek Detail:* {{doc_url}}`,
   },
 ];
 

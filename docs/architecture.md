@@ -198,6 +198,7 @@ Kontrak historis modul service (sebelum deprecate) adalah:
 ### Contact Module WhatsApp Composer (2026-05-15)
 
 - Detail contact (`app/[locale]/(dashboard)/general/contacts/[id]/_components/contact-detail-view.tsx`) kini memakai struktur tab `Overview / Transactions / Follow-up`.
+- Header halaman detail contact menyediakan action `Edit Contact` yang membuka `ContactDialog` reusable milik modul contact, sehingga edit data tetap memakai flow CRUD yang sama dengan daftar contact.
 - Tab `Transactions` menjadi sumber audit utama untuk histori transaksi contact lintas modul:
   - sales order,
   - sales invoice,
@@ -223,6 +224,15 @@ Kontrak historis modul service (sebelum deprecate) adalah:
 - Konfigurasi template notifikasi WhatsApp lintas modul kini dipusatkan di `Admin > Settings > Communication` (`/admin/settings/communication`).
 - Source of truth global disimpan di model `CompanyCommunicationTemplate` (tenant-scoped) dengan key event (mis. `SALES_INVOICE_ISSUED`, `SERVICE_READY`, `SALES_PAYMENT_POSTED`) agar sales/service/pos/payment memakai format pesan yang konsisten.
 - Flow legacy template service di `CompanyProfile` masih dipakai sebagai fallback kompatibilitas saat template event global belum di-set.
+- Kontrak format template mengikuti gaya WhatsApp:
+  - newline (`Enter`) dipertahankan apa adanya pada preview dan pesan final,
+  - marker `*teks*` dipakai untuk penegasan/bold di isi pesan,
+  - preview admin dan popup kirim customer menampilkan bubble WA-style agar user tidak mengedit pesan “buta” di textarea polos.
+- URL customer yang dikirim lewat template kini sebaiknya memakai link publik token-based:
+  - route publik utama: `/[locale]/public/t/[token]`
+  - token disimpan sebagai hash di model `PublicCustomerLink` dengan scope company/contact/source document
+  - halaman publik read-only menampilkan header company, ringkasan customer + dokumen, status invoice/service/payment terkait, dan CTA WhatsApp support yang otomatis menyertakan URL halaman publik tersebut.
+- Token publik tidak bergantung pada session dashboard; auth/permission diganti dengan validasi token `revokedAt` / `expiresAt` / source ownership tenant.
 
 ### Sales Invoice WhatsApp Touchpoint (2026-05-15)
 
@@ -230,7 +240,7 @@ Kontrak historis modul service (sebelum deprecate) adalah:
 - Payload WA difokuskan untuk info operasional:
   - nomor invoice,
   - total & sisa tagihan,
-  - link dokumen invoice (`SALES_INVOICE`) dan nota (`POS_RECEIPT`) dari reporting preview route existing.
+  - link tracking publik customer (`{{doc_url}}` / `{{public_tracking_url}}`) yang membuka status dokumen secara read-only.
 - Tidak ada campaign engine/scheduler tambahan di fase ini; hanya one-click communication dari surface Sales.
 - Kontrak UX komunikasi lintas modul kini diseragamkan:
   - user mengirim notifikasi via popup preview manual (bukan auto-send di server),

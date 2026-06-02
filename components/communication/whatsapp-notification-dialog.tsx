@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { ContactCommunicationEventType } from "@/prisma/generated/prisma/client";
+import { WhatsAppMessagePreview } from "./whatsapp-message-preview";
 
 type CommunicationContext = {
   contactId: string;
@@ -47,6 +48,7 @@ export function WhatsAppNotificationDialog({
         </DialogHeader>
         <div className="grid gap-3">
           <div className="text-sm text-muted-foreground">{description}</div>
+          <WhatsAppMessagePreview message={message} />
           <Textarea
             value={message}
             onChange={(event) => onMessageChange(event.target.value)}

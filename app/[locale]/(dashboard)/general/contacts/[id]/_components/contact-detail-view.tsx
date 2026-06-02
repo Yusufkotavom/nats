@@ -12,11 +12,13 @@ import {
   Loader2,
   Mail,
   MapPin,
+  Pencil,
   Phone,
   Send,
 } from "lucide-react";
 
 import {
+  PageFormActions,
   PageFormHeader,
   PageFormLayout,
   PageFormTitle,
@@ -50,6 +52,7 @@ import {
   updateContactCommunicationLogStatus,
   upsertContactMessageTemplate,
 } from "@/app/[locale]/communications/actions";
+import { ContactDialog } from "../../_components/contact-dialog";
 
 type MessagingItem = { name: string; quantity: number };
 
@@ -240,6 +243,7 @@ export function ContactDetailView({
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [transactionAreaFilter, setTransactionAreaFilter] =
     useState<TransactionAreaFilter>("ALL");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -498,6 +502,17 @@ export function ContactDetailView({
             </div>
           </div>
         </PageFormTitle>
+        <PageFormActions>
+          <Button
+            type="button"
+            variant="outline"
+            aria-label="Edit Contact"
+            onClick={() => setIsEditDialogOpen(true)}
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Contact
+          </Button>
+        </PageFormActions>
       </PageFormHeader>
 
       <Tabs defaultValue="overview">
@@ -944,6 +959,12 @@ export function ContactDetailView({
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ContactDialog
+        contact={contact as any}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
     </PageFormLayout>
   );
 }

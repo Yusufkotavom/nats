@@ -40,7 +40,7 @@ import { useFormatDate, useFormatCurrency } from "@/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
-import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
+import { buildCompanyCommunicationPreview, createPublicTrackingLink } from "@/app/[locale]/communications/actions";
 import { normalizePhoneForWhatsApp } from "@/lib/communication/company-communication";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 
@@ -99,6 +99,14 @@ export default function SalesPaymentsPage() {
             if (candidate) {
               const normalized = normalizePhoneForWhatsApp(candidate.customerPhone);
               if (normalized) {
+                const locale = window.location.pathname.split("/").filter(Boolean)[0] || "id";
+                const trackingLink = await createPublicTrackingLink({
+                  baseUrl: window.location.origin,
+                  locale,
+                  sourceType: "SALES_INVOICE",
+                  sourceId: candidate.salesInvoiceId,
+                  contactId: candidate.contactId,
+                });
                 const preview = await buildCompanyCommunicationPreview({
                   eventKey: "SALES_PAYMENT_POSTED",
                   vars: {
@@ -106,6 +114,9 @@ export default function SalesPaymentsPage() {
                     doc_number: candidate.paymentNumber,
                     amount: Number(candidate.amount || 0).toLocaleString("id-ID"),
                     remaining_amount: Number(candidate.remainingAmount || 0).toLocaleString("id-ID"),
+                    doc_url: trackingLink.url,
+                    public_tracking_url: trackingLink.url,
+                    public_invoice_url: trackingLink.url,
                     is_service: candidate.isServiceOrder ? "Yes" : "No",
                     service_status: candidate.serviceStatus || "-",
                   },
