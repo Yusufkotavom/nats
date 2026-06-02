@@ -442,9 +442,26 @@ Payment Terms: Net 14
 Status: Active
 ```
 
-### 6.3 Template WhatsApp per Contact (Marketing Assist)
+### 6.3 Customer Detail CRM Ringkas
 
-Halaman detail contact sekarang mendukung composer WhatsApp dengan template custom.
+Halaman detail contact sekarang dirapikan menjadi 3 tab utama:
+
+- **Overview**: ringkasan info contact + metrik dasar (`total transaksi`, `total invoice sales`, `total pembayaran`, `outstanding`) dan snapshot dokumen terakhir.
+- **Transactions**: tabel histori transaksi lintas modul yang terkait contact.
+- **Follow-up**: composer WhatsApp + log follow-up.
+
+Di tab **Transactions**, Anda bisa melihat histori yang lebih rapi untuk:
+
+- Sales Order
+- Sales Invoice
+- Sales Payment
+- Service Order
+- Cash Transaction
+- Purchase Order / Invoice / Payment (jika contact berperan sebagai vendor)
+
+### 6.4 Template WhatsApp per Contact (Marketing Assist)
+
+Tab `Follow-up` pada detail contact mendukung composer WhatsApp dengan template custom.
 
 1. Buka `General > Contacts`.
 2. Pilih contact yang ingin di-follow-up.

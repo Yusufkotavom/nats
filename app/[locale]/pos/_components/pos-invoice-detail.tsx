@@ -29,21 +29,34 @@ import { useSession } from "@/components/providers/session-provider";
 import { ReportPreviewDialog } from "@/app/[locale]/(dashboard)/reporting/_components/report-preview-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useTranslations } from "next-intl";
+import { useToast } from "@/hooks/use-toast";
+import { CheckoutDialog } from "./checkout-dialog";
+import { settlePOSInvoice } from "../actions";
 
 interface POSInvoiceDetailProps {
   invoice: SuperJSONResult;
+  paymentMethods: SuperJSONResult;
 }
 
 export function POSInvoiceDetail({
   invoice: serializedInvoice,
+  paymentMethods: serializedPaymentMethods,
 }: POSInvoiceDetailProps) {
   const t = useTranslations("POS");
   const invoice = SuperJSON.deserialize<any>(serializedInvoice);
+  const paymentMethods = SuperJSON.deserialize<
+    Array<{ id: string; name: string; method: "CASH" | "BANK" }>
+  >(serializedPaymentMethods);
   const sessionData = useSession();
   const router = useRouter();
   const formatCurrency = useFormatCurrency();
   const formatDate = useFormatDate();
+  const { toast } = useToast();
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const balanceDue = Number(invoice.balanceDue || 0);
+  const canReceivePayment =
+    invoice.status !== "PAID" && balanceDue > 0 && !!invoice.posSessionId;
   const feeLines = (() => {
     if (!invoice?.notes || typeof invoice.notes !== "string") return [] as Array<{ name: string; amount: number }>;
     if (!invoice.notes.startsWith("POS_FEE_LINES:")) return [] as Array<{ name: string; amount: number }>;
@@ -148,6 +161,31 @@ export function POSInvoiceDetail({
                 <p className="text-xs text-muted-foreground">
                   {t("session")}: {invoice.posSession?.sessionNumber || "-"}
                 </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {t("balance")}
+                </CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-2xl font-bold">
+                  {formatCurrency(balanceDue)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("remaining_amount")}
+                </p>
+                {canReceivePayment ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => setPaymentOpen(true)}
+                    disabled={paymentMethods.length === 0}
+                  >
+                    {t("receive_payment")}
+                  </Button>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -276,6 +314,44 @@ export function POSInvoiceDetail({
         code="POS_RECEIPT"
         input={{ invoiceId: invoice.id }}
         title={t("pos_receipt")}
+      />
+      <CheckoutDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        totalAmount={balanceDue}
+        allowPreOrder={false}
+        paymentMethods={paymentMethods}
+        contacts={[]}
+        selectedContactId={undefined}
+        onSelectedContactChange={() => undefined}
+        onQuickCreateContact={() => undefined}
+        onConfirm={async (_mode, method, amountPaid, _customerId, cashAccountId) => {
+          const result = await settlePOSInvoice(
+            invoice.posSessionId,
+            invoice.id,
+            method,
+            amountPaid,
+            cashAccountId,
+          );
+
+          if (!result.success) {
+            toast({
+              variant: "destructive",
+              title: t("payment_failed"),
+              description: result.error,
+            });
+            throw new Error(result.error || t("payment_failed"));
+          }
+
+          toast({
+            title: t("payment_recorded"),
+            description: t("paid_via", {
+              amount: formatCurrency(amountPaid),
+              method,
+            }),
+          });
+          router.refresh();
+        }}
       />
     </div>
   );

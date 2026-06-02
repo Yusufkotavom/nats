@@ -25,7 +25,8 @@ import {
   CashTransactionAllocationFormData,
   CashTransactionFormData,
 } from "../types";
-import { Account, CashAccount, Contact } from "@/prisma/generated/prisma/browser";
+import type { OperationalPaymentMethodAccount } from "../../types";
+import { Account, Contact } from "@/prisma/generated/prisma/browser";
 import { Department, Project } from "@/prisma/generated/prisma/client";
 import { AttachmentDialog } from "@/components/ui/attachment-dialog";
 import { NoteDialog } from "@/components/ui/note-dialog";
@@ -45,7 +46,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
 interface TransactionFormProps {
-  cashAccounts: CashAccount[];
+  paymentMethodAccounts: OperationalPaymentMethodAccount[];
   glAccounts: Account[];
   expenseParentAccountId?: string | null;
   incomeParentAccountId?: string | null;
@@ -58,7 +59,7 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({
-  cashAccounts,
+  paymentMethodAccounts,
   glAccounts,
   expenseParentAccountId,
   incomeParentAccountId,
@@ -404,9 +405,13 @@ export function TransactionForm({
               onValueChange={(val) =>
                 setFormData({ ...formData, cashAccountId: val || "" })
               }
-              options={cashAccounts.map((acc) => ({
+              options={paymentMethodAccounts.map((acc) => ({
                 label: acc.name,
                 value: acc.id,
+                subtitle: [acc.bankName, acc.accountNumber, acc.glName]
+                  .filter(Boolean)
+                  .join(" • "),
+                meta: acc.method,
               }))}
               placeholder={t("select_account")}
               disabled={readOnly}

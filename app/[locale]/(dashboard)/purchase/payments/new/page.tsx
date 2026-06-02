@@ -9,9 +9,22 @@ export const metadata: Metadata = {
   description: "Create a new purchase payment",
 };
 
-export default async function NewPurchasePaymentPage() {
+export default async function NewPurchasePaymentPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ purchaseInvoiceId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialPurchaseInvoiceId = resolvedSearchParams?.purchaseInvoiceId || undefined;
+
   const departments = await getDepartments();
   const projects = await getProjects();
 
-  return <PurchasePaymentForm departments={departments} projects={projects} />;
+  return (
+    <PurchasePaymentForm
+      departments={departments}
+      projects={projects}
+      initialPurchaseInvoiceId={initialPurchaseInvoiceId}
+    />
+  );
 }

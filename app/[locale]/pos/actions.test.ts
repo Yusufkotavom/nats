@@ -4,6 +4,9 @@ const getSessionMock = vi.hoisted(() => vi.fn());
 const hasPermissionMock = vi.hoisted(() => vi.fn());
 const ensureDefaultLayoutMock = vi.hoisted(() => vi.fn());
 const revalidatePathMock = vi.hoisted(() => vi.fn());
+const assertCompanyWriteAccessMock = vi.hoisted(() => vi.fn());
+const issueInvoiceOnlyMock = vi.hoisted(() => vi.fn());
+const settleIssuedInvoiceMock = vi.hoisted(() => vi.fn());
 
 const prismaMock = vi.hoisted(() => ({
   companyProfile: {
@@ -45,6 +48,16 @@ vi.mock("@/modules/cash-bank/services/payment-method-catalog.service", () => ({
     list: vi.fn().mockResolvedValue([]),
   },
 }));
+vi.mock("@/lib/subscription/write-guard", () => ({
+  assertCompanyWriteAccess: (...args: unknown[]) =>
+    assertCompanyWriteAccessMock(...args),
+}));
+vi.mock("@/modules/pos/services/pos-transaction.service", () => ({
+  POSTransactionService: {
+    issueInvoiceOnly: (...args: unknown[]) => issueInvoiceOnlyMock(...args),
+    settleIssuedInvoice: (...args: unknown[]) => settleIssuedInvoiceMock(...args),
+  },
+}));
 
 import {
   getPOSProducts,
@@ -52,6 +65,8 @@ import {
   getPOSContacts,
   createPOSQuickContact,
   getPOSPaymentMethods,
+  createPOSPreOrder,
+  settlePOSInvoice,
 } from "./actions";
 import { SuperJSON } from "@/lib/superjson";
 
@@ -242,5 +257,115 @@ describe("pos/actions payment methods", () => {
     const result = await getPOSPaymentMethods();
     const data = SuperJSON.deserialize<any[]>(result);
     expect(Array.isArray(data)).toBe(true);
+  });
+});
+
+describe("pos/actions pre-order", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSessionMock.mockResolvedValue({
+      userId: "user-1",
+      permissions: ["pos.access"],
+      activeCompanyId: "company-1",
+    });
+    assertCompanyWriteAccessMock.mockResolvedValue(undefined);
+  });
+
+  it("creates pre-order by issuing invoice without immediate payment", async () => {
+    issueInvoiceOnlyMock.mockResolvedValue({
+      invoiceId: "inv-1",
+      salesOrderId: "so-1",
+      totalAmount: 150000,
+      outbox: {
+        outboxIds: ["ob-1"],
+        alreadyQueuedIds: [],
+        processed: true,
+      },
+    });
+
+    const result = await createPOSPreOrder(
+      "sess-1",
+      [{ productId: "p-1", quantity: 1, price: 150000, discount: 0 }],
+      0,
+      { lines: [] },
+      "c-1",
+    );
+
+    expect(result.success).toBe(true);
+    expect(issueInvoiceOnlyMock).toHaveBeenCalledWith(
+      "sess-1",
+      [{ productId: "p-1", quantity: 1, price: 150000, discount: 0 }],
+      0,
+      { lines: [] },
+      "c-1",
+      undefined,
+    );
+  });
+
+  it("returns error payload when issuing pre-order fails", async () => {
+    issueInvoiceOnlyMock.mockRejectedValue(new Error("Session is not bound to an active company"));
+
+    const result = await createPOSPreOrder(
+      "sess-1",
+      [{ productId: "p-1", quantity: 1, price: 150000, discount: 0 }],
+      0,
+      { lines: [] },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Session is not bound to an active company");
+  });
+});
+
+describe("pos/actions invoice settlement", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSessionMock.mockResolvedValue({
+      userId: "user-1",
+      permissions: ["pos.access"],
+      activeCompanyId: "company-1",
+    });
+    hasPermissionMock.mockReturnValue(true);
+    assertCompanyWriteAccessMock.mockResolvedValue(undefined);
+  });
+
+  it("settles issued invoice via existing POS transaction service", async () => {
+    settleIssuedInvoiceMock.mockResolvedValue({
+      paymentId: "pay-1",
+      invoiceId: "inv-1",
+      remainingBalance: 0,
+      outbox: {
+        outboxIds: ["ob-1"],
+        alreadyQueuedIds: [],
+        processed: true,
+      },
+    });
+
+    const result = await settlePOSInvoice(
+      "sess-1",
+      "inv-1",
+      "BANK",
+      50000,
+      "cash-1",
+    );
+
+    expect(result.success).toBe(true);
+    expect(settleIssuedInvoiceMock).toHaveBeenCalledWith(
+      "sess-1",
+      "inv-1",
+      "BANK",
+      50000,
+      "cash-1",
+    );
+    expect(revalidatePathMock).toHaveBeenCalled();
+  });
+
+  it("returns error payload when settlement fails", async () => {
+    settleIssuedInvoiceMock.mockRejectedValue(new Error("Invoice already paid"));
+
+    const result = await settlePOSInvoice("sess-1", "inv-1", "CASH", 10000);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Invoice already paid");
   });
 });

@@ -181,13 +181,13 @@ export async function getPOSProducts(
   });
 }
 
-export async function getPOSContacts(search: string = "", take: number = 30) {
+export async function getPOSContacts(search: string = "", take: number = 200) {
   const session = await getSession();
   if (!session || !session.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
     return SuperJSON.serialize([]);
   }
 
-  const normalizedTake = Number.isFinite(take) ? Math.max(1, Math.min(take, 100)) : 30;
+  const normalizedTake = Number.isFinite(take) ? Math.max(1, Math.min(take, 1000)) : 200;
   const normalizedSearch = search.trim();
 
   const contacts = await prisma.contact.findMany({
@@ -210,6 +210,7 @@ export async function getPOSContacts(search: string = "", take: number = 30) {
       name: true,
       phone: true,
       email: true,
+      address: true,
     },
     orderBy: { name: "asc" },
     take: normalizedTake,
@@ -727,6 +728,120 @@ export async function processPOSTransaction(
         error instanceof Error
           ? error.message
           : "Failed to process POS transaction",
+    };
+  }
+}
+
+export async function createPOSPreOrder(
+  sessionId: string,
+  items: {
+    productId: string;
+    quantity: number;
+    price: number;
+    discount: number;
+  }[],
+  globalDiscount: number = 0,
+  feeBreakdown: {
+    lines: {
+      name: string;
+      category: "TAX" | "FEE";
+      valueType: "PERCENTAGE" | "FIXED";
+      value: number;
+      amount: number;
+    }[];
+  },
+  customerId?: string,
+  diningSpotId?: string,
+): Promise<
+  ActionResponse<{
+    invoiceId: string;
+    salesOrderId: string;
+    totalAmount: number;
+    outbox: {
+      outboxIds: string[];
+      alreadyQueuedIds: string[];
+      processed: boolean;
+    };
+  }>
+> {
+  await assertCompanyWriteAccess();
+  try {
+    const session = await getSession();
+    if (!session?.activeCompanyId) {
+      throw new Error("No active company selected");
+    }
+
+    const result = await POSTransactionService.issueInvoiceOnly(
+      sessionId,
+      items,
+      globalDiscount,
+      feeBreakdown,
+      customerId,
+      diningSpotId,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create POS pre-order",
+    };
+  }
+}
+
+export async function settlePOSInvoice(
+  sessionId: string,
+  salesInvoiceId: string,
+  paymentMethod: "CASH" | "BANK" | "CARD" | "QRIS",
+  amountPaid?: number,
+  cashAccountId?: string,
+): Promise<
+  ActionResponse<{
+    paymentId: string;
+    invoiceId: string;
+    remainingBalance: number;
+    outbox: {
+      outboxIds: string[];
+      alreadyQueuedIds: string[];
+      processed: boolean;
+    };
+  }>
+> {
+  await assertCompanyWriteAccess();
+  try {
+    const session = await getSession();
+    if (!session?.activeCompanyId || !hasPermission(session.permissions, "pos.access")) {
+      throw new Error("Unauthorized");
+    }
+
+    const result = await POSTransactionService.settleIssuedInvoice(
+      sessionId,
+      salesInvoiceId,
+      paymentMethod,
+      amountPaid,
+      cashAccountId,
+    );
+
+    revalidateLocalizedPath("/pos");
+    revalidateLocalizedPath(`/pos/invoices/${salesInvoiceId}`);
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to settle POS invoice",
     };
   }
 }

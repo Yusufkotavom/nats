@@ -2,8 +2,8 @@
 title: Modul POS
 module: pos
 order: 110
-updatedAt: 2026-05-20
-summary: Operasional POS terpadu untuk restoran dan service workflow (DP/pelunasan) dalam satu halaman.
+updatedAt: 2026-06-02
+summary: Operasional POS terpadu untuk restoran dengan checkout instan dan mode pre-order dalam satu halaman.
 related: 03-operasional-harian,modules/inventory,modules/production,modules/sales,modules/purchase,modules/accounting
 ---
 
@@ -43,27 +43,16 @@ Jika dimatikan:
 - menu `POS > Dining Spots` disembunyikan,
 - route restoran legacy otomatis diarahkan ke tab kasir.
 
-## Mode Kasir: Produk vs Service
-Di tab **Kasir**, tersedia dua mode:
+## Mode Checkout Kasir: Bayar Sekarang vs Pre-Order
+Di dialog **Checkout** tab Kasir, tersedia mode:
 
-- **Produk**: flow POS reguler (product grid + cart + checkout instan / kirim ke dapur).
-- **Service**: flow order jasa bertahap untuk pekerjaan yang butuh proses waktu.
+- **Bayar Sekarang**: flow POS reguler, transaksi langsung membuat payment.
+- **Pre-Order (Invoice Only)**: membuat `SalesOrder + SalesInvoice (ISSUED)` tanpa pembayaran langsung; pelunasan dilakukan belakangan.
 
-Mode **Service** hanya menampilkan produk dengan flag `Service Item` aktif di master produk.
-
-Untuk operasional jasa yang ingin dipisah dari layar kasir utama, gunakan modul standalone:
-- **`/services`** (menu sidebar: `Services`)
-- halaman ini memakai engine service order yang sama, namun sekarang menjadi **modul Services mandiri** di sidebar dengan route operasional:
-  - `/services/orders`
-  - `/services/orders/new` (form page penuh)
-  - `/services/invoices`
-  - `/services/payments`
-  - `/services/returns-warranty` (queue return/garansi)
-  - `/services/pipeline/[orderId]` (top bar flow cepat `Service Order → Invoice → Payment`)
-  - dengan pola list/filter/action setara modul `Sales`.
-  - pada popup create order, user bisa quick add customer dan harga produk service terisi otomatis saat produk dipilih.
-  - pada list `Service Orders`, klik nomor order untuk buka detail/edit cepat (`/services/orders/[id]`).
-  - item service sekarang mewajibkan `Produk`, `Qty`, `Harga`, dan `Catatan` per baris (create/edit).
+Catatan:
+- Opsi **Pre-Order** hanya muncul di checkout tab **Kasir**. Dialog pembayaran lain di POS tetap payment-only.
+- Modul `/services/*` sudah deprecated permanen dan tidak lagi dipakai untuk operasional aktif.
+- Kebutuhan pre-order bertahap diarahkan ke mode checkout POS ini.
 
 ### Aktivasi Produk Service
 1. Buka `Inventory > Products`.
@@ -109,15 +98,13 @@ Produk service dapat dijual walau stok produk service nol.
 
 > Untuk transaksi retail (tanpa meja), lewati Tab Meja dan gunakan Tab Kasir langsung — tombol **Checkout (F9)** memproses pembayaran instan tanpa siklus dapur/billing.
 
-## Alur Service Order (DP dan Pelunasan)
-1. Masuk tab `Kasir` lalu pilih mode **Service**.
-2. Pilih produk service, qty, harga, target selesai, dan catatan.
-3. Isi DP jika ada (opsional) + metode pembayaran DP + akun kas/bank tujuan DP.
-4. Klik **Buat Order Service**.
-5. Lanjutkan status antrian sesuai progres: `NEW -> PROCESSING -> READY -> DONE`.
-6. Saat status `DONE`, sistem menyelesaikan shipment internal dan proses konsumsi stok sesuai aturan BOM.
-7. Jika masih ada sisa tagihan, klik **Pelunasan** sampai `remaining = 0`.
-8. Setelah invoice lunas, status bisa ditutup ke `CLOSED`.
+## Alur Pre-Order POS (Invoice Dulu, Bayar Belakangan)
+1. Tambahkan item ke cart di tab Kasir.
+2. Klik **Checkout (F9)**.
+3. Pilih mode **Pre-Order (Invoice Only)**.
+4. Konfirmasi untuk membuat invoice status `ISSUED`.
+5. Buka **History** POS, pilih invoice yang baru dibuat.
+6. Di halaman detail invoice POS, klik **Terima Pembayaran** untuk mencatat DP/pelunasan sampai status invoice menjadi `PAID`.
 
 ### Notifikasi WA Manual Popup (Service + POS)
 Untuk customer yang punya nomor WhatsApp valid, sistem menampilkan popup manual kirim pesan pada momen operasional utama:
@@ -139,7 +126,7 @@ Status follow-up dapat dipantau bertahap (`Queued`, `Sent`, `Delivered`, `Read`,
 Untuk mempercepat follow-up customer langsung dari POS:
 
 - Di dialog **Checkout** (mode kasir produk), user bisa:
-  - pilih customer dari daftar contact aktif,
+  - pilih customer dari picker searchable yang sama polanya dengan form `Sales Order`,
   - klik **+ Quick Contact** untuk buat customer baru tanpa keluar dari POS,
   - klik **Quick Inform** untuk kirim pesan cepat promo/update (prioritas WhatsApp, fallback email).
 - Di panel **Service Queue**, user bisa:
@@ -215,5 +202,4 @@ Menu `Services` sekarang menjadi modul sidebar terpisah dengan route operasional
 - **Meja tidak bisa dibuka**: pastikan status masih `AVAILABLE`.
 - **Tiket tidak mau print**: pastikan browser mengizinkan dialog print, atau set default printer thermal 80mm.
 - **Hold order tidak muncul**: refresh dialog held orders dan cek session user.
-- **Produk tidak muncul di mode Service**: cek flag `Service Item` pada master produk.
-- **Order service tidak bisa CLOSED**: pastikan invoice service sudah `PAID` (remaining = 0).
+- **Pre-order belum lunas**: pastikan pembayaran lanjutan dicatat pada invoice terkait sampai status `PAID`.

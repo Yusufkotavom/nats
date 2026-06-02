@@ -11,6 +11,18 @@ export type CashAccountWithBalance = CashAccount & {
   balance: number;
 };
 
+export type OperationalPaymentMethodAccount = {
+  id: string;
+  name: string;
+  method: "CASH" | "BANK";
+  accountType: "CASH" | "BANK" | "PETTY_CASH" | "EWALLET";
+  bankName: string | null;
+  accountNumber: string | null;
+  glCode: string;
+  glName: string;
+  isDefault: boolean;
+};
+
 export type CashAccountFormData = {
   name: string;
   type: CashAccountType;

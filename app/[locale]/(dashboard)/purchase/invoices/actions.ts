@@ -12,7 +12,6 @@ import { PurchaseInvoiceInput } from "./types";
 import { getPurchaseOrder } from "../orders/actions";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
-import { CalculationService } from "@/lib/utils/calculation-service";
 import {
   enqueueIntegrationEventOnce,
   maybeProcessIntegrationOutboxEvent,
@@ -137,10 +136,18 @@ export async function getPurchaseOrdersForSelect() {
       companyId: session.activeCompanyId,
       // Invoices can be created for any active PO ideally, but usually Issued/Received.
       status: { in: ["ISSUED", "PARTIALLY_RECEIVED", "CLOSED"] },
+      invoices: {
+        none: {},
+      },
     },
     orderBy: { createdAt: "desc" },
     include: {
       contact: true,
+      invoices: {
+        select: {
+          id: true,
+        },
+      },
       items: {
         include: {
           product: true,
@@ -190,134 +197,13 @@ export const updatePurchaseInvoice = authorizedAction(
       const session = await getSession();
       if (!session?.activeCompanyId) throw new Error("No active company selected");
 
-      const currentInvoice = await prisma.purchaseInvoice.findUnique({
-        where: { id },
-      });
-
-      if (!currentInvoice || currentInvoice.companyId !== session.activeCompanyId) throw new Error("Invoice not found");
-      const invoiceNumber = data.invoiceNumber || currentInvoice.invoiceNumber;
-
-      if (
-        currentInvoice.status === "PAID" ||
-        currentInvoice.status === "CANCELED"
-      ) {
-        return {
-          success: false,
-          error: "Cannot edit paid or canceled invoice",
-        };
-      }
-
-      // Check for duplicate if invoice number changed
-      if (
-        invoiceNumber !== currentInvoice.invoiceNumber ||
-        data.contactId !== currentInvoice.contactId
-      ) {
-        const existing = await prisma.purchaseInvoice.findUnique({
-          where: {
-            contactId_invoiceNumber: {
-              contactId: data.contactId,
-              invoiceNumber,
-            },
-          },
-        });
-        if (existing && existing.id !== id) {
-          return {
-            success: false,
-            error: "Invoice number already exists for this vendor",
-          };
-        }
-      }
-
-      // Fetch tax rates
-      const taxRates = await prisma.taxRate.findMany();
-
-      const itemsToCreate = data.items.map((item) => {
-        let taxRateSnapshot: number | undefined = undefined;
-        const taxAmount = item.tax || 0;
-
-        if (item.taxRateId) {
-          const rateObj = taxRates.find(r => r.id === item.taxRateId);
-          if (rateObj) {
-            taxRateSnapshot = Number(rateObj.rate);
-          }
-        }
-
-        const calculated = CalculationService.calculateLineItem(
-          {
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-            tax: taxAmount,
-          },
-          taxRateSnapshot
-        );
-
-        return {
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: calculated.total.toNumber(),
-          discount: item.discount,
-          tax: calculated.taxAmount.toNumber(),
-          taxRateId: item.taxRateId,
-          taxRateSnapshot: taxRateSnapshot,
-          accountId: item.accountId,
-          _calculated: calculated
-        };
-      });
-
-      const totals = CalculationService.calculateInvoiceTotals(
-        itemsToCreate.map(i => i._calculated),
-        data.globalDiscount,
-        data.shippingCost,
-        data.handlingCost
-      );
-
-      // Remove internal field before creating
-      const itemsData = itemsToCreate.map(({ _calculated, ...rest }) => rest);
-
-      const result = await prisma.$transaction(async (tx) => {
-        // Delete existing items
-        await tx.purchaseInvoiceItem.deleteMany({
-          where: { purchaseInvoiceId: id },
-        });
-
-        // Update Invoice and create new items
-        return await tx.purchaseInvoice.update({
-          where: { id },
-          data: {
-            invoiceNumber,
-            contactId: data.contactId,
-            purchaseOrderId: data.purchaseOrderId,
-            invoiceDate: data.invoiceDate,
-            dueDate: data.dueDate,
-            notes: data.notes,
-            status: currentInvoice.status,
-            totalAmount: totals.totalAmount.toNumber(),
-            globalDiscount: data.globalDiscount,
-            totalTax: totals.totalTax.toNumber(),
-            shippingCost: data.shippingCost,
-            handlingCost: data.handlingCost,
-            departmentId: data.departmentId,
-            projectId: data.projectId,
-            items: {
-              create: itemsData,
-            },
-            attachments: {
-              set: data.attachmentIds?.map((id) => ({ id })) || [],
-            },
-          },
-          include: {
-            items: true,
-          },
-        });
-      });
+      const result = await PurchaseInvoiceService.update(id, data, session.activeCompanyId);
 
       revalidateLocalizedPath("/purchase/invoices");
       return { success: true, data: SuperJSON.serialize(result) };
     } catch (error) {
       console.error("Failed to update Invoice:", error);
-      return { success: false, error: "Failed to update Purchase Invoice" };
+      return { success: false, error: error instanceof Error ? error.message : "Failed to update Purchase Invoice" };
     }
   },
 );
@@ -329,25 +215,13 @@ export const deletePurchaseInvoice = authorizedAction(
       const session = await getSession();
       if (!session?.activeCompanyId) throw new Error("No active company selected");
 
-      const currentInvoice = await prisma.purchaseInvoice.findFirst({
-        where: { id, companyId: session.activeCompanyId },
-      });
-
-      if (!currentInvoice) throw new Error("Invoice not found");
-
-      if (currentInvoice.status !== "DRAFT") {
-        return { success: false, error: "Can only delete draft invoices" };
-      }
-
-      await prisma.purchaseInvoice.delete({
-        where: { id },
-      });
+      await PurchaseInvoiceService.delete(id, session.activeCompanyId);
 
       revalidateLocalizedPath("/purchase/invoices");
       return { success: true };
     } catch (error) {
       console.error("Failed to delete Invoice:", error);
-      return { success: false, error: "Failed to delete Purchase Invoice" };
+      return { success: false, error: error instanceof Error ? error.message : "Failed to delete Purchase Invoice" };
     }
   },
 );

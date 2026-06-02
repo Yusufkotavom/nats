@@ -283,6 +283,7 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
           if (!open) setCheckoutOrder(null);
         }}
         totalAmount={checkoutOrder?.balance ?? 0}
+        allowPreOrder={false}
         contacts={[]}
         selectedContactId={undefined}
         onSelectedContactChange={() => undefined}
@@ -291,7 +292,7 @@ export function BillingTab({ sessionId, checkoutSettings }: BillingTabProps) {
           { id: "", name: "Cash", method: "CASH" },
           { id: "", name: "Bank", method: "BANK" },
         ]}
-        onConfirm={(method, amount) => handleConfirmCheckout(method, amount)}
+        onConfirm={(_mode, method, amount) => handleConfirmCheckout(method, amount)}
       />
     </div>
   );

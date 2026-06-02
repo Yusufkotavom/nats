@@ -133,7 +133,11 @@ Aturan layer tetap berlaku:
 
 Workflow service tetap reuse domain service `modules/services/services/pos-service-workflow.service.ts`, namun surface POS service panel sudah dihapus dari kasir `/pos` agar tidak ada flow ganda.
 
-Seluruh operasional service kini dipusatkan di route dashboard `/services` dengan kontrak:
+Status terbaru:
+- Route dashboard `/services/*` sekarang ditandai deprecated permanen dan diarahkan keluar dari operasional aktif.
+- Pengembangan alur bertahap (pre-order/DP) dipusatkan ke layer POS transaction (`issueInvoiceOnly` + settlement) agar tidak ada surface service paralel.
+
+Kontrak historis modul service (sebelum deprecate) adalah:
 
 1. `Create Service Order`:
 - validasi session internal service (`ensureServiceSession`) per user-company,
@@ -193,7 +197,16 @@ Seluruh operasional service kini dipusatkan di route dashboard `/services` denga
 
 ### Contact Module WhatsApp Composer (2026-05-15)
 
-- Detail contact (`app/[locale]/(dashboard)/general/contacts/[id]/_components/contact-detail-view.tsx`) kini punya panel composer WhatsApp dengan template custom.
+- Detail contact (`app/[locale]/(dashboard)/general/contacts/[id]/_components/contact-detail-view.tsx`) kini memakai struktur tab `Overview / Transactions / Follow-up`.
+- Tab `Transactions` menjadi sumber audit utama untuk histori transaksi contact lintas modul:
+  - sales order,
+  - sales invoice,
+  - sales payment,
+  - POS service order,
+  - cash transaction,
+  - purchase order / invoice / payment bila contact berperan sebagai vendor.
+- Summary `Overview` dihitung dari dataset histori yang sama agar angka agregat dan tabel transaksi tidak drift.
+- Panel composer WhatsApp dipindah ke tab `Follow-up`, sehingga komunikasi customer tidak bercampur dengan audit transaksi.
 - Konteks pesan diambil dari action `getContactMessagingContext(contactId)`:
   - invoice terbaru + item + nilai tagihan,
   - sales order terbaru + item produk,
@@ -223,6 +236,18 @@ Seluruh operasional service kini dipusatkan di route dashboard `/services` denga
   - user mengirim notifikasi via popup preview manual (bukan auto-send di server),
   - source template tetap dari `Admin > Settings > Communication`,
   - `ContactCommunicationLog` dicatat saat aksi kirim dijalankan user di popup.
+
+### Purchase Invoice Product Parity (2026-06-02)
+
+- `Purchase Invoice` kini menyimpan relasi `productId` nullable pada `PurchaseInvoiceItem`, sehingga kontrak item produk setara dengan `Sales Invoice` tanpa memaksa invoice lama ikut dimigrasi manual.
+- Form `Purchase Invoice` memakai selector berbasis `productId`, jadi pilihan produk tetap terdeteksi saat edit/reload dan saat item diwariskan dari `Purchase Order`.
+- Action `purchase/invoices` kembali reuse `PurchaseInvoiceService` untuk `create/update/delete`, menjaga boundary domain tetap konsisten dengan modul sales.
+- Follow-up dari `Purchase Order` kini memakai pola dokumen-aware seperti Sales:
+  - jika `Receive` / `Invoice` / `Payment` belum ada, tombol menuju route create dengan query prefill (`purchaseOrderId` / `purchaseInvoiceId`);
+  - jika dokumen sudah ada, tombol berubah menjadi `Open ...` ke dokumen existing.
+- Guard `1 Purchase Order -> 1 Purchase Invoice` ditegakkan ganda:
+  - UI picker `Purchase Invoice` hanya memuat PO tanpa invoice existing,
+  - `PurchaseInvoiceService` menolak create/update yang mencoba memasang `purchaseOrderId` yang sudah dipakai invoice lain.
 
 Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.service.ts`):
 - Service + BOM aktif: konsumsi komponen BOM.
@@ -294,7 +319,8 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
   1. mencari default account utama dari `DefaultAccount` (`CASH_ON_HAND` atau `BANK`),
   2. membuat akun GL child (nested) di bawah akun utama tersebut,
   3. membuat `CashAccount` baru yang memetakan ke akun child itu.
-- Dengan pola ini, seluruh modul payment tetap memakai sumber akun tunggal dari `Cash & Bank` dan user tidak perlu mengelola mapping akun di banyak tempat.
+- Dengan pola ini, pengelolaan akun operasional dipusatkan di `/payment-method`; dashboard `Cash & Bank` tidak lagi menjadi surface CRUD akun.
+- Route `Cash & Bank > Transaction` dan `Cash & Bank > Transfer` membaca opsi akun dari katalog `PaymentMethodCatalogService`, tetapi tetap meneruskan `cashAccountId` ke service backend agar kontrak jurnal tidak berubah.
 
 ## Budgeting: Budget Operasional + Saving Target (2026-05-13)
 

@@ -63,6 +63,13 @@ import { cn } from "@/lib/utils";
 import { TableOverflow } from "@/components/ui/table-overflow";
 import { ProductWithDetails } from "@/app/[locale]/(dashboard)/inventory/types";
 import { useFormatCurrency } from "@/hooks";
+import {
+  PageFormActions,
+  PageFormContent,
+  PageFormHeader,
+  PageFormLayout,
+  PageFormTitle,
+} from "@/components/layout/page/form-layout";
 
 interface PurchaseInvoiceFormProps {
   invoice?: SuperJSONResult | null;
@@ -149,6 +156,7 @@ export function PurchaseInvoiceForm({
       invoice?.items.map((item) => ({
         id: generateId(),
         description: item.description,
+        productId: (item as { productId?: string | null }).productId || undefined,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         discount: Number(item.discount) || 0,
@@ -229,6 +237,7 @@ export function PurchaseInvoiceForm({
           // Populate items from PO
           const newItems = fullPo.items.map((item) => ({
             id: generateId(),
+            productId: item.productId,
             description: item.product?.name || "Item",
             quantity: item.quantity, // Use original qty or remaining? Usually Bill matches PO.
             unitPrice: Number(item.unitCost),
@@ -252,6 +261,7 @@ export function PurchaseInvoiceForm({
         ...prev.items,
         {
           id: generateId(),
+          productId: "",
           description: "",
           quantity: 1,
           unitPrice: 0,
@@ -277,6 +287,15 @@ export function PurchaseInvoiceForm({
   ) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
+
+    if (field === "productId") {
+      const product = products.find((p: { id: string }) => p.id === value);
+      if (product) {
+        newItems[index].description = product.name;
+        newItems[index].unitPrice = Number((product as ProductWithDetails).cost || 0);
+      }
+    }
+
     setFormData((prev) => ({ ...prev, items: newItems }));
   };
 
@@ -390,7 +409,18 @@ export function PurchaseInvoiceForm({
       }
 
       if (result.success) {
-        router.push("/purchase/invoices");
+        if (isEditing && invoice) {
+          router.push(`/purchase/invoices/${invoice.id}`);
+        } else {
+          const created = result.data
+            ? SuperJSON.deserialize<{ id: string }>(result.data)
+            : null;
+          if (created?.id) {
+            router.push(`/purchase/invoices/${created.id}/edit`);
+          } else {
+            router.push("/purchase/invoices");
+          }
+        }
       } else {
         toast({
           title: "Error",
@@ -486,7 +516,7 @@ export function PurchaseInvoiceForm({
     value: p.id,
     label: p.name,
     subtitle: p.category?.name || p.sku || "-",
-    meta: formatCurrency(Number(p.price || 0)),
+    meta: formatCurrency(Number(p.cost || 0)),
   }));
   const showDimensionFields = departments.length > 0 || projects.length > 0;
 
@@ -496,12 +526,11 @@ export function PurchaseInvoiceForm({
   }, [initialPurchaseOrderId, isEditing, formData.purchaseOrderId]);
 
   return (
-    <div className="flex-1 space-y-4 px-4">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-xl font-bold tracking-tight">
-          New Purchase Invoice
-        </h2>
-        <div className="flex gap-2">
+    <PageFormLayout>
+      <PageFormHeader>
+        <PageFormTitle title={isEditing ? "Edit Purchase Invoice" : "New Purchase Invoice"} />
+        <PageFormActions className="w-full justify-start md:w-auto md:justify-end">
+          <div className="flex w-full flex-wrap gap-2 [&>a]:w-full [&>button]:w-full sm:[&>a]:w-auto sm:[&>button]:w-auto">
           {invoice ? (
             <Button asChild type="button" variant="outline" size="sm">
               <Link
@@ -515,6 +544,7 @@ export function PurchaseInvoiceForm({
             <Button
               type="button"
               variant="default"
+              size="sm"
               onClick={handlePost}
               disabled={isLoading}
             >
@@ -523,7 +553,7 @@ export function PurchaseInvoiceForm({
           )}
           {!readonly && (
             <>
-              <Button type="submit" form="purchase-invoice-form" disabled={isLoading}>
+              <Button type="submit" form="purchase-invoice-form" size="sm" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? "Update" : "Create"}
               </Button>
@@ -532,6 +562,7 @@ export function PurchaseInvoiceForm({
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={() => {
               if (window.history.length > 1) {
                 router.back();
@@ -543,13 +574,14 @@ export function PurchaseInvoiceForm({
             Close
           </Button>
 
-        </div>
-      </div>
+          </div>
+        </PageFormActions>
+      </PageFormHeader>
       <form id="purchase-invoice-form" onSubmit={handleSubmit} className="w-full min-w-0 max-w-full overflow-x-hidden">
-        <div className="grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden">
+        <PageFormContent className="mt-4 grid w-full min-w-0 max-w-full gap-4 overflow-x-hidden border-none bg-transparent p-0 shadow-none">
           <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
-            <Card className="w-full min-w-0 max-w-full overflow-hidden">
-              <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Card className="min-w-0 overflow-hidden">
+              <CardContent className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Purchase Order (Optional)</Label>
                   <SearchableSelect
@@ -807,13 +839,13 @@ export function PurchaseInvoiceForm({
                       <TableRow>
                         <TableHead className="w-[40px]"></TableHead>
                         <TableHead className="min-w-[220px] whitespace-nowrap">Product</TableHead>
-                        <TableHead className="w-[100px] whitespace-nowrap">Qty</TableHead>
-                        <TableHead className="w-[120px] whitespace-nowrap">Unit Price</TableHead>
-                        <TableHead className="w-[120px] whitespace-nowrap">
+                        <TableHead className="w-[110px] whitespace-nowrap">Qty</TableHead>
+                        <TableHead className="w-[150px] whitespace-nowrap">Unit Price</TableHead>
+                        <TableHead className="w-[130px] whitespace-nowrap">
                           Discount (%)
                         </TableHead>
-                        <TableHead className="w-[180px] whitespace-nowrap">Tax Rate</TableHead>
-                        <TableHead className="w-[100px] whitespace-nowrap">Total</TableHead>
+                        <TableHead className="w-[260px] whitespace-nowrap">Tax Rate</TableHead>
+                        <TableHead className="w-[140px] whitespace-nowrap">Total</TableHead>
                         {!readonly && (
                           <TableHead className="w-[50px]"></TableHead>
                         )}
@@ -828,13 +860,10 @@ export function PurchaseInvoiceForm({
                           <SortableTableRow key={item.id} id={item.id}>
                             <TableCell className="min-w-[220px]">
                               <SearchableSelect
-                                value={item.description || ""}
-                                onValueChange={(val) => {
-                                  const selected = products.find((p) => p.id === val);
-                                  if (!selected) return;
-                                  handleItemChange(index, "description", selected.name);
-                                  handleItemChange(index, "unitPrice", Number(selected.cost || 0));
-                                }}
+                                value={item.productId || ""}
+                                onValueChange={(val) =>
+                                  handleItemChange(index, "productId", val || "")
+                                }
                                 options={productOptions}
                                 placeholder="Select Product"
                                 disabled={readonly}
@@ -884,9 +913,10 @@ export function PurchaseInvoiceForm({
                                 disabled={readonly}
                               />
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="w-[260px]">
+                              <div className="flex items-center gap-2">
                               <select
-                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-10 w-full min-w-[160px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 value={item.taxRateId || ""}
                                 onChange={(e) =>
                                   handleItemChange(
@@ -917,10 +947,11 @@ export function PurchaseInvoiceForm({
                                     )
                                   }
                                   disabled={readonly}
-                                  className="mt-1"
+                                  className="w-[88px]"
                                   placeholder="Amount"
                                 />
                               )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">
@@ -954,17 +985,18 @@ export function PurchaseInvoiceForm({
                     No items added.
                   </div>
                 )}
-                <div className="flex justify-between items-start p-4 border-t">
+                <div className="flex flex-col gap-4 border-t p-4 sm:flex-row sm:items-start sm:justify-between">
                   <Button
                     type="button"
                     variant="outline"
                     disabled={readonly}
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={handleAddItem}
                   >
                     <PlusIcon /> Add Item
                   </Button>
-                  <div className="w-1/3 space-y-2">
+                  <div className="w-full space-y-2 sm:w-1/3">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium">
                         Subtotal (Net)
@@ -984,7 +1016,7 @@ export function PurchaseInvoiceForm({
                           }))
                         }
                         disabled={readonly}
-                        className="w-24 h-8"
+                        className="h-8 w-24"
                       />
                     </div>
                     <div className="flex justify-between items-center gap-2">
@@ -993,7 +1025,7 @@ export function PurchaseInvoiceForm({
                         value={formData.totalTax}
                         onChange={() => { }}
                         disabled={true}
-                        className="w-24 h-8 bg-muted"
+                        className="h-8 w-24 bg-muted"
                       />
                     </div>
                     <div className="flex justify-between items-center gap-2">
@@ -1007,7 +1039,7 @@ export function PurchaseInvoiceForm({
                           }))
                         }
                         disabled={readonly}
-                        className="w-24 h-8"
+                        className="h-8 w-24"
                       />
                     </div>
                     <div className="flex justify-between items-center gap-2">
@@ -1021,7 +1053,7 @@ export function PurchaseInvoiceForm({
                           }))
                         }
                         disabled={readonly}
-                        className="w-24 h-8"
+                        className="h-8 w-24"
                       />
                     </div>
                     <div className="flex justify-between border-t pt-2">
@@ -1035,7 +1067,7 @@ export function PurchaseInvoiceForm({
               </CardContent>
             </Card>
           </div>
-        </div>
+        </PageFormContent>
       </form>
 
       <AttachmentDialog
@@ -1049,6 +1081,6 @@ export function PurchaseInvoiceForm({
         }}
         readonly={readonly}
       />
-    </div>
+    </PageFormLayout>
   );
 }

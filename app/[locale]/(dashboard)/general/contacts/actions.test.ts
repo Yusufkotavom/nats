@@ -6,12 +6,30 @@ const prismaMock = vi.hoisted(() => ({
   },
   salesInvoice: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
   },
   salesOrder: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
+  },
+  salesPayment: {
+    findMany: vi.fn(),
   },
   pOSServiceOrder: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
+  },
+  cashTransaction: {
+    findMany: vi.fn(),
+  },
+  purchaseOrder: {
+    findMany: vi.fn(),
+  },
+  purchaseInvoice: {
+    findMany: vi.fn(),
+  },
+  purchasePayment: {
+    findMany: vi.fn(),
   },
   contactCommunicationLog: {
     findMany: vi.fn(),
@@ -98,15 +116,71 @@ describe("general/contacts actions: getContactMessagingContext", () => {
         createdAt: new Date("2026-05-15T10:00:00.000Z"),
       },
     ]);
+    prismaMock.salesOrder.findMany.mockResolvedValue([
+      {
+        id: "so1",
+        orderNumber: "SO-001",
+        status: "CONFIRMED",
+        orderDate: new Date("2026-05-14T00:00:00.000Z"),
+        totalAmount: 200000,
+        notes: "Order pertama",
+      },
+    ]);
+    prismaMock.salesInvoice.findMany.mockResolvedValue([
+      {
+        id: "inv1",
+        invoiceNumber: "INV-001",
+        status: "ISSUED",
+        invoiceDate: new Date("2026-05-15T00:00:00.000Z"),
+        totalAmount: 150000,
+        balanceDue: 50000,
+        notes: "Invoice aktif",
+      },
+    ]);
+    prismaMock.salesPayment.findMany.mockResolvedValue([
+      {
+        id: "pay1",
+        paymentNumber: "PAY-001",
+        paymentDate: new Date("2026-05-16T00:00:00.000Z"),
+        amount: 100000,
+        method: "BANK",
+        notes: "DP",
+        salesInvoice: { invoiceNumber: "INV-001" },
+        cashAccount: { name: "Bank BCA" },
+      },
+    ]);
+    prismaMock.pOSServiceOrder.findMany.mockResolvedValue([
+      {
+        id: "svc1",
+        orderNumber: "SVC-001",
+        status: "PROCESSING",
+        createdAt: new Date("2026-05-13T00:00:00.000Z"),
+        targetDate: new Date("2026-05-20T00:00:00.000Z"),
+        totalAmount: 75000,
+        paidAmount: 25000,
+        remainingAmount: 50000,
+        notes: "Service laptop",
+      },
+    ]);
+    prismaMock.cashTransaction.findMany.mockResolvedValue([]);
+    prismaMock.purchaseOrder.findMany.mockResolvedValue([]);
+    prismaMock.purchaseInvoice.findMany.mockResolvedValue([]);
+    prismaMock.purchasePayment.findMany.mockResolvedValue([]);
 
     const result = await getContactMessagingContext("c1");
 
     expect(result?.contact.name).toBe("Customer 1");
+    expect(result?.summary.totalTransactions).toBe(4);
+    expect(result?.summary.totalSalesInvoiced).toBe(150000);
+    expect(result?.summary.totalSalesPaid).toBe(100000);
+    expect(result?.summary.outstandingBalance).toBe(50000);
     expect(result?.latestInvoice?.invoiceNumber).toBe("INV-001");
     expect(result?.latestInvoice?.totalAmount).toBe(150000);
     expect(result?.latestSalesOrder?.orderNumber).toBe("SO-001");
     expect(result?.latestServiceOrder?.orderNumber).toBe("SVC-001");
     expect(result?.latestServiceOrder?.items[0].name).toBe("Service X");
+    expect(result?.transactionHistory[0]?.documentNumber).toBe("PAY-001");
+    expect(result?.transactionHistory[0]?.area).toBe("Sales");
     expect(result?.recentWhatsAppLogs).toHaveLength(1);
     expect(result?.recentWhatsAppLogs[0]?.eventType).toBe("SERVICE_CREATED");
   });

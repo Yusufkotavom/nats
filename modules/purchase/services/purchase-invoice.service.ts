@@ -10,6 +10,7 @@ export class PurchaseInvoiceService {
     static async create(data: PurchaseInvoiceInput, userId: string, companyId: string) {
         const invoiceNumber = data.invoiceNumber || (await this.generateInvoiceNumber());
         await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
+        await this.assertPurchaseOrderAvailability(data.purchaseOrderId, companyId);
 
         const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
@@ -78,8 +79,9 @@ export class PurchaseInvoiceService {
         const invoiceNumber = data.invoiceNumber || currentInvoice.invoiceNumber;
 
         if (invoiceNumber !== currentInvoice.invoiceNumber) {
-            await this.assertUniqueInvoiceNumber(invoiceNumber, companyId);
+            await this.assertUniqueInvoiceNumber(invoiceNumber, companyId, id);
         }
+        await this.assertPurchaseOrderAvailability(data.purchaseOrderId, companyId, id);
 
         const taxRates = await prisma.taxRate.findMany();
         const { itemsData, totals } = this.calculateItemsAndTotals(data, taxRates);
@@ -144,13 +146,36 @@ export class PurchaseInvoiceService {
     private static async assertUniqueInvoiceNumber(
         invoiceNumber: string,
         companyId: string,
+        excludeId?: string,
     ): Promise<void> {
         const existing = await prisma.purchaseInvoice.findFirst({
             where: { invoiceNumber, companyId },
         });
 
-        if (existing) {
+        if (existing && existing.id !== excludeId) {
             throw new Error("Invoice number already exists for this vendor");
+        }
+    }
+
+    private static async assertPurchaseOrderAvailability(
+        purchaseOrderId: string | undefined,
+        companyId: string,
+        excludeInvoiceId?: string,
+    ): Promise<void> {
+        if (!purchaseOrderId) return;
+
+        const existing = await prisma.purchaseInvoice.findFirst({
+            where: {
+                purchaseOrderId,
+                companyId,
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (existing && existing.id !== excludeInvoiceId) {
+            throw new Error("Purchase order already has an invoice");
         }
     }
 
@@ -182,6 +207,7 @@ export class PurchaseInvoiceService {
             return {
                 itemData: {
                     description: item.description,
+                    productId: item.productId,
                     quantity: item.quantity,
                     unitPrice: item.unitPrice,
                     totalPrice: calculated.total.toNumber(),

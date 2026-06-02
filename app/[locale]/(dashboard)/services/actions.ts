@@ -1,5 +1,10 @@
 "use server";
 
+/**
+ * @deprecated Services module is permanently deprecated and scheduled for removal.
+ * Keep this file only for backward compatibility during transition.
+ */
+
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";

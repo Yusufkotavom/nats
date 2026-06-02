@@ -23,13 +23,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import type { POSContactOption } from "../types";
 
 interface CheckoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   totalAmount: number;
+  allowPreOrder?: boolean;
   onConfirm: (
+    mode: "PAY_NOW" | "PRE_ORDER",
     paymentMethod: 'CASH' | 'BANK' | 'CARD' | 'QRIS',
     amountPaid: number,
     customerId?: string,
@@ -43,6 +46,7 @@ interface CheckoutDialogProps {
   contacts: POSContactOption[];
   selectedContactId?: string;
   onSelectedContactChange: (contactId?: string) => void;
+  onContactSearch?: (query: string) => void;
   onQuickCreateContact: () => void;
 }
 
@@ -50,15 +54,18 @@ export function CheckoutDialog({
   open,
   onOpenChange,
   totalAmount,
+  allowPreOrder = false,
   onConfirm,
   paymentMethods,
   contacts,
   selectedContactId,
   onSelectedContactChange,
+  onContactSearch,
   onQuickCreateContact,
 }: CheckoutDialogProps) {
   const t = useTranslations('POS');
   const [method, setMethod] = useState<'CASH' | 'BANK' | 'CARD' | 'QRIS'>('CASH');
+  const [mode, setMode] = useState<"PAY_NOW" | "PRE_ORDER">("PAY_NOW");
   const [cashAccountId, setCashAccountId] = useState<string>("");
   // Use string state to support keypad input (e.g., "10.")
   const [amountPaidStr, setAmountPaidStr] = useState<string>('');
@@ -69,6 +76,7 @@ export function CheckoutDialog({
   // Reset state when dialog opens or total changes
   useEffect(() => {
     if (open) {
+      setMode("PAY_NOW");
       setAmountPaidStr('');
       setShowKeypad(false);
       const defaultMethod = paymentMethods[0];
@@ -81,15 +89,31 @@ export function CheckoutDialog({
 
   const amountPaid = parseFloat(amountPaidStr) || 0;
   const change = Math.max(0, amountPaid - totalAmount);
-  const isValid = method !== 'CASH' || amountPaid >= totalAmount;
+  const isValid =
+    mode === "PRE_ORDER" || method !== "CASH" || amountPaid >= totalAmount;
+  const contactOptions = [
+    {
+      value: "walk-in",
+      label: t("walk_in_customer"),
+      subtitle: t("customer"),
+    },
+    ...contacts.map((contact) => ({
+      value: contact.id,
+      label: contact.name,
+      subtitle: [contact.phone, contact.address, contact.email]
+        .filter(Boolean)
+        .join(" • "),
+    })),
+  ];
 
   const handleConfirm = async () => {
     if (!isValid) return;
     setLoading(true);
     try {
       await onConfirm(
+        mode,
         method,
-        method === 'CASH' ? amountPaid : totalAmount,
+        mode === "PRE_ORDER" ? 0 : method === 'CASH' ? amountPaid : totalAmount,
         selectedContactId || undefined,
         cashAccountId || undefined,
       );
@@ -135,6 +159,26 @@ export function CheckoutDialog({
               </span>
             </div>
 
+            {allowPreOrder ? (
+              <div className="space-y-2">
+                <Label>Mode</Label>
+                <Select
+                  value={mode}
+                  onValueChange={(value) =>
+                    setMode(value === "PRE_ORDER" ? "PRE_ORDER" : "PAY_NOW")
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih mode checkout" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PAY_NOW">Bayar Sekarang</SelectItem>
+                    <SelectItem value="PRE_ORDER">Pre-Order (Invoice Only)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
             <div className="space-y-2">
               <Label>{t('payment_method')}</Label>
               <Select
@@ -160,24 +204,17 @@ export function CheckoutDialog({
 
             <div className="space-y-2">
               <Label>Customer</Label>
-              <Select
+              <SearchableSelect
                 value={selectedContactId || "walk-in"}
                 onValueChange={(value) =>
-                  onSelectedContactChange(value === "walk-in" ? undefined : value)
+                  onSelectedContactChange(
+                    !value || value === "walk-in" ? undefined : value,
+                  )
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Walk-in Customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="walk-in">Walk-in Customer</SelectItem>
-                  {contacts.map((contact) => (
-                    <SelectItem key={contact.id} value={contact.id}>
-                      {contact.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={contactOptions}
+                onSearch={onContactSearch}
+                placeholder={t("walk_in_customer")}
+              />
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" onClick={onQuickCreateContact}>
                   + Quick Contact
@@ -185,7 +222,7 @@ export function CheckoutDialog({
               </div>
             </div>
 
-            {method === 'CASH' && (
+            {mode === "PAY_NOW" && method === 'CASH' && (
               <div className="space-y-4">
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">

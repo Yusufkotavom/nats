@@ -118,6 +118,19 @@ export async function getPurchaseOrder(id: string) {
       department: true,
       project: true,
       attachments: true,
+      invoices: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          payments: true,
+        },
+      },
+      receives: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
       items: {
         include: {
           product: {

@@ -5,6 +5,7 @@ import { TransactionForm } from "../_components/transaction-form";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 import { verifySession } from "@/lib/auth/auth";
 import { ensureCompanyMinimalCashTransactionCategories } from "@/lib/setup/minimal-cash-transaction-categories";
+import { getOperationalPaymentMethodAccounts } from "../../actions";
 
 export default async function NewTransactionPage() {
   const session = await verifySession();
@@ -17,13 +18,8 @@ export default async function NewTransactionPage() {
     await ensureCompanyMinimalCashTransactionCategories(tx, companyId);
   });
 
-  const [cashAccounts, glAccounts, contacts, departments, projects, defaultAccounts] = await Promise.all([
-    prisma.cashAccount.findMany({
-      where: {
-        isActive: true,
-        glAccount: { companyId },
-      },
-    }),
+  const [paymentMethodAccounts, glAccounts, contacts, departments, projects, defaultAccounts] = await Promise.all([
+    getOperationalPaymentMethodAccounts(),
     prisma.account.findMany({
       where: { isActive: true, companyId },
       orderBy: { code: "asc" },
@@ -51,7 +47,7 @@ export default async function NewTransactionPage() {
 
   return (
     <TransactionForm
-      cashAccounts={cashAccounts}
+      paymentMethodAccounts={paymentMethodAccounts}
       glAccounts={glAccounts}
       expenseParentAccountId={expenseParentAccountId}
       incomeParentAccountId={incomeParentAccountId}

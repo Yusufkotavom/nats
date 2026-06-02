@@ -42,6 +42,7 @@ interface PurchasePaymentFormProps {
   readonly?: boolean;
   departments?: Department[];
   projects?: Project[];
+  initialPurchaseInvoiceId?: string;
 }
 
 type PaymentMethodOption = {
@@ -61,6 +62,7 @@ export function PurchasePaymentForm({
   readonly = false,
   departments = [],
   projects = [],
+  initialPurchaseInvoiceId,
 }: PurchasePaymentFormProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -175,6 +177,17 @@ export function PurchasePaymentForm({
   }, [formData.purchaseInvoiceId, invoicesData, formatDate, initialData]);
 
   useEffect(() => {
+    if (readonly || initialData || !initialPurchaseInvoiceId) return;
+    setFormData((prev) => {
+      if (prev.purchaseInvoiceId === initialPurchaseInvoiceId) return prev;
+      return {
+        ...prev,
+        purchaseInvoiceId: initialPurchaseInvoiceId,
+      };
+    });
+  }, [initialPurchaseInvoiceId, readonly, initialData]);
+
+  useEffect(() => {
     if (readonly || initialData || !cashAccountsData) return;
     if (formData.cashAccountId) return;
     const defaultMethod = paymentMethods.find((method) => method.isDefault);
@@ -227,7 +240,14 @@ export function PurchasePaymentForm({
       if (!result.success) throw new Error(result.error);
 
       toast({ title: "Success", description: "Payment created successfully" });
-      router.push("/purchase/payments");
+      const created = result.data
+        ? SuperJSON.deserialize<{ id: string }>(result.data as SuperJSONResult)
+        : null;
+      if (created?.id) {
+        router.push(`/purchase/payments/${created.id}`);
+      } else {
+        router.push("/purchase/payments");
+      }
     } catch (error) {
       toast({
         title: "Error",

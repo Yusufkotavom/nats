@@ -16,6 +16,9 @@ const prismaMock = vi.hoisted(() => ({
         findUnique: vi.fn(),
         findFirst: vi.fn(),
     },
+    purchaseInvoiceItem: {
+        deleteMany: vi.fn(),
+    },
     taxRate: {
         findMany: vi.fn(),
     },
@@ -53,6 +56,7 @@ const MOCK_INVOICE_INPUT = {
     items: [
         {
             description: "Widget A",
+            productId: "prod-001",
             quantity: 2,
             unitPrice: 100,
             discount: 0,
@@ -72,6 +76,12 @@ describe("PurchaseInvoiceService", () => {
             prismaMock.purchaseInvoice.findFirst.mockResolvedValue(null);
             prismaMock.taxRate.findMany.mockResolvedValue([]);
 
+            const createMock = vi.fn().mockResolvedValue({
+                id: "inv-001",
+                invoiceNumber: "INV-001",
+                totalAmount: 200,
+            });
+
             const createdInvoice = {
                 id: "inv-001",
                 invoiceNumber: "INV-001",
@@ -81,7 +91,7 @@ describe("PurchaseInvoiceService", () => {
             prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
                 const tx = {
                     purchaseInvoice: {
-                        create: vi.fn().mockResolvedValue(createdInvoice),
+                        create: createMock,
                     },
                     integrationOutbox: {
                         create: vi.fn().mockResolvedValue({ id: "outbox-001" }),
@@ -94,6 +104,19 @@ describe("PurchaseInvoiceService", () => {
             const result = await PurchaseInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID, "cmp-1");
 
             expect(result.id).toBe("inv-001");
+            expect(createMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [
+                                expect.objectContaining({
+                                    productId: "prod-001",
+                                }),
+                            ],
+                        },
+                    }),
+                }),
+            );
         });
 
         it("throws when invoice number already exists", async () => {
@@ -103,6 +126,24 @@ describe("PurchaseInvoiceService", () => {
             await expect(
                 PurchaseInvoiceService.create(MOCK_INVOICE_INPUT, MOCK_USER_ID, "cmp-1"),
             ).rejects.toThrow("Invoice number already exists");
+        });
+
+        it("throws when purchase order already has another invoice", async () => {
+            prismaMock.purchaseInvoice.findFirst
+                .mockResolvedValueOnce(null)
+                .mockResolvedValueOnce({ id: "existing-po-invoice" });
+            prismaMock.taxRate.findMany.mockResolvedValue([]);
+
+            await expect(
+                PurchaseInvoiceService.create(
+                    {
+                        ...MOCK_INVOICE_INPUT,
+                        purchaseOrderId: "po-001",
+                    },
+                    MOCK_USER_ID,
+                    "cmp-1",
+                ),
+            ).rejects.toThrow("Purchase order already has an invoice");
         });
 
         it("generates invoice number when not provided", async () => {
@@ -179,6 +220,54 @@ describe("PurchaseInvoiceService", () => {
                     payload: expect.objectContaining({
                         invoiceId: "inv-002",
                         userId: MOCK_USER_ID,
+                    }),
+                }),
+            );
+        });
+    });
+
+    describe("update", () => {
+        it("persists productId on recreated invoice items", async () => {
+            prismaMock.purchaseInvoice.findFirst
+                .mockResolvedValueOnce({
+                    id: "inv-001",
+                    invoiceNumber: "INV-001",
+                    status: "DRAFT",
+                })
+                .mockResolvedValueOnce(null);
+            prismaMock.taxRate.findMany.mockResolvedValue([]);
+
+            const updateMock = vi.fn().mockResolvedValue({
+                id: "inv-001",
+                invoiceNumber: "INV-001",
+                totalAmount: 200,
+            });
+
+            prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
+                const tx = {
+                    purchaseInvoiceItem: {
+                        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+                    },
+                    purchaseInvoice: {
+                        update: updateMock,
+                    },
+                };
+
+                return (cb as any)(tx);
+            });
+
+            await PurchaseInvoiceService.update("inv-001", MOCK_INVOICE_INPUT, "cmp-1");
+
+            expect(updateMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        items: {
+                            create: [
+                                expect.objectContaining({
+                                    productId: "prod-001",
+                                }),
+                            ],
+                        },
                     }),
                 }),
             );

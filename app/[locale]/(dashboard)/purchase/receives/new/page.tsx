@@ -6,7 +6,14 @@ import { getContacts } from "@/app/[locale]/(dashboard)/general/contacts/actions
 import { ContactType } from "@/prisma/generated/prisma/enums";
 import { getDepartments, getProjects } from "@/app/[locale]/(dashboard)/general/actions";
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: Promise<{ purchaseOrderId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialPurchaseOrderId = resolvedSearchParams?.purchaseOrderId || undefined;
+
   const [vendors, products, purchaseOrders, departments, projects] = await Promise.all([
     getContacts({ type: ContactType.VENDOR }),
     getProducts(),
@@ -22,6 +29,7 @@ export default async function Page() {
       purchaseOrders={purchaseOrders}
       departments={departments}
       projects={projects.projects}
+      initialPurchaseOrderId={initialPurchaseOrderId}
     />
   );
 }

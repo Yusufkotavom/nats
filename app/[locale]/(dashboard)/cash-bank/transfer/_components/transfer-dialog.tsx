@@ -20,7 +20,11 @@ import {
   updateCashTransfer,
   uploadTransferAttachment,
 } from "../../actions";
-import { CashAccount, CashTransfer, CashTransferFormData } from "../../types";
+import {
+  CashTransfer,
+  CashTransferFormData,
+  OperationalPaymentMethodAccount,
+} from "../../types";
 import { Loader2, Paperclip } from "lucide-react";
 import { useToast, useFormatDate } from "@/hooks";
 import { Label } from "@/components/ui/label";
@@ -33,7 +37,7 @@ import { SuperJSON } from "@/lib/superjson";
 interface CashTransferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  cashAccounts: CashAccount[];
+  paymentMethodAccounts: OperationalPaymentMethodAccount[];
   onSuccess: () => void;
   transfer?: CashTransfer;
   viewOnly?: boolean;
@@ -42,7 +46,7 @@ interface CashTransferDialogProps {
 export function CashTransferDialog({
   open,
   onOpenChange,
-  cashAccounts,
+  paymentMethodAccounts,
   onSuccess,
   transfer,
   viewOnly,
@@ -177,8 +181,22 @@ export function CashTransferDialog({
     });
   };
 
-  const accountOptions = cashAccounts.map((acc) => ({
-    label: acc.name,
+  const accountOptions = paymentMethodAccounts.map((acc) => ({
+    label: (
+      <div className="flex w-full items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate">{acc.name}</div>
+          <div className="truncate text-xs text-muted-foreground">
+            {[acc.bankName, acc.accountNumber, acc.glName]
+              .filter(Boolean)
+              .join(" • ") || acc.glName}
+          </div>
+        </div>
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {acc.method}
+        </span>
+      </div>
+    ),
     value: acc.id,
   }));
 

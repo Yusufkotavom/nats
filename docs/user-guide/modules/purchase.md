@@ -2,8 +2,8 @@
 title: Modul Purchase
 module: purchase
 order: 130
-updatedAt: 2026-05-13
-summary: Panduan lengkap proses pembelian dari PO sampai pembayaran dengan contoh praktis.
+updatedAt: 2026-06-02
+summary: Panduan lengkap proses pembelian dari PO sampai pembayaran dengan follow-up dokumen yang saling terhubung.
 related: modules/inventory,modules/cash-bank,modules/accounting
 ---
 
@@ -66,6 +66,14 @@ Notes: Pembelian rutin bulanan
 2. **Buka PO yang submitted**
 3. **Klik "Approve"** - Status berubah ke "Approved"
 
+### 1.6 Follow-up Action dari PO
+- Setelah PO berstatus `ISSUED` atau `PARTIALLY_RECEIVED`, form PO menyediakan action kontekstual:
+  - `Create Receive` / `Open Receive`
+  - `Create Invoice` / `Open Invoice`
+  - `Create Payment` / `Open Payment`
+- Tombol akan otomatis berubah menjadi `Open ...` jika dokumen turunan sudah ada.
+- Untuk `Invoice`, sistem menjaga **1 PO hanya boleh punya 1 Purchase Invoice** agar tidak ada invoice ganda dari order yang sama.
+
 ## 📦 Langkah 2: Receive (Penerimaan Barang)
 
 ### 2.1 Akses Receive
@@ -98,6 +106,11 @@ Notes: Pembelian rutin bulanan
 ### 3.1 Buat Invoice dari Receive
 1. **Buka Receive yang sudah diproses**
 2. **Klik "Create Invoice"**
+
+Catatan operasional:
+- Form `Purchase Invoice` juga bisa dibuka langsung dari action di `Purchase Order`.
+- Jika dibuka dari PO, item dan vendor akan terisi otomatis dari order sumber.
+- Setelah invoice baru berhasil dibuat, sistem membuka dokumen invoice tersebut langsung, bukan kembali ke list.
 
 ### 3.2 Isi Data Invoice
 ```
@@ -132,6 +145,10 @@ Reference: PO-2024-001
 ### 4.1 Buat Payment
 1. **Navigasi**: Purchase → Payments
 2. **Klik "Create New Payment"**
+
+Catatan operasional:
+- Jika invoice sudah ada, tombol `Create Payment` dari `Purchase Order` akan membuka form payment dengan invoice sumber sudah terpilih.
+- Jika payment untuk invoice tersebut sudah pernah dibuat, tombol di PO berubah menjadi `Open Payment`.
 
 ### 4.2 Pilih Invoice untuk Dibayar
 ```

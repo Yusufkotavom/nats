@@ -2,17 +2,22 @@
 title: Modul Cash & Bank
 module: cash-bank
 order: 140
-updatedAt: 2026-05-30
-summary: Manajemen kas, bank, transfer, dan transaksi kas harian.
+updatedAt: 2026-06-02
+summary: Monitoring saldo, transfer, dan transaksi kas harian dengan setup akun melalui Payment Method.
 related: modules/sales,modules/purchase,modules/accounting
 ---
 
 # Modul Cash & Bank
 
 ## Fungsi
-- Cash account
+- Monitoring saldo kas/bank
 - Cash transaction
-- Transfer antar akun
+- Transfer antar akun operasional
+
+## Setup Akun
+- Pengelolaan akun kas/bank operasional sekarang dipusatkan di halaman `Payment Method` (`/payment-method`).
+- Halaman `Cash & Bank` tidak lagi menjadi tempat master akun agar tidak terjadi dual pengelolaan.
+- Form `Transaction` dan `Transfer` tetap memakai akun kas/bank yang sama di backend, tetapi pilihannya diambil dari katalog `Payment Method`.
 
 ## Validasi
 - Saldo akun berubah sesuai transaksi.
@@ -22,7 +27,7 @@ related: modules/sales,modules/purchase,modules/accounting
 - Di halaman `Cash & Bank > Transaction > New`, mode default adalah **Simple**.
 - User cukup isi:
   - tipe transaksi (`INCOME`/`EXPENSE`),
-  - akun kas/bank,
+  - akun kas/bank dari daftar `Payment Method`,
   - kategori,
   - nominal,
   - deskripsi.

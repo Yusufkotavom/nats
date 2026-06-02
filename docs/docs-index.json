@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-01T23:10:00Z",
+  "updatedAt": "2026-06-02T10:00:00Z",
   "policy": {
     "changelogRequired": true,
     "docUpdateRequiredOnBehaviorChange": true,
@@ -113,6 +113,28 @@
         "restaurant pos scope changed",
         "table-room-kitchen workflow changed",
         "phase roadmap changed"
+      ]
+    },
+    {
+      "id": "superpowers-purchase-invoice-sales-parity-design",
+      "path": "docs/superpowers/specs/2026-06-02-purchase-invoice-sales-parity-design.md",
+      "type": "design-spec",
+      "status": "active",
+      "mustUpdateWhen": [
+        "purchase invoice parity scope changed",
+        "product relation contract changed",
+        "responsive parity approach changed"
+      ]
+    },
+    {
+      "id": "superpowers-purchase-invoice-sales-parity-plan",
+      "path": "docs/superpowers/plans/2026-06-02-purchase-invoice-sales-parity.md",
+      "type": "implementation-plan",
+      "status": "active",
+      "mustUpdateWhen": [
+        "task breakdown changed",
+        "verification plan changed",
+        "execution scope changed"
       ]
     },
     {

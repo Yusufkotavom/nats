@@ -34,7 +34,20 @@ export async function getContactMessagingContext(contactId: string) {
 
   if (!contact) return null;
 
-  const [latestInvoice, latestSalesOrder, latestServiceOrder, recentWhatsAppLogs] = await Promise.all([
+  const [
+    latestInvoice,
+    latestSalesOrder,
+    latestServiceOrder,
+    recentWhatsAppLogs,
+    salesOrders,
+    salesInvoices,
+    salesPayments,
+    serviceOrders,
+    cashTransactions,
+    purchaseOrders,
+    purchaseInvoices,
+    purchasePayments,
+  ] = await Promise.all([
     prisma.salesInvoice.findFirst({
       where: { contactId },
       include: {
@@ -83,10 +96,303 @@ export async function getContactMessagingContext(contactId: string) {
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
+    prisma.salesOrder.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        orderDate: true,
+        totalAmount: true,
+        notes: true,
+      },
+      orderBy: [{ orderDate: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    prisma.salesInvoice.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        status: true,
+        invoiceDate: true,
+        totalAmount: true,
+        balanceDue: true,
+        notes: true,
+      },
+      orderBy: [{ invoiceDate: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    prisma.salesPayment.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        paymentNumber: true,
+        paymentDate: true,
+        amount: true,
+        method: true,
+        notes: true,
+        salesInvoice: {
+          select: {
+            invoiceNumber: true,
+          },
+        },
+        cashAccount: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: [{ paymentDate: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    prisma.pOSServiceOrder.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        createdAt: true,
+        targetDate: true,
+        totalAmount: true,
+        paidAmount: true,
+        remainingAmount: true,
+        notes: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.cashTransaction.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        date: true,
+        reference: true,
+        description: true,
+        note: true,
+        cashAccount: {
+          select: {
+            name: true,
+          },
+        },
+        allocations: {
+          select: {
+            amount: true,
+          },
+        },
+      },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    prisma.purchaseOrder.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        orderDate: true,
+        totalAmount: true,
+        notes: true,
+      },
+      orderBy: [{ orderDate: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    prisma.purchaseInvoice.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        status: true,
+        invoiceDate: true,
+        totalAmount: true,
+        notes: true,
+      },
+      orderBy: [{ invoiceDate: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
+    prisma.purchasePayment.findMany({
+      where: { contactId },
+      select: {
+        id: true,
+        paymentNumber: true,
+        paymentDate: true,
+        amount: true,
+        notes: true,
+        purchaseInvoice: {
+          select: {
+            invoiceNumber: true,
+          },
+        },
+        cashAccount: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: [{ paymentDate: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    }),
   ]);
+
+  const transactionHistory = [
+    ...salesOrders.map((order) => ({
+      id: `sales-order-${order.id}`,
+      area: "Sales",
+      type: "Sales Order",
+      documentNumber: order.orderNumber,
+      status: order.status,
+      amount: Number(order.totalAmount || 0),
+      balanceDue: null as number | null,
+      happenedAt: order.orderDate,
+      detail: order.notes || "-",
+      href: `/sales/orders/${order.id}`,
+    })),
+    ...salesInvoices.map((invoice) => ({
+      id: `sales-invoice-${invoice.id}`,
+      area: "Sales",
+      type: "Sales Invoice",
+      documentNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      amount: Number(invoice.totalAmount || 0),
+      balanceDue: Number(invoice.balanceDue || 0),
+      happenedAt: invoice.invoiceDate,
+      detail: invoice.notes || "-",
+      href: `/sales/invoices/${invoice.id}`,
+    })),
+    ...salesPayments.map((payment) => ({
+      id: `sales-payment-${payment.id}`,
+      area: "Sales",
+      type: "Sales Payment",
+      documentNumber: payment.paymentNumber,
+      status: "POSTED",
+      amount: Number(payment.amount || 0),
+      balanceDue: null as number | null,
+      happenedAt: payment.paymentDate,
+      detail: [
+        payment.salesInvoice?.invoiceNumber
+          ? `Invoice ${payment.salesInvoice.invoiceNumber}`
+          : null,
+        payment.cashAccount?.name || null,
+        payment.method || null,
+        payment.notes || null,
+      ]
+        .filter(Boolean)
+        .join(" • ") || "-",
+      href: `/sales/payments/${payment.id}`,
+    })),
+    ...serviceOrders.map((order) => ({
+      id: `service-order-${order.id}`,
+      area: "Service",
+      type: "Service Order",
+      documentNumber: order.orderNumber,
+      status: order.status,
+      amount: Number(order.totalAmount || 0),
+      balanceDue: Number(order.remainingAmount || 0),
+      happenedAt: order.createdAt,
+      detail: [
+        order.targetDate
+          ? `Target ${order.targetDate.toISOString().slice(0, 10)}`
+          : null,
+        order.notes || null,
+      ]
+        .filter(Boolean)
+        .join(" • ") || "-",
+      href: null as string | null,
+    })),
+    ...cashTransactions.map((transaction) => ({
+      id: `cash-transaction-${transaction.id}`,
+      area: "Cash",
+      type: transaction.type === "INCOME" ? "Cash Income" : "Cash Expense",
+      documentNumber: transaction.reference || transaction.id,
+      status: transaction.status,
+      amount: transaction.allocations.reduce(
+        (sum, item) => sum + Number(item.amount || 0),
+        0,
+      ),
+      balanceDue: null as number | null,
+      happenedAt: transaction.date,
+      detail: [
+        transaction.cashAccount?.name || null,
+        transaction.description || null,
+        transaction.note || null,
+      ]
+        .filter(Boolean)
+        .join(" • ") || "-",
+      href: null as string | null,
+    })),
+    ...purchaseOrders.map((order) => ({
+      id: `purchase-order-${order.id}`,
+      area: "Purchase",
+      type: "Purchase Order",
+      documentNumber: order.orderNumber,
+      status: order.status,
+      amount: Number(order.totalAmount || 0),
+      balanceDue: null as number | null,
+      happenedAt: order.orderDate,
+      detail: order.notes || "-",
+      href: `/purchase/orders/${order.id}`,
+    })),
+    ...purchaseInvoices.map((invoice) => ({
+      id: `purchase-invoice-${invoice.id}`,
+      area: "Purchase",
+      type: "Purchase Invoice",
+      documentNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      amount: Number(invoice.totalAmount || 0),
+      balanceDue: null as number | null,
+      happenedAt: invoice.invoiceDate,
+      detail: invoice.notes || "-",
+      href: `/purchase/invoices/${invoice.id}`,
+    })),
+    ...purchasePayments.map((payment) => ({
+      id: `purchase-payment-${payment.id}`,
+      area: "Purchase",
+      type: "Purchase Payment",
+      documentNumber: payment.paymentNumber,
+      status: "POSTED",
+      amount: Number(payment.amount || 0),
+      balanceDue: null as number | null,
+      happenedAt: payment.paymentDate,
+      detail: [
+        payment.purchaseInvoice?.invoiceNumber
+          ? `Invoice ${payment.purchaseInvoice.invoiceNumber}`
+          : null,
+        payment.cashAccount?.name || null,
+        payment.notes || null,
+      ]
+        .filter(Boolean)
+        .join(" • ") || "-",
+      href: `/purchase/payments/${payment.id}`,
+    })),
+  ].sort(
+    (a, b) => b.happenedAt.getTime() - a.happenedAt.getTime(),
+  );
+
+  const totalSalesInvoiced = salesInvoices.reduce(
+    (sum, invoice) => sum + Number(invoice.totalAmount || 0),
+    0,
+  );
+  const totalSalesPaid = salesPayments.reduce(
+    (sum, payment) => sum + Number(payment.amount || 0),
+    0,
+  );
+  const outstandingBalance = salesInvoices.reduce(
+    (sum, invoice) => sum + Number(invoice.balanceDue || 0),
+    0,
+  );
 
   return {
     contact,
+    summary: {
+      totalTransactions: transactionHistory.length,
+      totalSalesInvoiced,
+      totalSalesPaid,
+      outstandingBalance,
+      lastTransactionAt: transactionHistory[0]?.happenedAt ?? null,
+    },
+    transactionHistory,
     latestInvoice: latestInvoice
       ? {
           id: latestInvoice.id,

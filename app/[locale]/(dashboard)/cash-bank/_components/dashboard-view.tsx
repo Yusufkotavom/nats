@@ -1,19 +1,16 @@
 "use client";
 
-import { CashAccountList } from "./cash-account-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Wallet,
   Building2,
   ArrowRight,
-  LayoutDashboard,
-  List,
+  Settings2,
 } from "lucide-react";
 import { useFormatCurrency, useFormatDate } from "@/hooks";
 import { DataTable, Column } from "@/components/ui/data-table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getDashboardStats } from "../actions";
 import { useQuery } from "@tanstack/react-query";
@@ -108,7 +105,7 @@ export function DashboardView() {
     return <Skeleton className="h-[400px] w-full" />;
   }
 
-  const { accounts, summary, recentTransactions } = stats;
+  const { summary, recentTransactions } = stats;
 
   return (
     <div className="space-y-6">
@@ -116,90 +113,85 @@ export function DashboardView() {
         <h1 className="text-xl font-bold tracking-tight">{t("cash_bank")}</h1>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            {t("overview")}
-          </TabsTrigger>
-          <TabsTrigger value="accounts">
-            <List className="mr-2 h-4 w-4" />
-            {t("accounts")}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-8">
-          {/* Summary Cards */}
-          <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-            <Card className="bg-linear-to-br from-primary/10 to-primary/5 border-primary/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Wallet className="h-4 w-4" /> {t("total_balance")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {formatCurrency(summary.totalBalance)}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Wallet className="h-4 w-4" /> {t("cash_on_hand")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(summary.totalCash)}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> {t("bank_balance")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(summary.totalBank)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tight">
-                {t("recent_transactions")}
-              </h2>
-              <Button variant="ghost" asChild>
-                <Link href="/accounting/journal-entries">
-                  {t("view_all")} <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+      <div className="space-y-8">
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Settings2 className="h-4 w-4" />
+                Payment Method Sebagai Source of Truth
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Pengelolaan akun kas/bank operasional dipusatkan di halaman Payment Method agar tidak ada master ganda dengan Cash &amp; Bank.
+              </p>
             </div>
-            <Card className="p-0">
-              <CardContent className="p-0">
-                <DataTable
-                  data={recentTransactions || []}
-                  columns={columns}
-                  emptyMessage={t("no_recent_transactions")}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+            <Button asChild>
+              <Link href="/payment-method">Buka Payment Method</Link>
+            </Button>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="accounts">
-          <CashAccountList
-            accounts={accounts}
-            title={t("manage_accounts")}
-          />
-        </TabsContent>
-      </Tabs>
+        <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+          <Card className="bg-linear-to-br from-primary/10 to-primary/5 border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Wallet className="h-4 w-4" /> {t("total_balance")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {formatCurrency(summary.totalBalance)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Wallet className="h-4 w-4" /> {t("cash_on_hand")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(summary.totalCash)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> {t("bank_balance")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatCurrency(summary.totalBank)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight">
+              {t("recent_transactions")}
+            </h2>
+            <Button variant="ghost" asChild>
+              <Link href="/accounting/journal-entries">
+                {t("view_all")} <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+          <Card className="p-0">
+            <CardContent className="p-0">
+              <DataTable
+                data={recentTransactions || []}
+                columns={columns}
+                emptyMessage={t("no_recent_transactions")}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -379,6 +379,13 @@ export function PurchaseOrderForm({
     ? "Draft"
     : order?.orderNumber;
   const showDimensionFields = departments.length > 0 || projects.length > 0;
+  const existingInvoice = order?.invoices?.[0];
+  const existingReceive = order?.receives?.[0];
+  const existingPayment = existingInvoice?.payments?.[0];
+  const canManageFollowups =
+    !!order &&
+    !readonly &&
+    ["ISSUED", "PARTIALLY_RECEIVED", "CLOSED"].includes(formData.status || "");
 
   useEffect(() => {
     const checkBudget = async () => {
@@ -556,6 +563,53 @@ export function PurchaseOrderForm({
               Finish
             </Button>
           )}
+
+          {canManageFollowups ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  router.push(
+                    existingReceive
+                      ? `/purchase/receives/${existingReceive.id}`
+                      : `/purchase/receives/new?purchaseOrderId=${order.id}`,
+                  )
+                }
+              >
+                {existingReceive ? "Open Receive" : "Create Receive"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  router.push(
+                    existingInvoice
+                      ? `/purchase/invoices/${existingInvoice.id}`
+                      : `/purchase/invoices/new?purchaseOrderId=${order.id}`,
+                  )
+                }
+              >
+                {existingInvoice ? "Open Invoice" : "Create Invoice"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!existingInvoice}
+                onClick={() =>
+                  existingInvoice
+                    ? router.push(
+                        existingPayment
+                          ? `/purchase/payments/${existingPayment.id}`
+                          : `/purchase/payments/new?purchaseInvoiceId=${existingInvoice.id}`,
+                      )
+                    : undefined
+                }
+              >
+                {existingPayment ? "Open Payment" : "Create Payment"}
+              </Button>
+            </>
+          ) : null}
 
           {/* Allow cancelling Drafts too */}
           {isDraft && isEditing && !readonly && (

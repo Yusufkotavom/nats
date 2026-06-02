@@ -11,6 +11,12 @@ export type PurchaseOrderWithDetails = Prisma.PurchaseOrderGetPayload<{
     closedBy: { select: { name: true } };
     cancelledBy: { select: { name: true } };
     attachments: true;
+    invoices: {
+      include: {
+        payments: true;
+      };
+    };
+    receives: true;
     items: {
       include: {
         product: {

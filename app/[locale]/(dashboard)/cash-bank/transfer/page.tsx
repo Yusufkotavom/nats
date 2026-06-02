@@ -32,7 +32,7 @@ import {
   approveCashTransfer,
   deleteCashTransfer,
   getTransfers,
-  getCashAccounts,
+  getOperationalPaymentMethodAccounts,
 } from "../actions";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
@@ -79,9 +79,9 @@ export default function TransferPage() {
     },
   });
 
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["cash-accounts"],
-    queryFn: () => getCashAccounts(),
+  const { data: paymentMethodAccounts = [] } = useQuery({
+    queryKey: ["cash-bank", "payment-method-accounts"],
+    queryFn: () => getOperationalPaymentMethodAccounts(),
   });
 
   const handleEdit = (transfer: CashTransfer) => {
@@ -341,7 +341,7 @@ export default function TransferPage() {
             setIsViewMode(false);
           }
         }}
-        cashAccounts={accounts}
+        paymentMethodAccounts={paymentMethodAccounts}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["cash-transfers"] });
           queryClient.invalidateQueries({

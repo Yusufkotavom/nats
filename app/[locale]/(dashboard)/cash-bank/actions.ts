@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   CashAccountFormData,
   CashTransferFormData,
+  OperationalPaymentMethodAccount,
   UpdateCashAccountFormData,
 } from "./types";
 import { revalidateLocalizedPath } from "@/lib/revalidate-localized-path";
@@ -28,6 +29,7 @@ import type { ActionResponse } from "@/lib/permissions/protected-action";
 import { CashAccountService } from "@/modules/cash-bank/services/cash-account.service";
 import { CashTransferService } from "@/modules/cash-bank/services/cash-transfer.service";
 import { CashAccountSyncService } from "@/modules/cash-bank/services/cash-account-sync.service";
+import { PaymentMethodCatalogService } from "@/modules/cash-bank/services/payment-method-catalog.service";
 import { Decimal } from "decimal.js";
 import { getSession } from "@/lib/auth/auth";
 import { hasPermission } from "@/lib/permissions/utils";
@@ -205,6 +207,21 @@ export async function getCashAccounts() {
     },
   });
   return accounts;
+}
+
+export async function getOperationalPaymentMethodAccounts(): Promise<
+  OperationalPaymentMethodAccount[]
+> {
+  const session = await getSession();
+  if (
+    !session ||
+    !session.activeCompanyId ||
+    !hasPermission(session.permissions, "cash_bank.view")
+  ) {
+    return [];
+  }
+
+  return PaymentMethodCatalogService.list(session.activeCompanyId);
 }
 
 export async function getCashAccount(id: string) {

@@ -75,6 +75,7 @@ model Product {
   inventoryMovementDetails InventoryMovementDetail[]
 
   purchaseOrderItems   PurchaseOrderItem[]
+  purchaseInvoiceItems PurchaseInvoiceItem[]
   purchaseReceiveItems PurchaseReceiveItem[]
   purchaseReturnItems  PurchaseReturnItem[]
 

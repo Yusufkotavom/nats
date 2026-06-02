@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   processPOSTransaction,
+  createPOSPreOrder,
   holdOrder,
   sendOrderToKitchen,
   getPOSContacts,
@@ -54,6 +55,7 @@ import { normalizePhoneForWhatsApp } from "./contact-communication";
 import { SuperJSON } from "@/lib/superjson";
 import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
+import { useDebounce } from "use-debounce";
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -108,6 +110,7 @@ export function CartView({
     useState<KitchenTicketPrintPayload | null>(null);
   const [kitchenNote, setKitchenNote] = useState("");
   const [selectedContactId, setSelectedContactId] = useState<string | undefined>();
+  const [contactSearchQuery, setContactSearchQuery] = useState("");
   const [quickContactOpen, setQuickContactOpen] = useState(false);
   const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState("");
@@ -127,12 +130,13 @@ export function CartView({
     contactId: string;
     sourceId: string;
   } | null>(null);
+  const [debouncedContactSearch] = useDebounce(contactSearchQuery, 250);
   const router = useRouter();
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ["pos-contacts"],
+    queryKey: ["pos-contacts", debouncedContactSearch],
     queryFn: async () => {
-      const raw = await getPOSContacts();
+      const raw = await getPOSContacts(debouncedContactSearch, 200);
       return SuperJSON.deserialize<POSContactOption[]>(raw);
     },
   });
@@ -207,6 +211,7 @@ export function CartView({
   );
 
   const handleCheckout = async (
+    mode: "PAY_NOW" | "PRE_ORDER",
     method: "CASH" | "BANK" | "CARD" | "QRIS",
     amount: number,
     customerId?: string,
@@ -223,37 +228,52 @@ export function CartView({
         discount: item.discount,
       }));
 
-      const result = await processPOSTransaction(
-        session.id,
-        cartItems,
-        method,
-        amount,
-        globalDiscount,
-        {
-          lines: feeLines.map((line) => ({
-            name: line.name,
-            category: line.category,
-            valueType: line.valueType,
-            value: line.value,
-            amount: line.amount,
-          })),
-        },
-        customerId,
-        selectedDiningSpotId,
-        cashAccountId,
-      );
+      const feePayload = {
+        lines: feeLines.map((line) => ({
+          name: line.name,
+          category: line.category,
+          valueType: line.valueType,
+          value: line.value,
+          amount: line.amount,
+        })),
+      };
+      const result =
+        mode === "PRE_ORDER"
+          ? await createPOSPreOrder(
+              session.id,
+              cartItems,
+              globalDiscount,
+              feePayload,
+              customerId,
+              selectedDiningSpotId,
+            )
+          : await processPOSTransaction(
+              session.id,
+              cartItems,
+              method,
+              amount,
+              globalDiscount,
+              feePayload,
+              customerId,
+              selectedDiningSpotId,
+              cashAccountId,
+            );
 
       if (!result.success) {
         throw new Error(result.error || t("transaction_failed"));
       }
 
       toast({
-        title: t("transaction_success"),
+        title: mode === "PRE_ORDER" ? "Pre-order created" : t("transaction_success"),
         description: result.data?.outbox.processed ? (
-          t("paid_via", { amount: formatCurrency(amount), method })
+          mode === "PRE_ORDER"
+            ? "Invoice pre-order berhasil dibuat (belum dibayar)."
+            : t("paid_via", { amount: formatCurrency(amount), method })
         ) : (
           <span>
-            {t("paid_via", { amount: formatCurrency(amount), method })}.{" "}
+            {mode === "PRE_ORDER"
+              ? "Invoice pre-order berhasil dibuat (belum dibayar)."
+              : t("paid_via", { amount: formatCurrency(amount), method })}.{" "}
             {t("queued_processing")}.{" "}
             {result.data?.outbox.outboxIds?.[0] ? (
               <Link
@@ -279,7 +299,7 @@ export function CartView({
 
         if (invoice?.contact) {
           const preview = await buildCompanyCommunicationPreview({
-            eventKey: "POS_PAYMENT_POSTED",
+            eventKey: mode === "PRE_ORDER" ? "SALES_INVOICE_ISSUED" : "POS_PAYMENT_POSTED",
             vars: {
               customer_name: invoice.contact.name || "Pelanggan",
               doc_number: latestPayment?.paymentNumber || invoice.invoiceNumber || "-",
@@ -823,13 +843,15 @@ export function CartView({
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         totalAmount={total}
+        allowPreOrder
         paymentMethods={paymentMethods}
         contacts={contacts}
         selectedContactId={selectedContactId}
         onSelectedContactChange={setSelectedContactId}
+        onContactSearch={setContactSearchQuery}
         onQuickCreateContact={() => setQuickContactOpen(true)}
-        onConfirm={(method, amount, customerId, cashAccountId) =>
-          handleCheckout(method, amount, customerId, cashAccountId)
+        onConfirm={(mode, method, amount, customerId, cashAccountId) =>
+          handleCheckout(mode, method, amount, customerId, cashAccountId)
         }
       />
 

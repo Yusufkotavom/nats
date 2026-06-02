@@ -40,7 +40,12 @@ Menjamin sinkronisasi penjualan POS ke persediaan secara terukur untuk operasion
 - Form stock adjustment dan movement inventory hanya memproses warehouse + produk milik company aktif.
 - Unik nama `Category`/`Warehouse` berlaku per company (`companyId + name`), bukan global lintas tenant.
 
-## Ekstensi Service (Modul `/services`)
+## Ekstensi Service (Modul `/services`) - Deprecated
+
+Status per 2026-06-01:
+- Route `/services/*` dan flow POS-service lama ditandai **deprecated permanen** dan diblok dari operasional harian.
+- Modul ini dipertahankan sementara hanya sebagai artefak transisi kode sebelum penghapusan penuh.
+- Alur baru untuk kebutuhan order bertahap diarahkan ke POS pre-order action (`POSTransactionService.issueInvoiceOnly`) dari surface POS.
 
 Selain flow restoran meja/dapur, aplikasi mendukung workflow jasa (contoh: percetakan/ATK/service job) melalui modul dashboard `/services`:
 
@@ -64,6 +69,7 @@ Kontrak operasional tambahan untuk use case percetakan + service HP/komputer:
 Catatan arsitektur:
 - Panel service di POS kasir (`/pos`) sudah dihapus untuk mencegah flow ganda dan kebingungan user.
 - Source of truth operasional service ada di route `/services/*` (orders, invoices, payments, returns-warranty).
+- Opsi pre-order hanya boleh muncul pada checkout tab Kasir POS; surface pembayaran lain yang reuse dialog checkout harus payment-only agar tidak memicu branch UI palsu.
 
 Implementasi lanjut (fase service restoran):
 1. `Open Table` -> spot status `ORDERING`.
@@ -71,6 +77,10 @@ Implementasi lanjut (fase service restoran):
 3. `Generate Bill` (saat pelanggan minta bill) -> create invoice `ISSUED` via `POSTransactionService.issueInvoiceOnly`.
 4. `Settle Bill` -> create payment + update invoice via `POSTransactionService.settleIssuedInvoice`.
 5. `Close Table` hanya jika order restoran `PAID`.
+
+Untuk POS retail/non-meja:
+1. Checkout mode `Pre-Order` di tab Kasir membuat invoice `ISSUED` via `POSTransactionService.issueInvoiceOnly`.
+2. Pelunasan lanjutan dilakukan dari detail invoice POS (`/pos/invoices/[id]`) dengan reuse `POSTransactionService.settleIssuedInvoice`.
 
 Catatan akuntansi:
 - Saat send-to-kitchen: belum ada jurnal kas.

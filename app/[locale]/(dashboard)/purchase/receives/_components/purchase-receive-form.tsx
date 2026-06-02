@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,6 +89,7 @@ interface PurchaseReceiveFormProps {
   products: SuperJSONResult | any[];
   purchaseOrders: SuperJSONResult | any[];
   readonly?: boolean;
+  initialPurchaseOrderId?: string;
 }
 
 export function PurchaseReceiveForm({
@@ -99,6 +100,7 @@ export function PurchaseReceiveForm({
   products: serializedProducts,
   purchaseOrders: serializedPurchaseOrders,
   readonly = false,
+  initialPurchaseOrderId,
 }: PurchaseReceiveFormProps) {
   const receive = serializedReceive
     ? SuperJSON.deserialize<PurchaseReceiveWithDetails>(serializedReceive)
@@ -190,6 +192,11 @@ export function PurchaseReceiveForm({
     subtitle: p.sku || "-",
     meta: p.purchaseUnit?.symbol || p.baseUnit?.symbol || "",
   }));
+
+  useEffect(() => {
+    if (isEditing || !initialPurchaseOrderId || formData.purchaseOrderId) return;
+    void handlePurchaseOrderChange(initialPurchaseOrderId);
+  }, [initialPurchaseOrderId, isEditing, formData.purchaseOrderId]);
 
   // When Purchase Order is selected, populate items
   const handlePurchaseOrderChange = async (poId: string) => {
@@ -285,7 +292,18 @@ export function PurchaseReceiveForm({
       }
 
       if (result.success) {
-        router.push("/purchase/receives");
+        if (isEditing && receive) {
+          router.push(`/purchase/receives/${receive.id}`);
+        } else {
+          const created = result.data
+            ? SuperJSON.deserialize<{ id: string }>(result.data)
+            : null;
+          if (created?.id) {
+            router.push(`/purchase/receives/${created.id}/edit`);
+          } else {
+            router.push("/purchase/receives");
+          }
+        }
         return true;
       } else {
         alert(result.error);

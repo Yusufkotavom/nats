@@ -227,6 +227,8 @@ model PurchaseInvoiceItem {
   id                String          @id @default(cuid())
   purchaseInvoiceId String
   purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id])
+  productId         String?
+  product           Product?        @relation(fields: [productId], references: [id])
 
   description String
   quantity    Int     @default(1)
@@ -245,6 +247,8 @@ model PurchaseInvoiceItem {
   updatedAt DateTime @updatedAt
   account   Account? @relation(fields: [accountId], references: [id])
   accountId String?
+
+  @@index([productId])
 }
 
 enum PurchaseReturnStatus {
