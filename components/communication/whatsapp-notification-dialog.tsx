@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ContactCommunicationEventType } from "@/prisma/generated/prisma/client";
 import { WhatsAppMessagePreview } from "./whatsapp-message-preview";
 
@@ -42,18 +43,28 @@ export function WhatsAppNotificationDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
           <div className="text-sm text-muted-foreground">{description}</div>
-          <WhatsAppMessagePreview message={message} />
-          <Textarea
-            value={message}
-            onChange={(event) => onMessageChange(event.target.value)}
-            className="min-h-[140px]"
-          />
+          <Tabs defaultValue="preview" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+              <TabsTrigger value="edit">Edit</TabsTrigger>
+            </TabsList>
+            <TabsContent value="preview" className="mt-2">
+              <WhatsAppMessagePreview message={message} />
+            </TabsContent>
+            <TabsContent value="edit" className="mt-2">
+              <Textarea
+                value={message}
+                onChange={(event) => onMessageChange(event.target.value)}
+                className="min-h-[200px]"
+              />
+            </TabsContent>
+          </Tabs>
           <div className="text-xs text-muted-foreground">Tujuan: +{phone}</div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
