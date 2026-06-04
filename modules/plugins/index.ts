@@ -4,6 +4,7 @@ import { aiPlugin } from "./ai";
 import { assetsPlugin } from "./assets";
 import { budgetingPlugin } from "./budgeting";
 import { cashBankPlugin } from "./cash-bank";
+import { crmPlugin } from "./crm";
 import { hrPlugin } from "./hr";
 import { inventoryPlugin } from "./inventory";
 import { posPlugin } from "./pos";
@@ -27,6 +28,7 @@ export const plugins = [
   hrPlugin,
   aiPlugin,
   adminPlugin,
+  crmPlugin,
 ];
 
 export function getNavigationBySection(): Record<NavSectionKey, NavItem[]> {
