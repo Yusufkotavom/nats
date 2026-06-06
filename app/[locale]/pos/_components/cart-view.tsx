@@ -56,6 +56,11 @@ import { SuperJSON } from "@/lib/superjson";
 import { buildCompanyCommunicationPreview } from "@/app/[locale]/communications/actions";
 import { WhatsAppNotificationDialog } from "@/components/communication/whatsapp-notification-dialog";
 import { useDebounce } from "use-debounce";
+import {
+  getCachedPOSPaymentMethods,
+  searchCachedPOSContacts,
+  usePOSLocalCache,
+} from "@/lib/local-first/pos-cache";
 
 interface CartViewProps {
   cart: POSCartItem[];
@@ -136,16 +141,36 @@ export function CartView({
   const { data: contacts = [] } = useQuery({
     queryKey: ["pos-contacts", debouncedContactSearch],
     queryFn: async () => {
-      const raw = await getPOSContacts(debouncedContactSearch, 200);
-      return SuperJSON.deserialize<POSContactOption[]>(raw);
+      try {
+        const raw = await getPOSContacts(debouncedContactSearch, 200);
+        return SuperJSON.deserialize<POSContactOption[]>(raw);
+      } catch (error) {
+        if (!sessionData?.activeCompanyId) throw error;
+        return searchCachedPOSContacts({
+          companyId: sessionData.activeCompanyId,
+          query: debouncedContactSearch,
+          limit: 200,
+        });
+      }
     },
   });
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ["pos-payment-methods"],
     queryFn: async () => {
-      const raw = await getPOSPaymentMethods();
-      return SuperJSON.deserialize<Array<{ id: string; name: string; method: "CASH" | "BANK" }>>(raw);
+      try {
+        const raw = await getPOSPaymentMethods();
+        return SuperJSON.deserialize<Array<{ id: string; name: string; method: "CASH" | "BANK" }>>(raw);
+      } catch (error) {
+        if (!sessionData?.activeCompanyId) throw error;
+        return getCachedPOSPaymentMethods(sessionData.activeCompanyId);
+      }
     },
+  });
+
+  usePOSLocalCache({
+    companyId: sessionData?.activeCompanyId,
+    contacts,
+    paymentMethods,
   });
 
   const selectedContact =

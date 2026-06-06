@@ -2,7 +2,7 @@
 title: Modul POS
 module: pos
 order: 110
-updatedAt: 2026-06-02
+updatedAt: 2026-06-06
 summary: Operasional POS terpadu untuk restoran dengan checkout instan dan mode pre-order dalam satu halaman.
 related: 03-operasional-harian,modules/inventory,modules/production,modules/sales,modules/purchase,modules/accounting
 ---
@@ -61,6 +61,13 @@ Catatan:
 4. Simpan produk.
 
 Produk service dapat dijual walau stok produk service nol.
+
+## PWA dan Cache Lokal POS
+
+- App bisa di-install sebagai PWA dari browser mobile/desktop.
+- Saat online, POS menyimpan master data yang sudah pernah dimuat ke cache lokal: produk, customer picker, dan payment method.
+- Saat koneksi gagal, POS mencoba memakai cache lokal sebagai fallback untuk pencarian produk/customer dan pilihan payment method.
+- Transaksi posted tetap harus sinkron ke server; cache lokal fase ini hanya mempercepat read/master data dan belum menjadi offline write penuh.
 
 ## Komponen Utama POS
 - **POS Session**: sesi kasir per shift.

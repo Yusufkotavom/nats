@@ -77,6 +77,7 @@ import {
 import { FloorTab } from "./floor-tab";
 import { KitchenTab } from "./kitchen-tab";
 import { BillingTab } from "./billing-tab";
+import { searchCachedPOSProducts, usePOSLocalCache } from "@/lib/local-first/pos-cache";
 
 type POSTabValue = "floor" | "cashier" | "kitchen" | "billing";
 
@@ -245,17 +246,32 @@ export function POSView({
   } = useInfiniteQuery({
     queryKey: ["pos-products", debouncedSearchQuery, selectedCategory],
     queryFn: async ({ pageParam = 1 }) => {
-      const res = await getPOSProducts(
-        pageParam as number,
-        20,
-        debouncedSearchQuery,
-        selectedCategory || undefined,
-      );
-      return SuperJSON.deserialize<{
-        items: POSProduct[];
-        total: number;
-        hasMore: boolean;
-      }>(res);
+      try {
+        const res = await getPOSProducts(
+          pageParam as number,
+          20,
+          debouncedSearchQuery,
+          selectedCategory || undefined,
+        );
+        return SuperJSON.deserialize<{
+          items: POSProduct[];
+          total: number;
+          hasMore: boolean;
+        }>(res);
+      } catch (error) {
+        if (!sessionData?.activeCompanyId) throw error;
+        const cachedItems = await searchCachedPOSProducts({
+          companyId: sessionData.activeCompanyId,
+          query: debouncedSearchQuery,
+          categoryId: selectedCategory || undefined,
+          limit: 20,
+        });
+        return {
+          items: cachedItems,
+          total: cachedItems.length,
+          hasMore: false,
+        };
+      }
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage, allPages) => {
@@ -274,6 +290,11 @@ export function POSView({
   const products = useMemo(() => {
     return productData?.pages.flatMap((page) => page.items) ?? [];
   }, [productData]);
+
+  usePOSLocalCache({
+    companyId: sessionData?.activeCompanyId,
+    products,
+  });
 
   const { data: heldOrders = [] } = useQuery({
     queryKey: ["heldOrders"],

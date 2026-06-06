@@ -100,6 +100,17 @@ Implementasi saat ini:
 
 Rujukan detail: `docs/restaurant-pos-inventory-sync.md`.
 
+## PWA + POS Local Master Cache (2026-06-06)
+
+- App expose PWA manifest (`/manifest.webmanifest`), service worker (`/sw.js`), icon SVG, dan offline shell (`/offline`) untuk installable web app serta fallback navigasi saat offline.
+- Cache runtime saat ini bersifat app-shell/static only; dokumen transaksi posted tetap server source of truth.
+- Fondasi local-first memakai Dexie (`lib/local-first/db.ts`, `lib/local-first/pos-cache.ts`) untuk cache master POS per company:
+  - `posProducts`: product POS page/search yang sudah pernah dimuat,
+  - `posContacts`: customer picker checkout,
+  - `posPaymentMethods`: cash/bank method checkout.
+- POS cashier memakai cache lokal sebagai fallback ketika action online gagal; cache diisi otomatis dari response online via `usePOSLocalCache`.
+- Fase lanjutan wajib menambah sync endpoint cursor/tombstone sebelum offline writes (`draft`, `cart`, `outbox`) diaktifkan.
+
 ## Unified POS Shell (2026-05-13)
 
 Halaman `/pos` (`app/[locale]/pos`) adalah satu shell tabbed yang menampung seluruh alur restoran — tidak ada lagi halaman terpisah untuk floor / kitchen / billing:
