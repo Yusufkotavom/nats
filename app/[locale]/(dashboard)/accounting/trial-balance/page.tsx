@@ -67,7 +67,7 @@ export default function TrialBalancePage() {
           initialExpanded[item.accountId] = true;
         }
       });
-      // eslint-disable-next-line
+       
       setExpanded(initialExpanded);
     }
   }, [items]); // items reference changes on new fetch

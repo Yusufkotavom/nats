@@ -33,7 +33,7 @@ export function NoteDialog({
     if (open) {
       setNote(value || "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [open]);
 
   const handleSave = () => {

@@ -735,7 +735,7 @@ export function ServicesDashboard({
 
   useEffect(() => {
     if (!settleMethodOptions.length) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setSettleCashAccountId("");
       return;
     }
@@ -824,7 +824,7 @@ export function ServicesDashboard({
     const rows = ordersQuery.data?.rows || [];
     const matched = rows.find((row) => row.id === initialEditOrderId);
     if (!matched) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setAutoOpenedEdit(true);
     void openEditOrder(matched.id, Number(matched.remainingAmount || 0));
   }, [initialEditOrderId, autoOpenedEdit, tab, ordersQuery.data?.rows, openEditOrder]);

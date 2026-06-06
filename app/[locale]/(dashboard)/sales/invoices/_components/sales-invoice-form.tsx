@@ -384,7 +384,7 @@ export function SalesInvoiceForm({
     }, 0);
 
     if (Math.abs(calculatedTotalTax - formData.totalTax) > 0.001) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setFormData((prev) => ({ ...prev, totalTax: calculatedTotalTax }));
     }
   }, [formData.items, formData.totalTax, taxRates]);

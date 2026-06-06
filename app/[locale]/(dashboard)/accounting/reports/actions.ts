@@ -157,7 +157,7 @@ function buildAccountHierarchy(
   accounts: Account[],
   balanceMap: Map<string, { debit: number; credit: number }>,
   previousBalanceMap: Map<string, { debit: number; credit: number }> | null,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   accountTypeMultiplier: (type: string) => number
 ) {
   const nodeMap = new Map<string, AccountNode>();
@@ -765,7 +765,7 @@ async function calculateCashFlowForPeriod(
   endDate: string
 ): Promise<CashFlowReport> {
   const start = new Date(startDate);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const end = new Date(endDate);
 
   // Operating Activities

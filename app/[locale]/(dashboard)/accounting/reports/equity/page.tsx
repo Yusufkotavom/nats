@@ -67,7 +67,7 @@ export default function EquityPage() {
 
   useEffect(() => {
     fetchReport();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const formatPercentage = (val?: number) => {
