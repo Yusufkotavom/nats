@@ -38,6 +38,7 @@ import {
   updateSalesInvoice,
   getSalesOrder,
   postSalesInvoice,
+  cancelSalesInvoice,
 } from "../actions";
 import { TaxRate } from "@/prisma/generated/prisma/client";
 import { SalesInvoiceWithDetails, SalesInvoiceInput } from "../types";
@@ -554,6 +555,38 @@ export function SalesInvoiceForm({
     }
   };
 
+  const handleCancelInvoice = async () => {
+    if (!invoice) return;
+    const confirmed = await confirm({
+      title: "Cancel invoice?",
+      description: "Invoice akan dibatalkan. Jika sudah posted, sistem membuat reversal journal otomatis.",
+    });
+    if (!confirmed) return;
+
+    setIsLoading(true);
+    try {
+      const result = await cancelSalesInvoice(invoice.id);
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to cancel invoice",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Cancelled", description: "Invoice cancelled successfully" });
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredSalesOrders = formData.contactId
     ? salesOrders.filter((so) => so.contactId === formData.contactId)
     : salesOrders;
@@ -732,6 +765,17 @@ export function SalesInvoiceForm({
                 disabled={isLoading}
               >
                 Post Invoice
+              </Button>
+            )}
+            {invoice && invoice.status !== "CANCELLED" && invoice.status !== "PAID" && invoice.status !== "PARTIALLY_PAID" && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleCancelInvoice}
+                disabled={isLoading}
+              >
+                Cancel Invoice
               </Button>
             )}
             {!readonly && (
@@ -938,11 +982,11 @@ export function SalesInvoiceForm({
                     onValueChange={(val: any) =>
                       setFormData((prev) => ({ ...prev, status: val }))
                     }
-                    disabled={
-                      readonly ||
-                      invoice.status === "PAID" ||
-                      invoice.status === "CANCELLED"
-                    }
+                      disabled={
+                        readonly ||
+                        invoice.status !== "DRAFT"
+                      }
+
                   >
                     <SelectItem value="DRAFT">Draft</SelectItem>
                     <SelectItem value="ISSUED">Issued</SelectItem>

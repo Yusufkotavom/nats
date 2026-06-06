@@ -28,7 +28,7 @@ COPY . .
 RUN npx prisma generate
 
 # Build the app
-RUN npm run build
+RUN npx next build
 
 # Production image, copy all the files and run next
 FROM base AS runner

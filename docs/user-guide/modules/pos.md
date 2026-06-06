@@ -116,7 +116,8 @@ Untuk customer yang punya nomor WhatsApp valid, sistem menampilkan popup manual 
 
 Catatan:
 - Link yang dikirim ke customer kini memakai halaman publik token-based `/id/public/t/[token]`.
-- Halaman publik memuat header company, nama + nomor HP customer, nomor order/invoice, status service/invoice/payment, dan tombol WhatsApp support ke admin.
+- Halaman publik memuat header company, nama + nomor HP customer, nomor order/invoice, status service/invoice/payment, history transaksi terkait customer, dan tombol WhatsApp support ke admin.
+- Jika dokumen tersedia, customer juga bisa mengunduh invoice/payment/receipt/work-order langsung dari halaman publik yang sama tanpa login.
 
 Jika channel WA/email tidak tersedia, sistem menampilkan warning agar data contact dilengkapi.
 

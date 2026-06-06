@@ -3,6 +3,7 @@ import { enqueueIntegrationEvent, enqueueIntegrationEventOnce } from "@/modules/
 import { SalesInvoiceInput } from "@/app/[locale]/(dashboard)/sales/invoices/types";
 import { CalculationService } from "@/lib/utils/calculation-service";
 import { generateDocumentNumber } from "@/lib/document-numbering";
+import { JournalService } from "@/modules/accounting/services/journal.service";
 
 const INITIAL_DRAFT_STATUS = "DRAFT" as const;
 
@@ -147,8 +148,8 @@ export class SalesInvoiceService {
             throw new Error("Invoice not found");
         }
 
-        if (currentInvoice.status === "PAID" || currentInvoice.status === "CANCELLED") {
-            throw new Error("Cannot edit paid or canceled invoice");
+        if (currentInvoice.status === "PAID" || currentInvoice.status === "PARTIALLY_PAID") {
+            throw new Error("Cannot edit invoices with payments");
         }
 
         // 2. Invoice Number Uniqueness Check (if changed)
@@ -167,12 +168,45 @@ export class SalesInvoiceService {
 
         // 4. Update Transaction
         return await prisma.$transaction(async (tx) => {
-            // Delete existing items
+            const hadPostedJournal = !!currentInvoice.journalEntryId;
+            const nextStatus = hadPostedJournal ? "DRAFT" : (data.status || currentInvoice.status);
+
+            if (hadPostedJournal) {
+                const existingJournal = await tx.journalEntry.findUnique({
+                    where: { id: currentInvoice.journalEntryId as string },
+                    include: {
+                        lines: {
+                            orderBy: { lineNumber: "asc" },
+                        },
+                    },
+                });
+
+                if (!existingJournal) {
+                    throw new Error("Posted journal entry not found");
+                }
+
+                const reversalJournal = await JournalService.createJournalEntry({
+                    transactionDate: new Date(),
+                    description: `Reversal of Sales Invoice #${currentInvoice.invoiceNumber}`,
+                    notes: `Auto reversal before editing invoice ${currentInvoice.invoiceNumber}`,
+                    lines: existingJournal.lines.map((line) => ({
+                        accountId: line.accountId,
+                        debitAmount: Number(line.creditAmount || 0),
+                        creditAmount: Number(line.debitAmount || 0),
+                        description: `Reversal - ${line.description || currentInvoice.invoiceNumber}`,
+                        contactId: line.contactId || undefined,
+                        departmentId: line.departmentId || undefined,
+                        projectId: line.projectId || undefined,
+                    })),
+                }, "system", tx);
+
+                await JournalService.postJournalEntry(reversalJournal.id, tx);
+            }
+
             await tx.salesInvoiceItem.deleteMany({
                 where: { salesInvoiceId: id },
             });
 
-            // Update Invoice and create new items
             const result = await tx.salesInvoice.update({
                 where: { id },
                 data: {
@@ -182,7 +216,8 @@ export class SalesInvoiceService {
                     invoiceDate: data.invoiceDate,
                     dueDate: data.dueDate,
                     notes: data.notes,
-                    status: data.status || currentInvoice.status,
+                    status: nextStatus,
+                    journalEntryId: hadPostedJournal ? null : currentInvoice.journalEntryId,
                     totalAmount: totals.totalAmount.toNumber(),
                     globalDiscount: data.globalDiscount,
                     totalTax: totals.totalTax.toNumber(),
@@ -267,6 +302,67 @@ export class SalesInvoiceService {
             }
 
             return result;
+        });
+    }
+
+    static async cancel(id: string, companyId: string, userId: string) {
+        const invoice = await prisma.salesInvoice.findFirst({
+            where: { id, companyId },
+            include: {
+                payments: true,
+                journalEntry: {
+                    include: {
+                        lines: {
+                            orderBy: { lineNumber: "asc" },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!invoice) {
+            throw new Error("Invoice not found");
+        }
+
+        if (invoice.status === "CANCELLED") {
+            return invoice;
+        }
+
+        if (invoice.payments.length > 0 || invoice.status === "PAID" || invoice.status === "PARTIALLY_PAID") {
+            throw new Error("Cannot cancel invoices with payments");
+        }
+
+        return await prisma.$transaction(async (tx) => {
+            if (invoice.journalEntry) {
+                const reversalJournal = await JournalService.createJournalEntry({
+                    transactionDate: new Date(),
+                    description: `Reversal of Sales Invoice #${invoice.invoiceNumber}`,
+                    notes: `Auto reversal from invoice cancellation ${invoice.invoiceNumber}`,
+                    lines: invoice.journalEntry.lines.map((line) => ({
+                        accountId: line.accountId,
+                        debitAmount: Number(line.creditAmount || 0),
+                        creditAmount: Number(line.debitAmount || 0),
+                        description: `Reversal - ${line.description || invoice.invoiceNumber}`,
+                        contactId: line.contactId || undefined,
+                        departmentId: line.departmentId || undefined,
+                        projectId: line.projectId || undefined,
+                    })),
+                }, userId, tx);
+
+                await JournalService.postJournalEntry(reversalJournal.id, tx);
+            }
+
+            return tx.salesInvoice.update({
+                where: { id },
+                data: {
+                    status: "CANCELLED",
+                    balanceDue: 0,
+                },
+                include: {
+                    items: true,
+                    payments: true,
+                },
+            });
         });
     }
 

@@ -760,13 +760,13 @@ export function SalesPaymentForm({
           return res;
         }}
       />
-      {postActionPaymentId ? (
+      {selectedInvoice?.id || initialData?.salesInvoiceId ? (
         <ReportPreviewDialog
           isOpen={isReportPreviewOpen}
           onOpenChange={setIsReportPreviewOpen}
-          code="SALES_PAYMENT"
-          input={{ paymentId: postActionPaymentId }}
-          title={`Sales Payment`}
+          code="SALES_INVOICE"
+          input={{ invoiceId: selectedInvoice?.id || initialData?.salesInvoiceId }}
+          title={`Sales Invoice`}
         />
       ) : null}
       <Dialog open={postActionOpen} onOpenChange={setPostActionOpen}>

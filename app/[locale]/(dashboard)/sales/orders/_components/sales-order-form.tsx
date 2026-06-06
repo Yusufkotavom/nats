@@ -306,13 +306,18 @@ export function SalesOrderForm({
     }
 
     try {
-      const raw = await createSalesOrderQuickContact({
+      const result = await createSalesOrderQuickContact({
         name: quickName.trim(),
         phone: quickPhone.trim() || undefined,
         email: quickEmail.trim() || undefined,
         address: quickAddress.trim() || undefined,
       });
-      const contact = SuperJSON.deserialize<{ id: string; name: string; phone?: string | null; address?: string | null }>(raw as any);
+
+      if (!result.success || !result.data) {
+        throw new Error(result.error || "Failed to create customer");
+      }
+
+      const contact = SuperJSON.deserialize<{ id: string; name: string; phone?: string | null; address?: string | null }>(result.data as any);
       setCustomerOptions((prev) => [{
         value: contact.id,
         label: contact.name,

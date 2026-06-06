@@ -28,6 +28,14 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 5, width: '50%' },
   totalLabel: { width: '50%', textAlign: 'right', paddingRight: 10, color: '#666' },
   totalValue: { width: '50%', textAlign: 'right', fontWeight: 'bold' },
+  paymentSection: { marginTop: 14, borderTopWidth: 1, borderTopColor: '#ddd', paddingTop: 10 },
+  paymentTitle: { fontSize: 11, fontWeight: 'bold', marginBottom: 6, color: '#112233' },
+  paymentRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 4 },
+  paymentColDate: { width: '22%' },
+  paymentColNumber: { width: '28%' },
+  paymentColMethod: { width: '25%' },
+  paymentColAmount: { width: '25%', textAlign: 'right' },
+  noteText: { marginTop: 8, fontSize: 9, color: '#444' },
   footer: { position: 'absolute', bottom: 30, left: 30, right: 30, textAlign: 'center', color: '#888', fontSize: 8, borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 10 },
 });
 
@@ -42,6 +50,12 @@ export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesIn
   const dateOptions = {
     dateFormat: company.dateFormat,
   };
+  const totalPaid = (invoice.payments || []).reduce(
+    (sum: number, payment: any) => sum + Number(payment.amount || 0),
+    0,
+  );
+  const remainingAmount = Number(invoice.balanceDue || Math.max(Number(invoice.totalAmount || 0) - totalPaid, 0));
+  const hasPayments = totalPaid > 0;
 
   return (
     <Document>
@@ -108,9 +122,40 @@ export const SalesInvoicePdf = ({ data, company, config }: ReportContext<SalesIn
             <Text style={[styles.totalValue, { fontSize: 12 }]}>{formatCurrency(invoice.totalAmount, currencyOptions)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Balance Due:</Text>
-            <Text style={[styles.totalValue, { color: 'red' }]}>{formatCurrency(invoice.balanceDue, currencyOptions)}</Text>
+            <Text style={styles.totalLabel}>Paid / DP:</Text>
+            <Text style={[styles.totalValue, { color: hasPayments ? '#0f766e' : '#666' }]}>{formatCurrency(totalPaid, currencyOptions)}</Text>
           </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Remaining:</Text>
+            <Text style={[styles.totalValue, { color: remainingAmount > 0 ? 'red' : '#0f766e' }]}>{formatCurrency(remainingAmount, currencyOptions)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.paymentSection}>
+          <Text style={styles.paymentTitle}>Payment Information</Text>
+          {hasPayments ? (
+            <>
+              <View style={styles.paymentRow}>
+                <Text style={[styles.label, styles.paymentColDate]}>DATE</Text>
+                <Text style={[styles.label, styles.paymentColNumber]}>PAYMENT NO</Text>
+                <Text style={[styles.label, styles.paymentColMethod]}>METHOD</Text>
+                <Text style={[styles.label, styles.paymentColAmount]}>AMOUNT</Text>
+              </View>
+              {invoice.payments.map((payment: any) => (
+                <View key={payment.id} style={styles.paymentRow}>
+                  <Text style={[styles.value, styles.paymentColDate]}>{formatDate(payment.paymentDate, dateOptions)}</Text>
+                  <Text style={[styles.value, styles.paymentColNumber]}>{payment.paymentNumber}</Text>
+                  <Text style={[styles.value, styles.paymentColMethod]}>{payment.cashAccount?.name || payment.method || '-'}</Text>
+                  <Text style={[styles.value, styles.paymentColAmount]}>{formatCurrency(payment.amount, currencyOptions)}</Text>
+                </View>
+              ))}
+              <Text style={styles.noteText}>
+                Invoice sudah menerima pembayaran/DP sebesar {formatCurrency(totalPaid, currencyOptions)}. Sisa tagihan: {formatCurrency(remainingAmount, currencyOptions)}.
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.noteText}>Belum ada pembayaran. Total tagihan masih harus dibayar penuh.</Text>
+          )}
         </View>
 
         <Text style={styles.footer}>

@@ -15,6 +15,12 @@ export async function getSalesInvoiceData(input: { invoiceId: string }): Promise
           product: true,
         },
       },
+      payments: {
+        orderBy: { paymentDate: "asc" },
+        include: {
+          cashAccount: true,
+        },
+      },
     },
   });
 

@@ -4,8 +4,6 @@ import { getSalesInvoiceData } from "@/app/[locale]/(dashboard)/sales/_reports/s
 import { SalesInvoicePdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-invoice/pdf";
 import { getSalesOrderData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-order/data";
 import { SalesOrderPdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-order/pdf";
-import { getSalesPaymentData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-payment/data";
-import { SalesPaymentPdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-payment/pdf";
 import { getServiceInvoiceData } from "@/app/[locale]/(dashboard)/services/_reports/service-invoice/data";
 import { ServiceInvoicePdf } from "@/app/[locale]/(dashboard)/services/_reports/service-invoice/pdf";
 import { getServiceWorkOrderData } from "@/app/[locale]/(dashboard)/services/_reports/service-work-order/data";
@@ -155,49 +153,6 @@ async function canAccessOrder(link: { companyId: string | null; contactId: strin
   return false;
 }
 
-async function canAccessPayment(link: { companyId: string | null; contactId: string | null; sourceType: string; sourceId: string }, entityId: string) {
-  if (!link.companyId) return false;
-
-  const payment = await prisma.salesPayment.findFirst({
-    where: {
-      id: entityId,
-      companyId: link.companyId,
-      ...(link.contactId ? { contactId: link.contactId } : {}),
-    },
-    select: { id: true },
-  });
-  if (payment) return payment;
-
-  if (link.sourceType === "SALES_PAYMENT" && link.sourceId === entityId) {
-    return prisma.salesPayment.findFirst({
-      where: { id: entityId, companyId: link.companyId },
-      select: { id: true },
-    });
-  }
-
-  let allowedInvoiceId: string | null = null;
-  if (link.sourceType === "SALES_INVOICE" || link.sourceType === "POS_RECEIPT") {
-    allowedInvoiceId = link.sourceId;
-  } else if (link.sourceType === "SERVICE_ORDER") {
-    const serviceOrder = await prisma.pOSServiceOrder.findFirst({
-      where: { id: link.sourceId, companyId: link.companyId },
-      select: { salesInvoiceId: true },
-    });
-    allowedInvoiceId = serviceOrder?.salesInvoiceId || null;
-  }
-
-  if (!allowedInvoiceId) return false;
-
-  return prisma.salesPayment.findFirst({
-    where: {
-      id: entityId,
-      companyId: link.companyId,
-      salesInvoiceId: allowedInvoiceId,
-    },
-    select: { id: true },
-  });
-}
-
 async function resolveSupportedDocument(link: {
   companyId: string | null;
   contactId: string | null;
@@ -263,18 +218,6 @@ async function resolveSupportedDocument(link: {
       fileName: data.invoice.invoiceNumber || "pos-receipt",
       context: data,
       component: POSReceiptPdf,
-    };
-  }
-
-  if (code === "SALES_PAYMENT") {
-    const allowed = await canAccessPayment(link, entityId);
-    if (!allowed) return null;
-    const data = await getSalesPaymentData({ paymentId: entityId });
-    return {
-      companyId: link.companyId,
-      fileName: data.payment.paymentNumber || "sales-payment",
-      context: data,
-      component: SalesPaymentPdf,
     };
   }
 

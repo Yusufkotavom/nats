@@ -211,6 +211,24 @@ export const updateSalesInvoice = authorizedAction(
   },
 );
 
+export const cancelSalesInvoice = authorizedAction(
+  "sales.edit",
+  async (id: string) => {
+    try {
+      const session = await getSession();
+      if (!session?.activeCompanyId) throw new Error("No active company selected");
+      const result = await SalesInvoiceService.cancel(id, session.activeCompanyId, session.userId);
+
+      revalidateLocalizedPath("/sales/invoices");
+      return { success: true, data: SuperJSON.serialize(result) };
+    } catch (error) {
+      console.error("Failed to cancel Invoice:", error);
+      const message = error instanceof Error ? error.message : "Failed to cancel Sales Invoice";
+      return { success: false, error: message };
+    }
+  },
+);
+
 export const deleteSalesInvoice = authorizedAction(
   "sales.delete",
   async (id: string) => {

@@ -190,9 +190,19 @@ Di halaman detail/edit Sales Invoice, gunakan tombol **Kirim WA** untuk komunika
 
 Catatan:
 - Variabel `{{doc_url}}` dari template komunikasi sekarang diarahkan ke halaman publik `/id/public/t/[token]`, bukan ke route dashboard internal.
-- Halaman publik menampilkan data singkat customer, nomor dokumen/order, status invoice/service terkait, dan tombol WhatsApp support ke admin.
+- Halaman publik sekarang menampilkan ringkasan status terbaru customer, history transaksi terbaru + penuh, serta daftar dokumen publik yang bisa diunduh langsung bila tersedia.
+- Dokumen publik mengikuti scope token customer yang sama, sehingga invoice/receipt/work-order hanya bisa diunduh dari link publik yang valid.
+- Bukti administrasi payment sekarang memakai dokumen `Sales Invoice` yang sama; tidak ada lagi PDF payment terpisah agar pengelolaan dokumen lebih gampang.
+- Dokumen `Sales Invoice` menampilkan info pembayaran/DP bila sudah ada payment: total paid/DP, daftar payment, dan sisa tagihan/kekurangan pembayaran.
 - Fitur ini fokus untuk komunikasi operasional (info invoice/tagihan), bukan campaign promo.
 - Jika nomor telepon kosong/tidak valid, sistem menampilkan warning dan WA tidak dibuka.
+
+### 3.5 Edit atau Cancel Invoice Posted
+
+- Invoice `DRAFT` bisa diedit langsung sebelum post.
+- Invoice `ISSUED` yang belum punya payment bisa diedit; sistem otomatis membuat reversal journal untuk jurnal lama lalu membuat jurnal baru saat invoice diposting ulang.
+- Invoice `ISSUED` yang belum punya payment bisa di-cancel dari tombol **Cancel Invoice**; sistem membuat reversal journal lalu mengubah status menjadi `CANCELLED`.
+- Invoice `PARTIALLY_PAID` atau `PAID` tidak bisa diedit/cancel dari invoice karena sudah terkait payment dan kas/bank.
 
 ## 💰 Langkah 4: Sales Payment
 

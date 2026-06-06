@@ -230,8 +230,10 @@ Kontrak historis modul service (sebelum deprecate) adalah:
   - preview admin dan popup kirim customer menampilkan bubble WA-style agar user tidak mengedit pesan “buta” di textarea polos.
 - URL customer yang dikirim lewat template kini sebaiknya memakai link publik token-based:
   - route publik utama: `/[locale]/public/t/[token]`
+  - route download dokumen publik: `/[locale]/public/t/[token]/documents?code=...&entityId=...`
   - token disimpan sebagai hash di model `PublicCustomerLink` dengan scope company/contact/source document
-  - halaman publik read-only menampilkan header company, ringkasan customer + dokumen, status invoice/service/payment terkait, dan CTA WhatsApp support yang otomatis menyertakan URL halaman publik tersebut.
+  - halaman publik read-only menampilkan header company, ringkasan customer + dokumen, status invoice/service/payment terkait, history transaksi terbaru/penuh, serta CTA WhatsApp support yang otomatis menyertakan URL halaman publik tersebut.
+  - unduhan invoice/receipt/work-order publik tetap dijaga oleh token yang sama; payment tidak lagi punya dokumen PDF terpisah dan harus memakai dokumen invoice sumber agar administrasi dokumen lebih mudah. Route download tetap memvalidasi scope company/contact/source sebelum PDF dihasilkan.
 - Token publik tidak bergantung pada session dashboard; auth/permission diganti dengan validasi token `revokedAt` / `expiresAt` / source ownership tenant.
 
 ### Sales Invoice WhatsApp Touchpoint (2026-05-15)
@@ -299,13 +301,20 @@ Aturan konsumsi stok terbaru (`modules/inventory/services/bom-consumption.servic
 
 ## Sales Print Coverage
 
-- Registry reporting sales kini mencakup: `SALES_ORDER`, `SALES_INVOICE`, `SALES_SHIPMENT`, `SALES_PAYMENT`, `SALES_RETURN`.
-- Seluruh flow Sales order-to-cash sekarang memiliki route print via `/reporting/preview`:
+- Registry reporting sales kini mencakup: `SALES_ORDER`, `SALES_INVOICE`, `SALES_SHIPMENT`, `SALES_RETURN`.
+- Seluruh flow Sales order-to-cash sekarang memiliki route print via `/reporting/preview` dengan invoice sebagai single document source untuk tagihan dan bukti pembayaran:
   - `/reporting/preview?code=SALES_ORDER&orderId=...`
   - `/reporting/preview?code=SALES_INVOICE&invoiceId=...`
   - `/reporting/preview?code=SALES_SHIPMENT&shipmentId=...`
-  - `/reporting/preview?code=SALES_PAYMENT&paymentId=...`
   - `/reporting/preview?code=SALES_RETURN&returnId=...`
+- Form `Sales Payment` dan link dokumen publik payment kini diarahkan ke `Sales Invoice` terkait, bukan template `SALES_PAYMENT` terpisah.
+- Template `Sales Invoice` memuat data payment terkait agar satu dokumen menampilkan total paid/DP, daftar pembayaran, dan remaining amount.
+
+## Sales Invoice Edit/Cancel Accounting Guard
+
+- `Sales Invoice` yang sudah posted boleh dibatalkan selama belum punya payment; sistem membuat reversal journal dari journal invoice asli lalu mengubah status invoice menjadi `CANCELLED`.
+- Edit invoice posted tanpa payment memakai flow aman: buat reversal journal untuk jurnal lama, clear link `journalEntryId`, update invoice/items, lalu enqueue `SALES_INVOICE_ISSUED` agar jurnal baru dibuat dari data revisi.
+- Invoice `PAID` atau `PARTIALLY_PAID` tetap tidak bisa diedit/cancel sampai payment diselesaikan secara terpisah agar piutang dan kas/bank tidak rusak.
 
 ## Sales Picker Standard
 

@@ -2,7 +2,6 @@ import { getSalesOrderData } from "@/app/[locale]/(dashboard)/sales/_reports/sal
 import { getPurchaseOrderData } from "@/app/[locale]/(dashboard)/purchase/_reports/purchase-order/data";
 import { getSalesInvoiceData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-invoice/data";
 import { getSalesShipmentData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-shipment/data";
-import { getSalesPaymentData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-payment/data";
 import { getSalesReturnData } from "@/app/[locale]/(dashboard)/sales/_reports/sales-return/data";
 import { getJournalEntryData } from "@/app/[locale]/(dashboard)/accounting/_reports/journal-entry/data";
 import { getPOSReceiptData } from "@/app/[locale]/pos/_reports/receipt/data";
@@ -22,7 +21,6 @@ export const serverRegistry = {
   PURCHASE_ORDER: { fetchData: getPurchaseOrderData },
   SALES_INVOICE: { fetchData: getSalesInvoiceData },
   SALES_SHIPMENT: { fetchData: getSalesShipmentData },
-  SALES_PAYMENT: { fetchData: getSalesPaymentData },
   SALES_RETURN: { fetchData: getSalesReturnData },
   JOURNAL_ENTRY: { fetchData: getJournalEntryData },
   POS_RECEIPT: { fetchData: getPOSReceiptData },

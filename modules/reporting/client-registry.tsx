@@ -2,7 +2,6 @@ import { SalesOrderPdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-o
 import { PurchaseOrderPdf } from "@/app/[locale]/(dashboard)/purchase/_reports/purchase-order/pdf";
 import { SalesInvoicePdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-invoice/pdf";
 import { SalesShipmentPdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-shipment/pdf";
-import { SalesPaymentPdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-payment/pdf";
 import { SalesReturnPdf } from "@/app/[locale]/(dashboard)/sales/_reports/sales-return/pdf";
 import { JournalEntryPdf } from "@/app/[locale]/(dashboard)/accounting/_reports/journal-entry/pdf";
 import { POSReceiptPdf } from "@/app/[locale]/pos/_reports/receipt/pdf";
@@ -20,7 +19,6 @@ export const clientRegistry = {
   PURCHASE_ORDER: PurchaseOrderPdf,
   SALES_INVOICE: SalesInvoicePdf,
   SALES_SHIPMENT: SalesShipmentPdf,
-  SALES_PAYMENT: SalesPaymentPdf,
   SALES_RETURN: SalesReturnPdf,
   JOURNAL_ENTRY: JournalEntryPdf,
   POS_RECEIPT: POSReceiptPdf,
